@@ -1,8 +1,7 @@
-import { supabase } from './supabase'
-
 const TOKEN_KEY = 'gth_google_token'
-const REFRESH_KEY = 'gth_google_refresh'
-const CALENDAR_SCOPES = 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events'
+const GCAL_CLIENT_ID = '272925349594-4dtb910g2m3jp2433na7r9eac297hoot.apps.googleusercontent.com'
+const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events'
+const REDIRECT_URI = window.location.origin
 
 // ── Token management ──
 
@@ -10,35 +9,47 @@ export function getStoredToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
 }
 
-export function storeTokens(accessToken: string, refreshToken?: string | null) {
+export function storeToken(accessToken: string) {
   localStorage.setItem(TOKEN_KEY, accessToken)
-  if (refreshToken) localStorage.setItem(REFRESH_KEY, refreshToken)
 }
 
 export function clearTokens() {
   localStorage.removeItem(TOKEN_KEY)
-  localStorage.removeItem(REFRESH_KEY)
 }
 
 export function isGoogleConnected(): boolean {
   return !!localStorage.getItem(TOKEN_KEY)
 }
 
-// ── Connect / Disconnect ──
+// ── Connect via Google OAuth implicit flow ──
 
-export async function connectGoogleCalendar() {
-  const { error } = await supabase.auth.linkIdentity({
-    provider: 'google',
-    options: {
-      scopes: CALENDAR_SCOPES,
-      redirectTo: window.location.origin + '/auth/callback',
-      queryParams: {
-        access_type: 'offline',
-        prompt: 'consent',
-      },
-    },
+export function connectGoogleCalendar() {
+  const params = new URLSearchParams({
+    client_id: GCAL_CLIENT_ID,
+    redirect_uri: REDIRECT_URI,
+    response_type: 'token',
+    scope: CALENDAR_SCOPE,
+    prompt: 'consent',
+    include_granted_scopes: 'true',
   })
-  if (error) throw error
+  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`
+}
+
+// ── Parse token from URL hash after redirect ──
+
+export function captureTokenFromUrl(): boolean {
+  const hash = window.location.hash
+  if (!hash || !hash.includes('access_token')) return false
+
+  const params = new URLSearchParams(hash.substring(1))
+  const token = params.get('access_token')
+  if (token) {
+    storeToken(token)
+    // Clean the URL
+    window.history.replaceState(null, '', window.location.pathname)
+    return true
+  }
+  return false
 }
 
 export function disconnectGoogle() {
@@ -50,11 +61,11 @@ export function disconnectGoogle() {
 export interface GoogleCalendarEvent {
   id: string
   title: string
-  start: string // ISO datetime or date
+  start: string
   end: string
-  startTime: string // HH:mm
+  startTime: string
   endTime: string
-  date: string // yyyy-MM-dd
+  date: string
   allDay: boolean
   location?: string
   description?: string
@@ -86,7 +97,6 @@ export async function fetchGoogleEvents(
     )
 
     if (res.status === 401) {
-      // Token expired
       clearTokens()
       return []
     }

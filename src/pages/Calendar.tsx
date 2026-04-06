@@ -250,12 +250,8 @@ export default function Calendar() {
   const goToday = () => setAnchor(new Date())
 
   /* ---- Google connect/disconnect ---- */
-  const handleConnect = async () => {
-    try {
-      await connectGoogleCalendar()
-    } catch (err: any) {
-      showToast(err?.message ?? 'Failed to connect Google', 'error')
-    }
+  const handleConnect = () => {
+    connectGoogleCalendar()
   }
 
   const handleDisconnect = () => {
