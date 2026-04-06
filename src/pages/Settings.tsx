@@ -19,6 +19,17 @@ const WEEK_STARTS = [
   { value: '0', label: 'Sunday' },
 ]
 
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="border border-border bg-surface">
+      <div className="px-5 py-3 border-b border-border">
+        <h3 className="font-[800] uppercase" style={{ fontSize: '11px', letterSpacing: '0.14em' }}>{title}</h3>
+      </div>
+      <div className="px-5 py-4 space-y-4">{children}</div>
+    </div>
+  )
+}
+
 export default function Settings() {
   const { settings, refreshSettings } = useAppStore()
 
@@ -123,16 +134,6 @@ export default function Settings() {
     showToast('Dashboard reset is not available in the web version', 'info')
     setResetCount(0)
   }, [resetCount])
-
-  /* ── Section component ── */
-  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div className="border border-border bg-surface">
-      <div className="px-5 py-3 border-b border-border">
-        <h3 className="font-[800] uppercase" style={{ fontSize: '11px', letterSpacing: '0.14em' }}>{title}</h3>
-      </div>
-      <div className="px-5 py-4 space-y-4">{children}</div>
-    </div>
-  )
 
   const inputClass = 'w-full bg-cell border border-border px-3 py-2 text-polar placeholder:text-dim focus:outline-none focus:border-dim transition-colors'
   const selectClass = 'w-full bg-cell border border-border px-3 py-2 text-polar focus:outline-none focus:border-dim transition-colors cursor-pointer'

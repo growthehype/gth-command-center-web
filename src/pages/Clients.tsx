@@ -342,6 +342,29 @@ export default function Clients() {
 }
 
 /* ========================================
+   FORM FIELD (extracted to prevent remounting)
+   ======================================== */
+
+function FormField({ label, field, type = 'text', placeholder = '', value, onChange }: {
+  label: string; field: string; type?: string; placeholder?: string
+  value: any; onChange: (field: string, val: any) => void
+}) {
+  return (
+    <div className="space-y-1">
+      <label className="label text-dim">{label}</label>
+      <input
+        type={type}
+        value={value ?? ''}
+        onChange={e => onChange(field, type === 'number' ? Number(e.target.value) : e.target.value)}
+        placeholder={placeholder}
+        className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim transition-colors"
+        style={{ fontSize: '12px' }}
+      />
+    </div>
+  )
+}
+
+/* ========================================
    CLIENT FORM (inside modal)
    ======================================== */
 
@@ -352,26 +375,12 @@ function ClientForm({
   setForm: (fn: any) => void
   onSave: () => void
 }) {
-  const set = (key: string, val: any) => setForm((prev: any) => ({ ...prev, [key]: val }))
-
-  const Field = ({ label, field, type = 'text', placeholder = '' }: { label: string; field: string; type?: string; placeholder?: string }) => (
-    <div className="space-y-1">
-      <label className="label text-dim">{label}</label>
-      <input
-        type={type}
-        value={form[field] ?? ''}
-        onChange={e => set(field, type === 'number' ? Number(e.target.value) : e.target.value)}
-        placeholder={placeholder}
-        className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim transition-colors"
-        style={{ fontSize: '12px' }}
-      />
-    </div>
-  )
+  const set = useCallback((key: string, val: any) => setForm((prev: any) => ({ ...prev, [key]: val })), [setForm])
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Name" field="name" placeholder="Client name" />
+        <FormField label="Name" field="name" placeholder="Client name" value={form.name} onChange={set} />
         <div className="space-y-1">
           <label className="label text-dim">Status</label>
           <select
@@ -385,24 +394,24 @@ function ClientForm({
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Service" field="service" placeholder="e.g. PPC Management" />
-        <Field label="Retainer" field="retainer" placeholder="e.g. $2,500/mo" />
+        <FormField label="Service" field="service" placeholder="e.g. PPC Management" value={form.service} onChange={set} />
+        <FormField label="Retainer" field="retainer" placeholder="e.g. $2,500/mo" value={form.retainer} onChange={set} />
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="MRR ($)" field="mrr" type="number" placeholder="0" />
-        <Field label="Platform" field="platform" placeholder="e.g. Google Ads" />
+        <FormField label="MRR ($)" field="mrr" type="number" placeholder="0" value={form.mrr} onChange={set} />
+        <FormField label="Platform" field="platform" placeholder="e.g. Google Ads" value={form.platform} onChange={set} />
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Primary Contact" field="contact" placeholder="Name" />
-        <Field label="Email" field="email" type="email" placeholder="email@example.com" />
+        <FormField label="Primary Contact" field="contact" placeholder="Name" value={form.contact} onChange={set} />
+        <FormField label="Email" field="email" type="email" placeholder="email@example.com" value={form.email} onChange={set} />
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Phone" field="phone" placeholder="+1..." />
-        <Field label="Website" field="website" placeholder="https://..." />
+        <FormField label="Phone" field="phone" placeholder="+1..." value={form.phone} onChange={set} />
+        <FormField label="Website" field="website" placeholder="https://..." value={form.website} onChange={set} />
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Brand Colors (JSON)" field="colors" placeholder='["#FF0000","#00FF00"]' />
-        <Field label="Tags (comma sep)" field="tags" placeholder="automotive, google" />
+        <FormField label="Brand Colors (JSON)" field="colors" placeholder='["#FF0000","#00FF00"]' value={form.colors} onChange={set} />
+        <FormField label="Tags (comma sep)" field="tags" placeholder="automotive, google" value={form.tags} onChange={set} />
       </div>
       <div className="space-y-1">
         <label className="label text-dim">Notes</label>

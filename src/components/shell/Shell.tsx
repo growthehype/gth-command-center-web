@@ -33,7 +33,7 @@ import ActivityPage from '@/pages/Activity'
 import SettingsPage from '@/pages/Settings'
 
 interface ShellProps {
-  onLock: () => void
+  onLock?: () => void
 }
 
 const pageMap: Record<string, React.ComponentType> = {
@@ -63,12 +63,7 @@ const pageMap: Record<string, React.ComponentType> = {
 }
 
 export default function Shell({ onLock }: ShellProps) {
-  const { currentPage, loadAllData, setCommandPaletteOpen, setCurrentPage, setAiPanelOpen, aiPanelOpen } = useAppStore()
-
-  // Load all data on mount
-  useEffect(() => {
-    loadAllData()
-  }, [loadAllData])
+  const { currentPage, setCommandPaletteOpen, setCurrentPage, setAiPanelOpen, aiPanelOpen } = useAppStore()
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -85,7 +80,7 @@ export default function Shell({ onLock }: ShellProps) {
           case 'k': e.preventDefault(); setCommandPaletteOpen(true); return
           case 'j': e.preventDefault(); setAiPanelOpen(!aiPanelOpen); return
           case 'n': e.preventDefault(); setCommandPaletteOpen(true); return
-          case 'l': e.preventDefault(); onLock(); return
+          case 'l': e.preventDefault(); onLock?.(); return
           case ',': e.preventDefault(); setCurrentPage('settings'); return
         }
       }
@@ -127,7 +122,7 @@ export default function Shell({ onLock }: ShellProps) {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onLock, setCommandPaletteOpen, setCurrentPage, setAiPanelOpen])
+  }, [onLock, setCommandPaletteOpen, setCurrentPage, setAiPanelOpen, aiPanelOpen])
 
   const PageComponent = pageMap[currentPage] || DailyBriefing
 

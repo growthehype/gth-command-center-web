@@ -4,7 +4,7 @@ import { format } from 'date-fns'
 import { useState, useEffect } from 'react'
 
 interface TopbarProps {
-  onLock: () => void
+  onLock?: () => void
 }
 
 export default function Topbar({ onLock }: TopbarProps) {
