@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { useAppStore, type CalendarEvent } from '@/lib/store'
-import { events as eventsApi } from '@/lib/api'
+import { useAppStore } from '@/lib/store'
 import Modal from '@/components/ui/Modal'
 import { showToast } from '@/components/ui/Toast'
 import {
@@ -20,15 +19,12 @@ import {
   subWeeks,
   eachDayOfInterval,
   isToday,
-  parseISO,
 } from 'date-fns'
 import {
-  Calendar as CalIcon,
   ChevronLeft,
   ChevronRight,
   Plus,
   Trash2,
-  Check,
   ExternalLink,
   Unplug,
 } from 'lucide-react'
@@ -39,40 +35,6 @@ import {
 
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8) // 8..20
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-
-const EVENT_TYPES = [
-  { value: 'workout', label: 'Workout' },
-  { value: 'client', label: 'Client' },
-  { value: 'discovery', label: 'Discovery' },
-  { value: 'personal', label: 'Personal' },
-  { value: 'deadline', label: 'Deadline' },
-]
-
-const RECURRING_OPTIONS = [
-  { value: '', label: 'None' },
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'biweekly', label: 'Bi-weekly' },
-  { value: 'monthly', label: 'Monthly' },
-]
-
-const TYPE_BORDER: Record<string, string> = {
-  workout: '#22C55E',
-  client: '#3B82F6',
-  discovery: '#F59E0B',
-  personal: '#888888',
-  deadline: '#FF3333',
-  google: '#4285F4',
-}
-
-const TYPE_BG: Record<string, string> = {
-  workout: 'rgba(34,197,94,0.08)',
-  client: 'rgba(59,130,246,0.08)',
-  discovery: 'rgba(245,158,11,0.08)',
-  personal: 'rgba(136,136,136,0.06)',
-  deadline: 'rgba(255,51,51,0.08)',
-  google: 'rgba(66,133,244,0.10)',
-}
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */
@@ -92,7 +54,7 @@ function pad2(n: number): string {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Blank form state                                                  */
+/*  Event form                                                        */
 /* ------------------------------------------------------------------ */
 
 interface EventForm {
@@ -100,9 +62,7 @@ interface EventForm {
   start_time: string
   end_time: string
   title: string
-  type: string
   client_id: string
-  recurring: string
 }
 
 const blankForm = (date?: string, hour?: number): EventForm => ({
@@ -110,29 +70,27 @@ const blankForm = (date?: string, hour?: number): EventForm => ({
   start_time: hour !== undefined ? `${pad2(hour)}:00` : '09:00',
   end_time: hour !== undefined ? `${pad2(hour + 1)}:00` : '10:00',
   title: '',
-  type: 'client',
   client_id: '',
-  recurring: '',
 })
 
 /* ------------------------------------------------------------------ */
-/*  Unified event type for the grid                                   */
+/*  Color helper — assign consistent colors to events                 */
 /* ------------------------------------------------------------------ */
 
-interface UnifiedEvent {
-  id: string
-  title: string
-  date: string
-  start_time: string
-  end_time: string
-  type: string
-  client_name?: string
-  client_id?: string | null
-  recurring?: string | null
-  source: 'crm' | 'google'
-  htmlLink?: string
-  allDay?: boolean
-  original?: CalendarEvent
+const EVENT_COLORS = [
+  { border: '#4285F4', bg: 'rgba(66,133,244,0.10)' },   // Google blue
+  { border: '#0F9D58', bg: 'rgba(15,157,88,0.10)' },    // Green
+  { border: '#F4B400', bg: 'rgba(244,180,0,0.10)' },    // Yellow
+  { border: '#DB4437', bg: 'rgba(219,68,55,0.10)' },    // Red
+  { border: '#AB47BC', bg: 'rgba(171,71,188,0.10)' },   // Purple
+  { border: '#00ACC1', bg: 'rgba(0,172,193,0.10)' },    // Cyan
+  { border: '#FF7043', bg: 'rgba(255,112,67,0.10)' },   // Orange
+]
+
+function eventColor(title: string) {
+  let hash = 0
+  for (let i = 0; i < title.length; i++) hash = ((hash << 5) - hash + title.charCodeAt(i)) | 0
+  return EVENT_COLORS[Math.abs(hash) % EVENT_COLORS.length]
 }
 
 /* ------------------------------------------------------------------ */
@@ -140,7 +98,7 @@ interface UnifiedEvent {
 /* ------------------------------------------------------------------ */
 
 export default function Calendar() {
-  const { events, clients, refreshEvents, refreshActivity } = useAppStore()
+  const { clients } = useAppStore()
 
   // Week navigation
   const [anchor, setAnchor] = useState(new Date())
@@ -150,102 +108,51 @@ export default function Calendar() {
 
   // Google Calendar
   const [googleConnected, setGoogleConnected] = useState(isGoogleConnected())
-  const [googleEvents, setGoogleEvents] = useState<GoogleCalendarEvent[]>([])
-  const [googleLoading, setGoogleLoading] = useState(false)
-  const [showGoogle, setShowGoogle] = useState(true)
+  const [events, setEvents] = useState<GoogleCalendarEvent[]>([])
+  const [loading, setLoading] = useState(false)
 
   // Modals
   const [modalOpen, setModalOpen] = useState(false)
-  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null)
-  const [viewingGoogleEvent, setViewingGoogleEvent] = useState<UnifiedEvent | null>(null)
+  const [viewEvent, setViewEvent] = useState<GoogleCalendarEvent | null>(null)
   const [form, setForm] = useState<EventForm>(blankForm())
   const [saving, setSaving] = useState(false)
 
-  // Load CRM events on mount
-  useEffect(() => {
-    refreshEvents()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Load Google Calendar events when connected or week changes
-  useEffect(() => {
-    if (!googleConnected || !showGoogle) return
-    setGoogleLoading(true)
-    const timeMin = weekStart.toISOString()
-    const timeMax = weekEnd.toISOString()
-    fetchGoogleEvents(timeMin, timeMax)
-      .then((events) => {
-        setGoogleEvents(events)
-        if (events.length === 0 && isGoogleConnected()) {
-          // Token might have expired
-        }
-        setGoogleLoading(false)
-      })
-      .catch(() => setGoogleLoading(false))
-  }, [googleConnected, weekStart, weekEnd, showGoogle])
-
-  // Check connection status on mount (in case token was captured from redirect)
+  // Check connection on mount
   useEffect(() => {
     setGoogleConnected(isGoogleConnected())
   }, [])
 
-  // ── Unified events ──
-  const unifiedEvents = useMemo(() => {
-    const crm: UnifiedEvent[] = events
-      .filter((ev) => {
-        try {
-          const d = parseISO(ev.date)
-          return d >= weekStart && d <= weekEnd
-        } catch { return false }
+  // Load Google events when connected or week changes
+  const loadEvents = useCallback(() => {
+    if (!isGoogleConnected()) return
+    setLoading(true)
+    fetchGoogleEvents(weekStart.toISOString(), weekEnd.toISOString())
+      .then((evts) => {
+        setEvents(evts)
+        // If we got 0 events and token might be expired, update connection status
+        if (evts.length === 0 && !isGoogleConnected()) {
+          setGoogleConnected(false)
+        }
+        setLoading(false)
       })
-      .map((ev) => ({
-        id: ev.id,
-        title: ev.title,
-        date: ev.date,
-        start_time: ev.start_time ?? '09:00',
-        end_time: ev.end_time ?? '10:00',
-        type: ev.type ?? 'client',
-        client_name: ev.client_name,
-        client_id: ev.client_id,
-        recurring: ev.recurring,
-        source: 'crm' as const,
-        original: ev,
-      }))
+      .catch(() => setLoading(false))
+  }, [weekStart, weekEnd])
 
-    const google: UnifiedEvent[] = showGoogle
-      ? googleEvents.map((ev) => ({
-          id: ev.id,
-          title: ev.title,
-          date: ev.date,
-          start_time: ev.startTime,
-          end_time: ev.endTime,
-          type: 'google',
-          source: 'google' as const,
-          htmlLink: ev.htmlLink,
-          allDay: ev.allDay,
-        }))
-      : []
-
-    return [...crm, ...google]
-  }, [events, googleEvents, weekStart, weekEnd, showGoogle])
+  useEffect(() => {
+    loadEvents()
+  }, [loadEvents])
 
   // Map events by day-hour key
   const eventMap = useMemo(() => {
-    const map: Record<string, UnifiedEvent[]> = {}
-    unifiedEvents.forEach((ev) => {
-      if (ev.allDay) {
-        // Show all-day events at 8am
-        const key = `${ev.date}_8`
-        if (!map[key]) map[key] = []
-        map[key].push(ev)
-      } else {
-        const startHour = parseInt(ev.start_time?.split(':')[0] ?? '9', 10)
-        const key = `${ev.date}_${startHour}`
-        if (!map[key]) map[key] = []
-        map[key].push(ev)
-      }
+    const map: Record<string, GoogleCalendarEvent[]> = {}
+    events.forEach((ev) => {
+      const hour = ev.allDay ? 8 : parseInt(ev.startTime?.split(':')[0] ?? '9', 10)
+      const key = `${ev.date}_${hour}`
+      if (!map[key]) map[key] = []
+      map[key].push(ev)
     })
     return map
-  }, [unifiedEvents])
+  }, [events])
 
   /* ---- Navigation ---- */
   const goPrev = () => setAnchor((a) => subWeeks(a, 1))
@@ -253,49 +160,25 @@ export default function Calendar() {
   const goToday = () => setAnchor(new Date())
 
   /* ---- Google connect/disconnect ---- */
-  const handleConnect = () => {
-    connectGoogleCalendar()
-  }
+  const handleConnect = () => connectGoogleCalendar()
 
   const handleDisconnect = () => {
     disconnectGoogle()
     setGoogleConnected(false)
-    setGoogleEvents([])
+    setEvents([])
     showToast('Google Calendar disconnected', 'info')
   }
 
-  /* ---- Open modals ---- */
+  /* ---- Create event ---- */
   const openNewEvent = useCallback((day: Date, hour: number) => {
-    setEditingEvent(null)
-    setForm(blankForm(format(day, 'yyyy-MM-dd'), hour))
-    setModalOpen(true)
-  }, [])
-
-  const openEditEvent = useCallback((ev: UnifiedEvent) => {
-    if (ev.source === 'google') {
-      setViewingGoogleEvent(ev)
+    if (!googleConnected) {
+      showToast('Connect Google Calendar first', 'warn')
       return
     }
-    if (!ev.original) return
-    setEditingEvent(ev.original)
-    setForm({
-      date: ev.date,
-      start_time: ev.start_time ?? '09:00',
-      end_time: ev.end_time ?? '10:00',
-      title: ev.title,
-      type: ev.type ?? 'client',
-      client_id: ev.client_id ?? '',
-      recurring: ev.recurring ?? '',
-    })
+    setForm(blankForm(format(day, 'yyyy-MM-dd'), hour))
     setModalOpen(true)
-  }, [])
+  }, [googleConnected])
 
-  const closeModal = () => {
-    setModalOpen(false)
-    setEditingEvent(null)
-  }
-
-  /* ---- CRUD ---- */
   const handleSave = async () => {
     if (!form.title.trim()) {
       showToast('Title is required', 'warn')
@@ -303,83 +186,48 @@ export default function Calendar() {
     }
     setSaving(true)
     try {
-      const payload = {
+      const clientName = form.client_id
+        ? clients.find(c => c.id === form.client_id)?.name
+        : null
+      const fullTitle = form.title.trim() + (clientName ? ` — ${clientName}` : '')
+
+      const ok = await createGoogleEvent({
+        title: fullTitle,
         date: form.date,
-        start_time: form.start_time,
-        end_time: form.end_time,
-        title: form.title.trim(),
-        type: form.type,
-        client_id: form.client_id || null,
-        recurring: form.recurring || null,
-      }
-      if (editingEvent) {
-        await eventsApi.update(editingEvent.id, payload)
-        showToast('Event updated', 'success')
+        startTime: form.start_time,
+        endTime: form.end_time,
+        description: clientName ? `Client: ${clientName}\n\nCreated from GTH Command Center` : 'Created from GTH Command Center',
+      })
+
+      if (ok) {
+        showToast('Event created in Google Calendar', 'success')
+        setModalOpen(false)
+        loadEvents()
       } else {
-        await eventsApi.create(payload)
-        showToast('Event created', 'success')
+        showToast('Failed to create event — try reconnecting Google Calendar', 'error')
+        setGoogleConnected(isGoogleConnected())
       }
-
-      // Also sync to Google Calendar if connected
-      if (googleConnected) {
-        const clientName = form.client_id
-          ? clients.find(c => c.id === form.client_id)?.name
-          : null
-        const gcalOk = await createGoogleEvent({
-          title: form.title.trim() + (clientName ? ` — ${clientName}` : ''),
-          date: form.date,
-          startTime: form.start_time,
-          endTime: form.end_time,
-          description: `Type: ${form.type}${clientName ? `\nClient: ${clientName}` : ''}\n\nCreated from GTH Command Center`,
-        })
-        if (gcalOk) {
-          showToast('Also added to Google Calendar', 'success')
-          // Refresh Google events
-          const timeMin = weekStart.toISOString()
-          const timeMax = weekEnd.toISOString()
-          fetchGoogleEvents(timeMin, timeMax).then(setGoogleEvents)
-        } else if (!gcalOk && isGoogleConnected()) {
-          showToast('Saved locally but Google sync failed — try reconnecting', 'warn')
-        }
-      }
-
-      await Promise.all([refreshEvents(), refreshActivity()])
-      closeModal()
-    } catch (err: any) {
-      showToast(err?.message ?? 'Failed to save event', 'error')
+    } catch {
+      showToast('Failed to create event', 'error')
     } finally {
       setSaving(false)
     }
   }
 
-  const handleDelete = async () => {
-    if (!editingEvent) return
-    setSaving(true)
-    try {
-      await eventsApi.delete(editingEvent.id)
-      showToast('Event deleted', 'success')
-      await Promise.all([refreshEvents(), refreshActivity()])
-      closeModal()
-    } catch (err: any) {
-      showToast(err?.message ?? 'Failed to delete event', 'error')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  // Delete a Google Calendar event
-  const handleDeleteGoogle = async (eventId: string) => {
+  /* ---- Delete event ---- */
+  const handleDelete = async (eventId: string) => {
     setSaving(true)
     try {
       const ok = await deleteGoogleEvent(eventId)
       if (ok) {
-        showToast('Deleted from Google Calendar', 'success')
-        setGoogleEvents(prev => prev.filter(e => e.id !== eventId))
+        showToast('Event deleted from Google Calendar', 'success')
+        setEvents(prev => prev.filter(e => e.id !== eventId))
+        setViewEvent(null)
       } else {
-        showToast('Failed to delete — try reconnecting Google', 'error')
+        showToast('Failed to delete — try reconnecting', 'error')
       }
     } catch {
-      showToast('Failed to delete Google event', 'error')
+      showToast('Failed to delete event', 'error')
     } finally {
       setSaving(false)
     }
@@ -402,24 +250,19 @@ export default function Calendar() {
           <span className="text-steel font-mono" style={{ fontSize: '13px' }}>
             {format(weekStart, 'MMM d')} — {format(weekEnd, 'MMM d, yyyy')}
           </span>
+          {loading && (
+            <span className="text-dim" style={{ fontSize: '11px' }}>Syncing...</span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
           {/* Google Calendar controls */}
           {googleConnected ? (
             <div className="flex items-center gap-2">
-              <button
-                className={`btn-ghost flex items-center gap-2 ${showGoogle ? '' : 'opacity-50'}`}
-                onClick={() => setShowGoogle(!showGoogle)}
-                title={showGoogle ? 'Hide Google events' : 'Show Google events'}
-              >
-                <div
-                  className="w-2 h-2 rounded-full"
-                  style={{ background: showGoogle ? '#4285F4' : '#555' }}
-                />
-                <span style={{ fontSize: '11px' }}>Google</span>
-                {showGoogle && <Check size={10} />}
-              </button>
+              <span className="flex items-center gap-1.5" style={{ fontSize: '11px' }}>
+                <div className="w-2 h-2 rounded-full" style={{ background: '#4285F4' }} />
+                <span className="text-steel">Google Calendar</span>
+              </span>
               <button
                 className="btn-ghost flex items-center gap-1"
                 onClick={handleDisconnect}
@@ -457,7 +300,10 @@ export default function Calendar() {
           <button
             className="btn-primary flex items-center gap-2"
             onClick={() => {
-              setEditingEvent(null)
+              if (!googleConnected) {
+                showToast('Connect Google Calendar first', 'warn')
+                return
+              }
               setForm(blankForm())
               setModalOpen(true)
             }}
@@ -468,169 +314,152 @@ export default function Calendar() {
         </div>
       </div>
 
-      {/* Google loading indicator */}
-      {googleLoading && (
-        <div className="text-dim text-center mb-2" style={{ fontSize: '11px' }}>
-          Loading Google Calendar events...
+      {/* Not connected state */}
+      {!googleConnected && (
+        <div className="flex-1 flex flex-col items-center justify-center text-center py-20">
+          <img
+            src="https://www.gstatic.com/images/branding/product/1x/calendar_2020q4_48dp.png"
+            alt=""
+            style={{ width: 48, height: 48, opacity: 0.5 }}
+            className="mb-4"
+          />
+          <h3 className="text-polar font-[700] mb-2" style={{ fontSize: '16px' }}>Connect Google Calendar</h3>
+          <p className="text-dim mb-4" style={{ fontSize: '13px', maxWidth: '340px' }}>
+            Your calendar lives in Google. Connect it to view, create, and manage events right from the command center.
+          </p>
+          <button className="btn-primary" onClick={handleConnect}>
+            Connect Google Calendar
+          </button>
         </div>
       )}
 
-      {/* ---- Calendar grid ---- */}
-      <div className="flex-1 overflow-auto">
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '60px repeat(7, 1fr)',
-            gap: '1px',
-            background: 'var(--color-border)',
-          }}
-        >
-          {/* ---- Column headers ---- */}
+      {/* ---- Calendar grid (only when connected) ---- */}
+      {googleConnected && (
+        <div className="flex-1 overflow-auto">
           <div
             style={{
-              background: 'var(--color-surface)',
-              padding: '8px',
+              display: 'grid',
+              gridTemplateColumns: '60px repeat(7, 1fr)',
+              gap: '1px',
+              background: 'var(--color-border)',
             }}
-          />
-          {days.map((day, i) => {
-            const today = isToday(day)
-            return (
-              <div
-                key={i}
-                style={{
-                  background: today ? '#000000' : 'var(--color-surface)',
-                  padding: '8px',
-                  textAlign: 'center',
-                }}
-              >
-                <span
-                  className="label-md"
-                  style={{
-                    color: today ? '#FFFFFF' : 'var(--color-steel)',
-                  }}
-                >
-                  {DAY_LABELS[i]}
-                </span>
+          >
+            {/* ---- Column headers ---- */}
+            <div style={{ background: 'var(--color-surface)', padding: '8px' }} />
+            {days.map((day, i) => {
+              const today = isToday(day)
+              return (
                 <div
-                  className="font-mono"
+                  key={i}
                   style={{
-                    fontSize: '13px',
-                    fontWeight: today ? 800 : 500,
-                    marginTop: '2px',
-                    color: today ? '#FFFFFF' : 'var(--color-steel)',
+                    background: today ? '#000000' : 'var(--color-surface)',
+                    padding: '8px',
+                    textAlign: 'center',
                   }}
                 >
-                  {format(day, 'd')}
-                </div>
-              </div>
-            )
-          })}
-
-          {/* ---- Time rows ---- */}
-          {HOURS.map((hour) => (
-            <>
-              {/* Time label */}
-              <div
-                key={`t-${hour}`}
-                style={{
-                  background: 'var(--color-cell)',
-                  padding: '4px 6px',
-                  textAlign: 'right',
-                  fontFamily: "'Space Mono', monospace",
-                  fontSize: '11px',
-                  color: 'var(--color-dim)',
-                  minHeight: '40px',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'flex-end',
-                }}
-              >
-                {hourLabel(hour)}&nbsp;{ampm(hour)}
-              </div>
-
-              {/* Day slots */}
-              {days.map((day, di) => {
-                const dateStr = format(day, 'yyyy-MM-dd')
-                const key = `${dateStr}_${hour}`
-                const slotEvents = eventMap[key] ?? []
-                const today = isToday(day)
-
-                return (
+                  <span className="label-md" style={{ color: today ? '#FFFFFF' : 'var(--color-steel)' }}>
+                    {DAY_LABELS[i]}
+                  </span>
                   <div
-                    key={`s-${hour}-${di}`}
-                    onClick={() => openNewEvent(day, hour)}
+                    className="font-mono"
                     style={{
-                      background: today
-                        ? 'var(--color-surface-2)'
-                        : 'var(--color-cell)',
-                      minHeight: '40px',
-                      padding: '2px',
-                      cursor: 'pointer',
-                      position: 'relative',
+                      fontSize: '13px',
+                      fontWeight: today ? 800 : 500,
+                      marginTop: '2px',
+                      color: today ? '#FFFFFF' : 'var(--color-steel)',
                     }}
-                    className="hover:bg-ghost transition-colors duration-100"
                   >
-                    {slotEvents.map((ev) => {
-                      const borderColor = TYPE_BORDER[ev.type] ?? '#888'
-                      const bgColor = TYPE_BG[ev.type] ?? 'rgba(136,136,136,0.08)'
-                      const isGoogle = ev.source === 'google'
-                      return (
-                        <div
-                          key={ev.id}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            openEditEvent(ev)
-                          }}
-                          style={{
-                            background: bgColor,
-                            borderLeft: `2px solid ${borderColor}`,
-                            padding: '3px 5px',
-                            fontSize: '10px',
-                            fontWeight: 600,
-                            lineHeight: 1.3,
-                            marginBottom: '1px',
-                            cursor: 'pointer',
-                            overflow: 'hidden',
-                            whiteSpace: 'nowrap',
-                            textOverflow: 'ellipsis',
-                          }}
-                          title={`${ev.title} (${ev.start_time} - ${ev.end_time})${isGoogle ? ' — Google Calendar' : ''}`}
-                        >
-                          <span style={{ color: borderColor, marginRight: '4px', fontSize: '9px' }}>
-                            {ev.allDay ? 'ALL DAY' : ev.start_time?.slice(0, 5)}
-                          </span>
-                          {ev.title}
-                          {ev.client_name && (
-                            <span style={{ color: 'var(--color-dim)', marginLeft: '4px' }}>
-                              {ev.client_name}
-                            </span>
-                          )}
-                          {isGoogle && (
-                            <ExternalLink
-                              size={8}
-                              style={{ display: 'inline', marginLeft: '4px', opacity: 0.5, verticalAlign: 'middle' }}
-                            />
-                          )}
-                        </div>
-                      )
-                    })}
+                    {format(day, 'd')}
                   </div>
-                )
-              })}
-            </>
-          ))}
-        </div>
-      </div>
+                </div>
+              )
+            })}
 
-      {/* ---- Event Modal ---- */}
-      <Modal
-        open={modalOpen}
-        onClose={closeModal}
-        title={editingEvent ? 'Edit Event' : 'New Event'}
-        width="440px"
-      >
+            {/* ---- Time rows ---- */}
+            {HOURS.map((hour) => (
+              <>
+                {/* Time label */}
+                <div
+                  key={`t-${hour}`}
+                  style={{
+                    background: 'var(--color-cell)',
+                    padding: '4px 6px',
+                    textAlign: 'right',
+                    fontFamily: "'Space Mono', monospace",
+                    fontSize: '11px',
+                    color: 'var(--color-dim)',
+                    minHeight: '40px',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'flex-end',
+                  }}
+                >
+                  {hourLabel(hour)}&nbsp;{ampm(hour)}
+                </div>
+
+                {/* Day slots */}
+                {days.map((day, di) => {
+                  const dateStr = format(day, 'yyyy-MM-dd')
+                  const key = `${dateStr}_${hour}`
+                  const slotEvents = eventMap[key] ?? []
+                  const today = isToday(day)
+
+                  return (
+                    <div
+                      key={`s-${hour}-${di}`}
+                      onClick={() => openNewEvent(day, hour)}
+                      style={{
+                        background: today ? 'var(--color-surface-2)' : 'var(--color-cell)',
+                        minHeight: '40px',
+                        padding: '2px',
+                        cursor: 'pointer',
+                        position: 'relative',
+                      }}
+                      className="hover:bg-ghost transition-colors duration-100"
+                    >
+                      {slotEvents.map((ev) => {
+                        const color = eventColor(ev.title)
+                        return (
+                          <div
+                            key={ev.id}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setViewEvent(ev)
+                            }}
+                            style={{
+                              background: color.bg,
+                              borderLeft: `2px solid ${color.border}`,
+                              padding: '3px 5px',
+                              fontSize: '10px',
+                              fontWeight: 600,
+                              lineHeight: 1.3,
+                              marginBottom: '1px',
+                              cursor: 'pointer',
+                              overflow: 'hidden',
+                              whiteSpace: 'nowrap',
+                              textOverflow: 'ellipsis',
+                            }}
+                            title={`${ev.title} (${ev.startTime} - ${ev.endTime})`}
+                          >
+                            <span style={{ color: color.border, marginRight: '4px', fontSize: '9px' }}>
+                              {ev.allDay ? 'ALL DAY' : ev.startTime?.slice(0, 5)}
+                            </span>
+                            {ev.title}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })}
+              </>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ---- New Event Modal (creates in Google) ---- */}
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="New Google Calendar Event" width="440px">
         <div className="flex flex-col gap-4">
-          {/* Title */}
           <div>
             <label className="label text-dim block mb-1">Title</label>
             <input
@@ -643,7 +472,6 @@ export default function Calendar() {
             />
           </div>
 
-          {/* Date */}
           <div>
             <label className="label text-dim block mb-1">Date</label>
             <input
@@ -655,7 +483,6 @@ export default function Calendar() {
             />
           </div>
 
-          {/* Start / End time row */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label text-dim block mb-1">Start Time</label>
@@ -679,24 +506,6 @@ export default function Calendar() {
             </div>
           </div>
 
-          {/* Type */}
-          <div>
-            <label className="label text-dim block mb-1">Type</label>
-            <select
-              className="w-full bg-cell border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim transition-colors"
-              style={{ fontSize: '13px' }}
-              value={form.type}
-              onChange={(e) => set('type', e.target.value)}
-            >
-              {EVENT_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Client (optional) */}
           <div>
             <label className="label text-dim block mb-1">Client (optional)</label>
             <select
@@ -707,99 +516,66 @@ export default function Calendar() {
             >
               <option value="">None</option>
               {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
+                <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           </div>
 
-          {/* Recurring */}
-          <div>
-            <label className="label text-dim block mb-1">Recurring</label>
-            <select
-              className="w-full bg-cell border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim transition-colors"
-              style={{ fontSize: '13px' }}
-              value={form.recurring}
-              onChange={(e) => set('recurring', e.target.value)}
-            >
-              {RECURRING_OPTIONS.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
+          <div className="flex justify-end gap-2 pt-2 border-t border-border mt-1">
+            <button className="btn-ghost" onClick={() => setModalOpen(false)} disabled={saving}>
+              Cancel
+            </button>
+            <button className="btn-primary" onClick={handleSave} disabled={saving}>
+              {saving ? 'Creating...' : 'Create Event'}
+            </button>
           </div>
+        </div>
+      </Modal>
 
-          {/* Actions */}
-          <div className="flex items-center justify-between pt-2 border-t border-border mt-1">
-            {editingEvent ? (
+      {/* ---- View Google Event Modal ---- */}
+      <Modal
+        open={!!viewEvent}
+        onClose={() => setViewEvent(null)}
+        title="Event Details"
+        width="400px"
+      >
+        {viewEvent && (
+          <div className="flex flex-col gap-4">
+            <div>
+              <h3 className="text-polar font-[700]" style={{ fontSize: '16px' }}>{viewEvent.title}</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <span className="label text-dim block mb-1">DATE</span>
+                <span className="text-polar mono" style={{ fontSize: '13px' }}>{viewEvent.date}</span>
+              </div>
+              <div>
+                <span className="label text-dim block mb-1">TIME</span>
+                <span className="text-polar mono" style={{ fontSize: '13px' }}>
+                  {viewEvent.allDay ? 'All day' : `${viewEvent.startTime} — ${viewEvent.endTime}`}
+                </span>
+              </div>
+            </div>
+            {viewEvent.location && (
+              <div>
+                <span className="label text-dim block mb-1">LOCATION</span>
+                <span className="text-polar" style={{ fontSize: '13px' }}>{viewEvent.location}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between pt-3 border-t border-border">
               <button
                 className="flex items-center gap-1 text-err hover:opacity-80 transition-opacity cursor-pointer"
                 style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' as const }}
-                onClick={handleDelete}
+                onClick={() => handleDelete(viewEvent.id)}
                 disabled={saving}
               >
                 <Trash2 size={12} />
                 Delete
               </button>
-            ) : (
-              <span />
-            )}
-            <div className="flex items-center gap-2">
-              <button className="btn-ghost" onClick={closeModal} disabled={saving}>
-                Cancel
-              </button>
-              <button className="btn-primary" onClick={handleSave} disabled={saving}>
-                {saving ? 'Saving...' : editingEvent ? 'Update' : 'Create'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </Modal>
-
-      {/* ---- Google Event Detail Modal ---- */}
-      <Modal
-        open={!!viewingGoogleEvent}
-        onClose={() => setViewingGoogleEvent(null)}
-        title="Google Calendar Event"
-        width="400px"
-      >
-        {viewingGoogleEvent && (
-          <div className="flex flex-col gap-4">
-            <div>
-              <span className="label text-dim block mb-1">EVENT</span>
-              <h3 className="text-polar font-[700]" style={{ fontSize: '16px' }}>{viewingGoogleEvent.title}</h3>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <span className="label text-dim block mb-1">DATE</span>
-                <span className="text-polar mono" style={{ fontSize: '13px' }}>{viewingGoogleEvent.date}</span>
-              </div>
-              <div>
-                <span className="label text-dim block mb-1">TIME</span>
-                <span className="text-polar mono" style={{ fontSize: '13px' }}>
-                  {viewingGoogleEvent.allDay ? 'All day' : `${viewingGoogleEvent.start_time} — ${viewingGoogleEvent.end_time}`}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between pt-3 border-t border-border">
-              <button
-                className="flex items-center gap-1 text-err hover:opacity-80 transition-opacity cursor-pointer"
-                style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' as const }}
-                onClick={() => {
-                  handleDeleteGoogle(viewingGoogleEvent.id)
-                  setViewingGoogleEvent(null)
-                }}
-                disabled={saving}
-              >
-                <Trash2 size={12} />
-                Delete from Google
-              </button>
               <button
                 className="btn-ghost flex items-center gap-2"
                 onClick={() => {
-                  if (viewingGoogleEvent.htmlLink) window.open(viewingGoogleEvent.htmlLink, '_blank')
+                  if (viewEvent.htmlLink) window.open(viewEvent.htmlLink, '_blank')
                 }}
               >
                 <ExternalLink size={12} />
