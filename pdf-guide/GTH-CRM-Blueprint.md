@@ -1430,7 +1430,7 @@ You now have the playbook. Build the tool that fits YOUR workflow. Stop paying f
 
 If you love the idea but would rather have professionals handle the build, Grow The Hype offers custom CRM builds as a service. We will design, build, and deploy your personalized CRM -- tailored to your industry, your workflow, and your brand.
 
-Visit **[growthehype.com](https://growthehype.com)** to learn more.
+Visit **[growthehype.ca](https://growthehype.ca)** to learn more.
 
 ---
 
