@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAppStore } from '@/lib/store'
 import Login from '@/pages/Login'
@@ -9,6 +9,7 @@ export default function App() {
   const user = useAppStore((s) => s.user)
   const setUser = useAppStore((s) => s.setUser)
   const loadAllData = useAppStore((s) => s.loadAllData)
+  const dataLoadedRef = useRef(false)
 
   useEffect(() => {
     // Check initial session
@@ -17,18 +18,26 @@ export default function App() {
       setLoading(false)
     })
 
-    // Listen for auth changes
+    // Listen for auth changes — only update if user actually changed
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+      const currentUser = useAppStore.getState().user
+      const newUser = session?.user ?? null
+      if (newUser?.id !== currentUser?.id) {
+        setUser(newUser)
+        dataLoadedRef.current = false
+      }
     })
 
     return () => subscription.unsubscribe()
   }, [setUser])
 
-  // Load data when user becomes authenticated
+  // Load data ONCE when user becomes authenticated
   useEffect(() => {
-    if (user) {
-      loadAllData()
+    if (user && !dataLoadedRef.current) {
+      dataLoadedRef.current = true
+      loadAllData().catch(() => {
+        console.error('Failed to load data — check Supabase tables exist')
+      })
     }
   }, [user, loadAllData])
 

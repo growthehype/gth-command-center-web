@@ -161,27 +161,34 @@ export const useAppStore = create<AppStore>((set) => ({
   setAiPanelOpen: (open) => set({ aiPanelOpen: open }),
 
   loadAllData: async () => {
-    const [clients, tasks, projects, invoices, leads, events, campaigns, contacts, meetings, services, templates, goals, activity, credentials, sops, timeEntries, settings, runningTimer] = await Promise.all([
-      clientsApi.getAll(),
-      tasksApi.getAll(),
-      projectsApi.getAll(),
-      invoicesApi.getAll(),
-      outreachApi.getAll(),
-      eventsApi.getAll(),
-      campaignsApi.getAll(),
-      contactsApi.getAll(),
-      meetingsApi.getAll(),
-      servicesApi.getAll(),
-      templatesApi.getAll(),
-      goalsApi.getAll(),
-      activityApi.getAll(50, 0),
-      credentialsApi.getAll(),
-      sopsApi.getAll(),
-      timeEntriesApi.getAll(),
-      settingsApi.getAll(),
-      timeEntriesApi.getRunning(),
-    ])
-    set({ clients, tasks, projects, invoices, leads, events, campaigns, contacts, meetings, services, templates, goals, activity, credentials, sops, timeEntries, settings, runningTimer })
+    try {
+      const safe = async <T,>(fn: () => Promise<T>, fallback: T): Promise<T> => {
+        try { return await fn() } catch { return fallback }
+      }
+      const [clients, tasks, projects, invoices, leads, events, campaigns, contacts, meetings, services, templates, goals, activity, credentials, sops, timeEntries, settings, runningTimer] = await Promise.all([
+        safe(() => clientsApi.getAll(), []),
+        safe(() => tasksApi.getAll(), []),
+        safe(() => projectsApi.getAll(), []),
+        safe(() => invoicesApi.getAll(), []),
+        safe(() => outreachApi.getAll(), []),
+        safe(() => eventsApi.getAll(), []),
+        safe(() => campaignsApi.getAll(), []),
+        safe(() => contactsApi.getAll(), []),
+        safe(() => meetingsApi.getAll(), []),
+        safe(() => servicesApi.getAll(), []),
+        safe(() => templatesApi.getAll(), []),
+        safe(() => goalsApi.getAll(), []),
+        safe(() => activityApi.getAll(50, 0), []),
+        safe(() => credentialsApi.getAll(), []),
+        safe(() => sopsApi.getAll(), []),
+        safe(() => timeEntriesApi.getAll(), []),
+        safe(() => settingsApi.getAll(), {}),
+        safe(() => timeEntriesApi.getRunning(), null),
+      ])
+      set({ clients, tasks, projects, invoices, leads, events, campaigns, contacts, meetings, services, templates, goals, activity, credentials, sops, timeEntries, settings, runningTimer })
+    } catch (err) {
+      console.error('loadAllData failed:', err)
+    }
   },
 
   refreshClients: async () => { set({ clients: await clientsApi.getAll() }) },
