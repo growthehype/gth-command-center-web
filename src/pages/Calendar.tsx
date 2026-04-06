@@ -8,6 +8,8 @@ import {
   disconnectGoogle,
   isGoogleConnected,
   fetchGoogleEvents,
+  createGoogleEvent,
+  deleteGoogleEvent,
   type GoogleCalendarEvent,
 } from '@/lib/google-calendar'
 import {
@@ -155,6 +157,7 @@ export default function Calendar() {
   // Modals
   const [modalOpen, setModalOpen] = useState(false)
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null)
+  const [viewingGoogleEvent, setViewingGoogleEvent] = useState<UnifiedEvent | null>(null)
   const [form, setForm] = useState<EventForm>(blankForm())
   const [saving, setSaving] = useState(false)
 
@@ -270,8 +273,7 @@ export default function Calendar() {
 
   const openEditEvent = useCallback((ev: UnifiedEvent) => {
     if (ev.source === 'google') {
-      // Open in Google Calendar
-      if (ev.htmlLink) window.open(ev.htmlLink, '_blank')
+      setViewingGoogleEvent(ev)
       return
     }
     if (!ev.original) return
@@ -317,6 +319,30 @@ export default function Calendar() {
         await eventsApi.create(payload)
         showToast('Event created', 'success')
       }
+
+      // Also sync to Google Calendar if connected
+      if (googleConnected) {
+        const clientName = form.client_id
+          ? clients.find(c => c.id === form.client_id)?.name
+          : null
+        const gcalOk = await createGoogleEvent({
+          title: form.title.trim() + (clientName ? ` — ${clientName}` : ''),
+          date: form.date,
+          startTime: form.start_time,
+          endTime: form.end_time,
+          description: `Type: ${form.type}${clientName ? `\nClient: ${clientName}` : ''}\n\nCreated from GTH Command Center`,
+        })
+        if (gcalOk) {
+          showToast('Also added to Google Calendar', 'success')
+          // Refresh Google events
+          const timeMin = weekStart.toISOString()
+          const timeMax = weekEnd.toISOString()
+          fetchGoogleEvents(timeMin, timeMax).then(setGoogleEvents)
+        } else if (!gcalOk && isGoogleConnected()) {
+          showToast('Saved locally but Google sync failed — try reconnecting', 'warn')
+        }
+      }
+
       await Promise.all([refreshEvents(), refreshActivity()])
       closeModal()
     } catch (err: any) {
@@ -336,6 +362,24 @@ export default function Calendar() {
       closeModal()
     } catch (err: any) {
       showToast(err?.message ?? 'Failed to delete event', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Delete a Google Calendar event
+  const handleDeleteGoogle = async (eventId: string) => {
+    setSaving(true)
+    try {
+      const ok = await deleteGoogleEvent(eventId)
+      if (ok) {
+        showToast('Deleted from Google Calendar', 'success')
+        setGoogleEvents(prev => prev.filter(e => e.id !== eventId))
+      } else {
+        showToast('Failed to delete — try reconnecting Google', 'error')
+      }
+    } catch {
+      showToast('Failed to delete Google event', 'error')
     } finally {
       setSaving(false)
     }
@@ -712,6 +756,58 @@ export default function Calendar() {
             </div>
           </div>
         </div>
+      </Modal>
+
+      {/* ---- Google Event Detail Modal ---- */}
+      <Modal
+        open={!!viewingGoogleEvent}
+        onClose={() => setViewingGoogleEvent(null)}
+        title="Google Calendar Event"
+        width="400px"
+      >
+        {viewingGoogleEvent && (
+          <div className="flex flex-col gap-4">
+            <div>
+              <span className="label text-dim block mb-1">EVENT</span>
+              <h3 className="text-polar font-[700]" style={{ fontSize: '16px' }}>{viewingGoogleEvent.title}</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <span className="label text-dim block mb-1">DATE</span>
+                <span className="text-polar mono" style={{ fontSize: '13px' }}>{viewingGoogleEvent.date}</span>
+              </div>
+              <div>
+                <span className="label text-dim block mb-1">TIME</span>
+                <span className="text-polar mono" style={{ fontSize: '13px' }}>
+                  {viewingGoogleEvent.allDay ? 'All day' : `${viewingGoogleEvent.start_time} — ${viewingGoogleEvent.end_time}`}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between pt-3 border-t border-border">
+              <button
+                className="flex items-center gap-1 text-err hover:opacity-80 transition-opacity cursor-pointer"
+                style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' as const }}
+                onClick={() => {
+                  handleDeleteGoogle(viewingGoogleEvent.id)
+                  setViewingGoogleEvent(null)
+                }}
+                disabled={saving}
+              >
+                <Trash2 size={12} />
+                Delete from Google
+              </button>
+              <button
+                className="btn-ghost flex items-center gap-2"
+                onClick={() => {
+                  if (viewingGoogleEvent.htmlLink) window.open(viewingGoogleEvent.htmlLink, '_blank')
+                }}
+              >
+                <ExternalLink size={12} />
+                Open in Google
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   )

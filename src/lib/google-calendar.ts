@@ -73,6 +73,89 @@ export interface GoogleCalendarEvent {
   source: 'google'
 }
 
+// ── Create a Google Calendar event ──
+
+export async function createGoogleEvent(params: {
+  title: string
+  date: string      // yyyy-MM-dd
+  startTime: string  // HH:mm
+  endTime: string    // HH:mm
+  description?: string
+}): Promise<boolean> {
+  const token = getStoredToken()
+  if (!token) return false
+
+  try {
+    // Build ISO datetime strings with local timezone
+    const startDt = `${params.date}T${params.startTime}:00`
+    const endDt = `${params.date}T${params.endTime}:00`
+
+    // Get the user's timezone
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+
+    const body = {
+      summary: params.title,
+      description: params.description || undefined,
+      start: { dateTime: startDt, timeZone },
+      end: { dateTime: endDt, timeZone },
+    }
+
+    const res = await fetch(
+      'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      }
+    )
+
+    if (res.status === 401) {
+      clearTokens()
+      return false
+    }
+
+    return res.ok
+  } catch (err) {
+    console.error('Failed to create Google Calendar event:', err)
+    return false
+  }
+}
+
+// ── Delete a Google Calendar event ──
+
+export async function deleteGoogleEvent(googleEventId: string): Promise<boolean> {
+  const token = getStoredToken()
+  if (!token) return false
+
+  // Strip the gcal_ prefix if present
+  const realId = googleEventId.replace('gcal_', '')
+
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${realId}`,
+      {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    )
+
+    if (res.status === 401) {
+      clearTokens()
+      return false
+    }
+
+    return res.ok || res.status === 204
+  } catch (err) {
+    console.error('Failed to delete Google Calendar event:', err)
+    return false
+  }
+}
+
+// ── Fetch Google Calendar events ──
+
 export async function fetchGoogleEvents(
   timeMin: string,
   timeMax: string
