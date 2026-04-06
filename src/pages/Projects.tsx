@@ -162,6 +162,7 @@ export default function Projects() {
 
   /* ── Delete ── */
   const handleDelete = useCallback(async (id: string) => {
+    if (!confirm('Delete this project? This cannot be undone.')) return
     await projectsApi.delete(id)
     await Promise.all([refreshProjects(), refreshActivity()])
     setEditProject(null)
@@ -241,7 +242,7 @@ export default function Projects() {
     return (
       <div className="space-y-5">
         <div className="flex items-center justify-between">
-          <h1>Projects</h1>
+          <div className="flex items-center gap-3"><h1>Projects</h1><Kanban size={14} className="text-dim" /></div>
           <button className="btn-primary flex items-center gap-2" onClick={openNew}>
             <Plus size={12} strokeWidth={2.5} />
             New Project
@@ -440,7 +441,7 @@ export default function Projects() {
     <div className="space-y-5" style={{ height: 'calc(100vh - 80px)' }}>
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1>Projects</h1>
+        <div className="flex items-center gap-3"><h1>Projects</h1><Kanban size={14} className="text-dim" /></div>
         <button className="btn-primary flex items-center gap-2" onClick={openNew}>
           <Plus size={12} strokeWidth={2.5} />
           New Project

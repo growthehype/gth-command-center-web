@@ -170,6 +170,7 @@ export default function Clients() {
 
   // Delete
   const deleteClient = async (id: string) => {
+    if (!confirm('Delete this client? This cannot be undone.')) return
     try {
       await clientsApi.delete(id)
       if (selectedId === id) setSelectedId(null)
@@ -193,7 +194,7 @@ export default function Clients() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1>Clients</h1>
+          <div className="flex items-center gap-3"><h1>Clients</h1><Building2 size={14} className="text-dim" /></div>
           <p className="text-steel mt-1" style={{ fontSize: '13px' }}>
             {clients.length} total &middot; {counts.active || 0} active
           </p>

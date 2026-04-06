@@ -130,6 +130,7 @@ export default function Invoices() {
 
   /* ── Delete ── */
   const deleteFile = async (id: string, fileName: string) => {
+    if (!confirm(`Delete "${fileName}"? This cannot be undone.`)) return
     try {
       await invoiceFiles.delete(id)
       showToast(`Deleted ${fileName}`, 'info')
@@ -172,7 +173,10 @@ export default function Invoices() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1>Invoices</h1>
+          <div className="flex items-center gap-3">
+            <h1>Invoices</h1>
+            <Receipt size={14} className="text-dim" />
+          </div>
           <p className="text-steel mt-1" style={{ fontSize: '13px' }}>
             {files.length} invoice{files.length !== 1 ? 's' : ''} across {clientsWithFiles.length} client{clientsWithFiles.length !== 1 ? 's' : ''}
           </p>

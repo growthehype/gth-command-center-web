@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { FileText, Plus, Trash2, Check, ChevronLeft } from 'lucide-react'
+import { FileText, Plus, Trash2, Check, ChevronLeft, RefreshCw } from 'lucide-react'
 import { showToast } from '@/components/ui/Toast'
 import { notes as notesApi } from '@/lib/api'
 import EmptyState from '@/components/ui/EmptyState'
@@ -135,6 +135,32 @@ export default function Notes() {
     }, 500)
   }
 
+  /* ── Go back (flush pending changes first) ── */
+  const goBack = () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+      debounceRef.current = null
+    }
+    if (activeNoteId) {
+      const updated = notes.map(n =>
+        n.id === activeNoteId ? { ...n, title, content, updated_at: new Date().toISOString() } : n
+      )
+      setNotes(updated)
+      saveAll(updated)
+    }
+    setActiveNoteId(null)
+  }
+
+  /* ── Reopen a done note ── */
+  const reopenNote = (id: string) => {
+    const updated = notes.map(n =>
+      n.id === id ? { ...n, status: 'active' as const, updated_at: new Date().toISOString() } : n
+    )
+    setNotes(updated)
+    saveAll(updated)
+    showToast('Note reopened', 'success')
+  }
+
   /* ── Mark done ── */
   const markDone = (id: string) => {
     const updated = notes.map(n =>
@@ -148,6 +174,7 @@ export default function Notes() {
 
   /* ── Delete note ── */
   const deleteNote = (id: string) => {
+    if (!confirm('Delete this note? This cannot be undone.')) return
     const updated = notes.filter(n => n.id !== id)
     setNotes(updated)
     if (activeNoteId === id) setActiveNoteId(null)
@@ -178,7 +205,7 @@ export default function Notes() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           {activeNote && (
-            <button onClick={() => setActiveNoteId(null)} className="text-dim hover:text-polar transition-colors">
+            <button onClick={goBack} className="text-dim hover:text-polar transition-colors">
               <ChevronLeft size={18} />
             </button>
           )}
@@ -218,9 +245,15 @@ export default function Notes() {
             style={{ fontSize: '15px', lineHeight: '1.8', minHeight: '400px', resize: 'vertical' }}
           />
           <div className="flex items-center gap-3">
-            <button onClick={() => markDone(activeNote.id)} className="btn-ghost flex items-center gap-2">
-              <Check size={12} /> Mark Done
-            </button>
+            {activeNote.status === 'done' ? (
+              <button onClick={() => reopenNote(activeNote.id)} className="btn-ghost flex items-center gap-2">
+                <RefreshCw size={12} /> Reopen
+              </button>
+            ) : (
+              <button onClick={() => markDone(activeNote.id)} className="btn-ghost flex items-center gap-2">
+                <Check size={12} /> Mark Done
+              </button>
+            )}
             <button
               onClick={() => deleteNote(activeNote.id)}
               className="text-err hover:underline cursor-pointer font-sans"
@@ -290,7 +323,8 @@ export default function Notes() {
                   {doneNotes.map(note => (
                     <div
                       key={note.id}
-                      className="card opacity-50 flex items-start justify-between gap-4"
+                      className="card opacity-50 cursor-pointer flex items-start justify-between gap-4"
+                      onClick={() => selectNote(note)}
                     >
                       <div className="flex-1 min-w-0">
                         <h3 className="text-steel font-[700] truncate line-through" style={{ fontSize: '15px' }}>{note.title}</h3>
@@ -299,7 +333,7 @@ export default function Notes() {
                         </p>
                       </div>
                       <button
-                        onClick={() => deleteNote(note.id)}
+                        onClick={e => { e.stopPropagation(); deleteNote(note.id) }}
                         className="text-dim hover:text-err transition-colors flex-shrink-0"
                         title="Delete"
                       >

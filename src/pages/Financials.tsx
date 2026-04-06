@@ -106,7 +106,10 @@ export default function Financials() {
     <div>
       {/* Header */}
       <div className="mb-6">
-        <h1>Financials</h1>
+        <div className="flex items-center gap-3">
+          <h1>Financials</h1>
+          <DollarSign size={14} className="text-dim" />
+        </div>
         <p className="text-dim mt-1" style={{ fontSize: '13px' }}>Revenue tracking and tax filing status</p>
       </div>
 

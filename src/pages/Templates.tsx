@@ -115,6 +115,7 @@ export default function Templates() {
   }
 
   const deleteTemplate = async (doc: TemplateDoc) => {
+    if (!confirm(`Delete "${doc.name}"? This cannot be undone.`)) return
     try {
       await documents.delete(doc.id)
       showToast(`Deleted "${doc.name}"`, 'info')
@@ -162,7 +163,7 @@ export default function Templates() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1>File Templates</h1>
+          <div className="flex items-center gap-3"><h1>File Templates</h1><FileText size={14} className="text-dim" /></div>
           <p className="text-steel mt-1" style={{ fontSize: '13px' }}>
             {templates.length} template{templates.length !== 1 ? 's' : ''} uploaded
           </p>

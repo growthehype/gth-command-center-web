@@ -106,6 +106,7 @@ export default function Tasks() {
   }, [refreshTasks, refreshActivity])
 
   const handleDelete = useCallback(async (id: string) => {
+    if (!confirm('Delete this task? This cannot be undone.')) return
     await tasksApi.delete(id)
     await Promise.all([refreshTasks(), refreshActivity()])
     showToast('Task deleted', 'info', () => {
@@ -198,7 +199,10 @@ export default function Tasks() {
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1>Tasks</h1>
+        <div className="flex items-center gap-3">
+          <h1>Tasks</h1>
+          <CheckSquare size={14} className="text-dim" />
+        </div>
         <button className="btn-primary flex items-center gap-2" onClick={() => { setEditingId(null); setForm({ ...EMPTY_FORM }); setModalOpen(true) }}>
           <Plus size={12} strokeWidth={2.5} />
           New Task

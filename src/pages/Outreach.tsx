@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Target, Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react'
+import { Target, Plus, Trash2, ChevronUp, ChevronDown, Search } from 'lucide-react'
 import { useAppStore, OutreachLead } from '@/lib/store'
 import { outreach } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
@@ -35,6 +35,7 @@ export default function Outreach() {
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({ ...EMPTY_FORM })
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState<'name' | 'deal_value' | 'stage'>('name')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
@@ -52,9 +53,17 @@ export default function Outreach() {
     return result
   }, [leads])
 
-  // Sort
+  // Filter + Sort
   const sorted = useMemo(() => {
-    const list = [...leads]
+    let list = [...leads]
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      list = list.filter(l =>
+        (l.name || '').toLowerCase().includes(q) ||
+        (l.industry || '').toLowerCase().includes(q) ||
+        (l.notes || '').toLowerCase().includes(q)
+      )
+    }
     list.sort((a, b) => {
       let cmp = 0
       if (sortKey === 'name') cmp = (a.name || '').localeCompare(b.name || '')
@@ -63,7 +72,7 @@ export default function Outreach() {
       return sortDir === 'asc' ? cmp : -cmp
     })
     return list
-  }, [leads, sortKey, sortDir])
+  }, [leads, search, sortKey, sortDir])
 
   const handleSort = (key: typeof sortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -132,6 +141,7 @@ export default function Outreach() {
 
   const handleDelete = async (lead: OutreachLead, e: React.MouseEvent) => {
     e.stopPropagation()
+    if (!confirm(`Delete "${lead.name}"? This cannot be undone.`)) return
     try {
       await outreach.delete(lead.id)
       await refreshLeads()
@@ -144,12 +154,27 @@ export default function Outreach() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1>Outreach Pipeline</h1>
+          <div className="flex items-center gap-3">
+            <h1>Outreach Pipeline</h1>
+            <Target size={14} className="text-dim" />
+          </div>
           <p className="text-dim mt-1" style={{ fontSize: '13px' }}>{leads.length} leads in pipeline</p>
         </div>
-        <button onClick={openCreate} className="btn-primary flex items-center gap-2">
-          <Plus size={14} /> Add Lead
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-dim" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search leads..."
+              className="bg-cell border border-border text-polar pl-8 pr-3 py-1.5 font-sans outline-none focus:border-dim transition-colors w-full md:w-[200px]"
+              style={{ fontSize: '12px' }}
+            />
+          </div>
+          <button onClick={openCreate} className="btn-primary flex items-center gap-2">
+            <Plus size={14} /> Add Lead
+          </button>
+        </div>
       </div>
 
       {/* Pipeline Stage Cards */}

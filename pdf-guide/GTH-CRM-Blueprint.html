@@ -4,31 +4,28 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>THE AI CRM BLUEPRINT | Grow The Hype</title>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 /* ========================================
    ROOT VARIABLES & RESET
    ======================================== */
 :root {
-  --bg-primary: #0A0A0A;
-  --bg-secondary: #0F0F0F;
-  --bg-tertiary: #111111;
-  --bg-code: #1A1A1A;
-  --bg-card: #141414;
-  --bg-table-header: #1A1A1A;
-  --bg-table-row: #111111;
-  --bg-table-row-alt: #0F0F0F;
+  --bg-primary: #000000;
+  --bg-cell: #0A0A0A;
+  --bg-charcoal: #1A1A1A;
+  --bg-table-header: #111111;
   --text-primary: #FFFFFF;
-  --text-body: #E0E0E0;
-  --text-secondary: #A0A0A0;
-  --text-muted: #666666;
-  --accent-gold: #D4A853;
-  --accent-gold-light: #E8C97A;
-  --accent-gold-dark: #B08A3E;
-  --accent-green: #7EC89B;
-  --accent-blue: #6BA3D6;
-  --border-subtle: #222222;
-  --border-gold: #D4A853;
+  --text-body: #777777;
+  --text-secondary: #666666;
+  --text-muted: #444444;
+  --text-label: #555555;
+  --border-color: #1a1a1a;
+  --border-light: #2a2a2a;
+  --accent-red: #FF3333;
+  --accent-green: #22C55E;
+  --cream: #F5F0EB;
+  --font-heading: 'Montserrat', sans-serif;
+  --font-mono: 'Space Mono', monospace;
 }
 
 *, *::before, *::after {
@@ -37,954 +34,744 @@
   box-sizing: border-box;
 }
 
-/* ========================================
-   BASE & TYPOGRAPHY
-   ======================================== */
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  font-size: 11pt;
-  line-height: 1.7;
+  background: var(--bg-primary);
   color: var(--text-body);
-  background: var(--bg-secondary);
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
+  font-family: var(--font-heading);
+  font-size: 13px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: 'Montserrat', sans-serif;
-  color: var(--text-primary);
+/* ========================================
+   PRINT CSS
+   ======================================== */
+@media print {
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .page-break {
+    page-break-before: always;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* ========================================
+   PAGE STRUCTURE
+   ======================================== */
+.page {
+  width: 8.5in;
+  min-height: 11in;
+  margin: 0 auto;
+  padding: 60px 72px;
+  background: var(--bg-primary);
+  position: relative;
+}
+
+/* ========================================
+   TYPOGRAPHY
+   ======================================== */
+.label {
+  font-family: var(--font-heading);
+  font-size: 9px;
   font-weight: 700;
-  line-height: 1.2;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-label);
 }
 
-h1 { font-size: 2.8em; letter-spacing: -0.02em; }
-h2 { font-size: 1.8em; margin-bottom: 0.8em; letter-spacing: -0.01em; }
-h3 { font-size: 1.3em; margin-top: 2em; margin-bottom: 0.6em; color: var(--text-primary); }
-h4 { font-size: 1.1em; margin-top: 1.5em; margin-bottom: 0.4em; color: var(--accent-gold); font-weight: 600; }
+.label-small {
+  font-family: var(--font-heading);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+h1 {
+  font-family: var(--font-heading);
+  font-weight: 900;
+  color: var(--text-primary);
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+
+h2 {
+  font-family: var(--font-heading);
+  font-weight: 900;
+  color: var(--text-primary);
+  letter-spacing: -0.025em;
+  font-size: 34px;
+  line-height: 1.15;
+  margin-bottom: 16px;
+}
+
+h3 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  margin-top: 36px;
+  margin-bottom: 12px;
+}
+
+h4 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: #ccc;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  margin-top: 28px;
+  margin-bottom: 10px;
+}
 
 p {
-  margin-bottom: 1.1em;
+  font-size: 13px;
   color: var(--text-body);
-}
-
-a {
-  color: var(--accent-gold);
-  text-decoration: none;
-  border-bottom: 1px solid transparent;
-  transition: border-color 0.2s;
-}
-a:hover {
-  border-bottom-color: var(--accent-gold);
+  line-height: 1.7;
+  margin-bottom: 14px;
+  font-weight: 400;
 }
 
 strong {
-  color: var(--text-primary);
+  color: #ccc;
   font-weight: 600;
 }
 
 em {
-  color: var(--text-secondary);
   font-style: italic;
+  color: var(--text-secondary);
 }
 
-/* ========================================
-   PAGE LAYOUT (A4 PRINT)
-   ======================================== */
-.page {
-  width: 210mm;
-  min-height: 297mm;
-  margin: 0 auto 20px auto;
-  padding: 50px 55px;
-  background: var(--bg-secondary);
-  position: relative;
-}
-
-.page-cover {
-  background: var(--bg-primary);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  min-height: 297mm;
-  position: relative;
-  overflow: hidden;
-}
-
-.page-back {
-  background: var(--bg-primary);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  min-height: 297mm;
+a {
+  color: var(--text-body);
+  text-decoration: underline;
+  text-decoration-color: #333;
+  text-underline-offset: 2px;
 }
 
 /* ========================================
    COVER PAGE
    ======================================== */
-.cover-geometric {
+.cover {
+  width: 8.5in;
+  height: 11in;
+  margin: 0 auto;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  text-align: center;
+}
+
+.cover-frame {
   position: absolute;
+  top: 48px;
+  left: 48px;
+  right: 48px;
+  bottom: 48px;
+  pointer-events: none;
+}
+
+.cover-frame::before,
+.cover-frame::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+}
+
+.cover-frame::before {
   top: 0;
   left: 0;
+  border-top: 1px solid var(--border-light);
+  border-left: 1px solid var(--border-light);
+}
+
+.cover-frame::after {
+  top: 0;
   right: 0;
-  bottom: 0;
+  border-top: 1px solid var(--border-light);
+  border-right: 1px solid var(--border-light);
+}
+
+.cover-frame-bottom {
+  position: absolute;
+  top: 48px;
+  left: 48px;
+  right: 48px;
+  bottom: 48px;
   pointer-events: none;
-  overflow: hidden;
 }
 
-.cover-geometric::before {
+.cover-frame-bottom::before,
+.cover-frame-bottom::after {
   content: '';
   position: absolute;
-  top: -200px;
-  right: -200px;
-  width: 600px;
-  height: 600px;
-  border: 1px solid rgba(212, 168, 83, 0.08);
-  border-radius: 50%;
+  width: 14px;
+  height: 14px;
 }
 
-.cover-geometric::after {
-  content: '';
-  position: absolute;
-  bottom: -300px;
-  left: -200px;
-  width: 800px;
-  height: 800px;
-  border: 1px solid rgba(212, 168, 83, 0.05);
-  border-radius: 50%;
+.cover-frame-bottom::before {
+  bottom: 0;
+  left: 0;
+  border-bottom: 1px solid var(--border-light);
+  border-left: 1px solid var(--border-light);
 }
 
-.cover-lines {
-  position: absolute;
-  top: 60px;
-  left: 55px;
-  right: 55px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(212, 168, 83, 0.3), transparent);
+.cover-frame-bottom::after {
+  bottom: 0;
+  right: 0;
+  border-bottom: 1px solid var(--border-light);
+  border-right: 1px solid var(--border-light);
 }
 
-.cover-lines-bottom {
-  position: absolute;
-  bottom: 60px;
-  left: 55px;
-  right: 55px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(212, 168, 83, 0.3), transparent);
-}
-
-.cover-corner {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-}
-.cover-corner--tl { top: 45px; left: 40px; border-top: 1px solid rgba(212, 168, 83, 0.25); border-left: 1px solid rgba(212, 168, 83, 0.25); }
-.cover-corner--tr { top: 45px; right: 40px; border-top: 1px solid rgba(212, 168, 83, 0.25); border-right: 1px solid rgba(212, 168, 83, 0.25); }
-.cover-corner--bl { bottom: 45px; left: 40px; border-bottom: 1px solid rgba(212, 168, 83, 0.25); border-left: 1px solid rgba(212, 168, 83, 0.25); }
-.cover-corner--br { bottom: 45px; right: 40px; border-bottom: 1px solid rgba(212, 168, 83, 0.25); border-right: 1px solid rgba(212, 168, 83, 0.25); }
-
-.cover-content {
-  position: relative;
-  z-index: 1;
-  padding: 0 40px;
-}
-
-.cover-brand {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 0.85em;
-  font-weight: 600;
-  letter-spacing: 0.35em;
+.cover .brand-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--text-label);
   text-transform: uppercase;
-  color: var(--accent-gold);
-  margin-bottom: 60px;
+  margin-bottom: 40px;
 }
 
-.cover-title {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 3.4em;
+.cover h1 {
+  font-size: 48px;
   font-weight: 900;
+  letter-spacing: -0.035em;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
-  line-height: 1.05;
   margin-bottom: 20px;
 }
 
-.cover-title span {
-  display: block;
+.cover .subtitle {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-body);
+  max-width: 420px;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.cover .author {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 60px;
 }
 
 .cover-divider {
-  width: 80px;
-  height: 2px;
-  background: var(--accent-gold);
-  margin: 30px auto;
+  width: 40px;
+  height: 1px;
+  background: var(--border-color);
+  margin: 24px auto;
 }
 
-.cover-subtitle {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 1.15em;
-  font-weight: 300;
-  color: var(--text-secondary);
-  line-height: 1.5;
-  max-width: 520px;
-  margin: 0 auto 50px auto;
+.stats-bar {
+  display: flex;
+  gap: 48px;
+  justify-content: center;
+  position: absolute;
+  bottom: 72px;
+  left: 0;
+  right: 0;
 }
 
-.cover-author {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 0.95em;
-  font-weight: 500;
-  color: var(--text-body);
-  letter-spacing: 0.05em;
+.stats-bar .stat {
+  border-left: 1px solid var(--border-light);
+  padding-left: 16px;
 }
 
-.cover-year {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 0.8em;
-  font-weight: 400;
+.stats-bar .stat-value {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.stats-bar .stat-label {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
   color: var(--text-muted);
-  margin-top: 8px;
-  letter-spacing: 0.1em;
+  margin-top: 2px;
 }
 
 /* ========================================
    CHAPTER TITLE PAGES
    ======================================== */
-.chapter-header {
+.chapter-title-page {
+  width: 8.5in;
+  min-height: 11in;
+  margin: 0 auto;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px 72px;
   position: relative;
-  margin-bottom: 2.5em;
-  padding-top: 40px;
 }
 
 .chapter-number {
-  font-family: 'Montserrat', sans-serif;
+  font-family: var(--font-heading);
   font-size: 120px;
   font-weight: 900;
-  color: rgba(212, 168, 83, 0.06);
+  color: #111111;
   line-height: 1;
-  position: absolute;
-  top: -10px;
-  left: -10px;
-  user-select: none;
-  pointer-events: none;
+  letter-spacing: -0.03em;
+  margin-bottom: 16px;
 }
 
 .chapter-label {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 0.75em;
-  font-weight: 600;
-  letter-spacing: 0.25em;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--accent-gold);
+  color: var(--text-label);
   margin-bottom: 12px;
-  position: relative;
 }
 
-.chapter-title {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 2.2em;
-  font-weight: 800;
+.chapter-title-page h2 {
+  font-size: 34px;
+  font-weight: 900;
   color: var(--text-primary);
-  line-height: 1.15;
-  position: relative;
+  letter-spacing: -0.025em;
   margin-bottom: 16px;
 }
 
 .chapter-divider {
-  width: 60px;
-  height: 3px;
-  background: var(--accent-gold);
-  border-radius: 2px;
+  width: 100%;
+  height: 1px;
+  background: var(--border-color);
+  margin-top: 24px;
+}
+
+.chapter-description {
+  font-size: 14px;
+  color: var(--text-body);
+  font-weight: 400;
+  line-height: 1.7;
+  max-width: 440px;
+  margin-top: 20px;
 }
 
 /* ========================================
-   CONTENT ELEMENTS
+   CONTENT PAGES
    ======================================== */
-
-/* Bullet lists */
-ul {
-  list-style: none;
-  padding-left: 0;
-  margin-bottom: 1.2em;
-}
-
-ul li {
-  padding-left: 1.4em;
+.content-page {
+  width: 8.5in;
+  min-height: 11in;
+  margin: 0 auto;
+  background: var(--bg-primary);
+  padding: 56px 72px;
   position: relative;
-  margin-bottom: 0.5em;
 }
 
-ul li::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0.55em;
-  width: 6px;
-  height: 6px;
-  background: var(--accent-gold);
-  border-radius: 50%;
+.content-page .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
+  margin-bottom: 36px;
 }
 
-/* Nested lists */
-ul ul {
-  margin-top: 0.4em;
-  margin-bottom: 0.4em;
-}
-
-/* Ordered lists */
-ol {
-  padding-left: 1.4em;
-  margin-bottom: 1.2em;
-}
-
-ol li {
-  margin-bottom: 0.5em;
-  padding-left: 0.3em;
-}
-
-ol li::marker {
-  color: var(--accent-gold);
-  font-weight: 600;
-}
-
-/* Code blocks */
-.code-block {
-  background: var(--bg-code);
-  border-left: 3px solid var(--accent-gold);
-  border-radius: 0 6px 6px 0;
-  padding: 18px 22px;
-  margin: 1.2em 0;
-  overflow-x: auto;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.85em;
-  line-height: 1.6;
-  color: var(--text-body);
-}
-
-.code-block .keyword { color: var(--accent-gold); font-weight: 500; }
-.code-block .string { color: var(--accent-green); }
-.code-block .comment { color: #555; font-style: italic; }
-.code-block .type { color: var(--accent-blue); }
-.code-block .function { color: #C9A0DC; }
-.code-block .number { color: #E8927C; }
-
-.code-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.72em;
-  font-weight: 600;
-  color: var(--accent-gold);
+.content-page .page-header .header-left {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.25em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 6px;
+  color: var(--text-muted);
+}
+
+.content-page .page-header .header-right {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--text-muted);
+}
+
+.section-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-label);
+  margin-bottom: 8px;
   display: block;
 }
 
-/* Inline code */
+/* ========================================
+   CODE BLOCKS
+   ======================================== */
+pre {
+  background: var(--bg-cell);
+  border-left: 2px solid var(--border-light);
+  padding: 20px 24px;
+  margin: 18px 0;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.65;
+  color: #888888;
+}
+
 code {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.88em;
-  background: var(--bg-code);
-  padding: 2px 7px;
-  border-radius: 4px;
-  color: var(--accent-gold-light);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #aaa;
 }
 
-/* Blockquotes / Tips */
-.tip-box {
-  background: rgba(212, 168, 83, 0.04);
-  border-left: 3px solid var(--accent-gold);
-  border-radius: 0 6px 6px 0;
-  padding: 16px 22px;
-  margin: 1.4em 0;
+pre code {
+  color: #888;
+}
+
+.code-keyword {
+  color: #ddd;
+}
+
+/* Inline code */
+p code, li code {
+  background: var(--bg-cell);
+  padding: 2px 6px;
+  font-size: 11px;
+  color: #aaa;
+}
+
+/* ========================================
+   TIP / CALLOUT BOXES
+   ======================================== */
+.callout {
+  background: var(--bg-cell);
+  border: 1px solid var(--border-color);
+  padding: 20px 24px;
+  margin: 20px 0;
   position: relative;
 }
 
-.tip-box .tip-label {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 0.72em;
+.callout-label {
+  font-size: 8px;
   font-weight: 700;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.25em;
   text-transform: uppercase;
-  color: var(--accent-gold);
-  margin-bottom: 6px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  color: var(--accent-red);
+  margin-bottom: 8px;
+  display: block;
 }
 
-.tip-box .tip-label::before {
-  content: '\2605';
-  font-size: 1em;
+.callout-label.green {
+  color: var(--accent-green);
 }
 
-.tip-box p {
+.callout-label.note {
+  color: var(--text-label);
+}
+
+.callout p {
   margin-bottom: 0;
-  color: var(--text-secondary);
-  font-size: 0.95em;
-}
-
-/* Pro tip box */
-.pro-tip {
-  background: rgba(212, 168, 83, 0.05);
-  border: 1px solid rgba(212, 168, 83, 0.2);
-  border-radius: 8px;
-  padding: 20px 24px;
-  margin: 1.6em 0;
-  position: relative;
-}
-
-.pro-tip::before {
-  content: 'PRO TIP';
-  font-family: 'Montserrat', sans-serif;
-  font-size: 0.65em;
-  font-weight: 800;
-  letter-spacing: 0.2em;
-  color: var(--bg-primary);
-  background: var(--accent-gold);
-  padding: 3px 12px;
-  border-radius: 3px;
-  position: absolute;
-  top: -10px;
-  left: 20px;
-}
-
-.pro-tip p {
+  font-size: 13px;
   color: var(--text-body);
-  margin-bottom: 0;
 }
 
-/* Important box */
-.important-box {
-  background: rgba(232, 146, 124, 0.05);
-  border: 1px solid rgba(232, 146, 124, 0.2);
-  border-radius: 8px;
-  padding: 20px 24px;
-  margin: 1.6em 0;
-  position: relative;
-}
-
-.important-box::before {
-  content: 'IMPORTANT';
-  font-family: 'Montserrat', sans-serif;
-  font-size: 0.65em;
-  font-weight: 800;
-  letter-spacing: 0.2em;
-  color: var(--bg-primary);
-  background: #E8927C;
-  padding: 3px 12px;
-  border-radius: 3px;
-  position: absolute;
-  top: -10px;
-  left: 20px;
-}
-
-.important-box p {
-  color: var(--text-body);
-  margin-bottom: 0;
-}
-
-/* Tables */
+/* ========================================
+   TABLES
+   ======================================== */
 table {
   width: 100%;
-  border-collapse: collapse;
-  margin: 1.4em 0;
-  font-size: 0.92em;
+  border-collapse: separate;
+  border-spacing: 1px;
+  margin: 20px 0;
+  background: var(--border-color);
 }
 
 thead th {
   background: var(--bg-table-header);
   color: var(--text-primary);
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 600;
-  font-size: 0.85em;
-  letter-spacing: 0.04em;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  padding: 12px 16px;
   text-align: left;
-  border-bottom: 2px solid var(--accent-gold);
+  padding: 12px 16px;
 }
 
 tbody td {
-  padding: 11px 16px;
-  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-cell);
   color: var(--text-body);
+  font-size: 13px;
+  padding: 12px 16px;
+  vertical-align: top;
 }
 
-tbody tr:nth-child(even) {
-  background: var(--bg-table-row-alt);
+/* ========================================
+   LISTS
+   ======================================== */
+ul, ol {
+  margin: 12px 0 18px 0;
+  padding-left: 20px;
 }
 
-tbody tr:last-child td {
-  border-bottom: none;
-}
-
-/* Cost comparison special table */
-.cost-table {
-  border: 1px solid rgba(212, 168, 83, 0.2);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.cost-table thead th {
-  background: rgba(212, 168, 83, 0.1);
-}
-
-.cost-table .highlight-cell {
-  color: var(--accent-gold);
-  font-weight: 700;
-}
-
-.cost-table .total-row td {
-  border-top: 2px solid var(--accent-gold);
-  font-weight: 700;
-  color: var(--text-primary);
-  font-size: 1em;
-}
-
-/* Feature list with checkmarks */
-.feature-list {
-  list-style: none;
-  padding: 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px 20px;
-  margin: 1.2em 0;
-}
-
-.feature-list li {
-  padding-left: 1.6em;
-  position: relative;
-  font-size: 0.92em;
-}
-
-.feature-list li::before {
-  content: '\2713';
-  position: absolute;
-  left: 0;
-  color: var(--accent-gold);
-  font-weight: 700;
-  font-size: 1.05em;
-  background: none;
-  width: auto;
-  height: auto;
-  border-radius: 0;
-  top: 0;
-}
-
-/* Audience list */
-.audience-list li::before {
-  content: '\2794';
-  background: none;
-  width: auto;
-  height: auto;
-  border-radius: 0;
-  top: 0;
-  font-size: 0.8em;
-}
-
-/* Blockquote (prompt examples) */
-.prompt-block {
-  background: var(--bg-code);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  padding: 20px 24px;
-  margin: 1.4em 0;
-  position: relative;
-}
-
-.prompt-block::before {
-  content: 'PROMPT';
-  font-family: 'Montserrat', sans-serif;
-  font-size: 0.6em;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  color: var(--text-muted);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-subtle);
-  padding: 2px 10px;
-  border-radius: 3px;
-  position: absolute;
-  top: -10px;
-  left: 18px;
-}
-
-.prompt-block p, .prompt-block em {
-  color: var(--text-secondary);
-  font-style: italic;
-  font-size: 0.93em;
-  line-height: 1.65;
-}
-
-/* Feedback loop diagram */
-.diagram-box {
-  background: var(--bg-code);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  padding: 24px;
-  margin: 1.4em 0;
-  text-align: center;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.9em;
-  color: var(--accent-gold);
-  letter-spacing: 0.05em;
-}
-
-/* Verify checklist */
-.verify-list {
-  list-style: none;
-  padding: 0;
-  margin: 1em 0 1.5em 0;
-  background: rgba(126, 200, 155, 0.04);
-  border-radius: 6px;
-  padding: 14px 18px;
-}
-
-.verify-list li {
-  padding-left: 1.6em;
-  position: relative;
-  margin-bottom: 0.35em;
-  font-size: 0.93em;
-}
-
-.verify-list li::before {
-  content: '\2610';
-  position: absolute;
-  left: 0;
-  top: 0;
-  color: var(--accent-green);
-  font-size: 1.1em;
-  background: none;
-  width: auto;
-  height: auto;
-  border-radius: 0;
-}
-
-/* Horizontal rule / section divider */
-.section-divider {
-  border: none;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--border-subtle), transparent);
-  margin: 2.5em 0;
-}
-
-/* Phase header */
-.phase-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-top: 2.2em;
-  margin-bottom: 1em;
-}
-
-.phase-badge {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 0.65em;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  color: var(--bg-primary);
-  background: var(--accent-gold);
-  padding: 4px 12px;
-  border-radius: 4px;
-  white-space: nowrap;
-}
-
-.phase-title {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 1.25em;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-/* Step counter */
-.step-header {
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 700;
-  color: var(--text-primary);
-  font-size: 1.1em;
-  margin-top: 1.8em;
-  margin-bottom: 0.6em;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.step-number {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--accent-gold);
-  color: var(--bg-primary);
-  font-size: 0.75em;
-  font-weight: 800;
-  flex-shrink: 0;
-}
-
-/* Back cover */
-.back-tagline {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 1.6em;
-  font-weight: 300;
-  color: var(--text-primary);
-  font-style: italic;
-  margin-bottom: 50px;
-}
-
-.back-brand {
-  font-family: 'Montserrat', sans-serif;
-  font-size: 1.8em;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  color: var(--accent-gold);
-  margin-bottom: 30px;
-}
-
-.back-info {
-  font-size: 0.95em;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-}
-
-.back-cta {
-  margin-top: 50px;
-  padding: 16px 32px;
-  border: 1px solid var(--accent-gold);
-  border-radius: 6px;
-  color: var(--accent-gold);
-  font-family: 'Montserrat', sans-serif;
-  font-size: 0.85em;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-}
-
-.back-copyright {
-  position: absolute;
-  bottom: 50px;
-  font-size: 0.75em;
-  color: var(--text-muted);
-}
-
-/* Mistake formatting */
-.mistake-block {
-  margin: 1em 0;
-  padding: 14px 18px;
-  background: var(--bg-card);
-  border-radius: 6px;
-  border: 1px solid var(--border-subtle);
-}
-
-.mistake-label {
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 700;
-  font-size: 0.85em;
-  color: #E8927C;
+li {
+  font-size: 13px;
+  color: var(--text-body);
+  line-height: 1.7;
   margin-bottom: 6px;
 }
 
-.mistake-bad {
-  color: #E8927C;
-  font-size: 0.92em;
+li strong {
+  color: #ccc;
 }
 
-.mistake-good {
-  color: var(--accent-green);
-  font-size: 0.92em;
+/* ========================================
+   CORNER FRAME ACCENTS
+   ======================================== */
+.frame-box {
+  position: relative;
+  padding: 28px 24px;
+  margin: 24px 0;
 }
 
-/* Industry cards */
-.industry-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin: 1.2em 0;
+.frame-box::before,
+.frame-box::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
 }
 
-.industry-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  padding: 18px 20px;
+.frame-box::before {
+  top: 0;
+  left: 0;
+  border-top: 1px solid var(--border-light);
+  border-left: 1px solid var(--border-light);
 }
 
-.industry-card h4 {
-  margin-top: 0;
-  font-size: 0.95em;
-  color: var(--accent-gold);
-  margin-bottom: 8px;
+.frame-box::after {
+  bottom: 0;
+  right: 0;
+  border-bottom: 1px solid var(--border-light);
+  border-right: 1px solid var(--border-light);
 }
 
-.industry-card ul {
+/* ========================================
+   PROMPT BLOCKS
+   ======================================== */
+.prompt-block {
+  background: var(--bg-cell);
+  border: 1px solid var(--border-color);
+  padding: 24px;
+  margin: 18px 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-style: italic;
+  line-height: 1.7;
+}
+
+.prompt-block strong {
+  color: #999;
+}
+
+/* ========================================
+   BLOCKQUOTE
+   ======================================== */
+blockquote {
+  background: var(--bg-cell);
+  border-left: 2px solid var(--border-light);
+  padding: 16px 24px;
+  margin: 18px 0;
+  font-style: italic;
+}
+
+blockquote p {
+  color: var(--text-secondary);
   margin-bottom: 0;
 }
 
-.industry-card li {
-  font-size: 0.88em;
-  margin-bottom: 3px;
-}
-
-/* Supabase limits table styling */
-.limits-table {
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-/* Maintenance checklist */
-.maintenance-list li::before {
-  content: '\25A2';
-  background: none;
-  width: auto;
-  height: auto;
-  border-radius: 0;
-  top: 0;
-  color: var(--accent-gold);
-  font-size: 1.1em;
-}
-
 /* ========================================
-   PAGE NUMBERS (CSS COUNTERS)
+   BACK COVER
    ======================================== */
-body {
-  counter-reset: page-counter;
+.back-cover {
+  width: 8.5in;
+  height: 11in;
+  margin: 0 auto;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  text-align: center;
 }
 
-.page:not(.page-cover):not(.page-back) {
-  counter-increment: page-counter;
-}
-
-.page:not(.page-cover):not(.page-back)::after {
-  content: counter(page-counter);
-  position: absolute;
-  bottom: 30px;
-  right: 55px;
-  font-family: 'Montserrat', sans-serif;
-  font-size: 0.75em;
-  font-weight: 500;
-  color: var(--text-muted);
-  letter-spacing: 0.05em;
-}
-
-.page:not(.page-cover):not(.page-back)::before {
-  content: 'THE AI CRM BLUEPRINT';
-  position: absolute;
-  bottom: 30px;
-  left: 55px;
-  font-family: 'Montserrat', sans-serif;
-  font-size: 0.6em;
-  font-weight: 600;
+.back-cover .wordmark {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--text-primary);
   letter-spacing: 0.15em;
   text-transform: uppercase;
+  margin-bottom: 32px;
+}
+
+.back-cover .tagline {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 300;
+  color: var(--text-primary);
+  letter-spacing: 0.16em;
+  margin-bottom: 48px;
+}
+
+.back-cover .url {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.back-cover .cta {
+  font-size: 10px;
+  color: var(--text-label);
+  font-weight: 500;
+}
+
+/* ========================================
+   HORIZONTAL RULE
+   ======================================== */
+hr {
+  border: none;
+  height: 1px;
+  background: var(--border-color);
+  margin: 36px 0;
+}
+
+/* ========================================
+   UTILITY
+   ======================================== */
+.medium-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-label);
+}
+
+.checklist {
+  list-style: none;
+  padding-left: 0;
+}
+
+.checklist li {
+  padding-left: 24px;
+  position: relative;
+}
+
+.checklist li::before {
+  content: '\2610';
+  position: absolute;
+  left: 0;
   color: var(--text-muted);
 }
 
 /* ========================================
-   PRINT STYLES
+   PAGE FOOTER
    ======================================== */
-@media print {
-  body {
-    background: var(--bg-primary) !important;
-    color: var(--text-body) !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    color-adjust: exact !important;
-  }
-
-  .page {
-    margin: 0;
-    padding: 45px 50px;
-    width: 100%;
-    min-height: auto;
-    background: var(--bg-secondary) !important;
-  }
-
-  .page-cover, .page-back {
-    background: var(--bg-primary) !important;
-    min-height: auto;
-    height: 100vh;
-  }
-
-  .page-break {
-    page-break-before: always;
-  }
-
-  .no-print {
-    display: none !important;
-  }
-
-  @page {
-    size: A4;
-    margin: 0;
-  }
+.page-footer {
+  position: absolute;
+  bottom: 36px;
+  left: 72px;
+  right: 72px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
 }
 
-/* Page break utility */
-.page-break {
-  page-break-before: always;
-  break-before: page;
+.page-footer .footer-brand {
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #333;
 }
 
-/* Intro italics block */
-.intro-tagline {
-  font-style: italic;
-  color: var(--text-secondary);
-  font-size: 1em;
-  line-height: 1.6;
-  border-left: 2px solid var(--accent-gold);
-  padding-left: 18px;
-  margin: 1.5em 0;
+.page-footer .footer-page {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: #333;
 }
 </style>
 </head>
 <body>
 
-<!-- ============================================
+<!-- ============================================================
      COVER PAGE
-     ============================================ -->
-<div class="page page-cover">
-  <div class="cover-geometric"></div>
-  <div class="cover-lines"></div>
-  <div class="cover-lines-bottom"></div>
-  <div class="cover-corner cover-corner--tl"></div>
-  <div class="cover-corner cover-corner--tr"></div>
-  <div class="cover-corner cover-corner--bl"></div>
-  <div class="cover-corner cover-corner--br"></div>
+     ============================================================ -->
+<div class="cover">
+  <div class="cover-frame"></div>
+  <div class="cover-frame-bottom"></div>
 
-  <div class="cover-content">
-    <div class="cover-brand">GROW THE HYPE</div>
-    <h1 class="cover-title">
-      <span>THE AI CRM</span>
-      <span>BLUEPRINT</span>
-    </h1>
-    <div class="cover-divider"></div>
-    <p class="cover-subtitle">How I Built a $40,000 Custom CRM<br>for Free Using AI</p>
-    <p class="cover-author">By Omar Alladina</p>
-    <p class="cover-year">2026</p>
+  <div class="brand-label">GROW THE HYPE</div>
+
+  <div class="cover-divider"></div>
+
+  <h1>THE AI CRM<br>BLUEPRINT</h1>
+
+  <p class="subtitle">How I Built a $40,000 Custom CRM<br>for Free Using AI</p>
+
+  <div class="cover-divider"></div>
+
+  <p class="author">Omar Alladina</p>
+
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-value">24</div>
+      <div class="stat-label">PAGES OF FUNCTIONALITY</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">$0</div>
+      <div class="stat-label">INFRASTRUCTURE COST</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">9</div>
+      <div class="stat-label">BUILD PHASES</div>
+    </div>
   </div>
 </div>
 
-<!-- ============================================
+
+<!-- ============================================================
      INTRODUCTION
-     ============================================ -->
-<div class="page page-break">
-  <div class="chapter-header">
-    <div class="chapter-number">&mdash;</div>
-    <div class="chapter-label">Preface</div>
-    <h2 class="chapter-title">Introduction</h2>
-    <div class="chapter-divider"></div>
+     ============================================================ -->
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">THE AI CRM BLUEPRINT</span>
+    <span class="header-right">GROW THE HYPE</span>
   </div>
 
-  <p class="intro-tagline">A step-by-step guide to building a fully custom, AI-powered CRM using free tools, open-source technology, and artificial intelligence as your development partner.</p>
+  <span class="section-label">INTRODUCTION</span>
 
-  <p>Let me save you a year of frustration.</p>
+  <div class="frame-box">
+    <p style="font-size:14px; color:var(--text-body); font-style:italic; margin-bottom:0;">
+      A step-by-step guide to building a fully custom, AI-powered CRM using free tools, open-source technology, and artificial intelligence as your development partner.
+    </p>
+  </div>
+
+  <h2 style="font-size:28px; margin-top:28px;">Let me save you a year of frustration.</h2>
 
   <p>I run a digital marketing agency called Grow The Hype. We handle paid media, web design, SEO, creative production, and consulting for clients across multiple industries. For years, I juggled our operations across a mess of spreadsheets, Notion databases, sticky notes, and three different SaaS tools that each did 20% of what I actually needed.</p>
 
   <p>HubSpot wanted $800/month for the features I cared about. Salesforce required a consultant just to set up. Monday.com was great for project management but terrible for client financials. And none of them talked to each other the way I needed them to.</p>
 
-  <p>So I did something that would have been impossible two years ago: <strong>I built my own CRM from scratch, using AI as my development partner.</strong> The entire thing. Twenty-four pages of functionality. Client management, task boards, invoicing, a full calendar integration, document storage, campaign tracking, goal setting, and an embedded AI assistant that actually understands my business data.</p>
+  <p>So I did something that would have been impossible two years ago: I built my own CRM from scratch, using AI as my development partner. The entire thing. Twenty-four pages of functionality. Client management, task boards, invoicing, a full calendar integration, document storage, campaign tracking, goal setting, and an embedded AI assistant that actually understands my business data.</p>
 
   <p>If I had hired a development agency to build this, the quote would have landed somewhere between $30,000 and $50,000 CAD. I know because I asked. Instead, I built it for $0 in infrastructure costs using free tiers of modern cloud services, and the only "developer" on the project was me and Claude, Anthropic's AI.</p>
 
@@ -992,40 +779,26 @@ body {
 
   <p>You do not need to be a software engineer. You do not need a computer science degree. You need a laptop, an internet connection, and the willingness to follow a process. If you can write a clear email, you can prompt an AI to write code. I will teach you how.</p>
 
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">01</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">INTRODUCTION</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
+
   <h3>What You Will Build</h3>
 
-  <p>A fully functional, web-based CRM with these 24 pages:</p>
-
-  <ul class="feature-list">
-    <li>Dashboard</li>
-    <li>Clients</li>
-    <li>Contacts</li>
-    <li>Projects</li>
-    <li>Tasks</li>
-    <li>Calendar</li>
-    <li>Meetings</li>
-    <li>Invoices</li>
-    <li>Financials</li>
-    <li>Profitability</li>
-    <li>Outreach</li>
-    <li>Campaigns</li>
-    <li>Services</li>
-    <li>Goals</li>
-    <li>Credentials Vault</li>
-    <li>Documents</li>
-    <li>SOPs</li>
-    <li>Templates</li>
-    <li>Notes</li>
-    <li>Brand Assets</li>
-    <li>Activity Log</li>
-    <li>Daily Briefing</li>
-    <li>Settings</li>
-    <li>Login / Auth System</li>
-  </ul>
+  <p>A fully functional, web-based Operations Command Center with these 24 pages: Dashboard, Clients, Contacts, Projects, Tasks, Calendar, Meetings, Invoices, Financials, Profitability, Outreach, Campaigns, Services, Goals, Credentials Vault, Documents, SOPs, Templates, Notes, Brand Assets, Activity Log, Daily Briefing, Settings, and a Login/Auth system.</p>
 
   <h3>Who This Is For</h3>
 
-  <ul class="audience-list">
+  <ul>
     <li>Agency owners who are tired of paying $500+/month for tools that don't fit</li>
     <li>Freelancers who need a single system to manage clients, projects, and money</li>
     <li>Consultants who want a professional operations hub without the enterprise price tag</li>
@@ -1034,63 +807,74 @@ body {
 
   <h3>The Cost Breakdown</h3>
 
-  <table class="cost-table">
+  <table>
     <thead>
       <tr>
-        <th>Item</th>
-        <th>Traditional Development</th>
-        <th>This Guide</th>
+        <th>ITEM</th>
+        <th>TRADITIONAL DEV</th>
+        <th>THIS GUIDE</th>
       </tr>
     </thead>
     <tbody>
       <tr>
         <td>Design + UX</td>
-        <td>$5,000 &ndash; $10,000</td>
-        <td class="highlight-cell">$0 (AI-generated)</td>
+        <td>$5,000 - $10,000</td>
+        <td>$0 (AI-generated)</td>
       </tr>
       <tr>
         <td>Frontend development</td>
-        <td>$10,000 &ndash; $20,000</td>
-        <td class="highlight-cell">$0 (AI-generated)</td>
+        <td>$10,000 - $20,000</td>
+        <td>$0 (AI-generated)</td>
       </tr>
       <tr>
         <td>Backend + database</td>
-        <td>$8,000 &ndash; $15,000</td>
-        <td class="highlight-cell">$0 (Supabase free tier)</td>
+        <td>$8,000 - $15,000</td>
+        <td>$0 (Supabase free tier)</td>
       </tr>
       <tr>
         <td>Hosting + deployment</td>
-        <td>$50 &ndash; $200/month</td>
-        <td class="highlight-cell">$0 (Vercel free tier)</td>
+        <td>$50 - $200/month</td>
+        <td>$0 (Vercel free tier)</td>
       </tr>
       <tr>
         <td>Maintenance</td>
-        <td>$500 &ndash; $2,000/month</td>
-        <td class="highlight-cell">You, 30 min/month</td>
+        <td>$500 - $2,000/month</td>
+        <td>You, 30 min/month</td>
       </tr>
-      <tr class="total-row">
-        <td>Total Year 1</td>
-        <td>$30,000 &ndash; $60,000+</td>
-        <td class="highlight-cell">$0</td>
+      <tr>
+        <td><strong>Total Year 1</strong></td>
+        <td><strong>$30,000 - $60,000+</strong></td>
+        <td><strong>$0</strong></td>
       </tr>
     </tbody>
   </table>
 
-  <p>Let's build it.</p>
+  <p style="margin-top: 28px; font-size:14px; color:var(--text-primary); font-weight:600;">Let's build it.</p>
+
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">02</span>
+  </div>
 </div>
 
-<!-- ============================================
-     CHAPTER 1: THE TECH STACK
-     ============================================ -->
-<div class="page page-break">
-  <div class="chapter-header">
-    <div class="chapter-number">01</div>
-    <div class="chapter-label">Chapter One</div>
-    <h2 class="chapter-title">The Tech Stack</h2>
-    <div class="chapter-divider"></div>
-  </div>
 
-  <p>Before we write a single line of code, let me explain the tools we are using and why each one was chosen. You do not need to memorize this. Just understand the role each piece plays.</p>
+<!-- ============================================================
+     CHAPTER 1: THE TECH STACK
+     ============================================================ -->
+<div class="chapter-title-page page-break">
+  <div class="chapter-number">01</div>
+  <span class="chapter-label">CHAPTER ONE</span>
+  <h2>The Tech Stack</h2>
+  <div class="chapter-divider"></div>
+  <p class="chapter-description">Before we write a single line of code, let me explain the tools we are using and why each one was chosen. You do not need to memorize this. Just understand the role each piece plays.</p>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 1 &mdash; THE TECH STACK</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
 
   <h3>React + TypeScript</h3>
 
@@ -1098,84 +882,114 @@ body {
 
   <p>TypeScript is JavaScript with a safety net. It adds "types" to your code, which means the editor can catch mistakes before you even run the application. Think of it like spell-check for code. You write <code>const revenue: number = 5000</code> and if you accidentally try to do something nonsensical with that variable later, TypeScript warns you immediately.</p>
 
-  <div class="pro-tip">
-    <p><strong>Why this matters to you:</strong> React + TypeScript is the industry standard. If you ever want to hire a developer to extend your CRM, every frontend developer on Earth knows React.</p>
+  <div class="callout">
+    <span class="callout-label green">WHY THIS MATTERS TO YOU</span>
+    <p>React + TypeScript is the industry standard. If you ever want to hire a developer to extend your CRM, every frontend developer on Earth knows React.</p>
   </div>
 
   <h3>Tailwind CSS</h3>
 
   <p>Traditional CSS is like writing a letter every time you want to change how something looks. Tailwind flips this: instead of writing custom style rules, you apply small utility classes directly to your HTML elements. Want a blue button with rounded corners and padding? You write <code>className="bg-blue-600 rounded-lg px-4 py-2"</code> and you are done.</p>
 
-  <div class="pro-tip">
-    <p><strong>Why this matters to you:</strong> Tailwind makes AI-generated code look professional immediately. Claude can produce pixel-perfect interfaces because Tailwind's class system is predictable and well-documented.</p>
+  <div class="callout">
+    <span class="callout-label green">WHY THIS MATTERS TO YOU</span>
+    <p>Tailwind makes AI-generated code look professional immediately. Claude can produce pixel-perfect interfaces because Tailwind's class system is predictable and well-documented.</p>
   </div>
 
   <h3>Supabase</h3>
 
-  <p>Supabase is an open-source alternative to Firebase. In plain English, it gives you a real PostgreSQL database, user authentication (login/signup), file storage, and a REST API &mdash; all with a generous free tier. You get 500MB of database storage, 1GB of file storage, and 50,000 monthly active users for free.</p>
+  <p>Supabase is an open-source alternative to Firebase. In plain English, it gives you a real PostgreSQL database, user authentication (login/signup), file storage, and a REST API -- all with a generous free tier. You get 500MB of database storage, 1GB of file storage, and 50,000 monthly active users for free.</p>
 
-  <div class="pro-tip">
-    <p><strong>Why this matters to you:</strong> Supabase is your entire backend. No server to manage, no infrastructure to configure. You create tables in a visual editor, and Supabase automatically generates the API endpoints your app uses to read and write data.</p>
+  <div class="callout">
+    <span class="callout-label green">WHY THIS MATTERS TO YOU</span>
+    <p>Supabase is your entire backend. No server to manage, no infrastructure to configure. You create tables in a visual editor, and Supabase automatically generates the API endpoints your app uses to read and write data.</p>
+  </div>
+
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">03</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 1 &mdash; THE TECH STACK</span>
+    <span class="header-right">GROW THE HYPE</span>
   </div>
 
   <h3>Zustand</h3>
 
   <p>State management is how your app keeps track of information as the user interacts with it. Which client is selected? What filters are active? Is the sidebar open or closed? Zustand (German for "state") handles all of this with a fraction of the complexity of older solutions like Redux.</p>
 
-  <div class="pro-tip">
-    <p><strong>Why this matters to you:</strong> Zustand keeps your app fast and your code simple. When Claude generates state management code, Zustand's minimal syntax means fewer things can go wrong.</p>
+  <div class="callout">
+    <span class="callout-label green">WHY THIS MATTERS TO YOU</span>
+    <p>Zustand keeps your app fast and your code simple. When Claude generates state management code, Zustand's minimal syntax means fewer things can go wrong.</p>
   </div>
 
   <h3>Vite</h3>
 
-  <p>Vite (French for "fast") is your build tool. It takes your React code, TypeScript, and Tailwind CSS and bundles everything into optimized files that browsers can run. During development, it gives you instant hot-reload &mdash; you change a line of code, and the browser updates in under a second.</p>
+  <p>Vite (French for "fast") is your build tool. It takes your React code, TypeScript, and Tailwind CSS and bundles everything into optimized files that browsers can run. During development, it gives you instant hot-reload -- you change a line of code, and the browser updates in under a second.</p>
 
-  <div class="pro-tip">
-    <p><strong>Why this matters to you:</strong> Vite is what makes your development experience feel instant. No waiting 30 seconds for your app to rebuild after every change.</p>
+  <div class="callout">
+    <span class="callout-label green">WHY THIS MATTERS TO YOU</span>
+    <p>Vite is what makes your development experience feel instant. No waiting 30 seconds for your app to rebuild after every change.</p>
   </div>
 
   <h3>Vercel</h3>
 
   <p>Vercel is where your app lives on the internet. You connect it to your GitHub repository, and every time you push code, Vercel automatically builds and deploys your app. Free tier includes unlimited deployments, a <code>.vercel.app</code> subdomain, and support for custom domains.</p>
 
-  <div class="pro-tip">
-    <p><strong>Why this matters to you:</strong> Zero-config deployment. Push code, see it live in 60 seconds. No servers, no DevOps, no monthly bills.</p>
+  <div class="callout">
+    <span class="callout-label green">WHY THIS MATTERS TO YOU</span>
+    <p>Zero-config deployment. Push code, see it live in 60 seconds. No servers, no DevOps, no monthly bills.</p>
   </div>
 
   <h3>Claude API</h3>
 
-  <p>Claude is the AI that powers the embedded assistant in your CRM. Using Anthropic's API, your CRM can have a conversational AI that understands your client data, generates reports, drafts emails, and answers questions about your business &mdash; all without your data ever being used for training.</p>
+  <p>Claude is the AI that powers the embedded assistant in your CRM. Using Anthropic's API, your CRM can have a conversational AI that understands your client data, generates reports, drafts emails, and answers questions about your business -- all without your data ever being used for training.</p>
 
   <h3>Google Calendar API</h3>
 
   <p>The Google Calendar API lets your CRM read, create, update, and delete events on your Google Calendar. This means your meetings, deadlines, and appointments all live in one place, synced between your CRM and the calendar you already use.</p>
+
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">04</span>
+  </div>
 </div>
 
-<!-- ============================================
+
+<!-- ============================================================
      CHAPTER 2: SETTING UP YOUR FOUNDATION
-     ============================================ -->
-<div class="page page-break">
-  <div class="chapter-header">
-    <div class="chapter-number">02</div>
-    <div class="chapter-label">Chapter Two</div>
-    <h2 class="chapter-title">Setting Up Your Foundation</h2>
-    <div class="chapter-divider"></div>
+     ============================================================ -->
+<div class="chapter-title-page page-break">
+  <div class="chapter-number">02</div>
+  <span class="chapter-label">CHAPTER TWO</span>
+  <h2>Setting Up Your Foundation</h2>
+  <div class="chapter-divider"></div>
+  <p class="chapter-description">This chapter walks you through every setup step. Follow it in order. Do not skip ahead.</p>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 2 &mdash; SETTING UP YOUR FOUNDATION</span>
+    <span class="header-right">GROW THE HYPE</span>
   </div>
 
-  <p>This chapter walks you through every setup step. Follow it in order. Do not skip ahead.</p>
-
-  <div class="step-header"><span class="step-number">1</span> Create a GitHub Account</div>
+  <h3>Step 1: Create a GitHub Account</h3>
 
   <p>GitHub is where your code lives. It is version-controlled, meaning every change you make is saved and you can always roll back if something breaks.</p>
 
   <ol>
     <li>Go to <a href="https://github.com">github.com</a> and click <strong>Sign Up</strong></li>
     <li>Use your business email address</li>
-    <li>Choose a username (something professional &mdash; this is public)</li>
+    <li>Choose a username (something professional -- this is public)</li>
     <li>Create a new repository:
       <ul>
         <li>Click the <strong>+</strong> icon in the top right, then <strong>New repository</strong></li>
-        <li>Name it <code>gth-command-center-web</code> (or whatever you want to call your CRM)</li>
+        <li>Name it <code>operations-command-center</code> (or whatever you want to call your CRM)</li>
         <li>Set it to <strong>Private</strong> (your code, your business)</li>
         <li>Check <strong>Add a README file</strong></li>
         <li>Click <strong>Create repository</strong></li>
@@ -1183,350 +997,469 @@ body {
     </li>
   </ol>
 
-  <div class="step-header"><span class="step-number">2</span> Create a Supabase Project</div>
+  <h3>Step 2: Create a Supabase Project</h3>
 
-  <p>Supabase is your database, authentication system, and API layer &mdash; all in one.</p>
+  <p>Supabase is your database, authentication system, and API layer -- all in one.</p>
 
   <ol>
     <li>Go to <a href="https://supabase.com">supabase.com</a> and click <strong>Start your project</strong></li>
-    <li>Sign in with your GitHub account (this links them &mdash; convenient later)</li>
+    <li>Sign in with your GitHub account (this links them -- convenient later)</li>
     <li>Click <strong>New Project</strong></li>
     <li>Fill in the details:
       <ul>
-        <li><strong>Project name:</strong> <code>gth-command-center</code></li>
+        <li><strong>Project name:</strong> <code>operations-command-center</code></li>
         <li><strong>Database password:</strong> Generate a strong one and save it in your password manager. You will need this later.</li>
-        <li><strong>Region:</strong> Choose the closest to your location (for me, that is US East or Canada)</li>
+        <li><strong>Region:</strong> Choose the closest to your location</li>
       </ul>
     </li>
-    <li>Click <strong>Create new project</strong> and wait 2&ndash;3 minutes for it to provision</li>
+    <li>Click <strong>Create new project</strong> and wait 2-3 minutes for it to provision</li>
   </ol>
 
   <p>Once your project is ready, you will see your <strong>Project URL</strong> and <strong>Anon Key</strong> on the main dashboard. Save both of these. They go into your app's environment variables.</p>
 
-  <div class="tip-box">
-    <div class="tip-label">TIP</div>
+  <div class="callout">
+    <span class="callout-label">PRO TIP</span>
     <p>Your Supabase Anon Key is safe to include in frontend code. It is designed to be public. Row Level Security (RLS) policies on your database tables are what actually protect your data. We will set those up.</p>
   </div>
 
-  <div class="step-header"><span class="step-number">3</span> Set Up the Database</div>
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">05</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 2 &mdash; SETTING UP YOUR FOUNDATION</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
+
+  <h3>Step 3: Set Up the Database</h3>
 
   <p>Your CRM needs tables to store data. Here is what each one does in business terms:</p>
 
   <ul>
-    <li><strong>clients</strong> &mdash; Your client companies. Name, industry, status, contact info, revenue tier.</li>
-    <li><strong>contacts</strong> &mdash; Individual people at those companies. Name, email, phone, role.</li>
-    <li><strong>projects</strong> &mdash; Work you are doing for clients. Name, status, budget, timeline.</li>
-    <li><strong>tasks</strong> &mdash; Individual to-dos within projects. Title, status, priority, assignee, due date.</li>
-    <li><strong>invoices</strong> &mdash; Bills you send to clients. Amount, status (draft/sent/paid/overdue), due date.</li>
-    <li><strong>outreach</strong> &mdash; Prospects you are reaching out to. Company, contact, stage in your pipeline.</li>
-    <li><strong>campaigns</strong> &mdash; Marketing campaigns you are running. Platform, budget, dates, performance.</li>
-    <li><strong>services</strong> &mdash; The services your business offers. Name, description, price.</li>
-    <li><strong>goals</strong> &mdash; Business goals and targets. Revenue goals, client acquisition targets, etc.</li>
-    <li><strong>credentials</strong> &mdash; Login info for client accounts (ad platforms, hosting, etc). Encrypted.</li>
-    <li><strong>documents</strong> &mdash; Files you upload and organize. Contracts, proposals, deliverables.</li>
-    <li><strong>sops</strong> &mdash; Standard Operating Procedures. Step-by-step guides for your team.</li>
-    <li><strong>notes</strong> &mdash; Quick notes tied to clients, projects, or standalone.</li>
-    <li><strong>meetings</strong> &mdash; Scheduled meetings with calendar sync.</li>
-    <li><strong>templates</strong> &mdash; Reusable templates for emails, proposals, SOPs.</li>
-    <li><strong>brand_assets</strong> &mdash; Logos, brand colors, fonts for each client.</li>
-    <li><strong>activity_log</strong> &mdash; Auto-tracked history of actions taken in the CRM.</li>
+    <li><strong>clients</strong> -- Your client companies. Name, industry, status, contact info, revenue tier.</li>
+    <li><strong>contacts</strong> -- Individual people at those companies. Name, email, phone, role.</li>
+    <li><strong>projects</strong> -- Work you are doing for clients. Name, status, budget, timeline.</li>
+    <li><strong>tasks</strong> -- Individual to-dos within projects. Title, status, priority, assignee, due date.</li>
+    <li><strong>invoices</strong> -- Bills you send to clients. Amount, status (draft/sent/paid/overdue), due date.</li>
+    <li><strong>outreach</strong> -- Prospects you are reaching out to. Company, contact, stage in your pipeline.</li>
+    <li><strong>campaigns</strong> -- Marketing campaigns you are running. Platform, budget, dates, performance.</li>
+    <li><strong>services</strong> -- The services your business offers. Name, description, price.</li>
+    <li><strong>goals</strong> -- Business goals and targets. Revenue goals, client acquisition targets, etc.</li>
+    <li><strong>credentials</strong> -- Login info for client accounts (ad platforms, hosting, etc). Encrypted.</li>
+    <li><strong>documents</strong> -- Files you upload and organize. Contracts, proposals, deliverables.</li>
+    <li><strong>sops</strong> -- Standard Operating Procedures. Step-by-step guides for your team.</li>
+    <li><strong>notes</strong> -- Quick notes tied to clients, projects, or standalone.</li>
+    <li><strong>meetings</strong> -- Scheduled meetings with calendar sync.</li>
+    <li><strong>templates</strong> -- Reusable templates for emails, proposals, SOPs.</li>
+    <li><strong>brand_assets</strong> -- Logos, brand colors, fonts for each client.</li>
+    <li><strong>activity_log</strong> -- Auto-tracked history of actions taken in the CRM.</li>
   </ul>
 
   <p>In your Supabase dashboard, go to the <strong>SQL Editor</strong> (left sidebar) and run this migration:</p>
 
-  <div class="code-block"><span class="code-label">SQL</span>
-<span class="comment">-- Enable UUID generation</span>
-<span class="keyword">create extension if not exists</span> <span class="string">"uuid-ossp"</span>;
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">06</span>
+  </div>
+</div>
 
-<span class="comment">-- Clients table</span>
-<span class="keyword">create table</span> <span class="type">public</span>.clients (
-  id <span class="type">uuid</span> <span class="keyword">default</span> <span class="function">uuid_generate_v4</span>() <span class="keyword">primary key</span>,
-  user_id <span class="type">uuid</span> <span class="keyword">references</span> auth.users(id) <span class="keyword">on delete cascade not null</span>,
-  name <span class="type">text</span> <span class="keyword">not null</span>,
-  industry <span class="type">text</span>,
-  status <span class="type">text</span> <span class="keyword">default</span> <span class="string">'active'</span> <span class="keyword">check</span> (status <span class="keyword">in</span> (<span class="string">'active'</span>, <span class="string">'paused'</span>, <span class="string">'churned'</span>, <span class="string">'prospect'</span>)),
-  email <span class="type">text</span>,
-  phone <span class="type">text</span>,
-  website <span class="type">text</span>,
-  address <span class="type">text</span>,
-  notes <span class="type">text</span>,
-  monthly_revenue <span class="type">numeric</span>(<span class="number">12</span>,<span class="number">2</span>) <span class="keyword">default</span> <span class="number">0</span>,
-  created_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>(),
-  updated_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>()
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 2 &mdash; DATABASE SCHEMA</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
+
+  <pre><code>-- Enable UUID generation
+create extension if not exists "uuid-ossp";
+
+-- Clients table
+create table public.clients (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  name text not null,
+  industry text,
+  status text default 'active'
+    check (status in ('active', 'paused', 'churned', 'prospect')),
+  email text,
+  phone text,
+  website text,
+  address text,
+  notes text,
+  monthly_revenue numeric(12,2) default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
 );
 
-<span class="comment">-- Contacts table</span>
-<span class="keyword">create table</span> <span class="type">public</span>.contacts (
-  id <span class="type">uuid</span> <span class="keyword">default</span> <span class="function">uuid_generate_v4</span>() <span class="keyword">primary key</span>,
-  user_id <span class="type">uuid</span> <span class="keyword">references</span> auth.users(id) <span class="keyword">on delete cascade not null</span>,
-  client_id <span class="type">uuid</span> <span class="keyword">references</span> <span class="type">public</span>.clients(id) <span class="keyword">on delete set null</span>,
-  name <span class="type">text</span> <span class="keyword">not null</span>,
-  email <span class="type">text</span>,
-  phone <span class="type">text</span>,
-  role <span class="type">text</span>,
-  is_primary <span class="type">boolean</span> <span class="keyword">default</span> <span class="keyword">false</span>,
-  notes <span class="type">text</span>,
-  created_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>()
+-- Contacts table
+create table public.contacts (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  client_id uuid references public.clients(id) on delete set null,
+  name text not null,
+  email text,
+  phone text,
+  role text,
+  is_primary boolean default false,
+  notes text,
+  created_at timestamptz default now()
 );
 
-<span class="comment">-- Projects table</span>
-<span class="keyword">create table</span> <span class="type">public</span>.projects (
-  id <span class="type">uuid</span> <span class="keyword">default</span> <span class="function">uuid_generate_v4</span>() <span class="keyword">primary key</span>,
-  user_id <span class="type">uuid</span> <span class="keyword">references</span> auth.users(id) <span class="keyword">on delete cascade not null</span>,
-  client_id <span class="type">uuid</span> <span class="keyword">references</span> <span class="type">public</span>.clients(id) <span class="keyword">on delete set null</span>,
-  name <span class="type">text</span> <span class="keyword">not null</span>,
-  status <span class="type">text</span> <span class="keyword">default</span> <span class="string">'active'</span> <span class="keyword">check</span> (status <span class="keyword">in</span> (<span class="string">'planning'</span>, <span class="string">'active'</span>, <span class="string">'on_hold'</span>, <span class="string">'completed'</span>, <span class="string">'cancelled'</span>)),
-  budget <span class="type">numeric</span>(<span class="number">12</span>,<span class="number">2</span>),
-  start_date <span class="type">date</span>,
-  end_date <span class="type">date</span>,
-  description <span class="type">text</span>,
-  created_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>(),
-  updated_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>()
+-- Projects table
+create table public.projects (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  client_id uuid references public.clients(id) on delete set null,
+  name text not null,
+  status text default 'active'
+    check (status in ('planning','active','on_hold','completed','cancelled')),
+  budget numeric(12,2),
+  start_date date,
+  end_date date,
+  description text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);</code></pre>
+
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">07</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 2 &mdash; DATABASE SCHEMA</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
+
+  <pre><code>-- Tasks table
+create table public.tasks (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  project_id uuid references public.projects(id) on delete set null,
+  client_id uuid references public.clients(id) on delete set null,
+  title text not null,
+  description text,
+  status text default 'todo'
+    check (status in ('todo', 'in_progress', 'review', 'done')),
+  priority text default 'medium'
+    check (priority in ('low', 'medium', 'high', 'urgent')),
+  due_date date,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
 );
 
-<span class="comment">-- Tasks table</span>
-<span class="keyword">create table</span> <span class="type">public</span>.tasks (
-  id <span class="type">uuid</span> <span class="keyword">default</span> <span class="function">uuid_generate_v4</span>() <span class="keyword">primary key</span>,
-  user_id <span class="type">uuid</span> <span class="keyword">references</span> auth.users(id) <span class="keyword">on delete cascade not null</span>,
-  project_id <span class="type">uuid</span> <span class="keyword">references</span> <span class="type">public</span>.projects(id) <span class="keyword">on delete set null</span>,
-  client_id <span class="type">uuid</span> <span class="keyword">references</span> <span class="type">public</span>.clients(id) <span class="keyword">on delete set null</span>,
-  title <span class="type">text</span> <span class="keyword">not null</span>,
-  description <span class="type">text</span>,
-  status <span class="type">text</span> <span class="keyword">default</span> <span class="string">'todo'</span> <span class="keyword">check</span> (status <span class="keyword">in</span> (<span class="string">'todo'</span>, <span class="string">'in_progress'</span>, <span class="string">'review'</span>, <span class="string">'done'</span>)),
-  priority <span class="type">text</span> <span class="keyword">default</span> <span class="string">'medium'</span> <span class="keyword">check</span> (priority <span class="keyword">in</span> (<span class="string">'low'</span>, <span class="string">'medium'</span>, <span class="string">'high'</span>, <span class="string">'urgent'</span>)),
-  due_date <span class="type">date</span>,
-  created_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>(),
-  updated_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>()
+-- Invoices table
+create table public.invoices (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  client_id uuid references public.clients(id) on delete set null,
+  invoice_number text,
+  amount numeric(12,2) not null,
+  status text default 'draft'
+    check (status in ('draft','sent','paid','overdue','cancelled')),
+  issue_date date default current_date,
+  due_date date,
+  paid_date date,
+  notes text,
+  line_items jsonb default '[]'::jsonb,
+  created_at timestamptz default now()
 );
 
-<span class="comment">-- Invoices table</span>
-<span class="keyword">create table</span> <span class="type">public</span>.invoices (
-  id <span class="type">uuid</span> <span class="keyword">default</span> <span class="function">uuid_generate_v4</span>() <span class="keyword">primary key</span>,
-  user_id <span class="type">uuid</span> <span class="keyword">references</span> auth.users(id) <span class="keyword">on delete cascade not null</span>,
-  client_id <span class="type">uuid</span> <span class="keyword">references</span> <span class="type">public</span>.clients(id) <span class="keyword">on delete set null</span>,
-  invoice_number <span class="type">text</span>,
-  amount <span class="type">numeric</span>(<span class="number">12</span>,<span class="number">2</span>) <span class="keyword">not null</span>,
-  status <span class="type">text</span> <span class="keyword">default</span> <span class="string">'draft'</span> <span class="keyword">check</span> (status <span class="keyword">in</span> (<span class="string">'draft'</span>, <span class="string">'sent'</span>, <span class="string">'paid'</span>, <span class="string">'overdue'</span>, <span class="string">'cancelled'</span>)),
-  issue_date <span class="type">date</span> <span class="keyword">default</span> <span class="function">current_date</span>,
-  due_date <span class="type">date</span>,
-  paid_date <span class="type">date</span>,
-  notes <span class="type">text</span>,
-  line_items <span class="type">jsonb</span> <span class="keyword">default</span> <span class="string">'[]'</span>::<span class="type">jsonb</span>,
-  created_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>()
+-- Outreach table
+create table public.outreach (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  company_name text not null,
+  contact_name text,
+  contact_email text,
+  stage text default 'identified'
+    check (stage in ('identified','contacted','responded',
+      'meeting_booked','proposal_sent','won','lost')),
+  source text,
+  notes text,
+  next_follow_up date,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);</code></pre>
+
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">08</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 2 &mdash; DATABASE SCHEMA</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
+
+  <pre><code>-- Campaigns table
+create table public.campaigns (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  client_id uuid references public.clients(id) on delete set null,
+  name text not null,
+  platform text,
+  status text default 'draft'
+    check (status in ('draft', 'active', 'paused', 'completed')),
+  budget numeric(12,2),
+  start_date date,
+  end_date date,
+  notes text,
+  created_at timestamptz default now()
 );
 
-<span class="comment">-- Outreach table</span>
-<span class="keyword">create table</span> <span class="type">public</span>.outreach (
-  id <span class="type">uuid</span> <span class="keyword">default</span> <span class="function">uuid_generate_v4</span>() <span class="keyword">primary key</span>,
-  user_id <span class="type">uuid</span> <span class="keyword">references</span> auth.users(id) <span class="keyword">on delete cascade not null</span>,
-  company_name <span class="type">text</span> <span class="keyword">not null</span>,
-  contact_name <span class="type">text</span>,
-  contact_email <span class="type">text</span>,
-  stage <span class="type">text</span> <span class="keyword">default</span> <span class="string">'identified'</span> <span class="keyword">check</span> (stage <span class="keyword">in</span> (<span class="string">'identified'</span>, <span class="string">'contacted'</span>, <span class="string">'responded'</span>, <span class="string">'meeting_booked'</span>, <span class="string">'proposal_sent'</span>, <span class="string">'won'</span>, <span class="string">'lost'</span>)),
-  source <span class="type">text</span>,
-  notes <span class="type">text</span>,
-  next_follow_up <span class="type">date</span>,
-  created_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>(),
-  updated_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>()
+-- Services table
+create table public.services (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  name text not null,
+  description text,
+  price numeric(12,2),
+  pricing_model text default 'monthly'
+    check (pricing_model in ('monthly','project','hourly','retainer')),
+  is_active boolean default true,
+  created_at timestamptz default now()
 );
 
-<span class="comment">-- Campaigns table</span>
-<span class="keyword">create table</span> <span class="type">public</span>.campaigns (
-  id <span class="type">uuid</span> <span class="keyword">default</span> <span class="function">uuid_generate_v4</span>() <span class="keyword">primary key</span>,
-  user_id <span class="type">uuid</span> <span class="keyword">references</span> auth.users(id) <span class="keyword">on delete cascade not null</span>,
-  client_id <span class="type">uuid</span> <span class="keyword">references</span> <span class="type">public</span>.clients(id) <span class="keyword">on delete set null</span>,
-  name <span class="type">text</span> <span class="keyword">not null</span>,
-  platform <span class="type">text</span>,
-  status <span class="type">text</span> <span class="keyword">default</span> <span class="string">'draft'</span> <span class="keyword">check</span> (status <span class="keyword">in</span> (<span class="string">'draft'</span>, <span class="string">'active'</span>, <span class="string">'paused'</span>, <span class="string">'completed'</span>)),
-  budget <span class="type">numeric</span>(<span class="number">12</span>,<span class="number">2</span>),
-  start_date <span class="type">date</span>,
-  end_date <span class="type">date</span>,
-  notes <span class="type">text</span>,
-  created_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>()
+-- Goals table
+create table public.goals (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  title text not null,
+  category text default 'revenue'
+    check (category in ('revenue','clients','projects','personal','other')),
+  target_value numeric(12,2),
+  current_value numeric(12,2) default 0,
+  unit text default 'dollars',
+  deadline date,
+  status text default 'in_progress'
+    check (status in ('in_progress','achieved','missed','cancelled')),
+  created_at timestamptz default now()
 );
 
-<span class="comment">-- Services table</span>
-<span class="keyword">create table</span> <span class="type">public</span>.services (
-  id <span class="type">uuid</span> <span class="keyword">default</span> <span class="function">uuid_generate_v4</span>() <span class="keyword">primary key</span>,
-  user_id <span class="type">uuid</span> <span class="keyword">references</span> auth.users(id) <span class="keyword">on delete cascade not null</span>,
-  name <span class="type">text</span> <span class="keyword">not null</span>,
-  description <span class="type">text</span>,
-  price <span class="type">numeric</span>(<span class="number">12</span>,<span class="number">2</span>),
-  pricing_model <span class="type">text</span> <span class="keyword">default</span> <span class="string">'monthly'</span> <span class="keyword">check</span> (pricing_model <span class="keyword">in</span> (<span class="string">'monthly'</span>, <span class="string">'project'</span>, <span class="string">'hourly'</span>, <span class="string">'retainer'</span>)),
-  is_active <span class="type">boolean</span> <span class="keyword">default</span> <span class="keyword">true</span>,
-  created_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>()
+-- Credentials table
+create table public.credentials (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  client_id uuid references public.clients(id) on delete set null,
+  service_name text not null,
+  username text,
+  password_encrypted text,
+  url text,
+  notes text,
+  created_at timestamptz default now()
+);</code></pre>
+
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">09</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 2 &mdash; DATABASE SCHEMA</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
+
+  <pre><code>-- Documents table
+create table public.documents (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  client_id uuid references public.clients(id) on delete set null,
+  project_id uuid references public.projects(id) on delete set null,
+  name text not null,
+  file_path text,
+  file_type text,
+  file_size bigint,
+  category text,
+  created_at timestamptz default now()
 );
 
-<span class="comment">-- Goals table</span>
-<span class="keyword">create table</span> <span class="type">public</span>.goals (
-  id <span class="type">uuid</span> <span class="keyword">default</span> <span class="function">uuid_generate_v4</span>() <span class="keyword">primary key</span>,
-  user_id <span class="type">uuid</span> <span class="keyword">references</span> auth.users(id) <span class="keyword">on delete cascade not null</span>,
-  title <span class="type">text</span> <span class="keyword">not null</span>,
-  category <span class="type">text</span> <span class="keyword">default</span> <span class="string">'revenue'</span> <span class="keyword">check</span> (category <span class="keyword">in</span> (<span class="string">'revenue'</span>, <span class="string">'clients'</span>, <span class="string">'projects'</span>, <span class="string">'personal'</span>, <span class="string">'other'</span>)),
-  target_value <span class="type">numeric</span>(<span class="number">12</span>,<span class="number">2</span>),
-  current_value <span class="type">numeric</span>(<span class="number">12</span>,<span class="number">2</span>) <span class="keyword">default</span> <span class="number">0</span>,
-  unit <span class="type">text</span> <span class="keyword">default</span> <span class="string">'dollars'</span>,
-  deadline <span class="type">date</span>,
-  status <span class="type">text</span> <span class="keyword">default</span> <span class="string">'in_progress'</span> <span class="keyword">check</span> (status <span class="keyword">in</span> (<span class="string">'in_progress'</span>, <span class="string">'achieved'</span>, <span class="string">'missed'</span>, <span class="string">'cancelled'</span>)),
-  created_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>()
+-- SOPs table
+create table public.sops (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  title text not null,
+  category text,
+  content text,
+  version integer default 1,
+  is_published boolean default false,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
 );
 
-<span class="comment">-- Credentials table</span>
-<span class="keyword">create table</span> <span class="type">public</span>.credentials (
-  id <span class="type">uuid</span> <span class="keyword">default</span> <span class="function">uuid_generate_v4</span>() <span class="keyword">primary key</span>,
-  user_id <span class="type">uuid</span> <span class="keyword">references</span> auth.users(id) <span class="keyword">on delete cascade not null</span>,
-  client_id <span class="type">uuid</span> <span class="keyword">references</span> <span class="type">public</span>.clients(id) <span class="keyword">on delete set null</span>,
-  service_name <span class="type">text</span> <span class="keyword">not null</span>,
-  username <span class="type">text</span>,
-  password_encrypted <span class="type">text</span>,
-  url <span class="type">text</span>,
-  notes <span class="type">text</span>,
-  created_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>()
+-- Notes table
+create table public.notes (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  client_id uuid references public.clients(id) on delete set null,
+  project_id uuid references public.projects(id) on delete set null,
+  title text,
+  content text,
+  is_pinned boolean default false,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
 );
 
-<span class="comment">-- Documents table</span>
-<span class="keyword">create table</span> <span class="type">public</span>.documents (
-  id <span class="type">uuid</span> <span class="keyword">default</span> <span class="function">uuid_generate_v4</span>() <span class="keyword">primary key</span>,
-  user_id <span class="type">uuid</span> <span class="keyword">references</span> auth.users(id) <span class="keyword">on delete cascade not null</span>,
-  client_id <span class="type">uuid</span> <span class="keyword">references</span> <span class="type">public</span>.clients(id) <span class="keyword">on delete set null</span>,
-  project_id <span class="type">uuid</span> <span class="keyword">references</span> <span class="type">public</span>.projects(id) <span class="keyword">on delete set null</span>,
-  name <span class="type">text</span> <span class="keyword">not null</span>,
-  file_path <span class="type">text</span>,
-  file_type <span class="type">text</span>,
-  file_size <span class="type">bigint</span>,
-  category <span class="type">text</span>,
-  created_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>()
+-- Meetings table
+create table public.meetings (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  client_id uuid references public.clients(id) on delete set null,
+  title text not null,
+  description text,
+  start_time timestamptz not null,
+  end_time timestamptz not null,
+  location text,
+  google_event_id text,
+  attendees jsonb default '[]'::jsonb,
+  created_at timestamptz default now()
+);</code></pre>
+
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">10</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 2 &mdash; DATABASE SCHEMA</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
+
+  <pre><code>-- Templates table
+create table public.templates (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  name text not null,
+  category text,
+  content text,
+  variables jsonb default '[]'::jsonb,
+  created_at timestamptz default now()
 );
 
-<span class="comment">-- SOPs table</span>
-<span class="keyword">create table</span> <span class="type">public</span>.sops (
-  id <span class="type">uuid</span> <span class="keyword">default</span> <span class="function">uuid_generate_v4</span>() <span class="keyword">primary key</span>,
-  user_id <span class="type">uuid</span> <span class="keyword">references</span> auth.users(id) <span class="keyword">on delete cascade not null</span>,
-  title <span class="type">text</span> <span class="keyword">not null</span>,
-  category <span class="type">text</span>,
-  content <span class="type">text</span>,
-  version <span class="type">integer</span> <span class="keyword">default</span> <span class="number">1</span>,
-  is_published <span class="type">boolean</span> <span class="keyword">default</span> <span class="keyword">false</span>,
-  created_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>(),
-  updated_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>()
+-- Brand Assets table
+create table public.brand_assets (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  client_id uuid references public.clients(id) on delete set null,
+  asset_type text
+    check (asset_type in ('logo','color','font','guideline','other')),
+  name text not null,
+  value text,
+  file_path text,
+  created_at timestamptz default now()
 );
 
-<span class="comment">-- Notes table</span>
-<span class="keyword">create table</span> <span class="type">public</span>.notes (
-  id <span class="type">uuid</span> <span class="keyword">default</span> <span class="function">uuid_generate_v4</span>() <span class="keyword">primary key</span>,
-  user_id <span class="type">uuid</span> <span class="keyword">references</span> auth.users(id) <span class="keyword">on delete cascade not null</span>,
-  client_id <span class="type">uuid</span> <span class="keyword">references</span> <span class="type">public</span>.clients(id) <span class="keyword">on delete set null</span>,
-  project_id <span class="type">uuid</span> <span class="keyword">references</span> <span class="type">public</span>.projects(id) <span class="keyword">on delete set null</span>,
-  title <span class="type">text</span>,
-  content <span class="type">text</span>,
-  is_pinned <span class="type">boolean</span> <span class="keyword">default</span> <span class="keyword">false</span>,
-  created_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>(),
-  updated_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>()
-);
+-- Activity Log table
+create table public.activity_log (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  action text not null,
+  entity_type text,
+  entity_id uuid,
+  details jsonb,
+  created_at timestamptz default now()
+);</code></pre>
 
-<span class="comment">-- Meetings table</span>
-<span class="keyword">create table</span> <span class="type">public</span>.meetings (
-  id <span class="type">uuid</span> <span class="keyword">default</span> <span class="function">uuid_generate_v4</span>() <span class="keyword">primary key</span>,
-  user_id <span class="type">uuid</span> <span class="keyword">references</span> auth.users(id) <span class="keyword">on delete cascade not null</span>,
-  client_id <span class="type">uuid</span> <span class="keyword">references</span> <span class="type">public</span>.clients(id) <span class="keyword">on delete set null</span>,
-  title <span class="type">text</span> <span class="keyword">not null</span>,
-  description <span class="type">text</span>,
-  start_time <span class="type">timestamptz</span> <span class="keyword">not null</span>,
-  end_time <span class="type">timestamptz</span> <span class="keyword">not null</span>,
-  location <span class="type">text</span>,
-  google_event_id <span class="type">text</span>,
-  attendees <span class="type">jsonb</span> <span class="keyword">default</span> <span class="string">'[]'</span>::<span class="type">jsonb</span>,
-  created_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>()
-);
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">11</span>
+  </div>
+</div>
 
-<span class="comment">-- Templates table</span>
-<span class="keyword">create table</span> <span class="type">public</span>.templates (
-  id <span class="type">uuid</span> <span class="keyword">default</span> <span class="function">uuid_generate_v4</span>() <span class="keyword">primary key</span>,
-  user_id <span class="type">uuid</span> <span class="keyword">references</span> auth.users(id) <span class="keyword">on delete cascade not null</span>,
-  name <span class="type">text</span> <span class="keyword">not null</span>,
-  category <span class="type">text</span>,
-  content <span class="type">text</span>,
-  variables <span class="type">jsonb</span> <span class="keyword">default</span> <span class="string">'[]'</span>::<span class="type">jsonb</span>,
-  created_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>()
-);
 
-<span class="comment">-- Brand Assets table</span>
-<span class="keyword">create table</span> <span class="type">public</span>.brand_assets (
-  id <span class="type">uuid</span> <span class="keyword">default</span> <span class="function">uuid_generate_v4</span>() <span class="keyword">primary key</span>,
-  user_id <span class="type">uuid</span> <span class="keyword">references</span> auth.users(id) <span class="keyword">on delete cascade not null</span>,
-  client_id <span class="type">uuid</span> <span class="keyword">references</span> <span class="type">public</span>.clients(id) <span class="keyword">on delete set null</span>,
-  asset_type <span class="type">text</span> <span class="keyword">check</span> (asset_type <span class="keyword">in</span> (<span class="string">'logo'</span>, <span class="string">'color'</span>, <span class="string">'font'</span>, <span class="string">'guideline'</span>, <span class="string">'other'</span>)),
-  name <span class="type">text</span> <span class="keyword">not null</span>,
-  value <span class="type">text</span>,
-  file_path <span class="type">text</span>,
-  created_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>()
-);
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 2 &mdash; ROW LEVEL SECURITY</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
 
-<span class="comment">-- Activity Log table</span>
-<span class="keyword">create table</span> <span class="type">public</span>.activity_log (
-  id <span class="type">uuid</span> <span class="keyword">default</span> <span class="function">uuid_generate_v4</span>() <span class="keyword">primary key</span>,
-  user_id <span class="type">uuid</span> <span class="keyword">references</span> auth.users(id) <span class="keyword">on delete cascade not null</span>,
-  action <span class="type">text</span> <span class="keyword">not null</span>,
-  entity_type <span class="type">text</span>,
-  entity_id <span class="type">uuid</span>,
-  details <span class="type">jsonb</span>,
-  created_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>()
-);
+  <pre><code>-- Enable Row Level Security on all tables
+alter table public.clients enable row level security;
+alter table public.contacts enable row level security;
+alter table public.projects enable row level security;
+alter table public.tasks enable row level security;
+alter table public.invoices enable row level security;
+alter table public.outreach enable row level security;
+alter table public.campaigns enable row level security;
+alter table public.services enable row level security;
+alter table public.goals enable row level security;
+alter table public.credentials enable row level security;
+alter table public.documents enable row level security;
+alter table public.sops enable row level security;
+alter table public.notes enable row level security;
+alter table public.meetings enable row level security;
+alter table public.templates enable row level security;
+alter table public.brand_assets enable row level security;
+alter table public.activity_log enable row level security;
 
-<span class="comment">-- Enable Row Level Security on all tables</span>
-<span class="keyword">alter table</span> <span class="type">public</span>.clients <span class="keyword">enable row level security</span>;
-<span class="keyword">alter table</span> <span class="type">public</span>.contacts <span class="keyword">enable row level security</span>;
-<span class="keyword">alter table</span> <span class="type">public</span>.projects <span class="keyword">enable row level security</span>;
-<span class="keyword">alter table</span> <span class="type">public</span>.tasks <span class="keyword">enable row level security</span>;
-<span class="keyword">alter table</span> <span class="type">public</span>.invoices <span class="keyword">enable row level security</span>;
-<span class="keyword">alter table</span> <span class="type">public</span>.outreach <span class="keyword">enable row level security</span>;
-<span class="keyword">alter table</span> <span class="type">public</span>.campaigns <span class="keyword">enable row level security</span>;
-<span class="keyword">alter table</span> <span class="type">public</span>.services <span class="keyword">enable row level security</span>;
-<span class="keyword">alter table</span> <span class="type">public</span>.goals <span class="keyword">enable row level security</span>;
-<span class="keyword">alter table</span> <span class="type">public</span>.credentials <span class="keyword">enable row level security</span>;
-<span class="keyword">alter table</span> <span class="type">public</span>.documents <span class="keyword">enable row level security</span>;
-<span class="keyword">alter table</span> <span class="type">public</span>.sops <span class="keyword">enable row level security</span>;
-<span class="keyword">alter table</span> <span class="type">public</span>.notes <span class="keyword">enable row level security</span>;
-<span class="keyword">alter table</span> <span class="type">public</span>.meetings <span class="keyword">enable row level security</span>;
-<span class="keyword">alter table</span> <span class="type">public</span>.templates <span class="keyword">enable row level security</span>;
-<span class="keyword">alter table</span> <span class="type">public</span>.brand_assets <span class="keyword">enable row level security</span>;
-<span class="keyword">alter table</span> <span class="type">public</span>.activity_log <span class="keyword">enable row level security</span>;
-
-<span class="comment">-- Create RLS policies (users can only access their own data)</span>
-<span class="keyword">do</span> $$
-<span class="keyword">declare</span>
-  t <span class="type">text</span>;
-<span class="keyword">begin</span>
-  <span class="keyword">for</span> t <span class="keyword">in</span>
-    <span class="keyword">select</span> <span class="function">unnest</span>(<span class="keyword">array</span>[
-      <span class="string">'clients'</span>,<span class="string">'contacts'</span>,<span class="string">'projects'</span>,<span class="string">'tasks'</span>,<span class="string">'invoices'</span>,
-      <span class="string">'outreach'</span>,<span class="string">'campaigns'</span>,<span class="string">'services'</span>,<span class="string">'goals'</span>,<span class="string">'credentials'</span>,
-      <span class="string">'documents'</span>,<span class="string">'sops'</span>,<span class="string">'notes'</span>,<span class="string">'meetings'</span>,<span class="string">'templates'</span>,
-      <span class="string">'brand_assets'</span>,<span class="string">'activity_log'</span>
+-- Create RLS policies (users can only access their own data)
+do $$
+declare
+  t text;
+begin
+  for t in
+    select unnest(array[
+      'clients','contacts','projects','tasks','invoices',
+      'outreach','campaigns','services','goals','credentials',
+      'documents','sops','notes','meetings','templates',
+      'brand_assets','activity_log'
     ])
-  <span class="keyword">loop</span>
-    <span class="keyword">execute</span> <span class="function">format</span>(
-      <span class="string">'create policy "Users can view own %1$s" on public.%1$s for select using (auth.uid() = user_id)'</span>,
-      t
+  loop
+    execute format(
+      'create policy "Users can view own %1$s"
+       on public.%1$s for select
+       using (auth.uid() = user_id)', t
     );
-    <span class="keyword">execute</span> <span class="function">format</span>(
-      <span class="string">'create policy "Users can insert own %1$s" on public.%1$s for insert with check (auth.uid() = user_id)'</span>,
-      t
+    execute format(
+      'create policy "Users can insert own %1$s"
+       on public.%1$s for insert
+       with check (auth.uid() = user_id)', t
     );
-    <span class="keyword">execute</span> <span class="function">format</span>(
-      <span class="string">'create policy "Users can update own %1$s" on public.%1$s for update using (auth.uid() = user_id)'</span>,
-      t
+    execute format(
+      'create policy "Users can update own %1$s"
+       on public.%1$s for update
+       using (auth.uid() = user_id)', t
     );
-    <span class="keyword">execute</span> <span class="function">format</span>(
-      <span class="string">'create policy "Users can delete own %1$s" on public.%1$s for delete using (auth.uid() = user_id)'</span>,
-      t
+    execute format(
+      'create policy "Users can delete own %1$s"
+       on public.%1$s for delete
+       using (auth.uid() = user_id)', t
     );
-  <span class="keyword">end loop</span>;
-<span class="keyword">end</span> $$;</div>
+  end loop;
+end $$;</code></pre>
 
-  <p>Click <strong>Run</strong> in the SQL editor. You should see a success message for each statement. If you get an error, read the message carefully &mdash; it usually tells you exactly which line has the problem.</p>
+  <p>Click <strong>Run</strong> in the SQL editor. You should see a success message for each statement. If you get an error, read the message carefully -- it usually tells you exactly which line has the problem.</p>
 
-  <div class="step-header"><span class="step-number">4</span> Set Up Authentication</div>
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">12</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 2 &mdash; AUTH &amp; ACCOUNTS</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
+
+  <h3>Step 4: Set Up Authentication</h3>
 
   <p>Still in your Supabase dashboard:</p>
 
@@ -1542,9 +1475,9 @@ body {
     </li>
   </ol>
 
-  <p>That is it. Supabase handles password hashing, session management, JWT tokens &mdash; all of it.</p>
+  <p>That is it. Supabase handles password hashing, session management, JWT tokens -- all of it.</p>
 
-  <div class="step-header"><span class="step-number">5</span> Create a Vercel Account</div>
+  <h3>Step 5: Create a Vercel Account</h3>
 
   <ol>
     <li>Go to <a href="https://vercel.com">vercel.com</a> and click <strong>Sign Up</strong></li>
@@ -1553,7 +1486,7 @@ body {
     <li>You will see your Vercel dashboard. We will come back here after we have code to deploy.</li>
   </ol>
 
-  <div class="step-header"><span class="step-number">6</span> Install Node.js and Create the Project</div>
+  <h3>Step 6: Install Node.js and Create the Project</h3>
 
   <h4>Install Node.js:</h4>
 
@@ -1561,64 +1494,72 @@ body {
     <li>Go to <a href="https://nodejs.org">nodejs.org</a></li>
     <li>Download the <strong>LTS</strong> version (the one on the left, currently v20 or v22)</li>
     <li>Run the installer. Accept all defaults.</li>
-    <li>Open a terminal and verify:</li>
+    <li>Open a terminal (Command Prompt on Windows, Terminal on Mac) and verify:</li>
   </ol>
 
-  <div class="code-block"><span class="code-label">Bash</span>
-node --version
-<span class="comment"># Should show v20.x.x or v22.x.x</span>
+  <pre><code>node --version
+# Should show v20.x.x or v22.x.x
 
 npm --version
-<span class="comment"># Should show 10.x.x or higher</span></div>
+# Should show 10.x.x or higher</code></pre>
 
   <h4>Create the React project:</h4>
 
-  <div class="code-block"><span class="code-label">Bash</span>
-npm create vite@latest gth-command-center-web -- --template react-ts
-<span class="keyword">cd</span> gth-command-center-web</div>
+  <pre><code>npm create vite@latest operations-command-center -- --template react-ts
+cd operations-command-center</code></pre>
 
   <p>This scaffolds a new React + TypeScript project using Vite.</p>
 
-  <div class="step-header"><span class="step-number">7</span> Install Dependencies</div>
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">13</span>
+  </div>
+</div>
 
-  <div class="code-block"><span class="code-label">Bash</span>
-npm install @supabase/supabase-js zustand lucide-react date-fns tailwindcss @tailwindcss/vite</div>
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 2 &mdash; DEPENDENCIES &amp; CONFIG</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
+
+  <h3>Step 7: Install Dependencies</h3>
+
+  <pre><code>npm install @supabase/supabase-js zustand lucide-react date-fns tailwindcss @tailwindcss/vite</code></pre>
 
   <p>Here is what each package does:</p>
 
   <ul>
-    <li><code>@supabase/supabase-js</code> &mdash; Talks to your Supabase database and auth</li>
-    <li><code>zustand</code> &mdash; Manages your app's state</li>
-    <li><code>lucide-react</code> &mdash; Beautiful, consistent icons (the same ones used by shadcn/ui)</li>
-    <li><code>date-fns</code> &mdash; Date formatting and manipulation</li>
-    <li><code>tailwindcss</code> + <code>@tailwindcss/vite</code> &mdash; Utility-first CSS framework with Vite integration</li>
+    <li><code>@supabase/supabase-js</code> -- Talks to your Supabase database and auth</li>
+    <li><code>zustand</code> -- Manages your app's state</li>
+    <li><code>lucide-react</code> -- Beautiful, consistent icons (the same ones used by shadcn/ui)</li>
+    <li><code>date-fns</code> -- Date formatting and manipulation</li>
+    <li><code>tailwindcss</code> + <code>@tailwindcss/vite</code> -- Utility-first CSS framework with Vite integration</li>
   </ul>
 
-  <div class="step-header"><span class="step-number">8</span> Configure the Project</div>
+  <h3>Step 8: Configure the Project</h3>
 
   <h4>vite.config.ts:</h4>
 
-  <div class="code-block"><span class="code-label">TypeScript</span>
-<span class="keyword">import</span> { defineConfig } <span class="keyword">from</span> <span class="string">'vite'</span>
-<span class="keyword">import</span> react <span class="keyword">from</span> <span class="string">'@vitejs/plugin-react'</span>
-<span class="keyword">import</span> tailwindcss <span class="keyword">from</span> <span class="string">'@tailwindcss/vite'</span>
-<span class="keyword">import</span> path <span class="keyword">from</span> <span class="string">'path'</span>
+  <pre><code>import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+import path from 'path'
 
-<span class="keyword">export default</span> <span class="function">defineConfig</span>({
-  plugins: [<span class="function">react</span>(), <span class="function">tailwindcss</span>()],
+export default defineConfig({
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      <span class="string">'@'</span>: path.<span class="function">resolve</span>(__dirname, <span class="string">'./src'</span>),
+      '@': path.resolve(__dirname, './src'),
     },
   },
-})</div>
+})</code></pre>
 
   <h4>src/index.css:</h4>
 
   <p>Replace everything in this file with:</p>
 
-  <div class="code-block"><span class="code-label">CSS</span>
-<span class="keyword">@import</span> <span class="string">"tailwindcss"</span>;</div>
+  <pre><code>@import "tailwindcss";</code></pre>
 
   <p>Yes, that is the entire file. Tailwind v4 handles everything through this single import.</p>
 
@@ -1626,42 +1567,53 @@ npm install @supabase/supabase-js zustand lucide-react date-fns tailwindcss @tai
 
   <p>Create this file:</p>
 
-  <div class="code-block"><span class="code-label">TypeScript</span>
-<span class="keyword">import</span> { createClient } <span class="keyword">from</span> <span class="string">'@supabase/supabase-js'</span>
+  <pre><code>import { createClient } from '@supabase/supabase-js'
 
-<span class="keyword">const</span> supabaseUrl = <span class="keyword">import</span>.meta.env.VITE_SUPABASE_URL
-<span class="keyword">const</span> supabaseAnonKey = <span class="keyword">import</span>.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-<span class="keyword">export const</span> supabase = <span class="function">createClient</span>(supabaseUrl, supabaseAnonKey)</div>
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)</code></pre>
+
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">14</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 2 &mdash; ENV &amp; DEPLOY</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
 
   <h4>.env.local:</h4>
 
   <p>Create this file in your project root (not inside <code>src/</code>):</p>
 
-  <div class="code-block"><span class="code-label">Environment</span>
-VITE_SUPABASE_URL=https://your-project-id.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key-here</div>
+  <pre><code>VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here</code></pre>
 
   <p>Replace with your actual values from the Supabase dashboard.</p>
 
-  <div class="important-box">
+  <div class="callout">
+    <span class="callout-label">IMPORTANT</span>
     <p>Add <code>.env.local</code> to your <code>.gitignore</code> file so your keys never get pushed to GitHub. The default Vite <code>.gitignore</code> already includes this, but double-check.</p>
   </div>
 
-  <div class="step-header"><span class="step-number">9</span> First Deploy</div>
+  <h3>Step 9: First Deploy</h3>
 
-  <div class="code-block"><span class="code-label">Bash</span>
-git init
+  <pre><code>git init
 git add .
-git commit -m <span class="string">"Initial project setup"</span>
-git remote add origin https://github.com/YOUR_USERNAME/gth-command-center-web.git
-git push -u origin main</div>
+git commit -m "Initial project setup"
+git remote add origin https://github.com/YOUR_USERNAME/operations-command-center.git
+git push -u origin main</code></pre>
 
   <p>Now go to your Vercel dashboard:</p>
 
   <ol>
     <li>Click <strong>Add New Project</strong></li>
-    <li>Select your <code>gth-command-center-web</code> repository</li>
+    <li>Select your <code>operations-command-center</code> repository</li>
     <li>Vercel will auto-detect it as a Vite project</li>
     <li>Under <strong>Environment Variables</strong>, add:
       <ul>
@@ -1672,27 +1624,41 @@ git push -u origin main</div>
     <li>Click <strong>Deploy</strong></li>
   </ol>
 
-  <p>In about 60 seconds, your app will be live at <code>https://gth-command-center-web.vercel.app</code> (or similar). It will just show the default Vite welcome page for now, but the pipeline is working: push code to GitHub, Vercel builds and deploys automatically.</p>
+  <p>In about 60 seconds, your app will be live at <code>https://your-project.vercel.app</code> (or similar). It will just show the default Vite welcome page for now, but the pipeline is working: push code to GitHub, Vercel builds and deploys automatically.</p>
 
-  <p><strong>Congratulations.</strong> Your foundation is set. Every line of code from here forward automatically deploys to the internet when you push it.</p>
-</div>
-
-<!-- ============================================
-     CHAPTER 3: BUILDING WITH AI
-     ============================================ -->
-<div class="page page-break">
-  <div class="chapter-header">
-    <div class="chapter-number">03</div>
-    <div class="chapter-label">Chapter Three</div>
-    <h2 class="chapter-title">Building With AI &mdash; The Method</h2>
-    <div class="chapter-divider"></div>
+  <div class="callout">
+    <span class="callout-label green">SUCCESS</span>
+    <p>Your foundation is set. Every line of code from here forward automatically deploys to the internet when you push it.</p>
   </div>
 
-  <p>This is the most important chapter in this guide. The tech stack is freely available. The database schema is just SQL. The real value is the <em>method</em> &mdash; how you use AI to build production-quality software without being a software engineer.</p>
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">15</span>
+  </div>
+</div>
+
+
+<!-- ============================================================
+     CHAPTER 3: BUILDING WITH AI
+     ============================================================ -->
+<div class="chapter-title-page page-break">
+  <div class="chapter-number">03</div>
+  <span class="chapter-label">CHAPTER THREE</span>
+  <h2>Building With AI &mdash; The Method</h2>
+  <div class="chapter-divider"></div>
+  <p class="chapter-description">This is the most important chapter in this guide. The tech stack is freely available. The database schema is just SQL. The real value is the method -- how you use AI to build production-quality software without being a software engineer.</p>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 3 &mdash; BUILDING WITH AI</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
 
   <h3>The Mental Model</h3>
 
-  <p>Stop thinking of AI as a search engine that spits out code snippets. Think of it as a junior developer who is incredibly fast, never gets tired, knows every framework and library, but needs clear direction from you &mdash; the project manager.</p>
+  <p>Stop thinking of AI as a search engine that spits out code snippets. Think of it as a junior developer who is incredibly fast, never gets tired, knows every framework and library, but needs clear direction from you -- the project manager.</p>
 
   <p>Your job is not to write code. Your job is to:</p>
 
@@ -1730,13 +1696,26 @@ git push -u origin main</div>
 
   <p>If any of these fail, copy the error message and paste it back to the AI. Say: "I got this error when I tried to run the app. Here is the error message: [paste error]. Fix it."</p>
 
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">16</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 3 &mdash; THE FEEDBACK LOOP</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
+
   <h3>The Feedback Loop</h3>
 
-  <div class="diagram-box">
-Prompt &nbsp;&rarr;&nbsp; Review &nbsp;&rarr;&nbsp; Refine &nbsp;&rarr;&nbsp; Commit<br>
-&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|<br>
-&nbsp;&nbsp;+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;+
-  </div>
+  <p>The core cycle is:</p>
+
+  <pre><code>Prompt  -->  Review  -->  Refine  -->  Commit
+  |                                      |
+  +--------------------------------------+</code></pre>
 
   <ul>
     <li><strong>Prompt:</strong> Give AI a clear, specific instruction</li>
@@ -1752,73 +1731,96 @@ Prompt &nbsp;&rarr;&nbsp; Review &nbsp;&rarr;&nbsp; Refine &nbsp;&rarr;&nbsp; Co
   <p>Here is the exact format I use when starting a new phase:</p>
 
   <div class="prompt-block">
-    <p>"I am building a CRM web app using React 19, TypeScript, Tailwind CSS v4, Supabase for the database and auth, Zustand for state management, and Lucide React for icons. The app is deployed on Vercel.</p>
-    <p>I have already built: [list completed phases].</p>
-    <p>For this phase, I need you to build: [specific description of what this phase includes].</p>
-    <p>Requirements:<br>
+    "I am building a CRM web app using React 19, TypeScript, Tailwind CSS v4, Supabase for the database and auth, Zustand for state management, and Lucide React for icons. The app is deployed on Vercel.<br><br>
+    I have already built: [list completed phases].<br><br>
+    For this phase, I need you to build: [specific description of what this phase includes].<br><br>
+    Requirements:<br>
     - [Specific requirement 1]<br>
     - [Specific requirement 2]<br>
-    - [Specific requirement 3]</p>
-    <p>The design should be clean, modern, and professional. Dark sidebar with light content area. Use monochrome colors with subtle accent colors for status indicators.</p>
-    <p>Give me the code file by file."</p>
+    - [Specific requirement 3]<br><br>
+    The design should be clean, modern, and professional. Dark sidebar with light content area. Use monochrome colors with subtle accent colors for status indicators.<br><br>
+    Give me the code file by file."
+  </div>
+
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">17</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 3 &mdash; COMMON MISTAKES</span>
+    <span class="header-right">GROW THE HYPE</span>
   </div>
 
   <h3>Common Mistakes and How to Avoid Them</h3>
 
-  <div class="mistake-block">
-    <div class="mistake-label">Mistake 1: Prompts that are too vague</div>
-    <p class="mistake-bad"><strong>Bad:</strong> "Build me a tasks page."</p>
-    <p class="mistake-good"><strong>Good:</strong> "Build a tasks page with a Kanban board. Four columns: To Do, In Progress, Review, Done. Each task card shows the title, priority (color-coded), due date, and the linked client name. Include a button to add new tasks that opens a modal with fields for title, description, priority dropdown, due date picker, project dropdown, and client dropdown."</p>
+  <div class="callout">
+    <span class="callout-label">MISTAKE 1: PROMPTS THAT ARE TOO VAGUE</span>
+    <p><strong>Bad:</strong> "Build me a tasks page."<br><br>
+    <strong>Good:</strong> "Build a tasks page with a Kanban board. Four columns: To Do, In Progress, Review, Done. Each task card shows the title, priority (color-coded), due date, and the linked client name. Include a button to add new tasks that opens a modal with fields for title, description, priority dropdown, due date picker, project dropdown, and client dropdown."</p>
   </div>
 
-  <div class="mistake-block">
-    <div class="mistake-label">Mistake 2: Not providing error messages</div>
+  <div class="callout">
+    <span class="callout-label">MISTAKE 2: NOT PROVIDING ERROR MESSAGES</span>
     <p>When something breaks, do not say "it doesn't work." Copy the entire error message from the terminal or browser console and paste it. AI can usually fix the issue in one shot if it sees the exact error.</p>
   </div>
 
-  <div class="mistake-block">
-    <div class="mistake-label">Mistake 3: Changing too many things at once</div>
+  <div class="callout">
+    <span class="callout-label">MISTAKE 3: CHANGING TOO MANY THINGS AT ONCE</span>
     <p>Build one feature, test it, commit. Then build the next. If you try to build three features at once and something breaks, you will not know which change caused it.</p>
   </div>
 
-  <div class="mistake-block">
-    <div class="mistake-label">Mistake 4: Not committing often enough</div>
+  <div class="callout">
+    <span class="callout-label">MISTAKE 4: NOT COMMITTING OFTEN ENOUGH</span>
     <p>Commit after every working change. <code>git add . && git commit -m "Add client filtering"</code> takes 3 seconds and can save you hours of frustration later.</p>
+  </div>
+
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">18</span>
   </div>
 </div>
 
-<!-- ============================================
-     CHAPTER 4: THE BUILD
-     ============================================ -->
-<div class="page page-break">
-  <div class="chapter-header">
-    <div class="chapter-number">04</div>
-    <div class="chapter-label">Chapter Four</div>
-    <h2 class="chapter-title">The Build &mdash; Phase by Phase</h2>
-    <div class="chapter-divider"></div>
+
+<!-- ============================================================
+     CHAPTER 4: THE BUILD -- PHASE BY PHASE
+     ============================================================ -->
+<div class="chapter-title-page page-break">
+  <div class="chapter-number">04</div>
+  <span class="chapter-label">CHAPTER FOUR</span>
+  <h2>The Build &mdash; Phase by Phase</h2>
+  <div class="chapter-divider"></div>
+  <p class="chapter-description">This is where we build the entire CRM. Each phase includes what you are building, the exact prompt to use, what to verify, and common issues you might hit.</p>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 4 &mdash; PHASE 1: AUTH</span>
+    <span class="header-right">GROW THE HYPE</span>
   </div>
 
-  <p>This is where we build the entire CRM. Each phase includes what you are building, the exact prompt to use, what to verify, and common issues you might hit.</p>
-
-  <!-- Phase 1 -->
-  <div class="phase-header">
-    <span class="phase-badge">PHASE 1</span>
-    <span class="phase-title">Authentication + Login Page</span>
-  </div>
+  <h3>Phase 1: Authentication + Login Page</h3>
 
   <p><strong>What you are building:</strong> A login page where users can sign up and sign in using email and password. After logging in, they see the main app. If they are not logged in, they are redirected to the login page.</p>
 
+  <span class="section-label">THE PROMPT</span>
+
   <div class="prompt-block">
-    <p>"Build the authentication system for my CRM. I need:</p>
-    <p>1. A Login page component at src/pages/Login.tsx with email and password fields, a Sign In button, and a Sign Up button. Clean, centered design with my brand name 'GTH Command Center' at the top.</p>
-    <p>2. An auth store using Zustand at src/lib/store.ts that tracks the current user session and provides signIn, signUp, and signOut functions using Supabase auth.</p>
-    <p>3. Update App.tsx to check for an active session on load. If the user is logged in, show the main app. If not, show the Login page.</p>
-    <p>4. The Supabase client is already configured at src/lib/supabase.ts.</p>
-    <p>Use Tailwind CSS for all styling. Professional, minimal design."</p>
+    "Build the authentication system for my CRM. I need:<br><br>
+    1. A Login page component at src/pages/Login.tsx with email and password fields, a Sign In button, and a Sign Up button. Clean, centered design with your brand name at the top.<br><br>
+    2. An auth store using Zustand at src/lib/store.ts that tracks the current user session and provides signIn, signUp, and signOut functions using Supabase auth.<br><br>
+    3. Update App.tsx to check for an active session on load. If the user is logged in, show the main app. If not, show the Login page.<br><br>
+    4. The Supabase client is already configured at src/lib/supabase.ts.<br><br>
+    Use Tailwind CSS for all styling. Professional, minimal design."
   </div>
 
-  <h4>What to verify:</h4>
-  <ul class="verify-list">
+  <span class="section-label">WHAT TO VERIFY</span>
+
+  <ul>
     <li>The login page renders without errors</li>
     <li>You can create a new account (check Supabase Auth dashboard to confirm the user was created)</li>
     <li>You can log in with that account</li>
@@ -1827,31 +1829,44 @@ Prompt &nbsp;&rarr;&nbsp; Review &nbsp;&rarr;&nbsp; Refine &nbsp;&rarr;&nbsp; Co
     <li>Sign out works</li>
   </ul>
 
-  <h4>Troubleshooting:</h4>
+  <span class="section-label">TROUBLESHOOTING</span>
+
   <ul>
     <li>If signup fails silently, check the browser console (F12) for errors. Common issue: your <code>.env.local</code> values are wrong.</li>
     <li>If the page is blank after login, check that <code>App.tsx</code> properly handles the session state.</li>
   </ul>
 
-  <!-- Phase 2 -->
-  <div class="phase-header">
-    <span class="phase-badge">PHASE 2</span>
-    <span class="phase-title">Shell Layout (Sidebar + Topbar + Navigation)</span>
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">19</span>
   </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 4 &mdash; PHASE 2: SHELL LAYOUT</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
+
+  <h3>Phase 2: Shell Layout (Sidebar + Topbar + Navigation)</h3>
 
   <p><strong>What you are building:</strong> The main app layout with a sidebar for navigation, a top bar with the user's info and a sign-out button, and a content area that changes based on which page is selected.</p>
 
+  <span class="section-label">THE PROMPT</span>
+
   <div class="prompt-block">
-    <p>"Build the main app shell layout. I need:</p>
-    <p>1. A Sidebar component (src/components/Sidebar.tsx) with navigation links for all 24 pages, organized into sections: Overview (Dashboard), Clients (Clients, Contacts), Work (Projects, Tasks, Calendar, Meetings), Revenue (Invoices, Financials, Profitability), Growth (Outreach, Campaigns, Services, Goals), Vault (Credentials, Documents, SOPs, Templates, Notes, Brand Assets), and System (Activity, Daily Briefing, Settings). Use Lucide icons for each item.</p>
-    <p>2. A Topbar component (src/components/Topbar.tsx) with the current page title on the left and the user's email + sign out button on the right.</p>
-    <p>3. Update App.tsx to render the sidebar, topbar, and a main content area. Use Zustand to track the active page and render the corresponding page component.</p>
-    <p>4. Create placeholder page components for each of the 24 pages that just show the page name as a heading.</p>
-    <p>Dark sidebar (gray-900), light content area (gray-50). Clean, tight spacing. The sidebar should be 240px wide and collapsible on mobile."</p>
+    "Build the main app shell layout. I need:<br><br>
+    1. A Sidebar component (src/components/Sidebar.tsx) with navigation links for all 24 pages, organized into sections: Overview (Dashboard), Clients (Clients, Contacts), Work (Projects, Tasks, Calendar, Meetings), Revenue (Invoices, Financials, Profitability), Growth (Outreach, Campaigns, Services, Goals), Vault (Credentials, Documents, SOPs, Templates, Notes, Brand Assets), and System (Activity, Daily Briefing, Settings). Use Lucide icons for each item.<br><br>
+    2. A Topbar component (src/components/Topbar.tsx) with the current page title on the left and the user's email + sign out button on the right.<br><br>
+    3. Update App.tsx to render the sidebar, topbar, and a main content area. Use Zustand to track the active page and render the corresponding page component.<br><br>
+    4. Create placeholder page components for each of the 24 pages that just show the page name as a heading.<br><br>
+    Dark sidebar (gray-900), light content area (gray-50). Clean, tight spacing. The sidebar should be 240px wide and collapsible on mobile."
   </div>
 
-  <h4>What to verify:</h4>
-  <ul class="verify-list">
+  <span class="section-label">WHAT TO VERIFY</span>
+
+  <ul>
     <li>The sidebar renders with all navigation items</li>
     <li>Clicking a navigation item changes the active page</li>
     <li>The topbar shows the correct page title</li>
@@ -1859,26 +1874,38 @@ Prompt &nbsp;&rarr;&nbsp; Review &nbsp;&rarr;&nbsp; Refine &nbsp;&rarr;&nbsp; Co
     <li>Sign out button in the topbar works</li>
   </ul>
 
-  <!-- Phase 3 -->
-  <div class="phase-header">
-    <span class="phase-badge">PHASE 3</span>
-    <span class="phase-title">Client Management</span>
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">20</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 4 &mdash; PHASE 3: CLIENT MANAGEMENT</span>
+    <span class="header-right">GROW THE HYPE</span>
   </div>
 
-  <p><strong>What you are building:</strong> The full client management system &mdash; view all clients in a table, search and filter them, add new clients, edit existing ones, and view client details in a slide-out drawer.</p>
+  <h3>Phase 3: Client Management</h3>
+
+  <p><strong>What you are building:</strong> The full client management system -- view all clients in a table, search and filter them, add new clients, edit existing ones, and view client details in a slide-out drawer.</p>
+
+  <span class="section-label">THE PROMPT</span>
 
   <div class="prompt-block">
-    <p>"Build the Clients page (src/pages/Clients.tsx) with full CRUD functionality:</p>
-    <p>1. A data table showing all clients with columns: Name, Industry, Status (color-coded badge), Email, Monthly Revenue, and Created Date. The table should be sortable by clicking column headers.</p>
-    <p>2. Above the table: a search input that filters by name, a status filter dropdown (All, Active, Paused, Churned, Prospect), and an 'Add Client' button.</p>
-    <p>3. Clicking 'Add Client' opens a modal with a form: Name (required), Industry, Status dropdown, Email, Phone, Website, Address, Monthly Revenue, and Notes textarea. Saving the form inserts a row into the Supabase 'clients' table.</p>
-    <p>4. Clicking a client row opens a detail drawer (slide-in from the right) showing all client info with edit capability. Include a delete button with confirmation.</p>
-    <p>5. Create a Zustand store slice for clients (src/lib/store.ts) with: clients array, fetchClients, addClient, updateClient, deleteClient functions -- all hitting Supabase.</p>
-    <p>The table should show a loading skeleton while data fetches and an empty state when there are no clients."</p>
+    "Build the Clients page (src/pages/Clients.tsx) with full CRUD functionality:<br><br>
+    1. A data table showing all clients with columns: Name, Industry, Status (color-coded badge), Email, Monthly Revenue, and Created Date. The table should be sortable by clicking column headers.<br><br>
+    2. Above the table: a search input that filters by name, a status filter dropdown (All, Active, Paused, Churned, Prospect), and an 'Add Client' button.<br><br>
+    3. Clicking 'Add Client' opens a modal with a form: Name (required), Industry, Status dropdown, Email, Phone, Website, Address, Monthly Revenue, and Notes textarea. Saving the form inserts a row into the Supabase 'clients' table.<br><br>
+    4. Clicking a client row opens a detail drawer (slide-in from the right) showing all client info with edit capability. Include a delete button with confirmation.<br><br>
+    5. Create a Zustand store slice for clients (src/lib/store.ts) with: clients array, fetchClients, addClient, updateClient, deleteClient functions -- all hitting Supabase.<br><br>
+    The table should show a loading skeleton while data fetches and an empty state when there are no clients."
   </div>
 
-  <h4>What to verify:</h4>
-  <ul class="verify-list">
+  <span class="section-label">WHAT TO VERIFY</span>
+
+  <ul>
     <li>The table loads and shows clients from your database</li>
     <li>Search filters the table in real time</li>
     <li>Status filter works</li>
@@ -1887,31 +1914,43 @@ Prompt &nbsp;&rarr;&nbsp; Review &nbsp;&rarr;&nbsp; Refine &nbsp;&rarr;&nbsp; Co
     <li>Deleting a client removes it (check Supabase to confirm)</li>
   </ul>
 
-  <!-- Phase 4 -->
-  <div class="phase-header">
-    <span class="phase-badge">PHASE 4</span>
-    <span class="phase-title">Tasks + Projects</span>
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">21</span>
   </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 4 &mdash; PHASE 4: TASKS + PROJECTS</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
+
+  <h3>Phase 4: Tasks + Projects</h3>
 
   <p><strong>What you are building:</strong> A projects page with a table similar to clients, and a tasks page with a drag-and-drop Kanban board.</p>
 
+  <span class="section-label">THE PROMPT</span>
+
   <div class="prompt-block">
-    <p>"Build the Projects page and Tasks page:</p>
-    <p>PROJECTS (src/pages/Projects.tsx):<br>
+    "Build the Projects page and Tasks page:<br><br>
+    PROJECTS (src/pages/Projects.tsx):<br>
     - Table with columns: Name, Client, Status (badge), Budget, Start Date, End Date<br>
     - Add/Edit/Delete functionality similar to Clients<br>
-    - Client dropdown should pull from the clients table</p>
-    <p>TASKS (src/pages/Tasks.tsx):<br>
+    - Client dropdown should pull from the clients table<br><br>
+    TASKS (src/pages/Tasks.tsx):<br>
     - Kanban board with 4 columns: To Do, In Progress, Review, Done<br>
     - Each task card shows: title, priority (color dot), due date, client name<br>
     - Drag and drop between columns (use HTML5 drag and drop, no extra library needed)<br>
     - Add task button that opens a modal: title, description, priority dropdown, due date, project dropdown, client dropdown<br>
-    - Filter bar at the top: filter by client, filter by priority, search by title</p>
-    <p>Add Zustand store slices for both projects and tasks."</p>
+    - Filter bar at the top: filter by client, filter by priority, search by title<br><br>
+    Add Zustand store slices for both projects and tasks."
   </div>
 
-  <h4>What to verify:</h4>
-  <ul class="verify-list">
+  <span class="section-label">WHAT TO VERIFY</span>
+
+  <ul>
     <li>Projects table loads and CRUD works</li>
     <li>Tasks render in the correct columns based on status</li>
     <li>Dragging a task to a new column updates its status in Supabase</li>
@@ -1919,177 +1958,227 @@ Prompt &nbsp;&rarr;&nbsp; Review &nbsp;&rarr;&nbsp; Refine &nbsp;&rarr;&nbsp; Co
     <li>Creating a task with a linked project/client shows those associations</li>
   </ul>
 
-  <!-- Phase 5 -->
-  <div class="phase-header">
-    <span class="phase-badge">PHASE 5</span>
-    <span class="phase-title">Calendar + Meetings</span>
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">22</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 4 &mdash; PHASE 5: CALENDAR</span>
+    <span class="header-right">GROW THE HYPE</span>
   </div>
 
-  <p><strong>What you are building:</strong> A calendar view and a meetings list. Google Calendar integration comes in Chapter 5 &mdash; for now, build the local calendar that reads from your meetings table.</p>
+  <h3>Phase 5: Calendar + Meetings</h3>
+
+  <p><strong>What you are building:</strong> A calendar view and a meetings list. Google Calendar integration comes in Chapter 5 -- for now, build the local calendar that reads from your meetings table.</p>
+
+  <span class="section-label">THE PROMPT</span>
 
   <div class="prompt-block">
-    <p>"Build the Calendar page and Meetings page:</p>
-    <p>CALENDAR (src/pages/Calendar.tsx):<br>
+    "Build the Calendar page and Meetings page:<br><br>
+    CALENDAR (src/pages/Calendar.tsx):<br>
     - Monthly calendar grid view showing the current month<br>
     - Navigation arrows to go to previous/next month<br>
     - Dots or event indicators on days that have meetings<br>
     - Clicking a day shows that day's meetings in a side panel<br>
-    - Button to create a new meeting from any day</p>
-    <p>MEETINGS (src/pages/Meetings.tsx):<br>
+    - Button to create a new meeting from any day<br><br>
+    MEETINGS (src/pages/Meetings.tsx):<br>
     - List view of all meetings, sorted by date (upcoming first)<br>
     - Each meeting shows: title, date/time, client name, location<br>
-    - Add/Edit/Delete with a form modal: title, description, start time, end time, client dropdown, location</p>
-    <p>Use date-fns for all date formatting and calculations."</p>
+    - Add/Edit/Delete with a form modal: title, description, start time, end time, client dropdown, location<br><br>
+    Use date-fns for all date formatting and calculations."
   </div>
 
-  <!-- Phase 6 -->
-  <div class="phase-header">
-    <span class="phase-badge">PHASE 6</span>
-    <span class="phase-title">Revenue (Invoices, Financials, Profitability)</span>
-  </div>
+  <h3>Phase 6: Revenue (Invoices, Financials, Profitability)</h3>
 
-  <p><strong>What you are building:</strong> The financial backbone of your CRM &mdash; invoice management, a financial overview, and per-client profitability tracking.</p>
+  <p><strong>What you are building:</strong> The financial backbone of your CRM -- invoice management, a financial overview, and per-client profitability tracking.</p>
+
+  <span class="section-label">THE PROMPT</span>
 
   <div class="prompt-block">
-    <p>"Build three revenue pages:</p>
-    <p>INVOICES (src/pages/Invoices.tsx):<br>
+    "Build three revenue pages:<br><br>
+    INVOICES (src/pages/Invoices.tsx):<br>
     - Table: Invoice #, Client, Amount, Status (draft/sent/paid/overdue -- color-coded), Issue Date, Due Date<br>
     - Add invoice modal with line items (description + amount, ability to add multiple lines)<br>
     - Status update buttons (Mark as Sent, Mark as Paid)<br>
-    - Show total amount at the top</p>
-    <p>FINANCIALS (src/pages/Financials.tsx):<br>
+    - Show total amount at the top<br><br>
+    FINANCIALS (src/pages/Financials.tsx):<br>
     - Summary cards at top: Total Revenue (paid invoices), Outstanding (sent/overdue), Overdue amount, Average invoice value<br>
     - Revenue by month (simple bar list, no charting library needed -- use colored divs for bars)<br>
-    - Revenue by client (top 5)</p>
-    <p>PROFITABILITY (src/pages/Profitability.tsx):<br>
+    - Revenue by client (top 5)<br><br>
+    PROFITABILITY (src/pages/Profitability.tsx):<br>
     - Per-client view: client name, total revenue (paid invoices), number of projects, number of invoices, revenue per project<br>
     - Sort by most profitable<br>
-    - Color-code rows: green for high revenue, yellow for medium, red for low</p>
-    <p>All data pulls from existing Supabase tables."</p>
+    - Color-code rows: green for high revenue, yellow for medium, red for low<br><br>
+    All data pulls from existing Supabase tables."
   </div>
 
-  <!-- Phase 7 -->
-  <div class="phase-header">
-    <span class="phase-badge">PHASE 7</span>
-    <span class="phase-title">Growth (Outreach, Campaigns, Services, Goals)</span>
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">23</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 4 &mdash; PHASE 7: GROWTH</span>
+    <span class="header-right">GROW THE HYPE</span>
   </div>
 
-  <p><strong>What you are building:</strong> Your business development toolkit &mdash; a sales pipeline, campaign tracker, service catalog, and goal tracker.</p>
+  <h3>Phase 7: Growth (Outreach, Campaigns, Services, Goals)</h3>
+
+  <p><strong>What you are building:</strong> Your business development toolkit -- a sales pipeline, campaign tracker, service catalog, and goal tracker.</p>
+
+  <span class="section-label">THE PROMPT</span>
 
   <div class="prompt-block">
-    <p>"Build four growth pages:</p>
-    <p>OUTREACH (src/pages/Outreach.tsx):<br>
+    "Build four growth pages:<br><br>
+    OUTREACH (src/pages/Outreach.tsx):<br>
     - Pipeline view with columns for each stage: Identified, Contacted, Responded, Meeting Booked, Proposal Sent, Won, Lost<br>
     - Drag and drop between stages (same pattern as Tasks Kanban)<br>
-    - Cards show: company name, contact name, source, next follow-up date</p>
-    <p>CAMPAIGNS (src/pages/Campaigns.tsx):<br>
+    - Cards show: company name, contact name, source, next follow-up date<br><br>
+    CAMPAIGNS (src/pages/Campaigns.tsx):<br>
     - Table: Name, Client, Platform, Status, Budget, Start Date, End Date<br>
-    - Full CRUD with modal form</p>
-    <p>SERVICES (src/pages/Services.tsx):<br>
+    - Full CRUD with modal form<br><br>
+    SERVICES (src/pages/Services.tsx):<br>
     - Card grid showing each service with name, description, price, pricing model badge<br>
     - Add/Edit/Delete<br>
-    - Toggle active/inactive</p>
-    <p>GOALS (src/pages/Goals.tsx):<br>
+    - Toggle active/inactive<br><br>
+    GOALS (src/pages/Goals.tsx):<br>
     - List of goals with progress bars showing current_value / target_value<br>
     - Category filter tabs: All, Revenue, Clients, Projects, Personal<br>
     - Add/Edit with form: title, category, target value, current value, unit, deadline<br>
-    - Status badges: In Progress, Achieved, Missed"</p>
+    - Status badges: In Progress, Achieved, Missed"
   </div>
 
-  <!-- Phase 8 -->
-  <div class="phase-header">
-    <span class="phase-badge">PHASE 8</span>
-    <span class="phase-title">Vault (Credentials, Documents, SOPs)</span>
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">24</span>
   </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 4 &mdash; PHASE 8: VAULT</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
+
+  <h3>Phase 8: Vault (Credentials, Documents, SOPs)</h3>
 
   <p><strong>What you are building:</strong> Secure storage for sensitive information, documents, SOPs, templates, notes, and brand assets.</p>
 
+  <span class="section-label">THE PROMPT</span>
+
   <div class="prompt-block">
-    <p>"Build the Vault pages:</p>
-    <p>CREDENTIALS (src/pages/Credentials.tsx):<br>
+    "Build the Vault pages:<br><br>
+    CREDENTIALS (src/pages/Credentials.tsx):<br>
     - Table: Service Name, Client, Username, URL. Password column shows dots with a 'reveal' toggle button.<br>
-    - Add/Edit/Delete. Group by client.</p>
-    <p>DOCUMENTS (src/pages/Documents.tsx):<br>
+    - Add/Edit/Delete. Group by client.<br><br>
+    DOCUMENTS (src/pages/Documents.tsx):<br>
     - File list with: Name, Client, Project, Type, Size, Upload Date<br>
     - Upload button (for now, just save metadata -- file upload to Supabase Storage can be Phase 10)<br>
-    - Category filter and search</p>
-    <p>SOPS (src/pages/SOPs.tsx):<br>
+    - Category filter and search<br><br>
+    SOPS (src/pages/SOPs.tsx):<br>
     - List view with: Title, Category, Version, Published status<br>
     - Click to view/edit the full SOP content in a rich text area<br>
-    - Version number increments on each save</p>
-    <p>TEMPLATES (src/pages/Templates.tsx):<br>
+    - Version number increments on each save<br><br>
+    TEMPLATES (src/pages/Templates.tsx):<br>
     - Grid of template cards with name and category<br>
     - Click to view/edit template content<br>
-    - Variable placeholders highlighted (e.g., {{client_name}})</p>
-    <p>NOTES (src/pages/Notes.tsx):<br>
+    - Variable placeholders highlighted (e.g., {{client_name}})<br><br>
+    NOTES (src/pages/Notes.tsx):<br>
     - Two-column layout: note list on left, note content on right<br>
     - Pin important notes to the top<br>
-    - Link notes to clients or projects</p>
-    <p>BRAND ASSETS (src/pages/BrandAssets.tsx):<br>
+    - Link notes to clients or projects<br><br>
+    BRAND ASSETS (src/pages/BrandAssets.tsx):<br>
     - Organized by client<br>
     - Show color swatches, font names, logos (placeholder images for now)<br>
-    - Add/Edit/Delete"</p>
+    - Add/Edit/Delete"
   </div>
 
-  <!-- Phase 9 -->
-  <div class="phase-header">
-    <span class="phase-badge">PHASE 9</span>
-    <span class="phase-title">AI Assistant</span>
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">25</span>
   </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 4 &mdash; PHASES 9 &amp; 10</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
+
+  <h3>Phase 9: AI Assistant</h3>
 
   <p><strong>What you are building:</strong> An embedded AI chat panel that can answer questions about your CRM data. Full details in Chapter 6.</p>
 
-  <!-- Phase 10 -->
-  <div class="phase-header">
-    <span class="phase-badge">PHASE 10</span>
-    <span class="phase-title">Polish</span>
-  </div>
+  <h3>Phase 10: Polish</h3>
 
   <p><strong>What you are building:</strong> The finishing touches that make your CRM feel professional.</p>
 
+  <span class="section-label">THE PROMPT</span>
+
   <div class="prompt-block">
-    <p>"Polish the CRM:</p>
-    <p>1. DASHBOARD (src/pages/Dashboard.tsx): Summary cards showing total clients, active projects, open tasks, revenue this month, overdue invoices. Recent activity feed. Upcoming meetings (next 7 days). Quick-add buttons for common actions.</p>
-    <p>2. DAILY BRIEFING (src/pages/DailyBriefing.tsx): Auto-generated summary of today's meetings, overdue tasks, invoices due this week, recent activity, and follow-ups due today.</p>
-    <p>3. SETTINGS (src/pages/Settings.tsx): Profile info, theme toggle (light/dark mode), notification preferences placeholders.</p>
-    <p>4. ACTIVITY LOG (src/pages/Activity.tsx): Chronological list of all actions taken in the CRM, auto-logged.</p>
-    <p>5. RESPONSIVE DESIGN: Make the sidebar collapse into a hamburger menu on screens under 768px. Ensure all tables scroll horizontally on mobile. Test every page at mobile width.</p>
-    <p>6. DARK MODE: Add a theme toggle in Settings and the topbar. Use Tailwind's dark: classes.</p>
-    <p>7. Loading states and empty states for every page."</p>
+    "Polish the CRM:<br><br>
+    1. DASHBOARD (src/pages/Dashboard.tsx): Summary cards showing total clients, active projects, open tasks, revenue this month, overdue invoices. Recent activity feed. Upcoming meetings (next 7 days). Quick-add buttons for common actions.<br><br>
+    2. DAILY BRIEFING (src/pages/DailyBriefing.tsx): Auto-generated summary of today's meetings, overdue tasks, invoices due this week, recent activity, and follow-ups due today.<br><br>
+    3. SETTINGS (src/pages/Settings.tsx): Profile info, theme toggle (light/dark mode), notification preferences placeholders.<br><br>
+    4. ACTIVITY LOG (src/pages/Activity.tsx): Chronological list of all actions taken in the CRM, auto-logged.<br><br>
+    5. RESPONSIVE DESIGN: Make the sidebar collapse into a hamburger menu on screens under 768px. Ensure all tables scroll horizontally on mobile. Test every page at mobile width.<br><br>
+    6. DARK MODE: Add a theme toggle in Settings and the topbar. Use Tailwind's dark: classes.<br><br>
+    7. Loading states and empty states for every page."
   </div>
 
-  <h4>What to verify after Phase 10:</h4>
-  <ul class="verify-list">
+  <span class="section-label">WHAT TO VERIFY AFTER PHASE 10</span>
+
+  <ul>
     <li>Dashboard shows real data from your database</li>
     <li>Every page works on mobile (resize your browser to test)</li>
     <li>Dark mode toggles across the entire app</li>
     <li>No blank pages, no broken links, no console errors</li>
   </ul>
+
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">26</span>
+  </div>
 </div>
 
-<!-- ============================================
+
+<!-- ============================================================
      CHAPTER 5: GOOGLE CALENDAR INTEGRATION
-     ============================================ -->
-<div class="page page-break">
-  <div class="chapter-header">
-    <div class="chapter-number">05</div>
-    <div class="chapter-label">Chapter Five</div>
-    <h2 class="chapter-title">Google Calendar Integration</h2>
-    <div class="chapter-divider"></div>
+     ============================================================ -->
+<div class="chapter-title-page page-break">
+  <div class="chapter-number">05</div>
+  <span class="chapter-label">CHAPTER FIVE</span>
+  <h2>Google Calendar Integration</h2>
+  <div class="chapter-divider"></div>
+  <p class="chapter-description">This chapter walks you through connecting your CRM to Google Calendar so meetings sync both ways.</p>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 5 &mdash; GOOGLE CALENDAR</span>
+    <span class="header-right">GROW THE HYPE</span>
   </div>
 
-  <p>This chapter walks you through connecting your CRM to Google Calendar so meetings sync both ways.</p>
-
-  <div class="step-header"><span class="step-number">1</span> Create a Google Cloud Project</div>
+  <h3>Step 1: Create a Google Cloud Project</h3>
 
   <ol>
     <li>Go to <a href="https://console.cloud.google.com">console.cloud.google.com</a></li>
     <li>Click the project dropdown at the top of the page, then <strong>New Project</strong></li>
-    <li>Name it <code>GTH Command Center</code> and click <strong>Create</strong></li>
+    <li>Name it <code>Operations Command Center</code> and click <strong>Create</strong></li>
     <li>Wait for the project to be created, then select it from the dropdown</li>
   </ol>
 
-  <div class="step-header"><span class="step-number">2</span> Enable the Calendar API</div>
+  <h3>Step 2: Enable the Calendar API</h3>
 
   <ol>
     <li>In the left sidebar, go to <strong>APIs &amp; Services</strong> then <strong>Library</strong></li>
@@ -2097,14 +2186,14 @@ Prompt &nbsp;&rarr;&nbsp; Review &nbsp;&rarr;&nbsp; Refine &nbsp;&rarr;&nbsp; Co
     <li>Click on it and click <strong>Enable</strong></li>
   </ol>
 
-  <div class="step-header"><span class="step-number">3</span> Configure the OAuth Consent Screen</div>
+  <h3>Step 3: Configure the OAuth Consent Screen</h3>
 
   <ol>
     <li>Go to <strong>APIs &amp; Services</strong> then <strong>OAuth consent screen</strong></li>
     <li>Select <strong>External</strong> (unless you have a Google Workspace org, then choose Internal)</li>
     <li>Fill in the required fields:
       <ul>
-        <li><strong>App name:</strong> GTH Command Center</li>
+        <li><strong>App name:</strong> Your CRM name</li>
         <li><strong>User support email:</strong> Your email</li>
         <li><strong>Developer contact email:</strong> Your email</li>
       </ul>
@@ -2122,18 +2211,31 @@ Prompt &nbsp;&rarr;&nbsp; Review &nbsp;&rarr;&nbsp; Refine &nbsp;&rarr;&nbsp; Co
     <li>Click <strong>Save and Continue</strong></li>
   </ol>
 
-  <div class="tip-box">
-    <div class="tip-label">NOTE</div>
+  <div class="callout">
+    <span class="callout-label note">NOTE</span>
     <p>While your app is in "Testing" mode, only the email addresses you add as test users can log in. This is fine for personal/small team use. To allow anyone to log in, you need to go through Google's verification process (which takes a few weeks but is straightforward).</p>
   </div>
 
-  <div class="step-header"><span class="step-number">4</span> Create OAuth Client ID</div>
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">27</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 5 &mdash; OAUTH SETUP</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
+
+  <h3>Step 4: Create OAuth Client ID</h3>
 
   <ol>
     <li>Go to <strong>APIs &amp; Services</strong> then <strong>Credentials</strong></li>
     <li>Click <strong>Create Credentials</strong> then <strong>OAuth client ID</strong></li>
     <li>Application type: <strong>Web application</strong></li>
-    <li>Name: <code>GTH CRM Web</code></li>
+    <li>Name: <code>Your CRM Web</code></li>
     <li><strong>Authorized JavaScript origins:</strong> Add:
       <ul>
         <li><code>http://localhost:5173</code> (for local development)</li>
@@ -2153,32 +2255,44 @@ Prompt &nbsp;&rarr;&nbsp; Review &nbsp;&rarr;&nbsp; Refine &nbsp;&rarr;&nbsp; Co
 
   <p>Add to your <code>.env.local</code>:</p>
 
-  <div class="code-block"><span class="code-label">Environment</span>
-VITE_GOOGLE_CLIENT_ID=your-google-client-id
-VITE_GOOGLE_CLIENT_SECRET=your-google-client-secret</div>
+  <pre><code>VITE_GOOGLE_CLIENT_ID=your-google-client-id
+VITE_GOOGLE_CLIENT_SECRET=your-google-client-secret</code></pre>
 
-  <div class="step-header"><span class="step-number">5</span> Implement the OAuth Flow</div>
+  <h3>Step 5: Implement the OAuth Flow</h3>
 
-  <p>Use this prompt for Claude:</p>
+  <span class="section-label">THE PROMPT</span>
 
   <div class="prompt-block">
-    <p>"Add Google Calendar OAuth integration to my CRM:</p>
-    <p>1. Create src/lib/google-calendar.ts with functions: initiateGoogleAuth (redirects to Google's OAuth consent), handleAuthCallback (exchanges code for tokens), fetchCalendarEvents (get events for a date range), createCalendarEvent, updateCalendarEvent, deleteCalendarEvent.</p>
-    <p>2. Store the Google OAuth tokens in Supabase (create a user_tokens table with user_id, provider, access_token, refresh_token, expires_at).</p>
-    <p>3. Update the Calendar page to show Google Calendar events alongside local meetings. Color-code them differently (blue for Google Calendar, green for local).</p>
-    <p>4. Add a 'Connect Google Calendar' button in Settings that triggers the OAuth flow.</p>
-    <p>5. Handle token refresh automatically when the access token expires.</p>
-    <p>Use the Google Calendar API v3. My client ID is in VITE_GOOGLE_CLIENT_ID."</p>
+    "Add Google Calendar OAuth integration to my CRM:<br><br>
+    1. Create src/lib/google-calendar.ts with functions: initiateGoogleAuth (redirects to Google's OAuth consent), handleAuthCallback (exchanges code for tokens), fetchCalendarEvents (get events for a date range), createCalendarEvent, updateCalendarEvent, deleteCalendarEvent.<br><br>
+    2. Store the Google OAuth tokens in Supabase (create a user_tokens table with user_id, provider, access_token, refresh_token, expires_at).<br><br>
+    3. Update the Calendar page to show Google Calendar events alongside local meetings. Color-code them differently (blue for Google Calendar, green for local).<br><br>
+    4. Add a 'Connect Google Calendar' button in Settings that triggers the OAuth flow.<br><br>
+    5. Handle token refresh automatically when the access token expires.<br><br>
+    Use the Google Calendar API v3. My client ID is in VITE_GOOGLE_CLIENT_ID."
   </div>
 
-  <div class="step-header"><span class="step-number">6</span> Test the Integration</div>
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">28</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 5 &mdash; TESTING &amp; TROUBLESHOOTING</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
+
+  <h3>Step 6: Test the Integration</h3>
 
   <ol>
     <li>Click <strong>Connect Google Calendar</strong> in your Settings page</li>
     <li>You will be redirected to Google's consent screen</li>
     <li>Select your Google account and grant permission</li>
     <li>You will be redirected back to your app</li>
-    <li>Go to the Calendar page &mdash; you should see your Google Calendar events</li>
+    <li>Go to the Calendar page -- you should see your Google Calendar events</li>
     <li>Create a test event in your CRM and verify it appears in Google Calendar</li>
     <li>Create an event in Google Calendar and verify it appears in your CRM (after refreshing)</li>
   </ol>
@@ -2191,20 +2305,31 @@ VITE_GOOGLE_CLIENT_SECRET=your-google-client-secret</div>
     <li><strong>Events not syncing:</strong> Check that you requested the correct scopes. The <code>calendar.events</code> scope is needed for write access; <code>calendar.readonly</code> only allows reading.</li>
     <li><strong>Token expired errors:</strong> Make sure your token refresh logic is working. Access tokens expire after 1 hour; your app should automatically use the refresh token to get a new one.</li>
   </ul>
+
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">29</span>
+  </div>
 </div>
 
-<!-- ============================================
-     CHAPTER 6: THE AI ASSISTANT
-     ============================================ -->
-<div class="page page-break">
-  <div class="chapter-header">
-    <div class="chapter-number">06</div>
-    <div class="chapter-label">Chapter Six</div>
-    <h2 class="chapter-title">The AI Assistant</h2>
-    <div class="chapter-divider"></div>
-  </div>
 
-  <p>The AI assistant is what takes your CRM from "a nice database with a UI" to "the smartest tool in your business." This is an embedded chat interface that can query your data, generate reports, draft emails, and answer questions about your business.</p>
+<!-- ============================================================
+     CHAPTER 6: THE AI ASSISTANT
+     ============================================================ -->
+<div class="chapter-title-page page-break">
+  <div class="chapter-number">06</div>
+  <span class="chapter-label">CHAPTER SIX</span>
+  <h2>The AI Assistant</h2>
+  <div class="chapter-divider"></div>
+  <p class="chapter-description">The AI assistant is what takes your CRM from "a nice database with a UI" to "the smartest tool in your business." This is an embedded chat interface that can query your data, generate reports, draft emails, and answer questions about your business.</p>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 6 &mdash; AI ASSISTANT</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
 
   <h3>Getting a Claude API Key</h3>
 
@@ -2212,15 +2337,15 @@ VITE_GOOGLE_CLIENT_SECRET=your-google-client-secret</div>
     <li>Go to <a href="https://console.anthropic.com">console.anthropic.com</a></li>
     <li>Sign up or log in</li>
     <li>Go to <strong>API Keys</strong> and click <strong>Create Key</strong></li>
-    <li>Name it <code>GTH CRM</code> and copy the key</li>
+    <li>Name it <code>Operations CRM</code> and copy the key</li>
     <li>Add to your <code>.env.local</code>:</li>
   </ol>
 
-  <div class="code-block"><span class="code-label">Environment</span>
-VITE_ANTHROPIC_API_KEY=sk-ant-...</div>
+  <pre><code>VITE_ANTHROPIC_API_KEY=sk-ant-...</code></pre>
 
-  <div class="important-box">
-    <p><strong>SECURITY NOTE:</strong> In a production app, you should NEVER put your API key in frontend code. The correct approach is to create a Supabase Edge Function that acts as a proxy &mdash; your frontend calls the Edge Function, and the Edge Function calls Claude's API with the key stored securely on the server. For personal use during development, putting it in an env var is fine. The Edge Function approach is shown in the build prompt below.</p>
+  <div class="callout">
+    <span class="callout-label">IMPORTANT SECURITY NOTE</span>
+    <p>In a production app, you should NEVER put your API key in frontend code. The correct approach is to create a Supabase Edge Function that acts as a proxy -- your frontend calls the Edge Function, and the Edge Function calls Claude's API with the key stored securely on the server. For personal use during development, putting it in an env var is fine. The Edge Function approach is included in the prompt below.</p>
   </div>
 
   <h3>How Tool Use Works</h3>
@@ -2228,41 +2353,67 @@ VITE_ANTHROPIC_API_KEY=sk-ant-...</div>
   <p>Claude's API has a feature called "tool use" (also called "function calling"). Here is how it works in plain English:</p>
 
   <ol>
-    <li>You define a set of "tools" &mdash; functions that Claude can ask you to run. For example: <code>get_clients</code>, <code>get_tasks_by_status</code>, <code>create_invoice</code>.</li>
+    <li>You define a set of "tools" -- functions that Claude can ask you to run. For example: <code>get_clients</code>, <code>get_tasks_by_status</code>, <code>create_invoice</code>.</li>
     <li>When a user asks the AI a question like "How many active clients do I have?", Claude reads the question and decides which tool(s) it needs to answer it.</li>
-    <li>Claude responds with a "tool call" &mdash; basically saying "I need you to run <code>get_clients</code> with the filter <code>status = active</code>."</li>
+    <li>Claude responds with a "tool call" -- basically saying "I need you to run <code>get_clients</code> with the filter <code>status = active</code>."</li>
     <li>Your code executes that function (queries Supabase) and sends the results back to Claude.</li>
     <li>Claude reads the results and formulates a natural language answer: "You have 12 active clients."</li>
   </ol>
 
   <p>This means Claude can answer questions about YOUR data without your data ever being stored by Anthropic.</p>
 
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">30</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 6 &mdash; THE 10 TOOLS</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
+
   <h3>The 10 Built-In Tools</h3>
 
   <p>Here are the tools your AI assistant will have:</p>
 
   <ol>
-    <li><strong>get_clients</strong> &mdash; Retrieve clients with optional filters (status, industry, search term)</li>
-    <li><strong>get_tasks</strong> &mdash; Retrieve tasks with optional filters (status, priority, client, project)</li>
-    <li><strong>get_projects</strong> &mdash; Retrieve projects with optional filters (status, client)</li>
-    <li><strong>get_invoices</strong> &mdash; Retrieve invoices with optional filters (status, client, date range)</li>
-    <li><strong>get_revenue_summary</strong> &mdash; Calculate total revenue, outstanding amount, overdue amount for a date range</li>
-    <li><strong>get_upcoming_meetings</strong> &mdash; Retrieve meetings for the next N days</li>
-    <li><strong>get_overdue_tasks</strong> &mdash; Retrieve all tasks past their due date</li>
-    <li><strong>get_outreach_pipeline</strong> &mdash; Retrieve outreach prospects grouped by stage with counts</li>
-    <li><strong>get_goal_progress</strong> &mdash; Retrieve goals with progress percentages</li>
-    <li><strong>search_notes</strong> &mdash; Full-text search across all notes</li>
+    <li><strong>get_clients</strong> -- Retrieve clients with optional filters (status, industry, search term)</li>
+    <li><strong>get_tasks</strong> -- Retrieve tasks with optional filters (status, priority, client, project)</li>
+    <li><strong>get_projects</strong> -- Retrieve projects with optional filters (status, client)</li>
+    <li><strong>get_invoices</strong> -- Retrieve invoices with optional filters (status, client, date range)</li>
+    <li><strong>get_revenue_summary</strong> -- Calculate total revenue, outstanding amount, overdue amount for a date range</li>
+    <li><strong>get_upcoming_meetings</strong> -- Retrieve meetings for the next N days</li>
+    <li><strong>get_overdue_tasks</strong> -- Retrieve all tasks past their due date</li>
+    <li><strong>get_outreach_pipeline</strong> -- Retrieve outreach prospects grouped by stage with counts</li>
+    <li><strong>get_goal_progress</strong> -- Retrieve goals with progress percentages</li>
+    <li><strong>search_notes</strong> -- Full-text search across all notes</li>
   </ol>
 
-  <h4>The prompt to build it:</h4>
+  <span class="section-label">THE PROMPT TO BUILD IT</span>
 
   <div class="prompt-block">
-    <p>"Build an AI Assistant panel for my CRM:</p>
-    <p>1. Create a Supabase Edge Function at supabase/functions/ai-chat/index.ts that: receives messages from the frontend, calls Claude's API (claude-sonnet-4-20250514) with tool definitions for the 10 tools listed above, executes tool calls against the database, and returns the final response.</p>
-    <p>2. Create src/components/AIAssistant.tsx -- a slide-out panel from the right side with a chat interface. Message input at the bottom, messages scroll above. User messages on the right (blue), AI messages on the left (gray). Show a typing indicator while waiting for a response.</p>
-    <p>3. Add a floating button in the bottom-right corner of every page to toggle the AI panel open/closed.</p>
-    <p>4. The AI should have a system prompt that says: 'You are the AI assistant for GTH Command Center, a CRM for a digital marketing agency. You have access to tools that query the CRM database. Be concise, professional, and actionable in your responses. When presenting data, use clean formatting.'</p>
-    <p>Store the Anthropic API key as a Supabase secret, not in frontend code."</p>
+    "Build an AI Assistant panel for my CRM:<br><br>
+    1. Create a Supabase Edge Function at supabase/functions/ai-chat/index.ts that: receives messages from the frontend, calls Claude's API (claude-sonnet-4-20250514) with tool definitions for the 10 tools listed above, executes tool calls against the database, and returns the final response.<br><br>
+    2. Create src/components/AIAssistant.tsx -- a slide-out panel from the right side with a chat interface. Message input at the bottom, messages scroll above. User messages on the right (blue), AI messages on the left (gray). Show a typing indicator while waiting for a response.<br><br>
+    3. Add a floating button in the bottom-right corner of every page to toggle the AI panel open/closed.<br><br>
+    4. The AI should have a system prompt that says: 'You are the AI assistant for this Operations Command Center, a custom CRM. You have access to tools that query the CRM database. Be concise, professional, and actionable in your responses. When presenting data, use clean formatting.'<br><br>
+    Store the Anthropic API key as a Supabase secret, not in frontend code."
+  </div>
+
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">31</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 6 &mdash; VOICE &amp; CUSTOM TOOLS</span>
+    <span class="header-right">GROW THE HYPE</span>
   </div>
 
   <h3>Voice Input</h3>
@@ -2270,7 +2421,7 @@ VITE_ANTHROPIC_API_KEY=sk-ant-...</div>
   <p>Adding voice input is simpler than you might think. The Web Speech API is built into every modern browser.</p>
 
   <div class="prompt-block">
-    <p>"Add voice input to the AI Assistant: a microphone button next to the text input. When clicked, it starts recording using the Web Speech API (webkitSpeechRecognition). When the user stops speaking, the transcribed text populates the input field. Show a visual indicator (pulsing red dot) while recording."</p>
+    "Add voice input to the AI Assistant: a microphone button next to the text input. When clicked, it starts recording using the Web Speech API (webkitSpeechRecognition). When the user stops speaking, the transcribed text populates the input field. Show a visual indicator (pulsing red dot) while recording."
   </div>
 
   <h3>Adding Your Own Custom Tools</h3>
@@ -2279,28 +2430,29 @@ VITE_ANTHROPIC_API_KEY=sk-ant-...</div>
 
   <p>1. Define the tool in your Edge Function's tool array:</p>
 
-  <div class="code-block"><span class="code-label">TypeScript</span>
-{
-  name: <span class="string">"get_client_campaigns"</span>,
-  description: <span class="string">"Get all campaigns for a specific client"</span>,
+  <pre><code>{
+  name: "get_client_campaigns",
+  description: "Get all campaigns for a specific client",
   input_schema: {
-    type: <span class="string">"object"</span>,
+    type: "object",
     properties: {
-      client_id: { type: <span class="string">"string"</span>, description: <span class="string">"The UUID of the client"</span> }
+      client_id: {
+        type: "string",
+        description: "The UUID of the client"
+      }
     },
-    required: [<span class="string">"client_id"</span>]
+    required: ["client_id"]
   }
-}</div>
+}</code></pre>
 
   <p>2. Add the handler in the tool execution switch statement:</p>
 
-  <div class="code-block"><span class="code-label">TypeScript</span>
-<span class="keyword">case</span> <span class="string">"get_client_campaigns"</span>:
-  <span class="keyword">const</span> { data } = <span class="keyword">await</span> supabase
-    .<span class="function">from</span>(<span class="string">"campaigns"</span>)
-    .<span class="function">select</span>(<span class="string">"*"</span>)
-    .<span class="function">eq</span>(<span class="string">"client_id"</span>, input.client_id);
-  <span class="keyword">return</span> data;</div>
+  <pre><code>case "get_client_campaigns":
+  const { data } = await supabase
+    .from("campaigns")
+    .select("*")
+    .eq("client_id", input.client_id);
+  return data;</code></pre>
 
   <p>That is it. Claude automatically knows when to use the new tool based on the name and description you gave it.</p>
 
@@ -2310,25 +2462,36 @@ VITE_ANTHROPIC_API_KEY=sk-ant-...</div>
 
   <ul>
     <li>Simple question ("How many active clients?"): ~$0.01</li>
-    <li>Complex query ("Give me a profitability report for Q1"): ~$0.03&ndash;0.05</li>
-    <li>Long conversation (10+ back-and-forth messages): ~$0.10&ndash;0.20</li>
+    <li>Complex query ("Give me a profitability report for Q1"): ~$0.03-0.05</li>
+    <li>Long conversation (10+ back-and-forth messages): ~$0.10-0.20</li>
   </ul>
 
-  <p>For a solo operator or small agency, expect to spend $5&ndash;15/month on AI usage. Less than a single SaaS subscription.</p>
+  <p>For a solo operator or small agency, expect to spend $5-15/month on AI usage. Less than a single SaaS subscription.</p>
+
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">32</span>
+  </div>
 </div>
 
-<!-- ============================================
-     CHAPTER 7: MAKING IT YOURS
-     ============================================ -->
-<div class="page page-break">
-  <div class="chapter-header">
-    <div class="chapter-number">07</div>
-    <div class="chapter-label">Chapter Seven</div>
-    <h2 class="chapter-title">Making It Yours</h2>
-    <div class="chapter-divider"></div>
-  </div>
 
-  <p>The CRM you have built so far is designed around a digital marketing agency workflow. But the beauty of building your own tool is that every pixel and every feature is yours to change.</p>
+<!-- ============================================================
+     CHAPTER 7: MAKING IT YOURS
+     ============================================================ -->
+<div class="chapter-title-page page-break">
+  <div class="chapter-number">07</div>
+  <span class="chapter-label">CHAPTER SEVEN</span>
+  <h2>Making It Yours</h2>
+  <div class="chapter-divider"></div>
+  <p class="chapter-description">The CRM you have built so far is designed around a digital marketing agency workflow. But the beauty of building your own tool is that every pixel and every feature is yours to change.</p>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 7 &mdash; CUSTOMIZATION</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
 
   <h3>Changing Brand Colors and Fonts</h3>
 
@@ -2336,35 +2499,32 @@ VITE_ANTHROPIC_API_KEY=sk-ant-...</div>
 
   <p>1. Open <code>src/index.css</code> and define your custom colors:</p>
 
-  <div class="code-block"><span class="code-label">CSS</span>
-<span class="keyword">@import</span> <span class="string">"tailwindcss"</span>;
+  <pre><code>@import "tailwindcss";
 
-<span class="keyword">@theme</span> {
-  <span class="type">--color-brand-50</span>: <span class="string">#f0f7ff</span>;
-  <span class="type">--color-brand-100</span>: <span class="string">#e0effe</span>;
-  <span class="type">--color-brand-500</span>: <span class="string">#3b82f6</span>;
-  <span class="type">--color-brand-600</span>: <span class="string">#2563eb</span>;
-  <span class="type">--color-brand-700</span>: <span class="string">#1d4ed8</span>;
-  <span class="type">--color-brand-900</span>: <span class="string">#1e3a5f</span>;
-}</div>
+@theme {
+  --color-brand-50: #f0f7ff;
+  --color-brand-100: #e0effe;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-900: #1e3a5f;
+}</code></pre>
 
   <p>2. Then use <code>bg-brand-500</code>, <code>text-brand-700</code>, etc. throughout your components.</p>
 
   <p>For fonts, add a Google Fonts import to your <code>index.html</code>:</p>
 
-  <div class="code-block"><span class="code-label">HTML</span>
-&lt;link href=<span class="string">"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"</span> rel=<span class="string">"stylesheet"</span>&gt;</div>
+  <pre><code>&lt;link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"&gt;</code></pre>
 
   <p>Then set the font in your CSS:</p>
 
-  <div class="code-block"><span class="code-label">CSS</span>
-<span class="type">body</span> {
-  font-family: <span class="string">'Inter'</span>, sans-serif;
-}</div>
+  <pre><code>body {
+  font-family: 'Inter', sans-serif;
+}</code></pre>
 
   <h3>Swapping the Logo</h3>
 
-  <p>Replace the logo image in your <code>public/</code> folder and update any references in Sidebar.tsx or Login.tsx. If you are using text as your logo (like "GTH"), just change the string.</p>
+  <p>Replace the logo image in your <code>public/</code> folder and update any references in Sidebar.tsx or Login.tsx. If you are using text as your logo, just change the string.</p>
 
   <h3>Adding or Removing Pages</h3>
 
@@ -2385,25 +2545,37 @@ VITE_ANTHROPIC_API_KEY=sk-ant-...</div>
     <li>Create any needed database tables in Supabase</li>
   </ol>
 
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">33</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 7 &mdash; DATABASE &amp; API</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
+
   <h3>Adding New Database Tables</h3>
 
   <p>In the Supabase SQL editor:</p>
 
-  <div class="code-block"><span class="code-label">SQL</span>
-<span class="keyword">create table</span> <span class="type">public</span>.your_new_table (
-  id <span class="type">uuid</span> <span class="keyword">default</span> <span class="function">uuid_generate_v4</span>() <span class="keyword">primary key</span>,
-  user_id <span class="type">uuid</span> <span class="keyword">references</span> auth.users(id) <span class="keyword">on delete cascade not null</span>,
-  <span class="comment">-- your columns here</span>
-  created_at <span class="type">timestamptz</span> <span class="keyword">default</span> <span class="function">now</span>()
+  <pre><code>create table public.your_new_table (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  -- your columns here
+  created_at timestamptz default now()
 );
 
-<span class="keyword">alter table</span> <span class="type">public</span>.your_new_table <span class="keyword">enable row level security</span>;
+alter table public.your_new_table enable row level security;
 
-<span class="keyword">create policy</span> <span class="string">"Users can CRUD own your_new_table"</span>
-  <span class="keyword">on</span> <span class="type">public</span>.your_new_table
-  <span class="keyword">for all</span>
-  <span class="keyword">using</span> (auth.<span class="function">uid</span>() = user_id)
-  <span class="keyword">with check</span> (auth.<span class="function">uid</span>() = user_id);</div>
+create policy "Users can CRUD own your_new_table"
+  on public.your_new_table
+  for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);</code></pre>
 
   <h3>Connecting Other APIs</h3>
 
@@ -2419,64 +2591,81 @@ VITE_ANTHROPIC_API_KEY=sk-ant-...</div>
 
   <h3>Industry-Specific Customization Ideas</h3>
 
-  <div class="industry-grid">
-    <div class="industry-card">
-      <h4>Real Estate Agents</h4>
-      <ul>
-        <li>Replace "Clients" with "Buyers" and "Sellers"</li>
-        <li>Add a "Listings" page with property details, photos, and status</li>
-        <li>Add a "Showings" page linked to Calendar</li>
-        <li>Replace "Invoices" with "Commission Tracker"</li>
-        <li>Add MLS integration</li>
-      </ul>
-    </div>
-    <div class="industry-card">
-      <h4>Coaches / Consultants</h4>
-      <ul>
-        <li>Add a "Sessions" page for tracking coaching sessions</li>
-        <li>Replace "Projects" with "Programs" or "Engagements"</li>
-        <li>Add a "Homework" tracker for client assignments</li>
-        <li>Add a "Testimonials" collection page</li>
-        <li>Integrate Calendly or Cal.com</li>
-      </ul>
-    </div>
-    <div class="industry-card">
-      <h4>E-Commerce Operators</h4>
-      <ul>
-        <li>Add "Products" and "Orders" pages</li>
-        <li>Replace "Outreach" with "Supplier Pipeline"</li>
-        <li>Add "Inventory" tracking</li>
-        <li>Integrate Shopify or Stripe API</li>
-        <li>Add a "Returns" management page</li>
-      </ul>
-    </div>
-    <div class="industry-card">
-      <h4>Freelance Developers / Designers</h4>
-      <ul>
-        <li>Add "Time Tracking" with a start/stop timer</li>
-        <li>Replace "Campaigns" with "Proposals"</li>
-        <li>Add a "Portfolio" page</li>
-        <li>Integrate GitHub API for project status</li>
-        <li>Add a "Contracts" page under Vault</li>
-      </ul>
-    </div>
-  </div>
+  <h4>Real Estate Agents:</h4>
+  <ul>
+    <li>Replace "Clients" with "Buyers" and "Sellers"</li>
+    <li>Add a "Listings" page with property details, photos, and status (active/pending/sold)</li>
+    <li>Add a "Showings" page linked to Calendar</li>
+    <li>Replace "Invoices" with "Commission Tracker"</li>
+    <li>Add MLS integration</li>
+  </ul>
 
-  <p>The entire structure is modular. Every table, every page, and every feature is an independent piece that can be swapped, renamed, or extended.</p>
+  <h4>Coaches / Consultants:</h4>
+  <ul>
+    <li>Add a "Sessions" page for tracking coaching sessions</li>
+    <li>Replace "Projects" with "Programs" or "Engagements"</li>
+    <li>Add a "Homework" tracker for client assignments</li>
+    <li>Add a "Testimonials" collection page</li>
+    <li>Integrate Calendly or Cal.com instead of Google Calendar</li>
+  </ul>
+
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">34</span>
+  </div>
 </div>
 
-<!-- ============================================
-     CHAPTER 8: DEPLOYING AND MAINTAINING
-     ============================================ -->
-<div class="page page-break">
-  <div class="chapter-header">
-    <div class="chapter-number">08</div>
-    <div class="chapter-label">Chapter Eight</div>
-    <h2 class="chapter-title">Deploying and Maintaining</h2>
-    <div class="chapter-divider"></div>
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 7 &mdash; INDUSTRY TEMPLATES</span>
+    <span class="header-right">GROW THE HYPE</span>
   </div>
 
-  <p>Your CRM is deployed on Vercel and backed by Supabase. Here is how to keep it running smoothly.</p>
+  <h4>E-Commerce Operators:</h4>
+  <ul>
+    <li>Add "Products" and "Orders" pages</li>
+    <li>Replace "Outreach" with "Supplier Pipeline"</li>
+    <li>Add "Inventory" tracking</li>
+    <li>Integrate Shopify or Stripe API</li>
+    <li>Add a "Returns" management page</li>
+  </ul>
+
+  <h4>Freelance Developers / Designers:</h4>
+  <ul>
+    <li>Add "Time Tracking" with a start/stop timer</li>
+    <li>Replace "Campaigns" with "Proposals"</li>
+    <li>Add a "Portfolio" page</li>
+    <li>Integrate GitHub API for project status</li>
+    <li>Add a "Contracts" page under Vault</li>
+  </ul>
+
+  <p>The entire structure is modular. Every table, every page, and every feature is an independent piece that can be swapped, renamed, or extended.</p>
+
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">35</span>
+  </div>
+</div>
+
+
+<!-- ============================================================
+     CHAPTER 8: DEPLOYING AND MAINTAINING
+     ============================================================ -->
+<div class="chapter-title-page page-break">
+  <div class="chapter-number">08</div>
+  <span class="chapter-label">CHAPTER EIGHT</span>
+  <h2>Deploying and Maintaining</h2>
+  <div class="chapter-divider"></div>
+  <p class="chapter-description">Your CRM is deployed on Vercel and backed by Supabase. Here is how to keep it running smoothly.</p>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 8 &mdash; DEPLOYMENT</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
 
   <h3>Custom Domain Setup</h3>
 
@@ -2490,18 +2679,20 @@ VITE_ANTHROPIC_API_KEY=sk-ant-...</div>
         <li>For a root domain like <code>yourbusiness.com</code>: Add an A record pointing to <code>76.76.21.21</code></li>
       </ul>
     </li>
-    <li>Wait for DNS propagation (usually 5&ndash;30 minutes, sometimes up to 48 hours)</li>
+    <li>Wait for DNS propagation (usually 5-30 minutes, sometimes up to 48 hours)</li>
     <li>Vercel automatically provisions an SSL certificate. Your CRM is now on HTTPS.</li>
   </ol>
 
   <h3>Supabase Free Tier Limits</h3>
 
-  <table class="limits-table">
+  <p>Know what you get for free so you know when to upgrade:</p>
+
+  <table>
     <thead>
       <tr>
-        <th>Resource</th>
-        <th>Free Tier</th>
-        <th>Pro Tier ($25/month)</th>
+        <th>RESOURCE</th>
+        <th>FREE TIER</th>
+        <th>PRO TIER ($25/MO)</th>
       </tr>
     </thead>
     <tbody>
@@ -2535,6 +2726,19 @@ VITE_ANTHROPIC_API_KEY=sk-ant-...</div>
 
   <p>For a solo operator or small team (under 10 people), you will likely never hit the free tier limits. A CRM with 500 clients, 2,000 tasks, and 1,000 invoices uses less than 10 MB of database storage.</p>
 
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">36</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 8 &mdash; BACKUPS &amp; UPDATES</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
+
   <h3>Backup Strategy</h3>
 
   <p><strong>Database backups:</strong> Supabase automatically takes daily backups on the Pro plan. On the free tier, you can manually export your data:</p>
@@ -2546,9 +2750,8 @@ VITE_ANTHROPIC_API_KEY=sk-ant-...</div>
 
   <p>Or run this SQL in the SQL editor to export any table as CSV:</p>
 
-  <div class="code-block"><span class="code-label">SQL</span>
-<span class="comment">-- This runs in the SQL editor and lets you copy the results</span>
-<span class="keyword">select</span> * <span class="keyword">from</span> <span class="type">public</span>.clients;</div>
+  <pre><code>-- This runs in the SQL editor and lets you copy the results
+select * from public.clients;</code></pre>
 
   <p><strong>Code backups:</strong> Your code is already backed up on GitHub. As long as you are pushing regularly, you are covered.</p>
 
@@ -2563,16 +2766,30 @@ VITE_ANTHROPIC_API_KEY=sk-ant-...</div>
 
   <p>Every time you make changes to your CRM:</p>
 
-  <div class="code-block"><span class="code-label">Bash</span>
-git add .
-git commit -m <span class="string">"Description of what you changed"</span>
-git push</div>
+  <pre><code>git add .
+git commit -m "Description of what you changed"
+git push</code></pre>
 
-  <p>That is it. Vercel detects the push, builds the new version, and deploys it &mdash; usually in under 60 seconds. If the build fails, Vercel keeps the previous version live so your CRM never goes down.</p>
+  <p>That is it. Vercel detects the push, builds the new version, and deploys it -- usually in under 60 seconds. If the build fails, Vercel keeps the previous version live so your CRM never goes down.</p>
+
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">37</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 8 &mdash; MAINTENANCE</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
 
   <h3>Monthly Maintenance Checklist</h3>
 
-  <ul class="maintenance-list">
+  <p>Run through this list once a month:</p>
+
+  <ul class="checklist">
     <li>Check Supabase dashboard for any warnings or alerts</li>
     <li>Review your Supabase usage (are you approaching any limits?)</li>
     <li>Check Vercel deployment logs for any errors</li>
@@ -2582,53 +2799,83 @@ git push</div>
     <li>Check that Google Calendar sync is still working (tokens may need re-authorization every few months)</li>
     <li>Test the AI assistant with a few questions to make sure the Edge Function is responding</li>
   </ul>
+
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">38</span>
+  </div>
 </div>
 
-<!-- ============================================
-     CHAPTER 9: WHAT IS NEXT
-     ============================================ -->
-<div class="page page-break">
-  <div class="chapter-header">
-    <div class="chapter-number">09</div>
-    <div class="chapter-label">Chapter Nine</div>
-    <h2 class="chapter-title">What Is Next</h2>
-    <div class="chapter-divider"></div>
-  </div>
 
-  <p>You have built a fully functional, AI-powered CRM for your business. But this is just the foundation. Here is where you can take it.</p>
+<!-- ============================================================
+     CHAPTER 9: WHAT IS NEXT
+     ============================================================ -->
+<div class="chapter-title-page page-break">
+  <div class="chapter-number">09</div>
+  <span class="chapter-label">CHAPTER NINE</span>
+  <h2>What Is Next</h2>
+  <div class="chapter-divider"></div>
+  <p class="chapter-description">You have built a fully functional, AI-powered CRM for your business. But this is just the foundation. Here is where you can take it.</p>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 9 &mdash; ADVANCED FEATURES</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
 
   <h3>Advanced Features to Add</h3>
 
-  <p><strong>Stripe Integration:</strong> Accept payments directly from your invoices. When you send an invoice, include a "Pay Now" link that takes the client to a Stripe checkout page. When they pay, automatically mark the invoice as paid in your CRM. Stripe's free tier charges only per transaction (2.9% + $0.30), no monthly fee.</p>
+  <h4>Stripe Integration</h4>
+  <p>Accept payments directly from your invoices. When you send an invoice, include a "Pay Now" link that takes the client to a Stripe checkout page. When they pay, automatically mark the invoice as paid in your CRM. Stripe's free tier charges only per transaction (2.9% + $0.30), no monthly fee.</p>
 
-  <p><strong>Gmail Integration:</strong> Pull your email threads into the CRM, linked to client records. See the last 10 emails exchanged with a client without leaving your CRM. Draft and send emails from within the client detail view. Google's Gmail API has a generous free tier.</p>
+  <h4>Gmail Integration</h4>
+  <p>Pull your email threads into the CRM, linked to client records. See the last 10 emails exchanged with a client without leaving your CRM. Draft and send emails from within the client detail view. Google's Gmail API has a generous free tier.</p>
 
-  <p><strong>Slack Notifications:</strong> Get notified in a Slack channel when invoices are overdue, tasks are due today, or a new outreach prospect responds. Slack's Incoming Webhooks are free and take 15 minutes to set up.</p>
+  <h4>Slack Notifications</h4>
+  <p>Get notified in a Slack channel when invoices are overdue, tasks are due today, or a new outreach prospect responds. Slack's Incoming Webhooks are free and take 15 minutes to set up.</p>
 
-  <p><strong>Automated Reports:</strong> Use Supabase's scheduled functions (cron jobs) to generate a weekly summary email sent to you every Monday morning. Revenue for the week, tasks completed, meetings held, pipeline movement.</p>
+  <h4>Automated Reports</h4>
+  <p>Use Supabase's scheduled functions (cron jobs) to generate a weekly summary email sent to you every Monday morning. Revenue for the week, tasks completed, meetings held, pipeline movement.</p>
 
   <h3>Scaling to Multi-User / Team Features</h3>
 
   <p>When you hire your first team member, you will want to add:</p>
 
   <ul>
-    <li><strong>Team invitations</strong> &mdash; invite users by email to join your CRM workspace</li>
-    <li><strong>Role-based access</strong> &mdash; Admin (full access), Manager (read all + write own), Member (own data only)</li>
-    <li><strong>Task assignment</strong> &mdash; assign tasks to specific team members</li>
-    <li><strong>Activity attribution</strong> &mdash; see who did what in the activity log</li>
+    <li><strong>Team invitations</strong> -- invite users by email to join your CRM workspace</li>
+    <li><strong>Role-based access</strong> -- Admin (full access), Manager (read all + write own), Member (own data only)</li>
+    <li><strong>Task assignment</strong> -- assign tasks to specific team members</li>
+    <li><strong>Activity attribution</strong> -- see who did what in the activity log</li>
   </ul>
 
   <p>The Supabase Row Level Security policies we set up are already designed for this. You would add an <code>organization_id</code> column to each table and update the RLS policies to check organization membership instead of just <code>user_id</code>.</p>
+
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">39</span>
+  </div>
+</div>
+
+
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CHAPTER 9 &mdash; THE BUSINESS OPPORTUNITY</span>
+    <span class="header-right">GROW THE HYPE</span>
+  </div>
 
   <h3>Using This as a Client Service</h3>
 
   <p>Here is the business opportunity most people will miss: <strong>You can sell CRM builds to other businesses.</strong></p>
 
-  <p>You have just learned how to build a custom CRM in a weekend. Most businesses do not know this is possible. They are still paying $200&ndash;800/month for SaaS tools or spending $30K+ on custom development.</p>
+  <p>You have just learned how to build a custom CRM in a weekend. Most businesses do not know this is possible. They are still paying $200-800/month for SaaS tools or spending $30K+ on custom development.</p>
 
-  <p><strong>The offer:</strong> "I will build you a custom CRM tailored to your business for $3,000&ndash;5,000, with a $200/month maintenance retainer."</p>
+  <div class="frame-box">
+    <p><strong>The offer:</strong> "I will build you a custom CRM tailored to your business for $3,000-5,000, with a $200/month maintenance retainer."</p>
 
-  <p>Your cost to deliver: a weekend of your time, $0 in infrastructure (client pays for their own Supabase/Vercel if they outgrow free tiers). Your margin is essentially 100%.</p>
+    <p style="margin-bottom:0;">Your cost to deliver: a weekend of your time, $0 in infrastructure (client pays for their own Supabase/Vercel if they outgrow free tiers). Your margin is essentially 100%.</p>
+  </div>
 
   <p>You already have the playbook. For each new client, you fork your repo, customize the branding and page structure, adjust the database schema, and deploy. The AI does the heavy lifting. You are the project manager.</p>
 
@@ -2642,79 +2889,90 @@ git push</div>
     <li><strong>Vercel's Documentation:</strong> Some of the best docs in the industry at <a href="https://vercel.com/docs">vercel.com/docs</a></li>
     <li><strong>GitHub Discussions:</strong> Post questions on your own repo or search for similar projects</li>
   </ul>
+
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">40</span>
+  </div>
 </div>
 
-<!-- ============================================
+
+<!-- ============================================================
      CLOSING
-     ============================================ -->
-<div class="page page-break">
-  <div class="chapter-header">
-    <div class="chapter-number">&mdash;</div>
-    <div class="chapter-label">Closing</div>
-    <h2 class="chapter-title">What You Just Built</h2>
-    <div class="chapter-divider"></div>
+     ============================================================ -->
+<div class="content-page page-break">
+  <div class="page-header">
+    <span class="header-left">CLOSING</span>
+    <span class="header-right">GROW THE HYPE</span>
   </div>
 
-  <p>Let me recap what you just built.</p>
+  <span class="section-label">CLOSING</span>
 
-  <p>A 24-page, fully functional CRM with client management, project tracking, Kanban task boards, Google Calendar integration, invoicing, financial analytics, a sales pipeline, campaign tracking, document storage, encrypted credential vaults, standard operating procedures, an activity log, a daily briefing, and an AI assistant that understands your business data and answers questions in natural language.</p>
+  <h2 style="font-size:28px; margin-top:16px;">Let me recap what you just built.</h2>
 
-  <p>The infrastructure cost: <strong>$0.</strong></p>
+  <p style="font-size:14px; line-height:1.8;">A 24-page, fully functional CRM with client management, project tracking, Kanban task boards, Google Calendar integration, invoicing, financial analytics, a sales pipeline, campaign tracking, document storage, encrypted credential vaults, standard operating procedures, an activity log, a daily briefing, and an AI assistant that understands your business data and answers questions in natural language.</p>
 
-  <p>The equivalent development cost if you hired a team: <strong>$30,000 to $50,000+.</strong></p>
+  <div class="frame-box" style="margin: 32px 0;">
+    <p style="text-align:center; margin-bottom:8px;"><span class="section-label">THE NUMBERS</span></p>
+    <div style="display:flex; justify-content:space-around; text-align:center; padding:16px 0;">
+      <div>
+        <div style="font-size:28px; font-weight:900; color:var(--text-primary); letter-spacing:-0.02em;">$0</div>
+        <div style="font-size:8px; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:var(--text-muted); margin-top:4px;">INFRASTRUCTURE COST</div>
+      </div>
+      <div>
+        <div style="font-size:28px; font-weight:900; color:var(--text-primary); letter-spacing:-0.02em;">$30-50K</div>
+        <div style="font-size:8px; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:var(--text-muted); margin-top:4px;">EQUIVALENT DEV COST</div>
+      </div>
+      <div>
+        <div style="font-size:28px; font-weight:900; color:var(--text-primary); letter-spacing:-0.02em;">1 Weekend</div>
+        <div style="font-size:8px; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:var(--text-muted); margin-top:4px;">TIME TO BUILD</div>
+      </div>
+    </div>
+  </div>
 
-  <p>The time to build it: <strong>A focused weekend, or a week of evenings.</strong></p>
-
-  <p>The tool that made it possible: <strong>AI as your development partner, not as a toy, not as a gimmick &mdash; as a genuine force multiplier that turns clear thinking into working software.</strong></p>
+  <p>The tool that made it possible: <strong>AI as your development partner, not as a toy, not as a gimmick -- as a genuine force multiplier that turns clear thinking into working software.</strong></p>
 
   <p>This is the new paradigm. The barrier to building custom software has collapsed. You do not need a technical co-founder. You do not need a six-figure development budget. You need a clear vision of what you want, the willingness to follow a process, and a relentless habit of shipping.</p>
 
   <p>You now have the playbook. Build the tool that fits YOUR workflow. Stop paying for software that was designed for someone else's business.</p>
 
-  <hr class="section-divider">
+  <hr>
 
-  <h3>Want us to build it for you?</h3>
+  <p><strong>Want us to build it for you?</strong></p>
 
-  <p>If you love the idea but would rather have professionals handle the build, Grow The Hype offers custom CRM builds as a service. We will design, build, and deploy your personalized CRM &mdash; tailored to your industry, your workflow, and your brand.</p>
+  <p>If you love the idea but would rather have professionals handle the build, Grow The Hype offers custom CRM builds as a service. We will design, build, and deploy your personalized Operations Command Center -- tailored to your industry, your workflow, and your brand.</p>
 
-  <p>Visit <strong><a href="https://growthehype.com">growthehype.com</a></strong> to learn more.</p>
+  <p>Visit <strong>growthehype.com</strong> to learn more.</p>
 
-  <hr class="section-divider">
+  <hr>
 
-  <h3>Share your build</h3>
+  <p><strong>Share your build.</strong></p>
 
   <p>Built your CRM using this guide? I want to see it. Share a screenshot on Twitter/X and tag <strong>@growthehype</strong>. I will feature the best builds in our community.</p>
+
+  <p style="margin-top:24px; font-size:11px; color:var(--text-muted);">Copyright 2026 Grow The Hype Inc. All rights reserved.<br>This guide is for personal and business use by the purchaser. Do not redistribute.</p>
+
+  <div class="page-footer">
+    <span class="footer-brand">GROW THE HYPE</span>
+    <span class="footer-page">41</span>
+  </div>
 </div>
 
-<!-- ============================================
+
+<!-- ============================================================
      BACK COVER
-     ============================================ -->
-<div class="page page-back page-break">
-  <div class="cover-geometric"></div>
-  <div class="cover-lines"></div>
-  <div class="cover-lines-bottom"></div>
-  <div class="cover-corner cover-corner--tl"></div>
-  <div class="cover-corner cover-corner--tr"></div>
-  <div class="cover-corner cover-corner--bl"></div>
-  <div class="cover-corner cover-corner--br"></div>
+     ============================================================ -->
+<div class="back-cover page-break">
+  <div class="cover-frame"></div>
+  <div class="cover-frame-bottom"></div>
 
-  <div style="position: relative; z-index: 1;">
-    <p class="back-tagline">"Built with AI. Owned by you."</p>
+  <div class="wordmark">GROW THE HYPE</div>
 
-    <div class="back-brand">GROW THE HYPE</div>
+  <div class="tagline">Built with AI. Owned by you.</div>
 
-    <p class="back-info"><a href="https://growthehype.com" style="border-bottom: none;">growthehype.com</a></p>
-    <p class="back-info" style="color: var(--text-muted);">@growthehype on Twitter/X &nbsp;&bull;&nbsp; Instagram &nbsp;&bull;&nbsp; LinkedIn</p>
+  <div class="url">GROWTHEHYPE.COM</div>
 
-    <div class="back-cta" style="display: inline-block; margin-top: 40px;">
-      Custom CRM builds starting at $2,500 &mdash; visit growthehype.com/crm
-    </div>
-  </div>
-
-  <p class="back-copyright">
-    Copyright 2026 Grow The Hype Inc. All rights reserved.<br>
-    This guide is for personal and business use by the purchaser. Do not redistribute.
-  </p>
+  <p class="cta">Custom CRM builds starting at $2,500 &mdash; growthehype.com/crm</p>
 </div>
 
 </body>

@@ -216,6 +216,7 @@ export default function Calendar() {
 
   /* ---- Delete event ---- */
   const handleDelete = async (eventId: string) => {
+    if (!confirm('Delete this event from Google Calendar?')) return
     setSaving(true)
     try {
       const ok = await deleteGoogleEvent(eventId)
