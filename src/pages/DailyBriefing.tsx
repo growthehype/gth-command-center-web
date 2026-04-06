@@ -125,7 +125,7 @@ export default function DailyBriefing() {
   // --------------- RENDER ---------------
 
   return (
-    <div style={{ maxWidth: 920, margin: '0 auto', padding: '48px 0 64px' }}>
+    <div className="max-w-full md:max-w-[920px] mx-auto" style={{ padding: '48px 0 64px' }}>
       {/* ---- GREETING ---- */}
       <h1 style={{ fontSize: 28, fontWeight: 900, letterSpacing: '-0.025em', lineHeight: 1.1 }}>
         {getGreeting()}, {displayName}.

@@ -448,7 +448,7 @@ export default function Projects() {
 
       {/* Kanban board */}
       <div
-        className="flex gap-4 overflow-x-auto"
+        className="flex gap-4 overflow-x-auto -mx-3 px-3 md:mx-0 md:px-0 pb-4"
         style={{
           height: 'calc(100% - 60px)',
         }}

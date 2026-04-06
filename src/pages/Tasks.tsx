@@ -205,7 +205,7 @@ export default function Tasks() {
       </div>
 
       {/* Filter chips */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         {FILTERS.map(f => (
           <button
             key={f.key}

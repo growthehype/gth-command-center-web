@@ -105,8 +105,8 @@ export default function Contacts() {
       </div>
 
       {/* Search + Filters */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative flex-1" style={{ maxWidth: '320px' }}>
+      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 mb-4">
+        <div className="relative w-full md:max-w-[320px]">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-dim" />
           <input
             className="input w-full pl-8"
@@ -115,7 +115,7 @@ export default function Contacts() {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1">
           {(['all', 'primary'] as const).map(f => (
             <button
               key={f}
@@ -141,8 +141,8 @@ export default function Contacts() {
           onAction={!search ? openCreate : undefined}
         />
       ) : (
-        <div className="card overflow-hidden">
-          <table className="w-full" style={{ fontSize: '13px' }}>
+        <div className="card overflow-hidden overflow-x-auto">
+          <table className="w-full min-w-[700px]" style={{ fontSize: '13px' }}>
             <thead>
               <tr className="border-b border-border text-left">
                 <th className="label px-4 py-3">Name</th>
@@ -189,7 +189,7 @@ export default function Contacts() {
       {/* Detail Drawer */}
       {detailContact && (
         <div className="fixed inset-0 flex items-center justify-center z-[100]" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }} onClick={() => setDetailContact(null)}>
-          <div className="bg-surface border border-border w-[420px] max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="bg-surface border border-border w-[95vw] max-w-[420px] max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
               <h3 className="font-[800]" style={{ fontSize: '14px' }}>{detailContact.name}</h3>
               <button onClick={() => setDetailContact(null)} className="text-dim hover:text-steel transition-colors">

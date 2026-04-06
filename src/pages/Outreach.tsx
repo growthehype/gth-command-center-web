@@ -172,8 +172,8 @@ export default function Outreach() {
           onAction={openCreate}
         />
       ) : (
-        <div className="card overflow-hidden">
-          <table className="w-full" style={{ fontSize: '13px' }}>
+        <div className="card overflow-hidden overflow-x-auto">
+          <table className="w-full min-w-[700px]" style={{ fontSize: '13px' }}>
             <thead>
               <tr className="border-b border-border text-left">
                 <th className="label px-4 py-3 cursor-pointer" onClick={() => handleSort('name')}>

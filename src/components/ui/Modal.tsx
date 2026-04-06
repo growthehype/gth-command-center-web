@@ -29,7 +29,7 @@ export default function Modal({ open, onClose, title, children, width = '480px' 
       className="fixed inset-0 flex items-center justify-center z-[100]" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
       onClick={(e) => { if (e.target === overlayRef.current) onClose() }}
     >
-      <div className="bg-surface border border-border overflow-hidden" style={{ width, maxHeight: '85vh' }}>
+      <div className="bg-surface border border-border overflow-hidden w-[95vw]" style={{ maxWidth: width, maxHeight: '85vh' }}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h3 className="font-[800]" style={{ fontSize: '14px' }}>{title}</h3>
           <button onClick={onClose} className="text-dim hover:text-steel transition-colors">

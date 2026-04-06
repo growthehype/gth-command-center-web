@@ -187,9 +187,9 @@ export default function Meetings() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-3 mb-5">
         <select
-          className="input"
+          className="input w-full md:w-auto"
           value={filterClient}
           onChange={e => setFilterClient(e.target.value)}
           style={{ fontSize: '13px', minWidth: '160px' }}
@@ -198,7 +198,7 @@ export default function Meetings() {
           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
         <select
-          className="input"
+          className="input w-full md:w-auto"
           value={filterType}
           onChange={e => setFilterType(e.target.value)}
           style={{ fontSize: '13px', minWidth: '140px' }}

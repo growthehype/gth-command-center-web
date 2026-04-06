@@ -218,7 +218,7 @@ export default function CommandPalette() {
       className="fixed inset-0 flex items-start justify-center pt-[15vh] z-[200]" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
       onClick={(e) => { if (e.target === e.currentTarget) close() }}
     >
-      <div className="bg-surface border border-border w-[560px] overflow-hidden" style={{ maxHeight: '60vh' }}>
+      <div className="bg-surface border border-border w-[95vw] max-w-[560px] overflow-hidden" style={{ maxHeight: '60vh' }}>
         {/* Input */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
           <Search size={14} className="text-dim flex-shrink-0" />

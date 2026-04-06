@@ -185,8 +185,8 @@ export default function Invoices() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search invoices..."
-              className="bg-cell border border-border text-polar pl-8 pr-3 py-1.5 font-sans outline-none focus:border-dim transition-colors"
-              style={{ fontSize: '12px', width: '200px' }}
+              className="bg-cell border border-border text-polar pl-8 pr-3 py-1.5 font-sans outline-none focus:border-dim transition-colors w-full md:w-[200px]"
+              style={{ fontSize: '12px' }}
             />
           </div>
           <input

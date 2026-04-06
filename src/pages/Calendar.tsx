@@ -335,7 +335,7 @@ export default function Calendar() {
 
       {/* ---- Calendar grid (only when connected) ---- */}
       {googleConnected && (
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-x-auto -mx-3 px-3 md:mx-0 md:px-0">
           <div
             style={{
               display: 'grid',
