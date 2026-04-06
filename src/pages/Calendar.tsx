@@ -342,6 +342,7 @@ export default function Calendar() {
               gridTemplateColumns: '60px repeat(7, 1fr)',
               gap: '1px',
               background: 'var(--color-border)',
+              minWidth: '700px',
             }}
           >
             {/* ---- Column headers ---- */}
@@ -483,7 +484,7 @@ export default function Calendar() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="label text-dim block mb-1">Start Time</label>
               <input
@@ -544,7 +545,7 @@ export default function Calendar() {
             <div>
               <h3 className="text-polar font-[700]" style={{ fontSize: '16px' }}>{viewEvent.title}</h3>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <span className="label text-dim block mb-1">DATE</span>
                 <span className="text-polar mono" style={{ fontSize: '13px' }}>{viewEvent.date}</span>

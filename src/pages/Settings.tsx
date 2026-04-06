@@ -146,7 +146,7 @@ export default function Settings() {
         <SettingsIcon size={14} className="text-dim" />
       </div>
 
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* ── System Info ── */}
         <Section title="System Info">
           <div className="flex items-center justify-between">
@@ -174,7 +174,7 @@ export default function Settings() {
               placeholder="Current password"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="label text-steel block mb-1.5">New Password</label>
               <input
@@ -320,7 +320,7 @@ export default function Settings() {
 
         {/* ── Preferences ── */}
         <Section title="Preferences">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="label text-steel block mb-1.5">Week Starts On</label>
               <select
@@ -348,7 +348,7 @@ export default function Settings() {
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="label text-steel block mb-1.5">Currency</label>
               <select

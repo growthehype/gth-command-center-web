@@ -17,7 +17,9 @@ export default function AiPanel() {
   ]
 
   return (
-    <div className="h-full border-l border-border bg-surface flex flex-col" style={{ width: '360px' }}>
+    <>
+    <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setAiPanelOpen(false)} />
+    <div className="h-full border-l border-border bg-surface flex flex-col w-full md:w-[360px] fixed inset-y-0 right-0 z-50 md:relative md:z-auto" style={{ top: '44px' }}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
         <div className="flex items-center gap-2">
@@ -93,5 +95,6 @@ export default function AiPanel() {
         </div>
       )}
     </div>
+    </>
   )
 }

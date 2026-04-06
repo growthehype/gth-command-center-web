@@ -297,7 +297,7 @@ export default function Projects() {
           </div>
 
           {/* Client + Priority */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="label text-steel block mb-1.5">Client</label>
               <select
@@ -333,7 +333,7 @@ export default function Projects() {
           </div>
 
           {/* Status + Due Date */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="label text-steel block mb-1.5">Status</label>
               <select
@@ -360,7 +360,7 @@ export default function Projects() {
           </div>
 
           {/* Hours + Recurring */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="label text-steel block mb-1.5">Estimated Hours</label>
               <input
@@ -448,9 +448,8 @@ export default function Projects() {
 
       {/* Kanban board */}
       <div
-        className="grid gap-4 overflow-hidden"
+        className="flex gap-4 overflow-x-auto"
         style={{
-          gridTemplateColumns: 'repeat(4, 1fr)',
           height: 'calc(100% - 60px)',
         }}
       >
@@ -462,7 +461,7 @@ export default function Projects() {
           return (
             <div
               key={colKey}
-              className="flex flex-col min-h-0"
+              className="flex flex-col min-h-0 min-w-[280px] flex-1"
               onDragOver={e => handleDragOver(e, colKey)}
               onDragLeave={handleDragLeave}
               onDrop={e => handleDrop(e, colKey)}

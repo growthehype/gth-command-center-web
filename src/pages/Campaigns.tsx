@@ -121,7 +121,7 @@ export default function Campaigns() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
         <div className="stat-card">
           <p className="label">Active Campaigns</p>
           <p className="text-polar font-[800]" style={{ fontSize: '20px' }}>{stats.activeCampaigns}</p>
@@ -243,7 +243,7 @@ export default function Campaigns() {
               {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <p className="label mb-1">Spend ($)</p>
               <input

@@ -152,7 +152,7 @@ export default function Outreach() {
       </div>
 
       {/* Pipeline Stage Cards */}
-      <div className="grid grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         {STAGES.map(stage => (
           <div key={stage} className="stat-card">
             <p className="label">{stage}</p>

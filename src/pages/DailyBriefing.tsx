@@ -140,7 +140,7 @@ export default function DailyBriefing() {
           Today&apos;s Focus
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-[10px]">
           {/* Due Today */}
           <div className="stat-card">
             <div className="stat-value">{tasksDueToday.length}</div>
@@ -324,11 +324,7 @@ export default function DailyBriefing() {
             Goals Progress
           </div>
           <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: `repeat(${Math.min(activeGoals.length, 4)}, 1fr)`,
-              gap: 10,
-            }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[10px]"
           >
             {activeGoals.slice(0, 4).map((g) => {
               const pct =

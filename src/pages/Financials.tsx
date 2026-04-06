@@ -127,7 +127,7 @@ export default function Financials() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
         <div className="stat-card">
           <p className="label">Revenue Paid</p>
           <p className="text-ok font-[800]" style={{ fontSize: '20px' }}>{formatCurrency(stats.revenuePaid)}</p>

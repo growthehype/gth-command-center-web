@@ -122,7 +122,7 @@ export default function Goals() {
           <p className="text-steel mb-3" style={{ fontSize: '12px' }}>{g.description}</p>
         )}
 
-        <div className="grid grid-cols-3 gap-3 mb-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
           <div>
             <span className="label text-dim">METRIC</span>
             <p className="mono text-steel mt-0.5">{g.metric_type}</p>
@@ -258,7 +258,7 @@ export default function Goals() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="label text-dim">METRIC TYPE</label>
               <select
@@ -286,7 +286,7 @@ export default function Goals() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1">
               <label className="label text-dim">CURRENT VALUE</label>
               <input

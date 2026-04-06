@@ -97,6 +97,7 @@ interface AppStore {
   selectedClientId: string | null
   commandPaletteOpen: boolean
   aiPanelOpen: boolean
+  sidebarOpen: boolean
   runningTimer: TimeEntry | null
 
   // Actions
@@ -104,6 +105,7 @@ interface AppStore {
   setSelectedClientId: (id: string | null) => void
   setCommandPaletteOpen: (open: boolean) => void
   setAiPanelOpen: (open: boolean) => void
+  setSidebarOpen: (open: boolean) => void
 
   // Data loading
   loadAllData: () => Promise<void>
@@ -153,12 +155,14 @@ export const useAppStore = create<AppStore>((set) => ({
   selectedClientId: null,
   commandPaletteOpen: false,
   aiPanelOpen: false,
+  sidebarOpen: false,
   runningTimer: null,
 
   setCurrentPage: (page) => set({ currentPage: page }),
   setSelectedClientId: (id) => set({ selectedClientId: id }),
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   setAiPanelOpen: (open) => set({ aiPanelOpen: open }),
+  setSidebarOpen: (open) => set({ sidebarOpen: open }),
 
   loadAllData: async () => {
     try {

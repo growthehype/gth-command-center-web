@@ -63,7 +63,7 @@ const pageMap: Record<string, React.ComponentType> = {
 }
 
 export default function Shell({ onLock }: ShellProps) {
-  const { currentPage, setCommandPaletteOpen, setCurrentPage, setAiPanelOpen, aiPanelOpen } = useAppStore()
+  const { currentPage, setCommandPaletteOpen, setCurrentPage, setAiPanelOpen, aiPanelOpen, sidebarOpen, setSidebarOpen } = useAppStore()
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -129,9 +129,19 @@ export default function Shell({ onLock }: ShellProps) {
   return (
     <div className="h-screen w-screen flex flex-col bg-obsidian overflow-hidden">
       <Topbar onLock={onLock} />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto p-6">
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Mobile sidebar overlay */}
+        {sidebarOpen && (
+          <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
+        )}
+        {/* Sidebar - hidden on mobile unless open */}
+        <div className={`
+          fixed inset-y-0 left-0 z-50 w-56 transform transition-transform duration-200 ease-in-out md:relative md:translate-x-0 md:w-48 md:z-auto
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        `} style={{ top: 'var(--topbar-h, 44px)' }}>
+          <Sidebar onNavigate={() => setSidebarOpen(false)} />
+        </div>
+        <main className="flex-1 overflow-y-auto p-3 md:p-6">
           <PageComponent />
         </main>
         {aiPanelOpen && <AiPanel />}
@@ -140,7 +150,7 @@ export default function Shell({ onLock }: ShellProps) {
       {/* FAB */}
       <button
         onClick={() => setCommandPaletteOpen(true)}
-        className="fixed bottom-6 right-6 w-12 h-12 bg-polar text-obsidian flex items-center justify-center shadow-lg hover:opacity-90 transition-opacity z-50"
+        className="fixed bottom-5 right-5 w-11 h-11 md:w-12 md:h-12 md:bottom-6 md:right-6 bg-polar text-obsidian flex items-center justify-center shadow-lg hover:opacity-90 transition-opacity z-50 rounded-full md:rounded-none"
         title="Quick Add"
       >
         <Plus size={20} strokeWidth={2.5} />

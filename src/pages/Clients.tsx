@@ -379,7 +379,7 @@ function ClientForm({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField label="Name" field="name" placeholder="Client name" value={form.name} onChange={set} />
         <div className="space-y-1">
           <label className="label text-dim">Status</label>
@@ -393,23 +393,23 @@ function ClientForm({
           </select>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField label="Service" field="service" placeholder="e.g. PPC Management" value={form.service} onChange={set} />
         <FormField label="Retainer" field="retainer" placeholder="e.g. $2,500/mo" value={form.retainer} onChange={set} />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField label="MRR ($)" field="mrr" type="number" placeholder="0" value={form.mrr} onChange={set} />
         <FormField label="Platform" field="platform" placeholder="e.g. Google Ads" value={form.platform} onChange={set} />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField label="Primary Contact" field="contact" placeholder="Name" value={form.contact} onChange={set} />
         <FormField label="Email" field="email" type="email" placeholder="email@example.com" value={form.email} onChange={set} />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField label="Phone" field="phone" placeholder="+1..." value={form.phone} onChange={set} />
         <FormField label="Website" field="website" placeholder="https://..." value={form.website} onChange={set} />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField label="Brand Colors (JSON)" field="colors" placeholder='["#FF0000","#00FF00"]' value={form.colors} onChange={set} />
         <FormField label="Tags (comma sep)" field="tags" placeholder="automotive, google" value={form.tags} onChange={set} />
       </div>
@@ -668,7 +668,7 @@ function ContactsTab({
 
       {adding && (
         <div className="bg-surface border border-border p-3 mb-3 space-y-2">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             <input value={name} onChange={e => setName(e.target.value)} placeholder="Name" className="bg-cell border border-border px-2 py-1 text-polar font-sans outline-none" style={{ fontSize: '12px' }} />
             <input value={role} onChange={e => setRole(e.target.value)} placeholder="Role" className="bg-cell border border-border px-2 py-1 text-polar font-sans outline-none" style={{ fontSize: '12px' }} />
             <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className="bg-cell border border-border px-2 py-1 text-polar font-sans outline-none" style={{ fontSize: '12px' }} />

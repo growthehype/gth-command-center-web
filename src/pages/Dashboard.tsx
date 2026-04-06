@@ -234,7 +234,7 @@ export default function Dashboard() {
       </div>
 
       {/* ---- STAT CARDS ---- */}
-      <div className="grid grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {/* MRR */}
         <button
           className="stat-card text-left cursor-pointer transition-all duration-150 hover:border-dim"
@@ -303,7 +303,7 @@ export default function Dashboard() {
       </div>
 
       {/* ---- MAIN CONTENT GRID ---- */}
-      <div className="grid grid-cols-3 gap-4" style={{ gridTemplateColumns: '1fr 1fr 320px' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* ---- LEFT: Upcoming 7 Days ---- */}
         <div className="card col-span-1 flex flex-col" style={{ minHeight: '320px' }}>
           <div className="flex items-center justify-between mb-4">

@@ -280,9 +280,9 @@ export default function Invoices() {
           </p>
         </div>
       ) : (
-        <div className="border border-border">
+        <div className="border border-border overflow-x-auto">
           {/* Header row */}
-          <div className="grid grid-cols-12 gap-4 px-4 py-2 border-b border-border bg-surface">
+          <div className="grid grid-cols-12 gap-4 px-4 py-2 border-b border-border bg-surface min-w-[700px]">
             <span className="label text-dim col-span-1"></span>
             <span className="label text-dim col-span-4">FILE NAME</span>
             {activeClient === 'all' && <span className="label text-dim col-span-2">CLIENT</span>}
@@ -303,7 +303,7 @@ export default function Invoices() {
             return (
               <ContextMenu key={doc.id} items={ctxItems}>
                 <div
-                  className="table-row grid grid-cols-12 gap-4 px-4 py-3 items-center cursor-pointer"
+                  className="table-row grid grid-cols-12 gap-4 px-4 py-3 items-center cursor-pointer min-w-[700px]"
                   onClick={() => { if (!isRenaming) openFile(doc) }}
                 >
                   <div className="col-span-1 text-center" style={{ fontSize: '16px' }}>

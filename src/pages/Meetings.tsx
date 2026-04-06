@@ -297,7 +297,7 @@ export default function Meetings() {
       {/* Modal */}
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? 'Edit Meeting Note' : 'New Meeting Note'} width="560px">
         <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <p className="label mb-1">Date *</p>
               <input
@@ -327,7 +327,7 @@ export default function Meetings() {
               placeholder="Meeting title"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <p className="label mb-1">Client</p>
               <select

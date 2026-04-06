@@ -69,7 +69,7 @@ const navGroups: NavGroup[] = [
   },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { currentPage, setCurrentPage, clients, projects, tasks, invoices, leads } = useAppStore()
 
   const badges: Record<string, number> = {
@@ -83,7 +83,7 @@ export default function Sidebar() {
   const hasOverdue = invoices.some(i => i.status === 'sent' && i.due_date && new Date(i.due_date) < new Date())
 
   return (
-    <nav className="w-48 h-full bg-obsidian border-r border-border overflow-y-auto flex-shrink-0 select-none">
+    <nav className="w-full h-full bg-obsidian border-r border-border overflow-y-auto flex-shrink-0 select-none">
       <div className="py-4">
         {navGroups.map(group => (
           <div key={group.label} className="mb-3">
@@ -102,7 +102,7 @@ export default function Sidebar() {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setCurrentPage(item.id)}
+                  onClick={() => { setCurrentPage(item.id); onNavigate?.() }}
                   className={`w-full flex items-center gap-3 px-5 py-1.5 transition-colors text-left ${
                     isActive
                       ? 'text-polar bg-surface-2'

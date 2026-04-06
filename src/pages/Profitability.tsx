@@ -124,7 +124,7 @@ export default function Profitability() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <div className="stat-card">
           <p className="label">Avg Effective Rate</p>
           <p className="text-polar font-[800]" style={{ fontSize: '20px' }}>${summary.avgRate}/hr</p>

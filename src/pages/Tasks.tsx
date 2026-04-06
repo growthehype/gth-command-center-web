@@ -382,7 +382,7 @@ export default function Tasks() {
           </div>
 
           {/* Client + Priority row */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="label text-steel block mb-1.5">Client</label>
               <select
@@ -418,7 +418,7 @@ export default function Tasks() {
           </div>
 
           {/* Due date + Recurring row */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="label text-steel block mb-1.5">Due Date</label>
               <input

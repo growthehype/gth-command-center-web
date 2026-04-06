@@ -108,9 +108,9 @@ export default function SOPs() {
           onAction={openCreate}
         />
       ) : (
-        <div className="border border-border">
+        <div className="border border-border overflow-x-auto">
           {/* Header row */}
-          <div className="grid grid-cols-12 gap-4 px-4 py-2 border-b border-border bg-cell/50">
+          <div className="grid grid-cols-12 gap-4 px-4 py-2 border-b border-border bg-cell/50 min-w-[700px]">
             <span className="label text-dim col-span-4">TITLE</span>
             <span className="label text-dim col-span-2">AREA</span>
             <span className="label text-dim col-span-2">LAST UPDATED</span>
@@ -118,7 +118,7 @@ export default function SOPs() {
             <span className="label text-dim col-span-2 text-right">ACTIONS</span>
           </div>
           {sorted.map(sop => (
-            <div key={sop.id} className="table-row grid grid-cols-12 gap-4 px-4 py-3 items-center">
+            <div key={sop.id} className="table-row grid grid-cols-12 gap-4 px-4 py-3 items-center min-w-[700px]">
               <span className="col-span-4 text-polar font-[600] truncate" style={{ fontSize: '13px' }}>
                 {sop.title}
               </span>
@@ -171,7 +171,7 @@ export default function SOPs() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="label text-dim">AREA</label>
               <input

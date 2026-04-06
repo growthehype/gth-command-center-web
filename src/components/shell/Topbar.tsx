@@ -1,5 +1,5 @@
 import { useAppStore } from '@/lib/store'
-import { Search, Timer, Sparkles, Clock } from 'lucide-react'
+import { Search, Timer, Sparkles, Clock, Menu } from 'lucide-react'
 import { format } from 'date-fns'
 import { useState, useEffect } from 'react'
 
@@ -8,7 +8,7 @@ interface TopbarProps {
 }
 
 export default function Topbar({ onLock }: TopbarProps) {
-  const { setCommandPaletteOpen, aiPanelOpen, setAiPanelOpen, settings, runningTimer } = useAppStore()
+  const { setCommandPaletteOpen, aiPanelOpen, setAiPanelOpen, settings, runningTimer, sidebarOpen, setSidebarOpen } = useAppStore()
   const displayName = settings.display_name || 'Omar Alladina'
   const initials = settings.avatar_initials || 'OA'
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -36,12 +36,19 @@ export default function Topbar({ onLock }: TopbarProps) {
   }, [runningTimer])
 
   return (
-    <header className="h-11 border-b border-border flex items-center px-4 gap-4 flex-shrink-0 select-none text-white" style={{ backgroundColor: '#111111' }}>
+    <header className="h-11 border-b border-border flex items-center px-2 md:px-4 gap-2 md:gap-4 flex-shrink-0 select-none text-white" style={{ backgroundColor: '#111111' }}>
+      {/* Mobile hamburger */}
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="md:hidden flex items-center justify-center w-8 h-8 text-white/70 hover:text-white transition-colors"
+      >
+        <Menu size={18} />
+      </button>
       {/* Logo + wordmark */}
       <div className="flex items-center gap-2.5">
         <img src="./icon.png" alt="GTH" className="w-[26px] h-[26px]" draggable={false} style={{ filter: 'brightness(0) invert(1)' }} />
         <span
-          className="font-sans font-[800] uppercase"
+          className="font-sans font-[800] uppercase hidden md:inline"
           style={{ fontSize: '14px', letterSpacing: '0.04em', color: '#FFFFFF' }}
         >
           Operations Command Center
@@ -53,7 +60,7 @@ export default function Topbar({ onLock }: TopbarProps) {
       {/* Search trigger */}
       <button
         onClick={() => setCommandPaletteOpen(true)}
-        className="flex items-center gap-2 transition-colors px-3 py-1.5 border"
+        className="hidden md:flex items-center gap-2 transition-colors px-3 py-1.5 border"
         style={{ color: 'rgba(255,255,255,0.5)', borderColor: 'rgba(255,255,255,0.2)' }}
         title="Search (Ctrl+K)"
       >
@@ -84,13 +91,13 @@ export default function Topbar({ onLock }: TopbarProps) {
       </button>
 
       {/* Time */}
-      <span className="font-mono" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
+      <span className="font-mono hidden md:inline" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
         {format(currentTime, 'h:mm a')}
       </span>
 
       {/* User */}
       <div className="flex items-center gap-2">
-        <span style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>
+        <span className="hidden md:inline" style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>
           {displayName}
         </span>
         <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)' }}>
