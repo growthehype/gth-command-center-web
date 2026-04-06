@@ -46,6 +46,35 @@
 }
 
 /* ========================================
+   DARK MODE OVERRIDES
+   ======================================== */
+
+[data-theme="dark"] {
+  --color-obsidian: #0A0A0A;
+  --color-polar: #E8E8E8;
+  --color-charcoal: #141414;
+  --color-cream: #1A1A1A;
+  --color-steel: #AAAAAA;
+  --color-ash: #222222;
+
+  --color-cell: #111111;
+  --color-surface: #141414;
+  --color-surface-2: #1C1C1C;
+  --color-border: #2A2A2A;
+  --color-border-hard: #333333;
+  --color-dim: #666666;
+  --color-ghost: #181818;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #333333;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #444444;
+}
+
+/* ========================================
    BASE STYLES
    ======================================== */
 

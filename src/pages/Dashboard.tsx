@@ -33,7 +33,7 @@ export default function Dashboard() {
   } = useAppStore()
 
   const now = new Date()
-  const todayStr = format(now, 'MMM d, yyyy') // "Apr 5, 2026"
+  const todayStr = format(now, 'MMM d, yyyy') // "Apr 6, 2026"
   const todayStart = startOfDay(now)
   const sevenDaysOut = addDays(todayStart, 7)
 
@@ -80,6 +80,57 @@ export default function Dashboard() {
       ),
     [clients],
   )
+
+  // ===================== REVENUE BY CLIENT =====================
+
+  const revenueByClient = useMemo(
+    () =>
+      clients
+        .filter((c) => c.status === 'active' && c.mrr > 0)
+        .sort((a, b) => b.mrr - a.mrr),
+    [clients],
+  )
+
+  const maxMrr = Math.max(...revenueByClient.map((c) => c.mrr), 1)
+
+  // ===================== TASK ACTIVITY — LAST 7 DAYS =====================
+
+  const tasksByDay = useMemo(() => {
+    const days: { label: string; date: string; completed: number; created: number }[] = []
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date()
+      d.setDate(d.getDate() - i)
+      const dateStr = format(d, 'yyyy-MM-dd')
+      const label = format(d, 'EEE')
+      days.push({
+        label,
+        date: dateStr,
+        completed: tasks.filter((t) => t.completed_at && t.completed_at.startsWith(dateStr)).length,
+        created: tasks.filter((t) => t.created_at && t.created_at.startsWith(dateStr)).length,
+      })
+    }
+    return days
+  }, [tasks])
+
+  const totalCompletedWeek = useMemo(() => tasksByDay.reduce((s, d) => s + d.completed, 0), [tasksByDay])
+  const totalCreatedWeek = useMemo(() => tasksByDay.reduce((s, d) => s + d.created, 0), [tasksByDay])
+
+  // ===================== PROJECT PIPELINE =====================
+
+  const projectPipeline = useMemo(() => {
+    const statuses = [
+      { key: 'backlog', label: 'Backlog', color: '#6B7280' },
+      { key: 'progress', label: 'In Progress', color: '#2563EB' },
+      { key: 'review', label: 'Review', color: '#D97706' },
+      { key: 'done', label: 'Done', color: '#16A34A' },
+    ]
+    return statuses.map((s) => ({
+      ...s,
+      count: projects.filter((p) => p.status === s.key).length,
+    }))
+  }, [projects])
+
+  const totalPipelineProjects = projectPipeline.reduce((s, p) => s + p.count, 0)
 
   // ===================== UPCOMING 7 DAYS =====================
 
@@ -150,6 +201,24 @@ export default function Dashboard() {
     return items
   }, [openTasks, events, todayStart, sevenDaysOut])
 
+  // ===================== WEEK AT A GLANCE =====================
+
+  const weekAtGlance = useMemo(() => {
+    const days: { label: string; dateStr: string; dateFmt: string; tasks: number; events: number }[] = []
+    for (let i = 0; i < 7; i++) {
+      const d = addDays(todayStart, i)
+      const dateStr = format(d, 'yyyy-MM-dd')
+      days.push({
+        label: format(d, 'EEE'),
+        dateStr,
+        dateFmt: format(d, 'MMM d'),
+        tasks: openTasks.filter((t) => t.due_date && t.due_date.startsWith(dateStr)).length,
+        events: events.filter((e) => e.date && e.date.startsWith(dateStr)).length,
+      })
+    }
+    return days
+  }, [openTasks, events, todayStart])
+
   // ===================== TOP PRIORITY TASKS =====================
 
   const topPriorityTasks = useMemo(
@@ -209,18 +278,32 @@ export default function Dashboard() {
   function activityIcon(type: string) {
     switch (type) {
       case 'task_complete':
-        return '✓'
+        return '\u2713'
       case 'invoice_paid':
         return '$'
       case 'client_created':
         return '+'
       case 'project_created':
-        return '◆'
+        return '\u25C6'
       case 'meeting':
-        return '◎'
+        return '\u25CE'
       default:
-        return '·'
+        return '\u00B7'
     }
+  }
+
+  function trendArrow(value: number, positive: boolean = true) {
+    if (value === 0) return null
+    const isUp = value > 0
+    const isGood = positive ? isUp : !isUp
+    return (
+      <span
+        style={{ fontSize: '11px', marginLeft: '4px', fontWeight: 700 }}
+        className={isGood ? 'text-ok' : 'text-err'}
+      >
+        {isUp ? '\u2191' : '\u2193'}
+      </span>
+    )
   }
 
   // ===================== RENDER =====================
@@ -233,14 +316,17 @@ export default function Dashboard() {
         <span className="mono text-steel">{todayStr}</span>
       </div>
 
-      {/* ---- STAT CARDS ---- */}
+      {/* ---- ROW 1: STAT CARDS ---- */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {/* MRR */}
         <button
           className="stat-card text-left cursor-pointer transition-all duration-150 hover:border-dim"
           onClick={() => setCurrentPage('clients')}
         >
-          <div className="stat-value">{formatCurrency(mrr)}</div>
+          <div className="stat-value">
+            {formatCurrency(mrr)}
+            {trendArrow(revenueByClient.length)}
+          </div>
           <div className="stat-label">MRR</div>
         </button>
 
@@ -258,7 +344,10 @@ export default function Dashboard() {
           className="stat-card text-left cursor-pointer transition-all duration-150 hover:border-dim"
           onClick={() => setCurrentPage('outreach')}
         >
-          <div className="stat-value">{formatCurrency(pipelineValue)}</div>
+          <div className="stat-value">
+            {formatCurrency(pipelineValue)}
+            {trendArrow(leads.filter((l) => l.stage !== 'closed' && l.stage !== 'lost').length)}
+          </div>
           <div className="stat-label">Pipeline</div>
         </button>
 
@@ -283,35 +372,175 @@ export default function Dashboard() {
           className="stat-card text-left cursor-pointer transition-all duration-150 hover:border-dim"
           onClick={() => setCurrentPage('projects')}
         >
-          <div className="stat-value">{activeProjects.length}</div>
+          <div className="stat-value">
+            {activeProjects.length}
+            {trendArrow(activeProjects.length)}
+          </div>
           <div className="stat-label">Active Projects</div>
         </button>
 
         {/* Needs Attention */}
         <button
-          className="stat-card text-left cursor-pointer transition-all duration-150 hover:border-dim"
+          className={`stat-card text-left cursor-pointer transition-all duration-150 hover:border-dim${staleClients.length > 0 ? ' needs-attention-pulse' : ''}`}
           onClick={() => setCurrentPage('clients')}
+          style={staleClients.length > 0 ? { borderColor: 'rgba(255, 51, 51, 0.4)' } : undefined}
         >
           <div
             className="stat-value"
             style={staleClients.length > 0 ? { color: '#FF3333' } : undefined}
           >
             {staleClients.length}
+            {staleClients.length > 0 && trendArrow(-1, true)}
           </div>
           <div className="stat-label">Needs Attention</div>
         </button>
       </div>
 
-      {/* ---- MAIN CONTENT GRID ---- */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* ---- LEFT: Upcoming 7 Days ---- */}
-        <div className="card col-span-1 flex flex-col" style={{ minHeight: '320px' }}>
+      {/* ---- ROW 2: Revenue by Client + Task Activity ---- */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Revenue by Client */}
+        <div className="card">
           <div className="flex items-center justify-between mb-4">
+            <h3>Revenue by Client</h3>
+            <span className="text-dim" style={{ fontSize: '11px' }}>{revenueByClient.length} clients</span>
+          </div>
+          {revenueByClient.length === 0 ? (
+            <p className="text-dim" style={{ fontSize: '12px' }}>No active clients with MRR.</p>
+          ) : (
+            <div className="space-y-2">
+              {revenueByClient.map((client) => (
+                <div key={client.id} className="group">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-polar truncate" style={{ fontSize: '12px', fontWeight: 600 }}>{client.name}</span>
+                      {client.service && (
+                        <span className="text-dim truncate" style={{ fontSize: '10px' }}>{client.service}</span>
+                      )}
+                    </div>
+                    <span className="font-mono text-steel flex-shrink-0" style={{ fontSize: '12px' }}>${client.mrr.toLocaleString()}/mo</span>
+                  </div>
+                  <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${(client.mrr / maxMrr) * 100}%`,
+                        background: 'var(--color-polar, #E5E9F0)',
+                        opacity: 0.7,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Task Activity — Last 7 Days */}
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <h3>Task Activity &mdash; Last 7 Days</h3>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-ok rounded-full" />
+                <span className="text-dim" style={{ fontSize: '10px' }}>Completed ({totalCompletedWeek})</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-border-hard rounded-full" />
+                <span className="text-dim" style={{ fontSize: '10px' }}>Created ({totalCreatedWeek})</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-end gap-2" style={{ height: '100px' }}>
+            {tasksByDay.map((day) => {
+              const maxVal = Math.max(...tasksByDay.map((d) => Math.max(d.completed, d.created)), 1)
+              return (
+                <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
+                  <div className="w-full flex items-end gap-0.5" style={{ height: '80px' }}>
+                    <div
+                      className="flex-1 rounded-t transition-all"
+                      style={{
+                        height: `${(day.completed / maxVal) * 100}%`,
+                        minHeight: day.completed > 0 ? '4px' : '0',
+                        backgroundColor: 'var(--color-ok, #A3BE8C)',
+                        opacity: 0.6,
+                      }}
+                    />
+                    <div
+                      className="flex-1 bg-border-hard rounded-t transition-all"
+                      style={{
+                        height: `${(day.created / maxVal) * 100}%`,
+                        minHeight: day.created > 0 ? '4px' : '0',
+                      }}
+                    />
+                  </div>
+                  <span className="text-dim font-mono" style={{ fontSize: '9px' }}>{day.label}</span>
+                </div>
+              )
+            })}
+          </div>
+          {totalCompletedWeek === 0 && totalCreatedWeek === 0 && (
+            <p className="text-dim text-center mt-3" style={{ fontSize: '11px' }}>No task activity in the last 7 days.</p>
+          )}
+        </div>
+      </div>
+
+      {/* ---- ROW 3: Upcoming + Open Tasks + Right Sidebar ---- */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* ---- LEFT: Upcoming 7 Days with Week Glance ---- */}
+        <div className="card col-span-1 flex flex-col" style={{ minHeight: '320px' }}>
+          <div className="flex items-center justify-between mb-3">
             <h3>Upcoming (Next 7 Days)</h3>
             <span className="label text-steel">{upcomingItems.length} items</span>
           </div>
 
-          <div className="flex-1 overflow-y-auto -mx-4 px-4" style={{ maxHeight: '340px' }}>
+          {/* Week at a Glance mini strip */}
+          <div className="flex gap-1 mb-4 pb-3" style={{ borderBottom: '1px solid var(--color-border, #333)' }}>
+            {weekAtGlance.map((day, i) => {
+              const total = day.tasks + day.events
+              const isBusy = total >= 3
+              const isToday = i === 0
+              return (
+                <div
+                  key={day.dateStr}
+                  className="flex-1 flex flex-col items-center gap-0.5 rounded py-1.5"
+                  style={{
+                    backgroundColor: isToday
+                      ? 'var(--color-surface-2, #1a1a2e)'
+                      : 'transparent',
+                    border: isToday ? '1px solid var(--color-border-hard, #555)' : '1px solid transparent',
+                  }}
+                >
+                  <span
+                    className="font-mono"
+                    style={{
+                      fontSize: '9px',
+                      color: isToday ? 'var(--color-polar, #fff)' : 'var(--color-dim, #666)',
+                      fontWeight: isToday ? 700 : 400,
+                    }}
+                  >
+                    {day.label}
+                  </span>
+                  <span
+                    className="font-mono"
+                    style={{
+                      fontSize: '14px',
+                      fontWeight: 700,
+                      color: isBusy
+                        ? 'var(--color-warn, #EBCB8B)'
+                        : total > 0
+                        ? 'var(--color-polar, #fff)'
+                        : 'var(--color-dim, #555)',
+                    }}
+                  >
+                    {total}
+                  </span>
+                  <span className="text-dim" style={{ fontSize: '8px' }}>{day.dateFmt}</span>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="flex-1 overflow-y-auto -mx-4 px-4" style={{ maxHeight: '260px' }}>
             {upcomingItems.length === 0 ? (
               <p className="text-steel" style={{ fontSize: '13px' }}>
                 Nothing scheduled in the next 7 days.
@@ -511,6 +740,75 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* ---- ROW 4: Project Pipeline (Full Width) ---- */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h3>Project Pipeline</h3>
+          <button
+            className="label text-steel hover:text-polar transition-colors cursor-pointer"
+            onClick={() => setCurrentPage('projects')}
+          >
+            View All Projects
+          </button>
+        </div>
+
+        {totalPipelineProjects === 0 ? (
+          <p className="text-dim" style={{ fontSize: '12px' }}>No projects yet.</p>
+        ) : (
+          <>
+            {/* Pipeline bar */}
+            <div className="flex rounded-full overflow-hidden" style={{ height: '28px' }}>
+              {projectPipeline.map((stage) =>
+                stage.count > 0 ? (
+                  <div
+                    key={stage.key}
+                    className="flex items-center justify-center transition-all duration-500"
+                    style={{
+                      width: `${(stage.count / totalPipelineProjects) * 100}%`,
+                      backgroundColor: stage.color,
+                      minWidth: '32px',
+                    }}
+                  >
+                    <span className="font-mono" style={{ fontSize: '11px', color: '#fff', fontWeight: 700 }}>
+                      {stage.count}
+                    </span>
+                  </div>
+                ) : null,
+              )}
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center gap-4 mt-3 flex-wrap">
+              {projectPipeline.map((stage) => (
+                <div key={stage.key} className="flex items-center gap-1.5">
+                  <div
+                    className="rounded-full"
+                    style={{ width: '8px', height: '8px', backgroundColor: stage.color }}
+                  />
+                  <span className="text-dim" style={{ fontSize: '11px' }}>
+                    {stage.label}
+                  </span>
+                  <span className="font-mono text-steel" style={{ fontSize: '11px' }}>
+                    {stage.count}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Pulse animation for Needs Attention card */}
+      <style>{`
+        .needs-attention-pulse {
+          animation: attention-pulse 2s ease-in-out infinite;
+        }
+        @keyframes attention-pulse {
+          0%, 100% { border-color: rgba(255, 51, 51, 0.3); }
+          50% { border-color: rgba(255, 51, 51, 0.7); }
+        }
+      `}</style>
     </div>
   )
 }

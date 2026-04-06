@@ -99,6 +99,8 @@ interface AppStore {
   aiPanelOpen: boolean
   sidebarOpen: boolean
   runningTimer: TimeEntry | null
+  theme: 'light' | 'dark'
+  setTheme: (theme: 'light' | 'dark') => void
 
   // Actions
   setCurrentPage: (page: string) => void
@@ -157,6 +159,12 @@ export const useAppStore = create<AppStore>((set) => ({
   aiPanelOpen: false,
   sidebarOpen: false,
   runningTimer: null,
+  theme: (localStorage.getItem('gth_theme') as 'light' | 'dark') || 'light',
+  setTheme: (theme) => {
+    localStorage.setItem('gth_theme', theme)
+    document.documentElement.setAttribute('data-theme', theme)
+    set({ theme })
+  },
 
   setCurrentPage: (page) => set({ currentPage: page }),
   setSelectedClientId: (id) => set({ selectedClientId: id }),

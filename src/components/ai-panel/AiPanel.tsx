@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAppStore } from '@/lib/store'
 import { tasks as tasksApi, projects as projectsApi, invoices as invoicesApi, activity as activityApi, timeEntries as timeEntriesApi } from '@/lib/api'
 import { createGoogleEvent, isGoogleConnected } from '@/lib/google-calendar'
-import { X, Sparkles, Send, Key, Trash2, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
+import { X, Sparkles, Send, Key, Trash2, CheckCircle, AlertCircle, Loader2, Mic, MicOff } from 'lucide-react'
 
 // ── Types ──
 
@@ -370,6 +370,8 @@ export default function AiPanel() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [apiMessages, setApiMessages] = useState<ApiMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [isListening, setIsListening] = useState(false)
+  const recognitionRef = useRef<any>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const hasApiKey = !!settings.ai_api_key
@@ -499,6 +501,49 @@ export default function AiPanel() {
       setIsLoading(false)
     }
   }, [input, isLoading, apiMessages, settings.ai_api_key, settings.ai_model])
+
+  const toggleVoice = useCallback(() => {
+    // Check browser support
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      alert('Speech recognition is not supported in this browser. Try Chrome or Edge.')
+      return
+    }
+
+    if (isListening) {
+      // Stop listening
+      recognitionRef.current?.stop()
+      setIsListening(false)
+      return
+    }
+
+    // Start listening
+    const recognition = new SpeechRecognition()
+    recognition.continuous = false
+    recognition.interimResults = false
+    recognition.lang = 'en-US'
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript
+      if (transcript.trim()) {
+        // Send the transcribed text directly
+        handleSend(transcript.trim())
+      }
+      setIsListening(false)
+    }
+
+    recognition.onerror = () => {
+      setIsListening(false)
+    }
+
+    recognition.onend = () => {
+      setIsListening(false)
+    }
+
+    recognitionRef.current = recognition
+    recognition.start()
+    setIsListening(true)
+  }, [isListening, handleSend])
 
   if (!aiPanelOpen) return null
 
@@ -666,6 +711,12 @@ export default function AiPanel() {
         {/* Input */}
         {hasApiKey && (
           <div className="border-t border-border px-4 py-3 flex-shrink-0">
+            {isListening && (
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 rounded-full bg-err animate-pulse" />
+                <span className="text-err" style={{ fontSize: '11px', fontWeight: 600 }}>Listening...</span>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <input
                 ref={inputRef}
@@ -683,6 +734,14 @@ export default function AiPanel() {
                   }
                 }}
               />
+              <button
+                className={`transition-colors ${isListening ? 'text-err animate-pulse' : 'text-dim hover:text-polar'}`}
+                onClick={toggleVoice}
+                title={isListening ? 'Stop listening' : 'Voice input'}
+                disabled={isLoading}
+              >
+                {isListening ? <MicOff size={14} /> : <Mic size={14} />}
+              </button>
               <button
                 className="text-dim hover:text-polar transition-colors disabled:opacity-30"
                 disabled={!input.trim() || isLoading}

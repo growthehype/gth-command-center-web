@@ -31,7 +31,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 export default function Settings() {
-  const { settings, refreshSettings } = useAppStore()
+  const { settings, refreshSettings, theme: storeTheme, setTheme: setStoreTheme } = useAppStore()
 
   /* ── Local state ── */
   const [displayName, setDisplayName] = useState('')
@@ -145,6 +145,22 @@ export default function Settings() {
         <h1>Settings</h1>
         <SettingsIcon size={14} className="text-dim" />
       </div>
+
+      {/* ── Appearance ── */}
+      <Section title="Appearance">
+        <div className="flex items-center justify-between">
+          <span className="text-steel" style={{ fontSize: '12px' }}>Dark Mode</span>
+          <button
+            onClick={() => setStoreTheme(storeTheme === 'dark' ? 'light' : 'dark')}
+            className={`w-9 h-5 flex items-center px-0.5 transition-colors cursor-pointer ${storeTheme === 'dark' ? 'bg-ok' : 'bg-border-hard'}`}
+          >
+            <div
+              className="w-4 h-4 bg-polar transition-transform"
+              style={{ transform: storeTheme === 'dark' ? 'translateX(16px)' : 'translateX(0)' }}
+            />
+          </button>
+        </div>
+      </Section>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* ── System Info ── */}

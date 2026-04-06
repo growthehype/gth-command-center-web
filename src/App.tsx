@@ -17,6 +17,14 @@ export default function App() {
     captureTokenFromUrl()
   }, [])
 
+  // Apply saved theme
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('gth_theme') as 'light' | 'dark'
+    if (savedTheme) {
+      document.documentElement.setAttribute('data-theme', savedTheme)
+    }
+  }, [])
+
   useEffect(() => {
     // Check initial session
     supabase.auth.getSession().then(({ data: { session } }) => {

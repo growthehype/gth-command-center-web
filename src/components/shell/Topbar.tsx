@@ -1,5 +1,5 @@
 import { useAppStore } from '@/lib/store'
-import { Search, Timer, Sparkles, Clock, Menu } from 'lucide-react'
+import { Search, Timer, Sparkles, Clock, Menu, Moon, Sun } from 'lucide-react'
 import { format } from 'date-fns'
 import { useState, useEffect } from 'react'
 
@@ -8,7 +8,7 @@ interface TopbarProps {
 }
 
 export default function Topbar({ onLock }: TopbarProps) {
-  const { setCommandPaletteOpen, aiPanelOpen, setAiPanelOpen, settings, runningTimer, sidebarOpen, setSidebarOpen } = useAppStore()
+  const { setCommandPaletteOpen, aiPanelOpen, setAiPanelOpen, settings, runningTimer, sidebarOpen, setSidebarOpen, theme, setTheme } = useAppStore()
   const displayName = settings.display_name || 'Omar Alladina'
   const initials = settings.avatar_initials || 'OA'
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -88,6 +88,16 @@ export default function Topbar({ onLock }: TopbarProps) {
       >
         <Sparkles size={13} />
         <span style={{ fontSize: '11px', fontWeight: 600 }}>AI</span>
+      </button>
+
+      {/* Theme toggle */}
+      <button
+        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+        className="flex items-center justify-center w-8 h-8 transition-colors"
+        style={{ color: 'rgba(255,255,255,0.5)' }}
+        title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      >
+        {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
       </button>
 
       {/* Time */}
