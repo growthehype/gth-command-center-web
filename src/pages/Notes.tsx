@@ -3,6 +3,7 @@ import { FileText, Plus, Trash2, Check, ChevronLeft } from 'lucide-react'
 import { showToast } from '@/components/ui/Toast'
 import { notes as notesApi } from '@/lib/api'
 import EmptyState from '@/components/ui/EmptyState'
+import VoiceTextarea from '@/components/ui/VoiceTextarea'
 
 interface NoteItem {
   id: string
@@ -209,9 +210,9 @@ export default function Notes() {
             className="w-full bg-transparent text-polar font-[800] outline-none border-b border-border pb-2"
             style={{ fontSize: '18px' }}
           />
-          <textarea
+          <VoiceTextarea
             value={content}
-            onChange={e => handleContentChange(e.target.value)}
+            onChange={(val) => handleContentChange(val)}
             placeholder="Start writing..."
             className="w-full bg-cell border border-border text-polar placeholder:text-dim focus:outline-none focus:border-dim transition-colors px-4 py-3 font-mono"
             style={{ fontSize: '15px', lineHeight: '1.8', minHeight: '400px', resize: 'vertical' }}

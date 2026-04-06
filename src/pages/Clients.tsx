@@ -6,6 +6,7 @@ import { showToast } from '@/components/ui/Toast'
 import Modal from '@/components/ui/Modal'
 import EmptyState from '@/components/ui/EmptyState'
 import ContextMenu, { ContextMenuItem } from '@/components/ui/ContextMenu'
+import VoiceTextarea from '@/components/ui/VoiceTextarea'
 import { daysSince, clientHealth, formatCurrency, relativeDate, safeParseJSON } from '@/lib/utils'
 
 /* ========================================
@@ -415,9 +416,9 @@ function ClientForm({
       </div>
       <div className="space-y-1">
         <label className="label text-dim">Notes</label>
-        <textarea
+        <VoiceTextarea
           value={form.notes ?? ''}
-          onChange={e => set('notes', e.target.value)}
+          onChange={(val) => set('notes', val)}
           rows={3}
           className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim resize-none"
           style={{ fontSize: '12px' }}
@@ -998,7 +999,6 @@ function NotesTab({
   client: Client; refreshClients: () => Promise<void>
 }) {
   const [notes, setNotes] = useState(client.notes || '')
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Sync when client changes
   useEffect(() => {
@@ -1020,10 +1020,9 @@ function NotesTab({
         <span className="label text-dim">Client Notes</span>
         <span className="text-dim" style={{ fontSize: '11px' }}>Auto-saves on blur</span>
       </div>
-      <textarea
-        ref={textareaRef}
+      <VoiceTextarea
         value={notes}
-        onChange={e => setNotes(e.target.value)}
+        onChange={(val) => setNotes(val)}
         onBlur={saveNotes}
         rows={10}
         className="w-full bg-surface border border-border px-4 py-3 text-polar font-sans outline-none focus:border-dim resize-y transition-colors"

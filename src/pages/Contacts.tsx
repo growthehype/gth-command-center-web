@@ -5,6 +5,7 @@ import { contacts as contactsApi, shell } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
 import Modal from '@/components/ui/Modal'
 import EmptyState from '@/components/ui/EmptyState'
+import VoiceTextarea from '@/components/ui/VoiceTextarea'
 import { relativeDate } from '@/lib/utils'
 
 const EMPTY_FORM = {
@@ -297,11 +298,11 @@ export default function Contacts() {
           </label>
           <div>
             <p className="label mb-1">Notes</p>
-            <textarea
+            <VoiceTextarea
               className="input w-full"
               rows={3}
               value={form.notes}
-              onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+              onChange={(val) => setForm(f => ({ ...f, notes: val }))}
               placeholder="Notes..."
             />
           </div>

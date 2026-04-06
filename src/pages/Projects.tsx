@@ -5,6 +5,7 @@ import { projects as projectsApi } from '@/lib/api'
 import Modal from '@/components/ui/Modal'
 import { showToast } from '@/components/ui/Toast'
 import EmptyState from '@/components/ui/EmptyState'
+import VoiceTextarea from '@/components/ui/VoiceTextarea'
 import ContextMenu, { ContextMenuItem } from '@/components/ui/ContextMenu'
 import { friendlyDate, isOverdue } from '@/lib/utils'
 
@@ -286,9 +287,9 @@ export default function Projects() {
           {/* Description */}
           <div>
             <label className="label text-steel block mb-1.5">Description</label>
-            <textarea
+            <VoiceTextarea
               value={form.description}
-              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              onChange={(val) => setForm(f => ({ ...f, description: val }))}
               placeholder="Project details..."
               rows={3}
               className="w-full bg-surface border border-border px-3 py-2 text-polar placeholder:text-dim focus:outline-none focus:border-dim transition-colors resize-none"
