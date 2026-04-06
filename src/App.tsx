@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAppStore } from '@/lib/store'
+import { storeTokens } from '@/lib/google-calendar'
 import Login from '@/pages/Login'
 import Shell from '@/components/shell/Shell'
 
@@ -15,11 +16,20 @@ export default function App() {
     // Check initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
+      // Capture Google OAuth tokens if present (after redirect)
+      if (session?.provider_token) {
+        storeTokens(session.provider_token, session.provider_refresh_token)
+      }
       setLoading(false)
     })
 
-    // Listen for auth changes — only update if user actually changed
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      // Capture Google OAuth tokens on any auth event
+      if (session?.provider_token) {
+        storeTokens(session.provider_token, session.provider_refresh_token)
+      }
+
       const currentUser = useAppStore.getState().user
       const newUser = session?.user ?? null
       if (newUser?.id !== currentUser?.id) {

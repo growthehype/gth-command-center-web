@@ -4,6 +4,13 @@ import { events as eventsApi } from '@/lib/api'
 import Modal from '@/components/ui/Modal'
 import { showToast } from '@/components/ui/Toast'
 import {
+  connectGoogleCalendar,
+  disconnectGoogle,
+  isGoogleConnected,
+  fetchGoogleEvents,
+  type GoogleCalendarEvent,
+} from '@/lib/google-calendar'
+import {
   format,
   startOfWeek,
   endOfWeek,
@@ -11,7 +18,6 @@ import {
   subWeeks,
   eachDayOfInterval,
   isToday,
-  isSameDay,
   parseISO,
 } from 'date-fns'
 import {
@@ -20,7 +26,9 @@ import {
   ChevronRight,
   Plus,
   Trash2,
-  CloudOff,
+  Check,
+  ExternalLink,
+  Unplug,
 } from 'lucide-react'
 
 /* ------------------------------------------------------------------ */
@@ -52,6 +60,7 @@ const TYPE_BORDER: Record<string, string> = {
   discovery: '#F59E0B',
   personal: '#888888',
   deadline: '#FF3333',
+  google: '#4285F4',
 }
 
 const TYPE_BG: Record<string, string> = {
@@ -60,6 +69,7 @@ const TYPE_BG: Record<string, string> = {
   discovery: 'rgba(245,158,11,0.08)',
   personal: 'rgba(136,136,136,0.06)',
   deadline: 'rgba(255,51,51,0.08)',
+  google: 'rgba(66,133,244,0.10)',
 }
 
 /* ------------------------------------------------------------------ */
@@ -104,6 +114,26 @@ const blankForm = (date?: string, hour?: number): EventForm => ({
 })
 
 /* ------------------------------------------------------------------ */
+/*  Unified event type for the grid                                   */
+/* ------------------------------------------------------------------ */
+
+interface UnifiedEvent {
+  id: string
+  title: string
+  date: string
+  start_time: string
+  end_time: string
+  type: string
+  client_name?: string
+  client_id?: string | null
+  recurring?: string | null
+  source: 'crm' | 'google'
+  htmlLink?: string
+  allDay?: boolean
+  original?: CalendarEvent
+}
+
+/* ------------------------------------------------------------------ */
 /*  Component                                                         */
 /* ------------------------------------------------------------------ */
 
@@ -116,45 +146,124 @@ export default function Calendar() {
   const weekEnd = useMemo(() => endOfWeek(anchor, { weekStartsOn: 1 }), [anchor])
   const days = useMemo(() => eachDayOfInterval({ start: weekStart, end: weekEnd }), [weekStart, weekEnd])
 
+  // Google Calendar
+  const [googleConnected, setGoogleConnected] = useState(isGoogleConnected())
+  const [googleEvents, setGoogleEvents] = useState<GoogleCalendarEvent[]>([])
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const [showGoogle, setShowGoogle] = useState(true)
+
   // Modals
   const [modalOpen, setModalOpen] = useState(false)
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null)
   const [form, setForm] = useState<EventForm>(blankForm())
   const [saving, setSaving] = useState(false)
 
-  // Load events on mount
+  // Load CRM events on mount
   useEffect(() => {
     refreshEvents()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Events for visible week
-  const weekEvents = useMemo(() => {
-    return events.filter((ev) => {
-      try {
-        const d = parseISO(ev.date)
-        return d >= weekStart && d <= weekEnd
-      } catch {
-        return false
+  // Load Google Calendar events when connected or week changes
+  useEffect(() => {
+    if (!googleConnected || !showGoogle) return
+    setGoogleLoading(true)
+    const timeMin = weekStart.toISOString()
+    const timeMax = weekEnd.toISOString()
+    fetchGoogleEvents(timeMin, timeMax)
+      .then((events) => {
+        setGoogleEvents(events)
+        if (events.length === 0 && isGoogleConnected()) {
+          // Token might have expired
+        }
+        setGoogleLoading(false)
+      })
+      .catch(() => setGoogleLoading(false))
+  }, [googleConnected, weekStart, weekEnd, showGoogle])
+
+  // Check connection status on mount (in case token was captured from redirect)
+  useEffect(() => {
+    setGoogleConnected(isGoogleConnected())
+  }, [])
+
+  // ── Unified events ──
+  const unifiedEvents = useMemo(() => {
+    const crm: UnifiedEvent[] = events
+      .filter((ev) => {
+        try {
+          const d = parseISO(ev.date)
+          return d >= weekStart && d <= weekEnd
+        } catch { return false }
+      })
+      .map((ev) => ({
+        id: ev.id,
+        title: ev.title,
+        date: ev.date,
+        start_time: ev.start_time ?? '09:00',
+        end_time: ev.end_time ?? '10:00',
+        type: ev.type ?? 'client',
+        client_name: ev.client_name,
+        client_id: ev.client_id,
+        recurring: ev.recurring,
+        source: 'crm' as const,
+        original: ev,
+      }))
+
+    const google: UnifiedEvent[] = showGoogle
+      ? googleEvents.map((ev) => ({
+          id: ev.id,
+          title: ev.title,
+          date: ev.date,
+          start_time: ev.startTime,
+          end_time: ev.endTime,
+          type: 'google',
+          source: 'google' as const,
+          htmlLink: ev.htmlLink,
+          allDay: ev.allDay,
+        }))
+      : []
+
+    return [...crm, ...google]
+  }, [events, googleEvents, weekStart, weekEnd, showGoogle])
+
+  // Map events by day-hour key
+  const eventMap = useMemo(() => {
+    const map: Record<string, UnifiedEvent[]> = {}
+    unifiedEvents.forEach((ev) => {
+      if (ev.allDay) {
+        // Show all-day events at 8am
+        const key = `${ev.date}_8`
+        if (!map[key]) map[key] = []
+        map[key].push(ev)
+      } else {
+        const startHour = parseInt(ev.start_time?.split(':')[0] ?? '9', 10)
+        const key = `${ev.date}_${startHour}`
+        if (!map[key]) map[key] = []
+        map[key].push(ev)
       }
     })
-  }, [events, weekStart, weekEnd])
-
-  // Map events by day-hour key for fast lookup
-  const eventMap = useMemo(() => {
-    const map: Record<string, CalendarEvent[]> = {}
-    weekEvents.forEach((ev) => {
-      const startHour = parseInt(ev.start_time?.split(':')[0] ?? '9', 10)
-      const key = `${ev.date}_${startHour}`
-      if (!map[key]) map[key] = []
-      map[key].push(ev)
-    })
     return map
-  }, [weekEvents])
+  }, [unifiedEvents])
 
   /* ---- Navigation ---- */
   const goPrev = () => setAnchor((a) => subWeeks(a, 1))
   const goNext = () => setAnchor((a) => addWeeks(a, 1))
   const goToday = () => setAnchor(new Date())
+
+  /* ---- Google connect/disconnect ---- */
+  const handleConnect = async () => {
+    try {
+      await connectGoogleCalendar()
+    } catch (err: any) {
+      showToast(err?.message ?? 'Failed to connect Google', 'error')
+    }
+  }
+
+  const handleDisconnect = () => {
+    disconnectGoogle()
+    setGoogleConnected(false)
+    setGoogleEvents([])
+    showToast('Google Calendar disconnected', 'info')
+  }
 
   /* ---- Open modals ---- */
   const openNewEvent = useCallback((day: Date, hour: number) => {
@@ -163,8 +272,14 @@ export default function Calendar() {
     setModalOpen(true)
   }, [])
 
-  const openEditEvent = useCallback((ev: CalendarEvent) => {
-    setEditingEvent(ev)
+  const openEditEvent = useCallback((ev: UnifiedEvent) => {
+    if (ev.source === 'google') {
+      // Open in Google Calendar
+      if (ev.htmlLink) window.open(ev.htmlLink, '_blank')
+      return
+    }
+    if (!ev.original) return
+    setEditingEvent(ev.original)
     setForm({
       date: ev.date,
       start_time: ev.start_time ?? '09:00',
@@ -250,14 +365,42 @@ export default function Calendar() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Sync button */}
-          <button
-            className="btn-ghost flex items-center gap-2"
-            onClick={() => showToast('Google Calendar sync coming in v1.1', 'info')}
-          >
-            <CloudOff size={12} />
-            Sync Google Calendar
-          </button>
+          {/* Google Calendar controls */}
+          {googleConnected ? (
+            <div className="flex items-center gap-2">
+              <button
+                className={`btn-ghost flex items-center gap-2 ${showGoogle ? '' : 'opacity-50'}`}
+                onClick={() => setShowGoogle(!showGoogle)}
+                title={showGoogle ? 'Hide Google events' : 'Show Google events'}
+              >
+                <div
+                  className="w-2 h-2 rounded-full"
+                  style={{ background: showGoogle ? '#4285F4' : '#555' }}
+                />
+                <span style={{ fontSize: '11px' }}>Google</span>
+                {showGoogle && <Check size={10} />}
+              </button>
+              <button
+                className="btn-ghost flex items-center gap-1"
+                onClick={handleDisconnect}
+                title="Disconnect Google Calendar"
+              >
+                <Unplug size={11} />
+              </button>
+            </div>
+          ) : (
+            <button
+              className="btn-ghost flex items-center gap-2"
+              onClick={handleConnect}
+            >
+              <img
+                src="https://www.gstatic.com/images/branding/product/1x/calendar_2020q4_48dp.png"
+                alt=""
+                style={{ width: 14, height: 14 }}
+              />
+              Connect Google Calendar
+            </button>
+          )}
 
           {/* Nav */}
           <button className="btn-ghost px-2 py-2" onClick={goPrev}>
@@ -284,6 +427,13 @@ export default function Calendar() {
           </button>
         </div>
       </div>
+
+      {/* Google loading indicator */}
+      {googleLoading && (
+        <div className="text-dim text-center mb-2" style={{ fontSize: '11px' }}>
+          Loading Google Calendar events...
+        </div>
+      )}
 
       {/* ---- Calendar grid ---- */}
       <div className="flex-1 overflow-auto">
@@ -383,6 +533,7 @@ export default function Calendar() {
                     {slotEvents.map((ev) => {
                       const borderColor = TYPE_BORDER[ev.type] ?? '#888'
                       const bgColor = TYPE_BG[ev.type] ?? 'rgba(136,136,136,0.08)'
+                      const isGoogle = ev.source === 'google'
                       return (
                         <div
                           key={ev.id}
@@ -403,16 +554,22 @@ export default function Calendar() {
                             whiteSpace: 'nowrap',
                             textOverflow: 'ellipsis',
                           }}
-                          title={`${ev.title} (${ev.start_time} - ${ev.end_time})`}
+                          title={`${ev.title} (${ev.start_time} - ${ev.end_time})${isGoogle ? ' — Google Calendar' : ''}`}
                         >
                           <span style={{ color: borderColor, marginRight: '4px', fontSize: '9px' }}>
-                            {ev.start_time?.slice(0, 5)}
+                            {ev.allDay ? 'ALL DAY' : ev.start_time?.slice(0, 5)}
                           </span>
                           {ev.title}
                           {ev.client_name && (
                             <span style={{ color: 'var(--color-dim)', marginLeft: '4px' }}>
                               {ev.client_name}
                             </span>
+                          )}
+                          {isGoogle && (
+                            <ExternalLink
+                              size={8}
+                              style={{ display: 'inline', marginLeft: '4px', opacity: 0.5, verticalAlign: 'middle' }}
+                            />
                           )}
                         </div>
                       )
