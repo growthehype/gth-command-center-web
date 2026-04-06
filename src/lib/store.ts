@@ -1,0 +1,205 @@
+import { create } from 'zustand'
+import { clients as clientsApi, tasks as tasksApi, projects as projectsApi, invoices as invoicesApi, outreach as outreachApi, events as eventsApi, campaigns as campaignsApi, contacts as contactsApi, meetings as meetingsApi, services as servicesApi, templates as templatesApi, goals as goalsApi, activity as activityApi, credentials as credentialsApi, sops as sopsApi, timeEntries as timeEntriesApi, settings as settingsApi } from '@/lib/api'
+import type { User } from '@supabase/supabase-js'
+
+// Types
+export interface Client {
+  id: string; name: string; service: string | null; retainer: string | null; mrr: number; status: string; platform: string | null; contact: string | null; email: string | null; phone: string | null; website: string | null; colors: string | null; logo_path: string | null; last_activity: string | null; notes: string | null; tags: string | null; created_at: string; updated_at: string
+}
+
+export interface Task {
+  id: string; text: string; description: string | null; priority: string; done: number; client_id: string | null; client_name?: string; due_date: string | null; tags: string | null; recurring: string | null; created_at: string; completed_at: string | null
+}
+
+export interface Project {
+  id: string; client_id: string | null; client_name?: string; title: string; description: string | null; priority: string | null; status: string; due_date: string | null; hours: number; links: string | null; recurring: string | null; created_at: string; updated_at: string
+}
+
+export interface Invoice {
+  id: string; num: string; client_id: string | null; client_name?: string; amount: number; sent_date: string | null; due_date: string | null; status: string; file_path: string | null; notes: string | null; created_at: string; paid_at: string | null
+}
+
+export interface OutreachLead {
+  id: string; name: string; industry: string | null; stage: string; last_contact: string | null; next_follow_up: string | null; deal_value: number; notes: string | null; created_at: string; converted_client_id: string | null
+}
+
+export interface CalendarEvent {
+  id: string; date: string; start_time: string; end_time: string; title: string; type: string; client_id: string | null; client_name?: string; recurring: string | null; created_at: string
+}
+
+export interface Campaign {
+  id: string; client_id: string | null; client_name?: string; platform: string | null; name: string; status: string; spend: number; conversions: number; updated_at: string
+}
+
+export interface Contact {
+  id: string; client_id: string | null; client_name?: string; name: string; role: string | null; email: string | null; phone: string | null; is_primary: number; notes: string | null; last_contacted: string | null; created_at: string
+}
+
+export interface MeetingNote {
+  id: string; client_id: string | null; client_name?: string; contact_id: string | null; contact_name?: string; title: string; date: string; type: string; attendees: string | null; notes: string | null; action_items: string | null; created_at: string
+}
+
+export interface Service {
+  id: string; name: string; category: string | null; description: string | null; pricing_model: string; default_price: number | null; typical_hours: number | null; deliverables: string | null; active: number; created_at: string
+}
+
+export interface EmailTemplate {
+  id: string; name: string; category: string | null; subject: string | null; body: string; variables: string | null; use_count: number; created_at: string
+}
+
+export interface Goal {
+  id: string; title: string; description: string | null; metric_type: string; target_value: number | null; current_value: number | null; target_date: string | null; status: string; created_at: string
+}
+
+export interface ActivityEntry {
+  id: string; type: string; entity: string | null; entity_id: string | null; description: string; timestamp: string
+}
+
+export interface TimeEntry {
+  id: string; project_id: string | null; project_title?: string; client_id: string | null; client_name?: string; started_at: string; ended_at: string | null; duration_minutes: number | null; notes: string | null; billable: number
+}
+
+export interface Credential {
+  id: string; platform: string; client_id: string | null; client_name?: string; fields: string | null; created_at: string
+}
+
+export interface Sop {
+  id: string; title: string; area: string | null; status: string; url: string | null; updated_at: string
+}
+
+// Main app store
+interface AppStore {
+  // Auth
+  user: User | null
+  setUser: (user: User | null) => void
+
+  // Data
+  clients: Client[]
+  tasks: Task[]
+  projects: Project[]
+  invoices: Invoice[]
+  leads: OutreachLead[]
+  events: CalendarEvent[]
+  campaigns: Campaign[]
+  contacts: Contact[]
+  meetings: MeetingNote[]
+  services: Service[]
+  templates: EmailTemplate[]
+  goals: Goal[]
+  activity: ActivityEntry[]
+  credentials: Credential[]
+  sops: Sop[]
+  timeEntries: TimeEntry[]
+  settings: Record<string, string>
+
+  // UI state
+  currentPage: string
+  selectedClientId: string | null
+  commandPaletteOpen: boolean
+  aiPanelOpen: boolean
+  runningTimer: TimeEntry | null
+
+  // Actions
+  setCurrentPage: (page: string) => void
+  setSelectedClientId: (id: string | null) => void
+  setCommandPaletteOpen: (open: boolean) => void
+  setAiPanelOpen: (open: boolean) => void
+
+  // Data loading
+  loadAllData: () => Promise<void>
+  refreshClients: () => Promise<void>
+  refreshTasks: () => Promise<void>
+  refreshProjects: () => Promise<void>
+  refreshInvoices: () => Promise<void>
+  refreshLeads: () => Promise<void>
+  refreshEvents: () => Promise<void>
+  refreshCampaigns: () => Promise<void>
+  refreshContacts: () => Promise<void>
+  refreshMeetings: () => Promise<void>
+  refreshServices: () => Promise<void>
+  refreshTemplates: () => Promise<void>
+  refreshGoals: () => Promise<void>
+  refreshActivity: () => Promise<void>
+  refreshCredentials: () => Promise<void>
+  refreshSops: () => Promise<void>
+  refreshTimeEntries: () => Promise<void>
+  refreshSettings: () => Promise<void>
+  refreshRunningTimer: () => Promise<void>
+}
+
+export const useAppStore = create<AppStore>((set) => ({
+  user: null,
+  setUser: (user) => set({ user }),
+
+  clients: [],
+  tasks: [],
+  projects: [],
+  invoices: [],
+  leads: [],
+  events: [],
+  campaigns: [],
+  contacts: [],
+  meetings: [],
+  services: [],
+  templates: [],
+  goals: [],
+  activity: [],
+  credentials: [],
+  sops: [],
+  timeEntries: [],
+  settings: {},
+
+  currentPage: 'briefing',
+  selectedClientId: null,
+  commandPaletteOpen: false,
+  aiPanelOpen: false,
+  runningTimer: null,
+
+  setCurrentPage: (page) => set({ currentPage: page }),
+  setSelectedClientId: (id) => set({ selectedClientId: id }),
+  setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
+  setAiPanelOpen: (open) => set({ aiPanelOpen: open }),
+
+  loadAllData: async () => {
+    const [clients, tasks, projects, invoices, leads, events, campaigns, contacts, meetings, services, templates, goals, activity, credentials, sops, timeEntries, settings, runningTimer] = await Promise.all([
+      clientsApi.getAll(),
+      tasksApi.getAll(),
+      projectsApi.getAll(),
+      invoicesApi.getAll(),
+      outreachApi.getAll(),
+      eventsApi.getAll(),
+      campaignsApi.getAll(),
+      contactsApi.getAll(),
+      meetingsApi.getAll(),
+      servicesApi.getAll(),
+      templatesApi.getAll(),
+      goalsApi.getAll(),
+      activityApi.getAll(50, 0),
+      credentialsApi.getAll(),
+      sopsApi.getAll(),
+      timeEntriesApi.getAll(),
+      settingsApi.getAll(),
+      timeEntriesApi.getRunning(),
+    ])
+    set({ clients, tasks, projects, invoices, leads, events, campaigns, contacts, meetings, services, templates, goals, activity, credentials, sops, timeEntries, settings, runningTimer })
+  },
+
+  refreshClients: async () => { set({ clients: await clientsApi.getAll() }) },
+  refreshTasks: async () => { set({ tasks: await tasksApi.getAll() }) },
+  refreshProjects: async () => { set({ projects: await projectsApi.getAll() }) },
+  refreshInvoices: async () => { set({ invoices: await invoicesApi.getAll() }) },
+  refreshLeads: async () => { set({ leads: await outreachApi.getAll() }) },
+  refreshEvents: async () => { set({ events: await eventsApi.getAll() }) },
+  refreshCampaigns: async () => { set({ campaigns: await campaignsApi.getAll() }) },
+  refreshContacts: async () => { set({ contacts: await contactsApi.getAll() }) },
+  refreshMeetings: async () => { set({ meetings: await meetingsApi.getAll() }) },
+  refreshServices: async () => { set({ services: await servicesApi.getAll() }) },
+  refreshTemplates: async () => { set({ templates: await templatesApi.getAll() }) },
+  refreshGoals: async () => { set({ goals: await goalsApi.getAll() }) },
+  refreshActivity: async () => { set({ activity: await activityApi.getAll(50, 0) }) },
+  refreshCredentials: async () => { set({ credentials: await credentialsApi.getAll() }) },
+  refreshSops: async () => { set({ sops: await sopsApi.getAll() }) },
+  refreshTimeEntries: async () => { set({ timeEntries: await timeEntriesApi.getAll() }) },
+  refreshSettings: async () => { set({ settings: await settingsApi.getAll() }) },
+  refreshRunningTimer: async () => { set({ runningTimer: await timeEntriesApi.getRunning() }) },
+}))
