@@ -96,7 +96,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   }
 
   return (
-    <nav className="sidebar-nav w-full h-full border-r border-border overflow-y-auto flex-shrink-0 select-none">
+    <nav className="sidebar-nav w-full h-full border-r border-border overflow-y-auto flex-shrink-0 select-none" aria-label="Main navigation">
       <div className="py-4">
         {navGroups.map((group, groupIndex) => (
           <div key={group.label} className="mb-3">
@@ -135,6 +135,8 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                       ? 'sidebar-nav-active text-polar bg-surface-2'
                       : 'text-dim hover:text-steel hover:bg-surface'
                   }`}
+                  aria-current={isActive ? 'page' : undefined}
+                  aria-label={item.label}
                 >
                   <Icon size={13} strokeWidth={isActive ? 2.5 : 2} className="sidebar-nav-icon" />
                   <span

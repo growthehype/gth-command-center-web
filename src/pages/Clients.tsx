@@ -939,9 +939,9 @@ function ProjectsTab({ client, projects }: { client: Client; projects: any[] }) 
   if (clientProjects.length === 0) return <p className="text-dim" style={{ fontSize: '12px' }}>No projects for this client.</p>
 
   const statusBadge = (s: string) => {
-    if (s === 'active' || s === 'in_progress') return 'badge badge-ok'
+    if (s === 'active' || s === 'in_progress' || s === 'in-progress' || s === 'progress') return 'badge badge-ok'
     if (s === 'completed' || s === 'done') return 'badge badge-neutral'
-    if (s === 'on_hold') return 'badge badge-warn'
+    if (s === 'on_hold' || s === 'review' || s === 'backlog') return 'badge badge-warn'
     return 'badge badge-neutral'
   }
 

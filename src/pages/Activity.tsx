@@ -19,11 +19,23 @@ const ENTITY_FILTERS = [
 
 type EntityFilter = typeof ENTITY_FILTERS[number]
 
-const DOT_COLORS: Record<string, string> = {
-  create: '#22C55E',
-  update: '#E8E8E8',
-  delete: '#FF3333',
-  upload: '#3B82F6',
+const DOT_STYLES: Record<string, { color: string; shape: 'circle' | 'square' | 'diamond' | 'triangle' }> = {
+  create: { color: '#22C55E', shape: 'circle' },
+  update: { color: '#E8E8E8', shape: 'square' },
+  delete: { color: '#FF3333', shape: 'diamond' },
+  upload: { color: '#3B82F6', shape: 'triangle' },
+}
+
+function ActivityDot({ type }: { type: string }) {
+  const style = DOT_STYLES[type] || { color: '#6B7280', shape: 'square' }
+  const base = { width: '7px', height: '7px', backgroundColor: style.color }
+
+  if (style.shape === 'circle') return <div style={{ ...base, borderRadius: '50%' }} />
+  if (style.shape === 'diamond') return <div style={{ ...base, transform: 'rotate(45deg)' }} />
+  if (style.shape === 'triangle') return (
+    <div style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderBottom: `7px solid ${style.color}` }} />
+  )
+  return <div style={base} /> // square
 }
 
 /* Sub-component so useRelativeTime can be called per-row */
@@ -32,15 +44,9 @@ function ActivityRow({ entry }: { entry: ActivityEntry }) {
 
   return (
     <div className="table-row flex items-start gap-3 py-2.5 px-2">
-      {/* Colored dot */}
+      {/* Colored shape indicator (colorblind-friendly: different shapes per type) */}
       <div className="flex-shrink-0 mt-1.5">
-        <div
-          style={{
-            width: '6px',
-            height: '6px',
-            backgroundColor: DOT_COLORS[entry.type] || '#6B7280',
-          }}
-        />
+        <ActivityDot type={entry.type} />
       </div>
 
       {/* Description */}

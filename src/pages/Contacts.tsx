@@ -159,6 +159,7 @@ export default function Contacts() {
 
   const handleDelete = async (contact: Contact, e: React.MouseEvent) => {
     e.stopPropagation()
+    if (!confirm(`Delete "${contact.name}"? This cannot be undone.`)) return
     try {
       await contactsApi.delete(contact.id)
       await refreshContacts()
@@ -305,10 +306,10 @@ export default function Contacts() {
                     )}
                   </button>
                 </th>
-                <th className="label px-4 py-3 cursor-pointer select-none" onClick={() => handleSort('name')}>Name <SortIcon col="name" /></th>
-                <th className="label px-4 py-3 cursor-pointer select-none" onClick={() => handleSort('role')}>Role <SortIcon col="role" /></th>
+                <th className="label px-4 py-3 cursor-pointer select-none" onClick={() => handleSort('name')} aria-sort={sortField === 'name' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>Name <SortIcon col="name" /></th>
+                <th className="label px-4 py-3 cursor-pointer select-none" onClick={() => handleSort('role')} aria-sort={sortField === 'role' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>Role <SortIcon col="role" /></th>
                 <th className="label px-4 py-3">Client</th>
-                <th className="label px-4 py-3 cursor-pointer select-none" onClick={() => handleSort('email')}>Email <SortIcon col="email" /></th>
+                <th className="label px-4 py-3 cursor-pointer select-none" onClick={() => handleSort('email')} aria-sort={sortField === 'email' ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}>Email <SortIcon col="email" /></th>
                 <th className="label px-4 py-3">Phone</th>
                 <th className="label px-4 py-3">Last Contacted</th>
                 <th className="label px-4 py-3">Primary</th>
@@ -363,6 +364,7 @@ export default function Contacts() {
                             onClick={(e) => { e.stopPropagation(); window.open(`mailto:${c.email}`, '_self') }}
                             className="p-1 text-dim hover:text-polar transition-colors"
                             title="Send email"
+                            aria-label={`Send email to ${c.name}`}
                           >
                             <Mail size={13} />
                           </button>
@@ -372,6 +374,7 @@ export default function Contacts() {
                             onClick={(e) => { e.stopPropagation(); window.open(`tel:${c.phone}`, '_self') }}
                             className="p-1 text-dim hover:text-polar transition-colors"
                             title="Call"
+                            aria-label={`Call ${c.name}`}
                           >
                             <Phone size={13} />
                           </button>
@@ -385,6 +388,7 @@ export default function Contacts() {
                             }}
                             className="p-1 text-dim hover:text-polar transition-colors"
                             title="Copy email"
+                            aria-label={`Copy email for ${c.name}`}
                           >
                             <Copy size={13} />
                           </button>
@@ -393,6 +397,7 @@ export default function Contacts() {
                       <button
                         onClick={(e) => handleDelete(c, e)}
                         className="text-dim hover:text-err transition-colors p-1"
+                        aria-label={`Delete ${c.name}`}
                       >
                         <Trash2 size={13} />
                       </button>
@@ -542,7 +547,7 @@ export default function Contacts() {
       {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (
         <div
-          className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-center pointer-events-none"
+          className="fixed bottom-0 left-0 right-0 z-[60] flex items-center justify-center pointer-events-none"
           style={{ padding: '16px 16px 24px' }}
         >
           <div

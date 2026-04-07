@@ -771,6 +771,7 @@ export default function Tasks() {
                 <button
                   onClick={() => handleDelete(task.id)}
                   className="flex-shrink-0 text-dim hover:text-err transition-colors cursor-pointer p-1"
+                  aria-label={`Delete task: ${task.text}`}
                 >
                   <Trash2 size={12} />
                 </button>
@@ -911,7 +912,7 @@ export default function Tasks() {
       {/* ── Bulk Action Bar ── */}
       {selectedIds.size > 0 && (
         <div
-          className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-center pointer-events-none"
+          className="fixed bottom-0 left-0 right-0 z-[60] flex items-center justify-center pointer-events-none"
           style={{ padding: '16px 16px 24px' }}
         >
           <div

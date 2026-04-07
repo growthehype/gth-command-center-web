@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { X } from 'lucide-react'
 
 interface ModalProps {
@@ -11,15 +11,48 @@ interface ModalProps {
 
 export default function Modal({ open, onClose, title, children, width = '480px' }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Focus trap: keep Tab key within the modal
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') { onClose(); return }
+
+    if (e.key === 'Tab' && containerRef.current) {
+      const focusable = containerRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
+    }
+  }, [onClose])
 
   useEffect(() => {
     if (!open) return
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', handleKey)
-    return () => window.removeEventListener('keydown', handleKey)
-  }, [open, onClose])
+    window.addEventListener('keydown', handleKeyDown)
+
+    // Focus first focusable element on open
+    requestAnimationFrame(() => {
+      const el = containerRef.current?.querySelector<HTMLElement>(
+        'input, select, textarea, button:not(.modal-close-btn)'
+      )
+      el?.focus()
+    })
+
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [open, handleKeyDown])
 
   if (!open) return null
 
@@ -28,14 +61,18 @@ export default function Modal({ open, onClose, title, children, width = '480px' 
       ref={overlayRef}
       className="fixed inset-0 flex items-center justify-center z-[100] modal-backdrop"
       onClick={(e) => { if (e.target === overlayRef.current) onClose() }}
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
     >
       <div
+        ref={containerRef}
         className="modal-container bg-surface overflow-hidden w-[95vw]"
         style={{ maxWidth: width, maxHeight: '85vh' }}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h3 className="font-[800]" style={{ fontSize: '15px', letterSpacing: '-0.01em' }}>{title}</h3>
-          <button onClick={onClose} className="modal-close-btn cursor-pointer">
+          <button onClick={onClose} className="modal-close-btn cursor-pointer" aria-label="Close modal">
             <X size={15} />
           </button>
         </div>

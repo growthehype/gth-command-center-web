@@ -9,6 +9,7 @@ import KeyboardShortcutsModal from '@/components/ui/KeyboardShortcutsModal'
 import QuickAddModal from '@/components/ui/QuickAddModal'
 import WelcomeModal from '@/components/ui/WelcomeModal'
 import { Plus } from 'lucide-react'
+import ErrorBoundary from '@/components/ui/ErrorBoundary'
 
 // Page imports
 import DailyBriefing from '@/pages/DailyBriefing'
@@ -167,9 +168,11 @@ export default function Shell({ onLock }: ShellProps) {
               </button>
             </div>
           )}
-          <div key={currentPage} className="page-enter">
-            <PageComponent />
-          </div>
+          <ErrorBoundary key={currentPage}>
+            <div className="page-enter">
+              <PageComponent />
+            </div>
+          </ErrorBoundary>
         </main>
         {aiPanelOpen && <AiPanel />}
       </div>
@@ -179,6 +182,7 @@ export default function Shell({ onLock }: ShellProps) {
         onClick={() => setCommandPaletteOpen(true)}
         className="fixed bottom-5 right-5 w-11 h-11 md:w-12 md:h-12 md:bottom-6 md:right-6 bg-polar text-obsidian flex items-center justify-center shadow-lg hover:opacity-90 transition-opacity z-50 rounded-full md:rounded-none"
         title="Quick Add"
+        aria-label="Open command palette"
       >
         <Plus size={20} strokeWidth={2.5} />
       </button>

@@ -299,14 +299,19 @@ Active clients: ${store.clients.filter(c => c.status === 'active').map(c => `${c
 
 When the user asks you to do something, use the appropriate tool. Be concise and action-oriented. After executing a tool, confirm what was done.`
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  // Use server-side proxy when no user-provided key, or the key is set to 'proxy'
+  const useProxy = !apiKey || apiKey === 'proxy'
+  const url = useProxy ? '/api/ai-proxy' : 'https://api.anthropic.com/v1/messages'
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (!useProxy) {
+    headers['x-api-key'] = apiKey
+    headers['anthropic-version'] = '2023-06-01'
+    headers['anthropic-dangerous-direct-browser-access'] = 'true'
+  }
+
+  const res = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
+    headers,
     body: JSON.stringify({
       model: model || 'claude-sonnet-4-20250514',
       max_tokens: 1024,
@@ -374,7 +379,7 @@ export default function AiPanel() {
   const recognitionRef = useRef<any>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const hasApiKey = !!settings.ai_api_key
+  const hasApiKey = !!settings.ai_api_key || true // Always available via server proxy
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {

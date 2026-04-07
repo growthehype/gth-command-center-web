@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, Fragment } from 'react'
 import { useAppStore } from '@/lib/store'
 import { fuzzyMatch } from '@/lib/utils'
+import { useDebounce } from '@/hooks/useDebounce'
 import {
   Search, Users, FolderKanban, CheckSquare, FileText, Calendar,
   Target, Mail, Megaphone, UserCircle, Briefcase, LayoutTemplate,
@@ -190,20 +191,23 @@ export default function CommandPalette() {
     return items
   }, [clients, tasks, projects, invoices, contacts, leads, setCurrentPage, setSelectedClientId, setAiPanelOpen])
 
+  // Debounce the search query to avoid excessive filtering on every keystroke
+  const debouncedQuery = useDebounce(query, 150)
+
   // Filter and group
   const { grouped, flatList } = useMemo(() => {
     const entityCategories = ['Clients', 'Contacts', 'Tasks', 'Projects', 'Invoices', 'Leads']
     let matchedItems: CommandItem[]
 
-    if (!query.trim()) {
+    if (!debouncedQuery.trim()) {
       // No query: show actions and pages only
       matchedItems = allItems.filter(i => !entityCategories.includes(i.category))
     } else {
       // Filter all items by query
       matchedItems = allItems.filter(i =>
-        fuzzyMatch(query, i.label) ||
-        (i.sublabel && fuzzyMatch(query, i.sublabel)) ||
-        (i.searchableText && fuzzyMatch(query, i.searchableText))
+        fuzzyMatch(debouncedQuery, i.label) ||
+        (i.sublabel && fuzzyMatch(debouncedQuery, i.sublabel)) ||
+        (i.searchableText && fuzzyMatch(debouncedQuery, i.searchableText))
       )
     }
 
@@ -222,12 +226,12 @@ export default function CommandPalette() {
     }
 
     return { grouped, flatList }
-  }, [query, allItems])
+  }, [debouncedQuery, allItems])
 
   // Reset index on filter change
   useEffect(() => {
     setSelectedIndex(0)
-  }, [flatList.length, query])
+  }, [flatList.length, debouncedQuery])
 
   // Keyboard nav
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -272,6 +276,9 @@ export default function CommandPalette() {
     <div
       className="fixed inset-0 flex items-start justify-center pt-[15vh] z-[200]" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
       onClick={(e) => { if (e.target === e.currentTarget) close() }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Command palette"
     >
       <div className="bg-surface border border-border w-[95vw] max-w-[560px] overflow-hidden" style={{ maxHeight: '60vh' }}>
         {/* Input */}

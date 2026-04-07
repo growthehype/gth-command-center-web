@@ -1,3 +1,5 @@
+import { useRef, useCallback } from 'react'
+
 interface FilterChipOption {
   value: string
   label: string
@@ -12,14 +14,42 @@ interface FilterChipsProps {
 }
 
 export default function FilterChips({ options, value, onChange, className = '' }: FilterChipsProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent, idx: number) => {
+    let nextIdx = -1
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault()
+      nextIdx = (idx + 1) % options.length
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault()
+      nextIdx = (idx - 1 + options.length) % options.length
+    }
+    if (nextIdx >= 0) {
+      const btns = containerRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+      btns?.[nextIdx]?.focus()
+      onChange(options[nextIdx].value)
+    }
+  }, [options, onChange])
+
   return (
-    <div className={`flex items-center gap-2 overflow-x-auto no-scrollbar ${className}`} style={{ flexWrap: 'nowrap' }}>
-      {options.map(opt => {
+    <div
+      ref={containerRef}
+      className={`flex items-center gap-2 overflow-x-auto no-scrollbar ${className}`}
+      style={{ flexWrap: 'nowrap' }}
+      role="tablist"
+      aria-label="Filters"
+    >
+      {options.map((opt, idx) => {
         const isActive = value === opt.value
         return (
           <button
             key={opt.value}
+            role="tab"
+            aria-selected={isActive}
+            tabIndex={isActive ? 0 : -1}
             onClick={() => onChange(opt.value)}
+            onKeyDown={(e) => handleKeyDown(e, idx)}
             className={`flex-shrink-0 px-3 py-1.5 font-sans cursor-pointer transition-all duration-150 border whitespace-nowrap ${
               isActive
                 ? 'bg-polar text-obsidian border-polar'

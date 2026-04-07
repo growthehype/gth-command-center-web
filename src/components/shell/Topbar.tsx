@@ -45,6 +45,7 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
         onClick={() => setSidebarOpen(!sidebarOpen)}
         className="md:hidden flex items-center justify-center w-8 h-8 text-white/70 hover:text-white transition-colors"
         title="Menu"
+        aria-label="Toggle navigation menu"
       >
         <Menu size={18} />
       </button>
@@ -114,6 +115,7 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
         className="topbar-icon-btn flex items-center justify-center w-8 h-8"
         style={{ color: 'rgba(255,255,255,0.5)' }}
         title="Toggle dark mode"
+        aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
       >
         {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
       </button>
@@ -124,6 +126,7 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
         className="topbar-icon-btn hidden md:flex items-center justify-center w-8 h-8"
         style={{ color: 'rgba(255,255,255,0.5)' }}
         title="Keyboard Shortcuts (?)"
+        aria-label="Show keyboard shortcuts"
       >
         <HelpCircle size={14} />
       </button>
