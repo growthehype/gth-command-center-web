@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { Users, Plus, Trash2, Search, Mail, X, Download, ChevronUp, ChevronDown } from 'lucide-react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { Users, Plus, Trash2, Search, Mail, X, Download, ChevronUp, ChevronDown, Check, Phone, Copy } from 'lucide-react'
 import { useAppStore, Contact } from '@/lib/store'
 import { contacts as contactsApi, shell } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
@@ -15,6 +15,21 @@ const EMPTY_FORM = {
   is_primary: false, notes: '',
 }
 
+function levenshteinContacts(a: string, b: string): number {
+  const m = a.length, n = b.length
+  if (m === 0) return n
+  if (n === 0) return m
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0))
+  for (let i = 0; i <= m; i++) dp[i][0] = i
+  for (let j = 0; j <= n; j++) dp[0][j] = j
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])
+  return dp[m][n]
+}
+
 export default function Contacts() {
   const { contacts, clients, refreshContacts } = useAppStore()
 
@@ -26,6 +41,43 @@ export default function Contacts() {
   const [detailContact, setDetailContact] = useState<Contact | null>(null)
   const [sortField, setSortField] = useState<'name' | 'email' | 'role'>('name')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkLoading, setBulkLoading] = useState(false)
+  const [nameDupWarning, setNameDupWarning] = useState<string | null>(null)
+  const [emailDupWarning, setEmailDupWarning] = useState<string | null>(null)
+  const nameDupTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const emailDupTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Duplicate name detection (debounced)
+  useEffect(() => {
+    if (nameDupTimer.current) clearTimeout(nameDupTimer.current)
+    const name = (form.name || '').trim().toLowerCase()
+    if (!name || name.length < 2) { setNameDupWarning(null); return }
+    nameDupTimer.current = setTimeout(() => {
+      const match = contacts.find(c => {
+        if (editingId && c.id === editingId) return false
+        const existing = (c.name || '').toLowerCase()
+        return existing.includes(name) || name.includes(existing) || levenshteinContacts(existing, name) < 3
+      })
+      setNameDupWarning(match ? `Similar contact exists: ${match.name}` : null)
+    }, 300)
+    return () => { if (nameDupTimer.current) clearTimeout(nameDupTimer.current) }
+  }, [form.name, contacts, editingId])
+
+  // Duplicate email detection (debounced)
+  useEffect(() => {
+    if (emailDupTimer.current) clearTimeout(emailDupTimer.current)
+    const email = (form.email || '').trim().toLowerCase()
+    if (!email || email.length < 3) { setEmailDupWarning(null); return }
+    emailDupTimer.current = setTimeout(() => {
+      const match = contacts.find(c => {
+        if (editingId && c.id === editingId) return false
+        return (c.email || '').toLowerCase() === email
+      })
+      setEmailDupWarning(match ? `A contact with this email already exists: ${match.name}` : null)
+    }, 300)
+    return () => { if (emailDupTimer.current) clearTimeout(emailDupTimer.current) }
+  }, [form.email, contacts, editingId])
 
   const handleSort = (field: 'name' | 'email' | 'role') => {
     if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -114,8 +166,54 @@ export default function Contacts() {
     } catch { showToast('Failed to delete', 'error') }
   }
 
+  /* ── bulk selection helpers ── */
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }, [])
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds(prev =>
+      prev.size === visible.length ? new Set() : new Set(visible.map(c => c.id))
+    )
+  }, [visible])
+
+  const handleBulkExport = useCallback(() => {
+    const selected = visible.filter(c => selectedIds.has(c.id))
+    exportToCSV(
+      selected.map(c => ({
+        name: c.name || '',
+        email: c.email || '',
+        phone: c.phone || '',
+        role: c.role || '',
+        company: c.client_name || '',
+      })),
+      'contacts-bulk-export'
+    )
+    showToast(`Exported ${selected.length} contact${selected.length !== 1 ? 's' : ''}`, 'success')
+  }, [selectedIds, visible])
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedIds.size === 0) return
+    if (!confirm(`Delete ${selectedIds.size} contact${selectedIds.size !== 1 ? 's' : ''}? This cannot be undone.`)) return
+    setBulkLoading(true)
+    try {
+      await Promise.all(Array.from(selectedIds).map(id => contactsApi.delete(id)))
+      await refreshContacts()
+      showToast(`${selectedIds.size} contact${selectedIds.size !== 1 ? 's' : ''} deleted`, 'info')
+      setSelectedIds(new Set())
+    } catch {
+      showToast('Failed to delete contacts', 'error')
+    } finally {
+      setBulkLoading(false)
+    }
+  }, [selectedIds, refreshContacts])
+
   return (
-    <div>
+    <div style={{ paddingBottom: selectedIds.size > 0 ? '80px' : undefined }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -185,6 +283,28 @@ export default function Contacts() {
           <table className="w-full min-w-[700px]" style={{ fontSize: '13px' }}>
             <thead>
               <tr className="border-b border-border text-left">
+                <th className="label px-4 py-3 w-10">
+                  <button
+                    onClick={toggleSelectAll}
+                    className={`flex-shrink-0 w-3.5 h-3.5 border cursor-pointer transition-colors duration-100 flex items-center justify-center ${
+                      selectedIds.size === visible.length && visible.length > 0
+                        ? 'bg-polar/20 border-polar text-polar'
+                        : selectedIds.size > 0
+                          ? 'bg-polar/10 border-polar/50 text-polar/50'
+                          : 'border-dim hover:border-steel text-transparent hover:text-dim'
+                    }`}
+                    style={{ borderRadius: '2px' }}
+                  >
+                    {selectedIds.size > 0 && (
+                      <svg width="7" height="7" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        {selectedIds.size === visible.length
+                          ? <polyline points="2 6 5 9 10 3" />
+                          : <line x1="3" y1="6" x2="9" y2="6" />
+                        }
+                      </svg>
+                    )}
+                  </button>
+                </th>
                 <th className="label px-4 py-3 cursor-pointer select-none" onClick={() => handleSort('name')}>Name <SortIcon col="name" /></th>
                 <th className="label px-4 py-3 cursor-pointer select-none" onClick={() => handleSort('role')}>Role <SortIcon col="role" /></th>
                 <th className="label px-4 py-3">Client</th>
@@ -192,16 +312,33 @@ export default function Contacts() {
                 <th className="label px-4 py-3">Phone</th>
                 <th className="label px-4 py-3">Last Contacted</th>
                 <th className="label px-4 py-3">Primary</th>
-                <th className="label px-4 py-3 w-10"></th>
+                <th className="label px-4 py-3 w-28"></th>
               </tr>
             </thead>
             <tbody>
               {visible.map(c => (
                 <tr
                   key={c.id}
-                  className="table-row cursor-pointer"
+                  className={`table-row cursor-pointer group ${selectedIds.has(c.id) ? 'row-selected' : ''}`}
                   onClick={() => setDetailContact(c)}
                 >
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleSelect(c.id) }}
+                      className={`flex-shrink-0 w-3.5 h-3.5 border cursor-pointer transition-colors duration-100 flex items-center justify-center ${
+                        selectedIds.has(c.id)
+                          ? 'bg-polar/20 border-polar text-polar'
+                          : 'border-dim/50 hover:border-steel text-transparent hover:text-dim'
+                      }`}
+                      style={{ borderRadius: '2px' }}
+                    >
+                      {selectedIds.has(c.id) && (
+                        <svg width="7" height="7" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="2 6 5 9 10 3" />
+                        </svg>
+                      )}
+                    </button>
+                  </td>
                   <td className="px-4 py-3 text-polar font-semibold">{c.name}</td>
                   <td className="px-4 py-3 text-steel">{c.role || '-'}</td>
                   <td className="px-4 py-3 text-steel">
@@ -219,12 +356,47 @@ export default function Contacts() {
                     {c.is_primary === 1 && <span className="badge badge-ok" style={{ cursor: 'default' }}>Primary</span>}
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      onClick={(e) => handleDelete(c, e)}
-                      className="text-dim hover:text-err transition-colors"
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        {c.email && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); window.open(`mailto:${c.email}`, '_self') }}
+                            className="p-1 text-dim hover:text-polar transition-colors"
+                            title="Send email"
+                          >
+                            <Mail size={13} />
+                          </button>
+                        )}
+                        {c.phone && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); window.open(`tel:${c.phone}`, '_self') }}
+                            className="p-1 text-dim hover:text-polar transition-colors"
+                            title="Call"
+                          >
+                            <Phone size={13} />
+                          </button>
+                        )}
+                        {c.email && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              navigator.clipboard.writeText(c.email!)
+                              showToast('Email copied', 'success')
+                            }}
+                            className="p-1 text-dim hover:text-polar transition-colors"
+                            title="Copy email"
+                          >
+                            <Copy size={13} />
+                          </button>
+                        )}
+                      </div>
+                      <button
+                        onClick={(e) => handleDelete(c, e)}
+                        className="text-dim hover:text-err transition-colors p-1"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -291,6 +463,9 @@ export default function Contacts() {
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="Full name"
             />
+            {nameDupWarning && (
+              <p className="text-warn mt-1 font-sans" style={{ fontSize: '11px' }}>{nameDupWarning}</p>
+            )}
           </div>
           <div>
             <p className="label mb-1">Role</p>
@@ -322,6 +497,9 @@ export default function Contacts() {
                 onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                 placeholder="email@example.com"
               />
+              {emailDupWarning && (
+                <p className="text-err mt-1 font-sans" style={{ fontSize: '11px' }}>{emailDupWarning}</p>
+              )}
             </div>
             <div>
               <p className="label mb-1">Phone</p>
@@ -360,6 +538,69 @@ export default function Contacts() {
           </div>
         </div>
       </Modal>
+
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-center pointer-events-none"
+          style={{ padding: '16px 16px 24px' }}
+        >
+          <div
+            className="pointer-events-auto flex items-center gap-3 px-5 py-3 rounded-lg shadow-lg"
+            style={{
+              background: 'var(--obsidian, #0d0d0d)',
+              border: '1px solid var(--border-hard, #2a2a2a)',
+              maxWidth: '480px',
+              width: '100%',
+            }}
+          >
+            <span className="text-polar font-semibold whitespace-nowrap" style={{ fontSize: '13px' }}>
+              {selectedIds.size} contact{selectedIds.size !== 1 ? 's' : ''} selected
+            </span>
+
+            <div className="flex-1" />
+
+            <button
+              onClick={handleBulkExport}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded cursor-pointer transition-colors"
+              style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                background: 'var(--polar, #e8e8e8)',
+                color: 'var(--obsidian, #0d0d0d)',
+              }}
+            >
+              <Download size={12} />
+              Export
+            </button>
+
+            <button
+              onClick={handleBulkDelete}
+              disabled={bulkLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded cursor-pointer transition-colors"
+              style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                background: 'var(--err, #ef4444)',
+                color: '#fff',
+                opacity: bulkLoading ? 0.5 : 1,
+              }}
+            >
+              <Trash2 size={12} />
+              Delete
+            </button>
+
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="flex items-center gap-1 px-2 py-1.5 rounded cursor-pointer text-steel hover:text-polar transition-colors"
+              style={{ fontSize: '11px', fontWeight: 600 }}
+            >
+              <X size={12} />
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -46,6 +46,58 @@ const EMPTY_FORM: Omit<Client, 'id' | 'created_at' | 'updated_at'> = {
 }
 
 /* ========================================
+   INLINE EDIT COMPONENT
+   ======================================== */
+
+function InlineEdit({
+  value,
+  onSave,
+  onCancel,
+}: {
+  value: string
+  onSave: (val: string) => void
+  onCancel: () => void
+}) {
+  const [draft, setDraft] = useState(value)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus()
+      inputRef.current.select()
+    }
+  }, [])
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      onSave(draft)
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      onCancel()
+    }
+  }
+
+  return (
+    <input
+      ref={inputRef}
+      value={draft}
+      onChange={e => setDraft(e.target.value)}
+      onBlur={() => onSave(draft)}
+      onKeyDown={handleKeyDown}
+      className="w-full bg-surface text-polar font-sans outline-none px-2 py-1 transition-all"
+      style={{
+        fontSize: '12px',
+        border: '1px solid var(--polar, #e8e8e8)',
+        borderRadius: '3px',
+        boxShadow: '0 0 0 2px rgba(232, 232, 232, 0.15)',
+        minWidth: '80px',
+      }}
+    />
+  )
+}
+
+/* ========================================
    MAIN COMPONENT
    ======================================== */
 
@@ -66,6 +118,30 @@ export default function Clients() {
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({ ...EMPTY_FORM })
   const [editingId, setEditingId] = useState<string | null>(null)
+
+  // Inline editing state
+  const [inlineEditId, setInlineEditId] = useState<string | null>(null)
+  const [inlineEditField, setInlineEditField] = useState<'name' | 'email' | 'phone' | null>(null)
+  const [savedFlashId, setSavedFlashId] = useState<string | null>(null)
+
+  const handleInlineSave = useCallback(async (clientId: string, field: string, value: string) => {
+    try {
+      await clientsApi.update(clientId, { [field]: value || null })
+      await refreshClients()
+      setSavedFlashId(`${clientId}-${field}`)
+      setTimeout(() => setSavedFlashId(null), 1200)
+      showToast('Saved', 'success')
+    } catch {
+      showToast('Failed to save', 'error')
+    }
+    setInlineEditId(null)
+    setInlineEditField(null)
+  }, [refreshClients])
+
+  const handleInlineCancel = useCallback(() => {
+    setInlineEditId(null)
+    setInlineEditField(null)
+  }, [])
 
   // Counts per status
   const counts = useMemo(() => {
@@ -283,6 +359,8 @@ export default function Clients() {
                   <th className="label py-2 px-3 cursor-pointer select-none" onClick={() => handleSort('status')}>
                     Status <SortIcon col="status" />
                   </th>
+                  <th className="label py-2 px-3">Email</th>
+                  <th className="label py-2 px-3">Phone</th>
                   <th className="label py-2 px-3">Platform</th>
                   <th className="label py-2 px-3">Health</th>
                 </tr>
@@ -308,16 +386,39 @@ export default function Clients() {
                       className={`table-row cursor-pointer ${selectedId === c.id ? 'row-selected' : ''}`}
                       onClick={() => openDrawer(c.id)}
                     >
-                      <td className="py-2.5 px-3 font-[700] text-polar">
-                        <div className="flex items-center gap-2">
-                          <ClientAvatar name={c.name} size="sm" />
-                          <button
-                            onClick={(e) => { e.stopPropagation(); openClientDetail() }}
-                            className="hover:underline cursor-pointer text-left text-polar"
+                      <td
+                        className="py-2.5 px-3 font-[700] text-polar"
+                        onDoubleClick={(e) => { e.stopPropagation(); setInlineEditId(c.id); setInlineEditField('name') }}
+                      >
+                        {inlineEditId === c.id && inlineEditField === 'name' ? (
+                          <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                            <ClientAvatar name={c.name} size="sm" />
+                            <InlineEdit
+                              value={c.name || ''}
+                              onSave={(val) => handleInlineSave(c.id, 'name', val)}
+                              onCancel={handleInlineCancel}
+                            />
+                          </div>
+                        ) : (
+                          <div
+                            className="flex items-center gap-2"
+                            style={{
+                              transition: 'background-color 0.6s ease',
+                              backgroundColor: savedFlashId === `${c.id}-name` ? 'rgba(34, 197, 94, 0.15)' : 'transparent',
+                              borderRadius: '3px',
+                              padding: '2px 4px',
+                              margin: '-2px -4px',
+                            }}
                           >
-                            {c.name}
-                          </button>
-                        </div>
+                            <ClientAvatar name={c.name} size="sm" />
+                            <button
+                              onClick={(e) => { e.stopPropagation(); openClientDetail() }}
+                              className="hover:underline cursor-pointer text-left text-polar"
+                            >
+                              {c.name}
+                            </button>
+                          </div>
+                        )}
                       </td>
                       <td className="py-2.5 px-3 text-steel">{c.service || '\u2014'}</td>
                       <td className="py-2.5 px-3 mono">{c.retainer || formatCurrency(c.mrr)}</td>
@@ -328,6 +429,58 @@ export default function Clients() {
                         >
                           {c.status}
                         </button>
+                      </td>
+                      <td
+                        className="py-2.5 px-3 text-dim mono"
+                        onDoubleClick={(e) => { e.stopPropagation(); setInlineEditId(c.id); setInlineEditField('email') }}
+                      >
+                        {inlineEditId === c.id && inlineEditField === 'email' ? (
+                          <div onClick={e => e.stopPropagation()}>
+                            <InlineEdit
+                              value={c.email || ''}
+                              onSave={(val) => handleInlineSave(c.id, 'email', val)}
+                              onCancel={handleInlineCancel}
+                            />
+                          </div>
+                        ) : (
+                          <span
+                            style={{
+                              transition: 'background-color 0.6s ease',
+                              backgroundColor: savedFlashId === `${c.id}-email` ? 'rgba(34, 197, 94, 0.15)' : 'transparent',
+                              borderRadius: '3px',
+                              padding: '2px 4px',
+                              margin: '-2px -4px',
+                            }}
+                          >
+                            {c.email || '\u2014'}
+                          </span>
+                        )}
+                      </td>
+                      <td
+                        className="py-2.5 px-3 text-dim mono"
+                        onDoubleClick={(e) => { e.stopPropagation(); setInlineEditId(c.id); setInlineEditField('phone') }}
+                      >
+                        {inlineEditId === c.id && inlineEditField === 'phone' ? (
+                          <div onClick={e => e.stopPropagation()}>
+                            <InlineEdit
+                              value={c.phone || ''}
+                              onSave={(val) => handleInlineSave(c.id, 'phone', val)}
+                              onCancel={handleInlineCancel}
+                            />
+                          </div>
+                        ) : (
+                          <span
+                            style={{
+                              transition: 'background-color 0.6s ease',
+                              backgroundColor: savedFlashId === `${c.id}-phone` ? 'rgba(34, 197, 94, 0.15)' : 'transparent',
+                              borderRadius: '3px',
+                              padding: '2px 4px',
+                              margin: '-2px -4px',
+                            }}
+                          >
+                            {c.phone || '\u2014'}
+                          </span>
+                        )}
                       </td>
                       <td className="py-2.5 px-3 text-steel">{c.platform || '\u2014'}</td>
                       <td className="py-2.5 px-3">
@@ -371,7 +524,7 @@ export default function Clients() {
 
       {/* Add / Edit Modal */}
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? 'Edit Client' : 'New Client'} width="560px">
-        <ClientForm form={form} setForm={setForm} onSave={saveClient} />
+        <ClientForm form={form} setForm={setForm} onSave={saveClient} clients={clients} editingId={editingId} />
       </Modal>
     </div>
   )
@@ -404,19 +557,59 @@ function FormField({ label, field, type = 'text', placeholder = '', value, onCha
    CLIENT FORM (inside modal)
    ======================================== */
 
+function levenshtein(a: string, b: string): number {
+  const m = a.length, n = b.length
+  if (m === 0) return n
+  if (n === 0) return m
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0))
+  for (let i = 0; i <= m; i++) dp[i][0] = i
+  for (let j = 0; j <= n; j++) dp[0][j] = j
+  for (let i = 1; i <= m; i++)
+    for (let j = 1; j <= n; j++)
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])
+  return dp[m][n]
+}
+
 function ClientForm({
-  form, setForm, onSave,
+  form, setForm, onSave, clients, editingId,
 }: {
   form: Record<string, any>
   setForm: (fn: any) => void
   onSave: () => void
+  clients: Client[]
+  editingId: string | null
 }) {
   const set = useCallback((key: string, val: any) => setForm((prev: any) => ({ ...prev, [key]: val })), [setForm])
+
+  const [dupWarning, setDupWarning] = useState<string | null>(null)
+  const dupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (dupTimerRef.current) clearTimeout(dupTimerRef.current)
+    const name = (form.name || '').trim().toLowerCase()
+    if (!name || name.length < 2) { setDupWarning(null); return }
+    dupTimerRef.current = setTimeout(() => {
+      const match = clients.find(c => {
+        if (editingId && c.id === editingId) return false
+        const existing = (c.name || '').toLowerCase()
+        return existing.includes(name) || name.includes(existing) || levenshtein(existing, name) < 3
+      })
+      setDupWarning(match ? `Similar client exists: ${match.name}` : null)
+    }, 300)
+    return () => { if (dupTimerRef.current) clearTimeout(dupTimerRef.current) }
+  }, [form.name, clients, editingId])
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField label="Name" field="name" placeholder="Client name" value={form.name} onChange={set} />
+        <div>
+          <FormField label="Name" field="name" placeholder="Client name" value={form.name} onChange={set} />
+          {dupWarning && (
+            <p className="text-warn mt-1 font-sans" style={{ fontSize: '11px' }}>{dupWarning}</p>
+          )}
+        </div>
         <div className="space-y-1">
           <label className="label text-dim">Status</label>
           <select

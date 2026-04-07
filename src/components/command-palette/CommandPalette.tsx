@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, Fragment } from 'react'
 import { useAppStore } from '@/lib/store'
 import { fuzzyMatch } from '@/lib/utils'
 import {
@@ -14,9 +14,26 @@ interface CommandItem {
   label: string
   sublabel?: string
   icon: React.ComponentType<any>
-  type: 'navigation' | 'action' | 'entity'
+  category: string
   action: () => void
+  searchableText?: string
 }
+
+// Highlight matched substring in text
+function HighlightMatch({ text, query }: { text: string; query: string }) {
+  if (!query.trim()) return <>{text}</>
+  const idx = text.toLowerCase().indexOf(query.toLowerCase())
+  if (idx === -1) return <>{text}</>
+  return (
+    <>
+      {text.slice(0, idx)}
+      <span className="font-bold text-polar">{text.slice(idx, idx + query.length)}</span>
+      {text.slice(idx + query.length)}
+    </>
+  )
+}
+
+const CATEGORY_ORDER = ['Clients', 'Contacts', 'Tasks', 'Projects', 'Invoices', 'Leads', 'Actions', 'Pages']
 
 export default function CommandPalette() {
   const {
@@ -41,11 +58,99 @@ export default function CommandPalette() {
 
   const close = () => setCommandPaletteOpen(false)
 
-  // Build items
+  // Build items by category
   const allItems = useMemo((): CommandItem[] => {
     const items: CommandItem[] = []
 
-    // Navigation commands
+    // Entity search: clients
+    clients.forEach(c => {
+      items.push({
+        id: `client-${c.id}`,
+        label: c.name,
+        sublabel: c.service || c.status || 'Client',
+        icon: Users,
+        category: 'Clients',
+        searchableText: c.name,
+        action: () => { setSelectedClientId(c.id); setCurrentPage('client-detail'); close() },
+      })
+    })
+
+    // Entity search: contacts
+    contacts.forEach(c => {
+      items.push({
+        id: `contact-${c.id}`,
+        label: c.name,
+        sublabel: c.email || c.client_name || c.role || 'Contact',
+        icon: UserCircle,
+        category: 'Contacts',
+        searchableText: `${c.name} ${c.email || ''}`,
+        action: () => { setCurrentPage('contacts'); close() },
+      })
+    })
+
+    // Entity search: tasks
+    tasks.filter(t => !t.done).forEach(t => {
+      items.push({
+        id: `task-${t.id}`,
+        label: t.text,
+        sublabel: t.client_name || 'Task',
+        icon: CheckSquare,
+        category: 'Tasks',
+        searchableText: t.text,
+        action: () => { setCurrentPage('tasks'); close() },
+      })
+    })
+
+    // Entity search: projects
+    projects.forEach(p => {
+      items.push({
+        id: `project-${p.id}`,
+        label: p.title,
+        sublabel: p.status ? `${p.client_name || 'Project'} \u00b7 ${p.status}` : (p.client_name || 'Project'),
+        icon: FolderKanban,
+        category: 'Projects',
+        searchableText: p.title,
+        action: () => { setCurrentPage('projects'); close() },
+      })
+    })
+
+    // Entity search: invoices
+    invoices.forEach(i => {
+      items.push({
+        id: `invoice-${i.id}`,
+        label: `${i.num} \u2014 ${i.client_name}`,
+        sublabel: `$${i.amount} ${i.status}`,
+        icon: FileText,
+        category: 'Invoices',
+        searchableText: `${i.num} ${i.client_name}`,
+        action: () => { setCurrentPage('invoices'); close() },
+      })
+    })
+
+    // Entity search: leads
+    leads.forEach(l => {
+      items.push({
+        id: `lead-${l.id}`,
+        label: l.name,
+        sublabel: `${l.stage} lead`,
+        icon: Mail,
+        category: 'Leads',
+        searchableText: l.name,
+        action: () => { setCurrentPage('outreach'); close() },
+      })
+    })
+
+    // Action commands
+    items.push(
+      { id: 'action-ai', label: 'Open AI Assist', icon: Sparkles, category: 'Actions', action: () => { setAiPanelOpen(true); close() } },
+      { id: 'action-new-task', label: 'New Task', sublabel: 'Create a task', icon: Plus, category: 'Actions', action: () => { setCurrentPage('tasks'); close() } },
+      { id: 'action-new-project', label: 'New Project', sublabel: 'Create a project', icon: Plus, category: 'Actions', action: () => { setCurrentPage('projects'); close() } },
+      { id: 'action-new-invoice', label: 'New Invoice', sublabel: 'Create an invoice', icon: Plus, category: 'Actions', action: () => { setCurrentPage('invoices'); close() } },
+      { id: 'action-new-client', label: 'New Client', sublabel: 'Add a client', icon: Plus, category: 'Actions', action: () => { setCurrentPage('clients'); close() } },
+      { id: 'action-new-event', label: 'New Event', sublabel: 'Add calendar event', icon: Plus, category: 'Actions', action: () => { setCurrentPage('calendar'); close() } },
+    )
+
+    // Navigation commands (pages)
     const pages: [string, string, React.ComponentType<any>][] = [
       ['briefing', 'Daily Briefing', Zap],
       ['dashboard', 'Dashboard', BarChart3],
@@ -77,123 +182,64 @@ export default function CommandPalette() {
         id: `nav-${page}`,
         label: `Go to ${label}`,
         icon,
-        type: 'navigation',
+        category: 'Pages',
         action: () => { setCurrentPage(page); close() },
-      })
-    })
-
-    // Action commands
-    items.push(
-      { id: 'action-ai', label: 'Open AI Assist', icon: Sparkles, type: 'action', action: () => { setAiPanelOpen(true); close() } },
-      { id: 'action-new-task', label: 'New Task', sublabel: 'Create a task', icon: Plus, type: 'action', action: () => { setCurrentPage('tasks'); close() } },
-      { id: 'action-new-project', label: 'New Project', sublabel: 'Create a project', icon: Plus, type: 'action', action: () => { setCurrentPage('projects'); close() } },
-      { id: 'action-new-invoice', label: 'New Invoice', sublabel: 'Create an invoice', icon: Plus, type: 'action', action: () => { setCurrentPage('invoices'); close() } },
-      { id: 'action-new-client', label: 'New Client', sublabel: 'Add a client', icon: Plus, type: 'action', action: () => { setCurrentPage('clients'); close() } },
-      { id: 'action-new-event', label: 'New Event', sublabel: 'Add calendar event', icon: Plus, type: 'action', action: () => { setCurrentPage('calendar'); close() } },
-    )
-
-    // Entity search: clients
-    clients.forEach(c => {
-      items.push({
-        id: `client-${c.id}`,
-        label: c.name,
-        sublabel: c.service || 'Client',
-        icon: Users,
-        type: 'entity',
-        action: () => { setSelectedClientId(c.id); setCurrentPage('clients'); close() },
-      })
-    })
-
-    // Entity search: tasks
-    tasks.filter(t => !t.done).forEach(t => {
-      items.push({
-        id: `task-${t.id}`,
-        label: t.text,
-        sublabel: t.client_name || 'Task',
-        icon: CheckSquare,
-        type: 'entity',
-        action: () => { setCurrentPage('tasks'); close() },
-      })
-    })
-
-    // Entity search: projects
-    projects.filter(p => p.status !== 'done').forEach(p => {
-      items.push({
-        id: `project-${p.id}`,
-        label: p.title,
-        sublabel: p.client_name || 'Project',
-        icon: FolderKanban,
-        type: 'entity',
-        action: () => { setCurrentPage('projects'); close() },
-      })
-    })
-
-    // Entity search: invoices
-    invoices.filter(i => i.status !== 'paid').forEach(i => {
-      items.push({
-        id: `invoice-${i.id}`,
-        label: `${i.num} — ${i.client_name}`,
-        sublabel: `$${i.amount} ${i.status}`,
-        icon: FileText,
-        type: 'entity',
-        action: () => { setCurrentPage('invoices'); close() },
-      })
-    })
-
-    // Entity search: contacts
-    contacts.forEach(c => {
-      items.push({
-        id: `contact-${c.id}`,
-        label: c.name,
-        sublabel: c.client_name || c.role || 'Contact',
-        icon: UserCircle,
-        type: 'entity',
-        action: () => { setCurrentPage('contacts'); close() },
-      })
-    })
-
-    // Entity search: leads
-    leads.forEach(l => {
-      items.push({
-        id: `lead-${l.id}`,
-        label: l.name,
-        sublabel: `${l.stage} lead`,
-        icon: Mail,
-        type: 'entity',
-        action: () => { setCurrentPage('outreach'); close() },
       })
     })
 
     return items
   }, [clients, tasks, projects, invoices, contacts, leads, setCurrentPage, setSelectedClientId, setAiPanelOpen])
 
-  // Filter
-  const filtered = useMemo(() => {
+  // Filter and group
+  const { grouped, flatList } = useMemo(() => {
+    const entityCategories = ['Clients', 'Contacts', 'Tasks', 'Projects', 'Invoices', 'Leads']
+    let matchedItems: CommandItem[]
+
     if (!query.trim()) {
-      // Show navigation + actions when no query
-      return allItems.filter(i => i.type !== 'entity').slice(0, 20)
+      // No query: show actions and pages only
+      matchedItems = allItems.filter(i => !entityCategories.includes(i.category))
+    } else {
+      // Filter all items by query
+      matchedItems = allItems.filter(i =>
+        fuzzyMatch(query, i.label) ||
+        (i.sublabel && fuzzyMatch(query, i.sublabel)) ||
+        (i.searchableText && fuzzyMatch(query, i.searchableText))
+      )
     }
-    return allItems.filter(i =>
-      fuzzyMatch(query, i.label) || (i.sublabel && fuzzyMatch(query, i.sublabel))
-    ).slice(0, 30)
+
+    // Group by category, limit 5 per entity category
+    const grouped: Record<string, CommandItem[]> = {}
+    for (const item of matchedItems) {
+      if (!grouped[item.category]) grouped[item.category] = []
+      if (entityCategories.includes(item.category) && grouped[item.category].length >= 5) continue
+      grouped[item.category].push(item)
+    }
+
+    // Build flat list in category order
+    const flatList: CommandItem[] = []
+    for (const cat of CATEGORY_ORDER) {
+      if (grouped[cat]) flatList.push(...grouped[cat])
+    }
+
+    return { grouped, flatList }
   }, [query, allItems])
 
   // Reset index on filter change
   useEffect(() => {
     setSelectedIndex(0)
-  }, [filtered.length, query])
+  }, [flatList.length, query])
 
   // Keyboard nav
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setSelectedIndex(i => Math.min(i + 1, filtered.length - 1))
+      setSelectedIndex(i => Math.min(i + 1, flatList.length - 1))
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setSelectedIndex(i => Math.max(i - 1, 0))
-    } else if (e.key === 'Enter' && filtered[selectedIndex]) {
+    } else if (e.key === 'Enter' && flatList[selectedIndex]) {
       e.preventDefault()
-      filtered[selectedIndex].action()
+      flatList[selectedIndex].action()
     } else if (e.key === 'Escape') {
       close()
     }
@@ -201,16 +247,25 @@ export default function CommandPalette() {
 
   // Scroll selected into view
   useEffect(() => {
-    const el = listRef.current?.children[selectedIndex] as HTMLElement
+    const container = listRef.current
+    if (!container) return
+    const el = container.querySelector(`[data-cmd-index="${selectedIndex}"]`) as HTMLElement
     el?.scrollIntoView({ block: 'nearest' })
   }, [selectedIndex])
 
   if (!commandPaletteOpen) return null
 
-  const typeLabel = (type: string) => {
-    if (type === 'navigation') return 'GO TO'
-    if (type === 'action') return 'ACTION'
-    return 'SEARCH'
+  // Build render sections
+  let globalIndex = 0
+  const sections: { category: string; items: { item: CommandItem; index: number }[] }[] = []
+  for (const cat of CATEGORY_ORDER) {
+    if (!grouped[cat] || grouped[cat].length === 0) continue
+    const sectionItems: { item: CommandItem; index: number }[] = []
+    for (const item of grouped[cat]) {
+      sectionItems.push({ item, index: globalIndex })
+      globalIndex++
+    }
+    sections.push({ category: cat, items: sectionItems })
   }
 
   return (
@@ -228,7 +283,7 @@ export default function CommandPalette() {
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Search commands, clients, tasks..."
+            placeholder="Search clients, contacts, tasks, projects, invoices..."
             className="flex-1 bg-transparent text-polar outline-none placeholder:text-dim"
             style={{ fontSize: '15px' }}
           />
@@ -237,37 +292,50 @@ export default function CommandPalette() {
 
         {/* Results */}
         <div ref={listRef} className="overflow-y-auto" style={{ maxHeight: 'calc(60vh - 50px)' }}>
-          {filtered.length === 0 && (
+          {flatList.length === 0 && (
             <div className="px-4 py-8 text-center text-dim" style={{ fontSize: '13px' }}>
               No results found
             </div>
           )}
-          {filtered.map((item, idx) => {
-            const Icon = item.icon
-            const isSelected = idx === selectedIndex
-            return (
-              <button
-                key={item.id}
-                onClick={() => item.action()}
-                onMouseEnter={() => setSelectedIndex(idx)}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                  isSelected ? 'bg-surface-2 text-polar' : 'text-steel hover:bg-surface-2'
-                }`}
+          {sections.map(section => (
+            <Fragment key={section.category}>
+              {/* Section header */}
+              <div
+                className="px-4 py-1.5 text-dim font-mono uppercase sticky top-0 bg-surface border-b border-border"
+                style={{ fontSize: '10px', letterSpacing: '0.1em' }}
               >
-                <Icon size={14} className={isSelected ? 'text-polar' : 'text-dim'} />
-                <div className="flex-1 min-w-0">
-                  <span style={{ fontSize: '14px' }}>{item.label}</span>
-                  {item.sublabel && (
-                    <span className="text-dim ml-2" style={{ fontSize: '12px' }}>{item.sublabel}</span>
-                  )}
-                </div>
-                <span className="text-dim font-mono uppercase" style={{ fontSize: '10px', letterSpacing: '0.05em' }}>
-                  {typeLabel(item.type)}
-                </span>
-                {isSelected && <ArrowRight size={10} className="text-dim" />}
-              </button>
-            )
-          })}
+                {section.category}
+              </div>
+              {section.items.map(({ item, index }) => {
+                const Icon = item.icon
+                const isSelected = index === selectedIndex
+                return (
+                  <button
+                    key={item.id}
+                    data-cmd-index={index}
+                    onClick={() => item.action()}
+                    onMouseEnter={() => setSelectedIndex(index)}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                      isSelected ? 'bg-surface-2 text-polar' : 'text-steel hover:bg-surface-2'
+                    }`}
+                  >
+                    <Icon size={14} className={isSelected ? 'text-polar' : 'text-dim'} />
+                    <div className="flex-1 min-w-0">
+                      <span style={{ fontSize: '14px' }}>
+                        <HighlightMatch text={item.label} query={query} />
+                      </span>
+                      {item.sublabel && (
+                        <span className="text-dim ml-2" style={{ fontSize: '12px' }}>
+                          <HighlightMatch text={item.sublabel} query={query} />
+                        </span>
+                      )}
+                    </div>
+                    {isSelected && <ArrowRight size={10} className="text-dim" />}
+                  </button>
+                )
+              })}
+            </Fragment>
+          ))}
         </div>
       </div>
     </div>

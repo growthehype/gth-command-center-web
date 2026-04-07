@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { FileText, Plus, Trash2, Check, ChevronLeft, RefreshCw } from 'lucide-react'
 import { showToast } from '@/components/ui/Toast'
 import { notes as notesApi } from '@/lib/api'
@@ -23,7 +23,9 @@ export default function Notes() {
   const [title, setTitle] = useState('')
   const [status, setStatus] = useState<SaveStatus>('saved')
   const [loaded, setLoaded] = useState(false)
+  const [statusVisible, setStatusVisible] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   /* ── Load all notes on mount ── */
   useEffect(() => {
@@ -182,10 +184,22 @@ export default function Notes() {
     showToast('Note deleted', 'info')
   }
 
+  /* ── Auto-fade "Saved" indicator after 2s ── */
+  useEffect(() => {
+    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current)
+    if (status === 'saving' || status === 'unsaved') {
+      setStatusVisible(true)
+    } else if (status === 'saved') {
+      setStatusVisible(true)
+      fadeTimerRef.current = setTimeout(() => setStatusVisible(false), 2000)
+    }
+  }, [status])
+
   /* ── Cleanup debounce on unmount ── */
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
+      if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current)
     }
   }, [])
 
@@ -194,7 +208,7 @@ export default function Notes() {
   const activeNote = notes.find(n => n.id === activeNoteId)
 
   const statusConfig: Record<SaveStatus, { label: string; color: string }> = {
-    saved: { label: 'Saved', color: 'text-ok' },
+    saved: { label: 'Saved \u2713', color: 'text-ok' },
     saving: { label: 'Saving...', color: 'text-warn' },
     unsaved: { label: 'Unsaved changes', color: 'text-err' },
   }
@@ -215,8 +229,12 @@ export default function Notes() {
         <div className="flex items-center gap-3">
           {activeNote && (
             <span
-              className={`${statusConfig[status].color} font-sans uppercase font-bold`}
-              style={{ fontSize: '12px', letterSpacing: '0.14em' }}
+              className={`${statusConfig[status].color} font-sans uppercase font-bold transition-opacity duration-500`}
+              style={{
+                fontSize: '12px',
+                letterSpacing: '0.14em',
+                opacity: statusVisible ? 1 : 0,
+              }}
             >
               {statusConfig[status].label}
             </span>

@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback } from 'react'
-import { CheckSquare, Plus, Trash2, RefreshCw, Calendar as CalIcon, Edit3, Check, AlertTriangle, Clock, Download, X } from 'lucide-react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { CheckSquare, Plus, Trash2, RefreshCw, Calendar as CalIcon, Edit3, Check, AlertTriangle, Clock, Download, X, List, LayoutGrid, Play, Square } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
-import { tasks as tasksApi } from '@/lib/api'
+import { tasks as tasksApi, timeEntries as timeEntriesApi } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
 import Modal from '@/components/ui/Modal'
 import EmptyState from '@/components/ui/EmptyState'
@@ -21,6 +21,23 @@ const PRIORITY_WEIGHT: Record<string, number> = {
 }
 
 type Filter = 'all' | 'todo' | 'today' | 'overdue' | 'done'
+type ViewMode = 'list' | 'board'
+
+const PRIORITY_COLUMNS = ['urgent', 'high', 'medium', 'low'] as const
+const PRIORITY_COLUMN_LABELS: Record<string, string> = {
+  urgent: 'Urgent',
+  high: 'High',
+  medium: 'Medium',
+  low: 'Low',
+}
+
+/* Format elapsed seconds as H:MM:SS */
+function formatElapsed(seconds: number): string {
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  const s = seconds % 60
+  return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
 
 const EMPTY_FORM = {
   text: '',
@@ -33,15 +50,58 @@ const EMPTY_FORM = {
 }
 
 export default function Tasks() {
-  const { tasks, clients, refreshTasks, refreshActivity } = useAppStore()
+  const { tasks, clients, runningTimer, refreshTasks, refreshActivity, refreshTimeEntries, refreshRunningTimer } = useAppStore()
 
   const [filter, setFilter] = useState<Filter>('all')
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    return (localStorage.getItem('gth_tasks_view') as ViewMode) || 'list'
+  })
   const [modalOpen, setModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState({ ...EMPTY_FORM })
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState(false)
   const [recentlyCompleted, setRecentlyCompleted] = useState<Set<string>>(new Set())
+
+  /* ── Timer state ── */
+  const [activeTimerTaskId, setActiveTimerTaskId] = useState<string | null>(null)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Sync running timer from store
+  useEffect(() => {
+    if (runningTimer && runningTimer.notes && runningTimer.notes.startsWith('task:')) {
+      const taskId = runningTimer.notes.replace('task:', '')
+      setActiveTimerTaskId(taskId)
+      // Calculate elapsed from started_at
+      const startedMs = new Date(runningTimer.started_at).getTime()
+      const nowMs = Date.now()
+      setElapsedSeconds(Math.floor((nowMs - startedMs) / 1000))
+    } else {
+      setActiveTimerTaskId(null)
+      setElapsedSeconds(0)
+    }
+  }, [runningTimer])
+
+  // Tick the timer every second
+  useEffect(() => {
+    if (activeTimerTaskId) {
+      timerIntervalRef.current = setInterval(() => {
+        setElapsedSeconds(prev => prev + 1)
+      }, 1000)
+    } else {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
+      timerIntervalRef.current = null
+    }
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
+    }
+  }, [activeTimerTaskId])
+
+  // Persist view mode
+  useEffect(() => {
+    localStorage.setItem('gth_tasks_view', viewMode)
+  }, [viewMode])
 
   /* ── counts ── */
   const counts = useMemo(() => {
@@ -246,6 +306,42 @@ export default function Tasks() {
     }
   }, [selectedIds, refreshTasks, refreshActivity])
 
+  /* ── Timer handler ── */
+  const handleTimerToggle = useCallback(async (taskId: string) => {
+    try {
+      // If this task already has a running timer, stop it
+      if (activeTimerTaskId === taskId && runningTimer) {
+        await timeEntriesApi.stop(runningTimer.id, `task:${taskId}`)
+        setActiveTimerTaskId(null)
+        setElapsedSeconds(0)
+        await Promise.all([refreshTimeEntries(), refreshRunningTimer()])
+        const task = tasks.find(t => t.id === taskId)
+        showToast(`Timer stopped for "${task?.text || 'task'}"`, 'info')
+        return
+      }
+
+      // If another timer is running, stop it first
+      if (runningTimer) {
+        await timeEntriesApi.stop(runningTimer.id, runningTimer.notes || '')
+      }
+
+      // Find the task to get client_id
+      const task = tasks.find(t => t.id === taskId)
+
+      // Start new timer
+      await timeEntriesApi.start({
+        client_id: task?.client_id || null,
+        project_id: null,
+        notes: `task:${taskId}`,
+        billable: 1,
+      })
+      await Promise.all([refreshTimeEntries(), refreshRunningTimer()])
+      showToast(`Timer started for "${task?.text || 'task'}"`, 'success')
+    } catch {
+      showToast('Failed to toggle timer', 'error')
+    }
+  }, [activeTimerTaskId, runningTimer, tasks, refreshTimeEntries, refreshRunningTimer])
+
   /* ── helpers ── */
   function priorityBadge(priority: string) {
     switch (priority) {
@@ -267,6 +363,47 @@ export default function Tasks() {
     )
   }
 
+  function timerButton(taskId: string, compact = false) {
+    const isActive = activeTimerTaskId === taskId
+    return (
+      <button
+        onClick={(e) => { e.stopPropagation(); handleTimerToggle(taskId) }}
+        className={`flex-shrink-0 flex items-center gap-1 cursor-pointer transition-all duration-150 ${
+          isActive
+            ? 'text-ok hover:text-ok/80'
+            : 'text-dim hover:text-steel'
+        }`}
+        style={{ fontSize: '10px', fontWeight: 600, padding: compact ? '2px 4px' : '2px 6px' }}
+        title={isActive ? 'Stop timer' : 'Start timer'}
+      >
+        {isActive ? (
+          <>
+            <Square size={10} fill="currentColor" />
+            <span className="mono">{formatElapsed(elapsedSeconds)}</span>
+          </>
+        ) : (
+          <Play size={11} />
+        )}
+      </button>
+    )
+  }
+
+  /* ── Kanban board columns ── */
+  const boardColumns = useMemo(() => {
+    const cols: Record<string, typeof filteredTasks> = {
+      urgent: [],
+      high: [],
+      medium: [],
+      low: [],
+    }
+    for (const task of filteredTasks) {
+      const p = task.priority || 'low'
+      if (cols[p]) cols[p].push(task)
+      else cols.low.push(task) // 'none' and unknown go to low
+    }
+    return cols
+  }, [filteredTasks])
+
   const FILTERS: { key: Filter; label: string; count: number }[] = [
     { key: 'all',     label: 'All',     count: counts.all },
     { key: 'todo',    label: 'To Do',   count: counts.todo },
@@ -285,6 +422,23 @@ export default function Tasks() {
           <CheckSquare size={14} className="text-dim" />
         </div>
         <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex items-center border border-border-hard" style={{ borderRadius: '2px' }}>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-1.5 cursor-pointer transition-colors ${viewMode === 'list' ? 'bg-polar/15 text-polar' : 'text-dim hover:text-steel'}`}
+              title="List view"
+            >
+              <List size={13} />
+            </button>
+            <button
+              onClick={() => setViewMode('board')}
+              className={`p-1.5 cursor-pointer transition-colors ${viewMode === 'board' ? 'bg-polar/15 text-polar' : 'text-dim hover:text-steel'}`}
+              title="Board view"
+            >
+              <LayoutGrid size={13} />
+            </button>
+          </div>
           <button
             onClick={() => exportToCSV(
               filteredTasks.map(t => ({
@@ -331,7 +485,7 @@ export default function Tasks() {
         ))}
       </div>
 
-      {/* Task list */}
+      {/* Task list / board */}
       {filteredTasks.length === 0 ? (
         <EmptyState
           icon={CheckSquare}
@@ -344,7 +498,117 @@ export default function Tasks() {
           actionLabel={filter === 'all' ? '+ New Task' : undefined}
           onAction={filter === 'all' ? () => { setEditingId(null); setForm({ ...EMPTY_FORM }); setModalOpen(true) } : undefined}
         />
+      ) : viewMode === 'board' ? (
+        /* ═══════════════ BOARD VIEW ═══════════════ */
+        <div
+          className="flex gap-4"
+          style={{ overflowX: 'auto', paddingBottom: '8px', minHeight: '400px' }}
+        >
+          {PRIORITY_COLUMNS.map(priority => {
+            const colTasks = boardColumns[priority]
+            return (
+              <div
+                key={priority}
+                className="flex-1"
+                style={{ minWidth: '220px', maxWidth: '320px' }}
+              >
+                {/* Column header */}
+                <div
+                  className="flex items-center justify-between px-3 py-2 mb-2 border-b"
+                  style={{
+                    borderColor: priority === 'urgent' ? 'var(--err, #ef4444)' : priority === 'high' ? 'var(--warn, #f59e0b)' : 'var(--border-hard, #2a2a2a)',
+                    borderBottomWidth: '2px',
+                  }}
+                >
+                  <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }} className="text-polar">
+                    {PRIORITY_COLUMN_LABELS[priority]}
+                  </span>
+                  <span className="text-dim" style={{ fontSize: '10px', fontWeight: 700 }}>
+                    {colTasks.length}
+                  </span>
+                </div>
+
+                {/* Column body — scrollable */}
+                <div
+                  className="space-y-2"
+                  style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 320px)', paddingRight: '4px' }}
+                >
+                  {colTasks.length === 0 && (
+                    <div className="text-dim text-center py-6" style={{ fontSize: '11px' }}>No tasks</div>
+                  )}
+                  {colTasks.map(task => {
+                    const overdue = !task.done && isOverdue(task.due_date)
+                    return (
+                      <div
+                        key={task.id}
+                        className={`border border-border-hard p-3 cursor-pointer transition-colors hover:border-dim ${task.done ? 'opacity-40' : ''}`}
+                        style={{ background: 'var(--surface, #151515)', borderRadius: '3px' }}
+                        onClick={() => openEdit(task)}
+                      >
+                        {/* Top row: checkbox + title + timer */}
+                        <div className="flex items-start gap-2">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleToggle(task.id) }}
+                            className={`flex-shrink-0 w-3.5 h-3.5 border cursor-pointer transition-colors duration-100 flex items-center justify-center mt-0.5 ${
+                              task.done
+                                ? 'bg-ok/20 border-ok text-ok'
+                                : 'border-dim hover:border-steel text-transparent hover:text-dim'
+                            }`}
+                            style={{ borderRadius: '2px' }}
+                          >
+                            {task.done && (
+                              <svg width="7" height="7" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="2 6 5 9 10 3" />
+                              </svg>
+                            )}
+                          </button>
+                          <div className="flex-1 min-w-0">
+                            <div
+                              className={`${task.done ? 'line-through text-steel' : overdue ? 'text-err' : 'text-polar'}`}
+                              style={{ fontSize: '12px', fontWeight: 600, lineHeight: 1.3 }}
+                            >
+                              {task.text}
+                            </div>
+                          </div>
+                          <div onClick={(e) => e.stopPropagation()}>
+                            {timerButton(task.id, true)}
+                          </div>
+                        </div>
+
+                        {/* Meta row */}
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                          {task.client_name && (
+                            <span className="text-steel truncate" style={{ fontSize: '10px', maxWidth: '120px' }}>
+                              {task.client_name}
+                            </span>
+                          )}
+                          {task.due_date && (
+                            <span
+                              className={`mono flex items-center gap-1 ${
+                                task.done ? 'text-steel' : overdue ? 'text-err' : 'text-steel'
+                              }`}
+                              style={{ fontSize: '10px' }}
+                            >
+                              <CalIcon size={8} />
+                              {friendlyDate(task.due_date)}
+                              {overdue && !task.done && (
+                                <span className="inline-flex items-center gap-0.5 rounded-full bg-err/15 text-err px-1 py-0.5" style={{ fontSize: '8px', fontWeight: 700, lineHeight: 1 }}>
+                                  OVERDUE
+                                </span>
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
       ) : (
+        /* ═══════════════ LIST VIEW ═══════════════ */
         <div>
           {/* Select-all header */}
           <div className="flex items-center gap-3 px-2 py-1.5 border-b border-border-hard" style={{ marginBottom: '2px' }}>
@@ -444,6 +708,9 @@ export default function Tasks() {
                     </div>
                   )}
                 </div>
+
+                {/* Timer button */}
+                {timerButton(task.id)}
 
                 {/* Client name */}
                 {task.client_name && (
