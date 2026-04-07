@@ -7,6 +7,7 @@ import {
   disconnectGoogle,
   isGoogleConnected,
   initGoogleToken,
+  silentReconnectIfNeeded,
   fetchGoogleEvents,
   createGoogleEvent,
   deleteGoogleEvent,
@@ -118,10 +119,14 @@ export default function Calendar() {
   const [form, setForm] = useState<EventForm>(blankForm())
   const [saving, setSaving] = useState(false)
 
-  // Check connection on mount — hydrate from Supabase if needed
+  // Check connection on mount — hydrate from Supabase, then try silent re-auth if expired
   useEffect(() => {
     initGoogleToken().then((connected) => {
       setGoogleConnected(connected)
+      // If not connected, try silent re-auth (only from Calendar page, safe to redirect)
+      if (!connected) {
+        silentReconnectIfNeeded()
+      }
     })
   }, [])
 

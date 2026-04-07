@@ -177,7 +177,6 @@ export async function clearTokens() {
 /**
  * On app load, hydrate localStorage from Supabase so isGoogleConnected()
  * works synchronously even on a new device.
- * If token exists but is expired, attempt a silent re-auth redirect.
  */
 export async function initGoogleToken(): Promise<boolean> {
   // If localStorage already has a valid token, we're good
@@ -191,23 +190,38 @@ export async function initGoogleToken(): Promise<boolean> {
     return true
   }
 
-  // Token existed but expired — user was previously connected.
-  // Attempt a silent re-auth so they don't have to click "Connect" again.
+  // Nothing valid — clear stale data
+  clearLocalToken()
+  return false
+}
+
+/**
+ * If user was previously connected but token expired, silently re-auth.
+ * Only call this from Calendar page — never from global app init,
+ * because the redirect can break page load in some browsers.
+ */
+export async function silentReconnectIfNeeded(): Promise<boolean> {
+  // Already connected? Nothing to do.
+  if (isGoogleConnected()) return true
+
+  // Check if user had a token before (in localStorage or Supabase)
+  const local = getLocalToken()
+  const remote = await getSupabaseToken()
   const hadToken = !!local || !!remote
-  if (hadToken) {
-    // Mark that we're attempting silent re-auth to avoid infinite loops
-    const silentKey = 'gth_gcal_silent_reauth'
-    const lastAttempt = sessionStorage.getItem(silentKey)
-    if (!lastAttempt) {
-      sessionStorage.setItem(silentKey, Date.now().toString())
-      connectGoogleCalendar(true)
-      return false // Will redirect, page won't continue
-    }
-    // Already tried this session, don't loop
-    sessionStorage.removeItem(silentKey)
+
+  if (!hadToken) return false
+
+  // Attempt silent re-auth (once per session to avoid loops)
+  const silentKey = 'gth_gcal_silent_reauth'
+  const lastAttempt = sessionStorage.getItem(silentKey)
+  if (!lastAttempt) {
+    sessionStorage.setItem(silentKey, Date.now().toString())
+    connectGoogleCalendar(true)
+    return false // Will redirect
   }
 
-  clearLocalToken()
+  // Already tried this session — don't loop
+  sessionStorage.removeItem(silentKey)
   return false
 }
 
