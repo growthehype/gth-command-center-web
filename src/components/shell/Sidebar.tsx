@@ -79,7 +79,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     openProjects: projects.filter(p => p.status !== 'done').length,
     openTasks: tasks.filter(t => !t.done).length,
     unpaidInvoices: invoices.filter(i => i.status !== 'paid').length,
-    openLeads: leads.filter(l => l.stage !== 'closed-won' && l.stage !== 'closed-lost').length,
+    openLeads: leads.filter(l => l.stage !== 'Closed Won' && l.stage !== 'Closed Lost').length,
   }
 
   const hasOverdue = invoices.some(i => i.status === 'sent' && i.due_date && new Date(i.due_date) < new Date())
@@ -87,7 +87,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   // Notification badge counts
   const overdueTaskCount = tasks.filter(t => !t.done && t.due_date && new Date(t.due_date) < now).length
   const unpaidInvoiceCount = invoices.filter(i => i.status !== 'paid').length
-  const overdueFollowUpCount = leads.filter(l => l.next_follow_up && new Date(l.next_follow_up) < now && l.stage !== 'closed-won' && l.stage !== 'closed-lost').length
+  const overdueFollowUpCount = leads.filter(l => l.next_follow_up && new Date(l.next_follow_up) < now && l.stage !== 'Closed Won' && l.stage !== 'Closed Lost').length
 
   const notificationBadges: Record<string, { count: number; color: 'red' | 'amber' }> = {
     tasks: { count: overdueTaskCount, color: 'red' },

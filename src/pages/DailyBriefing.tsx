@@ -167,7 +167,7 @@ export default function DailyBriefing() {
   // --------------- GOALS ---------------
 
   const activeGoals = useMemo(
-    () => goals.filter((g) => g.status === 'active' || g.status === 'in_progress'),
+    () => goals.filter((g) => g.status === 'active' || g.status === 'in-progress'),
     [goals],
   )
 

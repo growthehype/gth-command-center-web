@@ -74,7 +74,7 @@ export default function QuickAddModal({ open, onClose }: QuickAddModalProps) {
         due_date: taskDueDate || null,
         client_id: taskClientId || null,
         priority: 'medium',
-        done: false,
+        done: 0,
       })
       await refreshTasks()
       showToast('Task added', 'success')

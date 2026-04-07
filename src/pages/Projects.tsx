@@ -21,6 +21,14 @@ const COLUMN_META: Record<ColumnKey, { label: string }> = {
   done: { label: 'Done' },
 }
 
+/** Map legacy / alternate status names to Kanban column keys */
+const STATUS_ALIAS: Record<string, ColumnKey> = {
+  'in-progress': 'progress',
+  'planning': 'backlog',
+  'active': 'progress',
+  'completed': 'done',
+}
+
 const PRIORITY_WEIGHT: Record<string, number> = {
   urgent: 0,
   high: 1,
@@ -102,7 +110,9 @@ export default function Projects() {
       done: [],
     }
     for (const p of projects) {
-      const key = (COLUMNS.includes(p.status as ColumnKey) ? p.status : 'backlog') as ColumnKey
+      const key = COLUMNS.includes(p.status as ColumnKey)
+        ? (p.status as ColumnKey)
+        : (STATUS_ALIAS[p.status] || 'backlog')
       map[key].push(p)
     }
     for (const key of COLUMNS) {

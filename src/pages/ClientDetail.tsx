@@ -29,6 +29,8 @@ const INV_STATUS_BADGE: Record<string, string> = {
 const PROJECT_STATUS_BADGE: Record<string, string> = {
   active: 'badge badge-ok',
   'in-progress': 'badge badge-ok',
+  progress: 'badge badge-ok',
+  backlog: 'badge badge-warn',
   planning: 'badge badge-warn',
   review: 'badge badge-warn',
   completed: 'badge badge-neutral',

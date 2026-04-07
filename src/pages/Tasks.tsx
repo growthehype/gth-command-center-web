@@ -136,37 +136,46 @@ export default function Tasks() {
 
   const handleCreate = useCallback(async () => {
     if (!form.text.trim()) return
-    await tasksApi.create({
-      text: form.text.trim(),
-      description: form.description.trim() || null,
-      client_id: form.client_id || null,
-      priority: form.priority,
-      due_date: form.due_date || null,
-      tags: form.tags.trim() || null,
-      recurring: form.recurring === 'none' ? null : form.recurring,
-    })
-    await Promise.all([refreshTasks(), refreshActivity()])
-    setForm({ ...EMPTY_FORM })
-    setModalOpen(false)
-    showToast('Task created', 'success')
+    try {
+      await tasksApi.create({
+        text: form.text.trim(),
+        description: form.description.trim() || null,
+        client_id: form.client_id || null,
+        priority: form.priority,
+        due_date: form.due_date || null,
+        tags: form.tags.trim() || null,
+        recurring: form.recurring === 'none' ? null : form.recurring,
+        done: 0,
+      })
+      await Promise.all([refreshTasks(), refreshActivity()])
+      setForm({ ...EMPTY_FORM })
+      setModalOpen(false)
+      showToast('Task created', 'success')
+    } catch {
+      showToast('Failed to create task', 'error')
+    }
   }, [form, refreshTasks, refreshActivity])
 
   const handleUpdate = useCallback(async () => {
     if (!form.text.trim() || !editingId) return
-    await tasksApi.update(editingId, {
-      text: form.text.trim(),
-      description: form.description.trim() || null,
-      client_id: form.client_id || null,
-      priority: form.priority,
-      due_date: form.due_date || null,
-      tags: form.tags.trim() || null,
-      recurring: form.recurring === 'none' ? null : form.recurring,
-    })
-    await Promise.all([refreshTasks(), refreshActivity()])
-    setForm({ ...EMPTY_FORM })
-    setEditingId(null)
-    setModalOpen(false)
-    showToast('Task updated', 'success')
+    try {
+      await tasksApi.update(editingId, {
+        text: form.text.trim(),
+        description: form.description.trim() || null,
+        client_id: form.client_id || null,
+        priority: form.priority,
+        due_date: form.due_date || null,
+        tags: form.tags.trim() || null,
+        recurring: form.recurring === 'none' ? null : form.recurring,
+      })
+      await Promise.all([refreshTasks(), refreshActivity()])
+      setForm({ ...EMPTY_FORM })
+      setEditingId(null)
+      setModalOpen(false)
+      showToast('Task updated', 'success')
+    } catch {
+      showToast('Failed to update task', 'error')
+    }
   }, [editingId, form, refreshTasks, refreshActivity])
 
   const openEdit = useCallback((task: typeof tasks[number]) => {
@@ -207,7 +216,7 @@ export default function Tasks() {
     try {
       const undone = tasks.filter(t => selectedIds.has(t.id) && !t.done)
       await Promise.all(
-        undone.map(t => tasksApi.update(t.id, { done: true, completed_at: new Date().toISOString() }))
+        undone.map(t => tasksApi.update(t.id, { done: 1, completed_at: new Date().toISOString() }))
       )
       await Promise.all([refreshTasks(), refreshActivity()])
       showToast(`${undone.length} task${undone.length !== 1 ? 's' : ''} marked done`, 'success')
