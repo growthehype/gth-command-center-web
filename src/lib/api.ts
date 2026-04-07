@@ -304,9 +304,9 @@ export const campaigns = {
 export const credentials = {
   async getAll() {
     const userId = await uid()
-    const { data, error } = await supabase.from('credentials').select('*, clients(name)').eq('user_id', userId).order('platform')
+    const { data, error } = await supabase.from('credentials').select('*').eq('user_id', userId).order('platform')
     if (error) throw error
-    return (data || []).map((c: any) => ({ ...c, client_name: c.clients?.name || null }))
+    return data || []
   },
   async create(d: any) {
     const userId = await uid()
