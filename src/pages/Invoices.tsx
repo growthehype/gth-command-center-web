@@ -42,10 +42,10 @@ function fileIcon(name: string) {
   return <span className={`${base} bg-dim/10`}><File size={14} className="text-dim" /></span>
 }
 
-function getInvoiceStatus(inv: Invoice): { label: string; color: string; bg: string } {
-  if (inv.status === 'paid') return { label: 'Paid', color: 'text-ok', bg: 'bg-ok/10' }
-  if (inv.due_date && new Date(inv.due_date) < new Date()) return { label: 'Overdue', color: 'text-err', bg: 'bg-err/10' }
-  return { label: 'Pending', color: 'text-warn', bg: 'bg-warn/10' }
+function getInvoiceStatus(inv: Invoice): { label: string; badgeClass: string } {
+  if (inv.status === 'paid') return { label: 'Paid', badgeClass: 'badge badge-ok' }
+  if (inv.due_date && new Date(inv.due_date) < new Date()) return { label: 'Overdue', badgeClass: 'badge badge-err' }
+  return { label: 'Pending', badgeClass: 'badge badge-warn' }
 }
 
 function formatCurrency(amount: number): string {
@@ -355,10 +355,7 @@ export default function Invoices() {
                     {formatCurrency(inv.amount || 0)}
                   </span>
                   <div className="col-span-2 flex justify-center">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-0.5 font-[700] uppercase ${st.color} ${st.bg}`}
-                      style={{ fontSize: '9px', letterSpacing: '0.1em', borderRadius: '9999px' }}
-                    >
+                    <span className={st.badgeClass}>
                       {st.label}
                     </span>
                   </div>

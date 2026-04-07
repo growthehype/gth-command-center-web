@@ -216,7 +216,7 @@ export default function Contacts() {
                   <td className="px-4 py-3 text-dim mono">{c.phone || '-'}</td>
                   <td className="px-4 py-3 text-dim">{relativeDate(c.last_contacted)}</td>
                   <td className="px-4 py-3">
-                    {c.is_primary === 1 && <span className="badge badge-ok">Primary</span>}
+                    {c.is_primary === 1 && <span className="badge badge-ok" style={{ cursor: 'default' }}>Primary</span>}
                   </td>
                   <td className="px-4 py-3">
                     <button
@@ -235,12 +235,12 @@ export default function Contacts() {
 
       {/* Detail Drawer */}
       {detailContact && (
-        <div className="fixed inset-0 flex items-center justify-center z-[100]" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }} onClick={() => setDetailContact(null)}>
-          <div className="bg-surface border border-border w-[95vw] max-w-[420px] max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 flex items-center justify-center z-[100] modal-backdrop" onClick={() => setDetailContact(null)}>
+          <div className="modal-container bg-surface w-[95vw] max-w-[420px] max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <h3 className="font-[800]" style={{ fontSize: '14px' }}>{detailContact.name}</h3>
-              <button onClick={() => setDetailContact(null)} className="text-dim hover:text-steel transition-colors">
-                <X size={16} />
+              <h3 className="font-[800]" style={{ fontSize: '15px', letterSpacing: '-0.01em' }}>{detailContact.name}</h3>
+              <button onClick={() => setDetailContact(null)} className="modal-close-btn cursor-pointer">
+                <X size={15} />
               </button>
             </div>
             <div className="px-6 py-5 flex flex-col gap-3" style={{ fontSize: '13px' }}>

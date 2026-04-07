@@ -313,7 +313,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       {/* ---- HEADER ---- */}
       <div className="flex items-baseline justify-between">
-        <h1>Dashboard</h1>
+        <h1 className="section-header" style={{ marginBottom: 0, paddingBottom: 8 }}>Dashboard</h1>
         <span className="mono text-steel">{todayStr}</span>
       </div>
 
@@ -321,9 +321,10 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {/* MRR */}
         <button
-          className="stat-card text-left cursor-pointer transition-all duration-150 hover:border-dim"
+          className="stat-card stat-card--has-accent text-left cursor-pointer"
           onClick={() => setCurrentPage('clients')}
         >
+          <div className="stat-card-accent stat-card-accent--green" />
           <div className="stat-value">
             {formatCurrency(mrr)}
             {trendArrow(revenueByClient.length)}
@@ -333,18 +334,20 @@ export default function Dashboard() {
 
         {/* Invoices */}
         <button
-          className="stat-card text-left cursor-pointer transition-all duration-150 hover:border-dim"
+          className="stat-card stat-card--has-accent text-left cursor-pointer"
           onClick={() => setCurrentPage('invoices')}
         >
+          <div className="stat-card-accent stat-card-accent--cyan" />
           <div className="stat-value">{invoiceFileCount}</div>
           <div className="stat-label">Invoices</div>
         </button>
 
         {/* Pipeline Value */}
         <button
-          className="stat-card text-left cursor-pointer transition-all duration-150 hover:border-dim"
+          className="stat-card stat-card--has-accent text-left cursor-pointer"
           onClick={() => setCurrentPage('outreach')}
         >
+          <div className="stat-card-accent stat-card-accent--amber" />
           <div className="stat-value">
             {formatCurrency(pipelineValue)}
             {trendArrow(leads.filter((l) => l.stage !== 'closed' && l.stage !== 'lost').length)}
@@ -354,9 +357,10 @@ export default function Dashboard() {
 
         {/* Open Tasks */}
         <button
-          className="stat-card text-left cursor-pointer transition-all duration-150 hover:border-dim"
+          className="stat-card stat-card--has-accent text-left cursor-pointer"
           onClick={() => setCurrentPage('tasks')}
         >
+          <div className="stat-card-accent stat-card-accent--blue" />
           <div className="stat-value">
             {openTasks.length}
             {overdueTaskCount > 0 && (
@@ -370,9 +374,10 @@ export default function Dashboard() {
 
         {/* Active Projects */}
         <button
-          className="stat-card text-left cursor-pointer transition-all duration-150 hover:border-dim"
+          className="stat-card stat-card--has-accent text-left cursor-pointer"
           onClick={() => setCurrentPage('projects')}
         >
+          <div className="stat-card-accent stat-card-accent--purple" />
           <div className="stat-value">
             {activeProjects.length}
             {trendArrow(activeProjects.length)}
@@ -382,10 +387,11 @@ export default function Dashboard() {
 
         {/* Needs Attention */}
         <button
-          className={`stat-card text-left cursor-pointer transition-all duration-150 hover:border-dim${staleClients.length > 0 ? ' needs-attention-pulse' : ''}`}
+          className={`stat-card stat-card--has-accent text-left cursor-pointer${staleClients.length > 0 ? ' needs-attention-pulse' : ''}`}
           onClick={() => setCurrentPage('clients')}
           style={staleClients.length > 0 ? { borderColor: 'rgba(255, 51, 51, 0.4)' } : undefined}
         >
+          <div className="stat-card-accent stat-card-accent--red" />
           <div
             className="stat-value"
             style={staleClients.length > 0 ? { color: '#FF3333' } : undefined}
@@ -402,7 +408,7 @@ export default function Dashboard() {
         {/* Revenue by Client */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h3>Revenue by Client</h3>
+            <h3 className="section-header" style={{ marginBottom: 0 }}>Revenue by Client</h3>
             <span className="text-dim" style={{ fontSize: '11px' }}>{revenueByClient.length} clients</span>
           </div>
           {revenueByClient.length === 0 ? (
@@ -423,11 +429,10 @@ export default function Dashboard() {
                   </div>
                   <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
                     <div
-                      className="h-full rounded-full transition-all duration-500"
+                      className="h-full rounded-full chart-bar transition-all duration-500"
                       style={{
                         width: `${(client.mrr / maxMrr) * 100}%`,
-                        background: 'var(--color-polar, #E5E9F0)',
-                        opacity: 0.7,
+                        background: 'linear-gradient(90deg, rgba(37, 99, 235, 0.6) 0%, rgba(37, 99, 235, 0.3) 100%)',
                       }}
                     />
                   </div>
@@ -440,7 +445,7 @@ export default function Dashboard() {
         {/* Task Activity — Last 7 Days */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
-            <h3>Task Activity &mdash; Last 7 Days</h3>
+            <h3 className="section-header" style={{ marginBottom: 0 }}>Task Activity &mdash; Last 7 Days</h3>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 bg-ok rounded-full" />
@@ -459,16 +464,14 @@ export default function Dashboard() {
                 <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
                   <div className="w-full flex items-end gap-0.5" style={{ height: '80px' }}>
                     <div
-                      className="flex-1 rounded-t transition-all"
+                      className="flex-1 chart-bar chart-bar--completed"
                       style={{
                         height: `${(day.completed / maxVal) * 100}%`,
                         minHeight: day.completed > 0 ? '4px' : '0',
-                        backgroundColor: 'var(--color-ok, #A3BE8C)',
-                        opacity: 0.6,
                       }}
                     />
                     <div
-                      className="flex-1 bg-border-hard rounded-t transition-all"
+                      className="flex-1 chart-bar chart-bar--created"
                       style={{
                         height: `${(day.created / maxVal) * 100}%`,
                         minHeight: day.created > 0 ? '4px' : '0',
@@ -491,7 +494,7 @@ export default function Dashboard() {
         {/* ---- LEFT: Upcoming 7 Days with Week Glance ---- */}
         <div className="card col-span-1 flex flex-col" style={{ minHeight: '320px' }}>
           <div className="flex items-center justify-between mb-3">
-            <h3>Upcoming (Next 7 Days)</h3>
+            <h3 className="section-header" style={{ marginBottom: 0 }}>Upcoming (Next 7 Days)</h3>
             <span className="label text-steel">{upcomingItems.length} items</span>
           </div>
 
@@ -504,7 +507,7 @@ export default function Dashboard() {
               return (
                 <div
                   key={day.dateStr}
-                  className="flex-1 flex flex-col items-center gap-0.5 rounded py-1.5"
+                  className="flex-1 flex flex-col items-center gap-0.5 py-1.5 week-cell"
                   style={{
                     backgroundColor: isToday
                       ? 'var(--color-surface-2, #1a1a2e)'
@@ -592,7 +595,7 @@ export default function Dashboard() {
         {/* ---- CENTER: Top Priority Tasks ---- */}
         <div className="card col-span-1 flex flex-col" style={{ minHeight: '320px' }}>
           <div className="flex items-center justify-between mb-4">
-            <h3>Open Tasks &mdash; Top Priority</h3>
+            <h3 className="section-header" style={{ marginBottom: 0 }}>Open Tasks &mdash; Top Priority</h3>
             <button
               className="label text-steel hover:text-polar transition-colors cursor-pointer"
               onClick={() => setCurrentPage('tasks')}
@@ -645,7 +648,7 @@ export default function Dashboard() {
           {/* Needs Check-In */}
           <div className="card flex flex-col">
             <div className="flex items-center justify-between mb-3">
-              <h3>Needs Check-In</h3>
+              <h3 className="section-header" style={{ marginBottom: 0 }}>Needs Check-In</h3>
               <span className="label text-steel">{needsCheckIn.length}</span>
             </div>
 
@@ -701,7 +704,7 @@ export default function Dashboard() {
           {/* Recent Activity */}
           <div className="card flex flex-col">
             <div className="flex items-center justify-between mb-3">
-              <h3>Recent Activity</h3>
+              <h3 className="section-header" style={{ marginBottom: 0 }}>Recent Activity</h3>
               <button
                 className="label text-steel hover:text-polar transition-colors cursor-pointer"
                 onClick={() => setCurrentPage('activity')}
@@ -747,7 +750,7 @@ export default function Dashboard() {
       {/* ---- ROW 4: Project Pipeline (Full Width) ---- */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
-          <h3>Project Pipeline</h3>
+          <h3 className="section-header" style={{ marginBottom: 0 }}>Project Pipeline</h3>
           <button
             className="label text-steel hover:text-polar transition-colors cursor-pointer"
             onClick={() => setCurrentPage('projects')}

@@ -394,7 +394,7 @@ export default function Tasks() {
             return (
               <ContextMenu key={task.id} items={taskCtx}>
               <div
-                className={`table-row flex items-center gap-3 py-2.5 px-2 ${task.done ? 'opacity-40' : ''} ${selectedIds.has(task.id) ? 'bg-polar/5' : ''} ${recentlyCompleted.has(task.id) ? 'task-just-completed' : ''}`}
+                className={`table-row flex items-center gap-3 py-2.5 px-2 ${task.done ? 'opacity-40' : ''} ${selectedIds.has(task.id) ? 'row-selected' : ''} ${recentlyCompleted.has(task.id) ? 'task-just-completed' : ''}`}
               >
                 {/* Selection checkbox */}
                 <button

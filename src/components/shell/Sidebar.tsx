@@ -96,13 +96,24 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   }
 
   return (
-    <nav className="w-full h-full bg-obsidian border-r border-border overflow-y-auto flex-shrink-0 select-none">
+    <nav className="sidebar-nav w-full h-full border-r border-border overflow-y-auto flex-shrink-0 select-none">
       <div className="py-4">
-        {navGroups.map(group => (
+        {navGroups.map((group, groupIndex) => (
           <div key={group.label} className="mb-3">
+            {/* Divider line above each section (except first) */}
+            {groupIndex > 0 && (
+              <div className="mx-4 mb-3 border-t border-border/60" />
+            )}
             <div
-              className="px-5 mb-1.5 text-dim font-sans"
-              style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '0.22em' }}
+              className="px-5 mb-2 font-sans"
+              style={{
+                fontSize: '8.5px',
+                fontWeight: 700,
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase' as const,
+                color: 'var(--color-dim)',
+                opacity: 0.7,
+              }}
             >
               {group.label}
             </div>
@@ -119,13 +130,13 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                 <button
                   key={item.id}
                   onClick={() => { setCurrentPage(item.id); onNavigate?.() }}
-                  className={`w-full flex items-center gap-3 px-5 py-1.5 transition-colors text-left ${
+                  className={`sidebar-nav-item w-full flex items-center gap-3 px-5 py-1.5 text-left relative ${
                     isActive
-                      ? 'text-polar bg-surface-2'
+                      ? 'sidebar-nav-active text-polar bg-surface-2'
                       : 'text-dim hover:text-steel hover:bg-surface'
                   }`}
                 >
-                  <Icon size={13} strokeWidth={isActive ? 2.5 : 2} />
+                  <Icon size={13} strokeWidth={isActive ? 2.5 : 2} className="sidebar-nav-icon" />
                   <span
                     className="relative flex-1 font-sans"
                     style={{ fontSize: '12px', fontWeight: isActive ? 700 : 500 }}

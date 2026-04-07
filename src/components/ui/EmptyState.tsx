@@ -11,12 +11,12 @@ interface EmptyStateProps {
 
 export default function EmptyState({ icon: Icon = FileX, title, description, actionLabel, onAction, action }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <Icon size={32} className="text-dim mb-4" strokeWidth={1.5} />
-      <h3 className="text-steel font-[700] mb-1" style={{ fontSize: '15px' }}>{title}</h3>
-      <p className="text-dim mb-5" style={{ fontSize: '12px', maxWidth: '280px' }}>{description}</p>
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <Icon size={52} className="text-dim mb-5" strokeWidth={1.2} style={{ opacity: 0.3 }} />
+      <h3 className="text-steel font-[600] mb-1.5" style={{ fontSize: '15px', letterSpacing: '-0.01em' }}>{title}</h3>
+      <p className="text-dim mb-6 max-w-sm mx-auto" style={{ fontSize: '12.5px', lineHeight: 1.5 }}>{description}</p>
       {actionLabel && onAction && (
-        <button onClick={onAction} className="btn-primary">
+        <button onClick={onAction} className="btn-primary" style={{ fontSize: '11px', padding: '8px 20px' }}>
           {actionLabel}
         </button>
       )}

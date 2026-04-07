@@ -176,59 +176,28 @@ export default function DailyBriefing() {
   return (
     <div className="max-w-full md:max-w-[920px] mx-auto" style={{ padding: '48px 0 64px' }}>
       {/* ---- GREETING ---- */}
-      <h1 style={{ fontSize: 28, fontWeight: 900, letterSpacing: '-0.025em', lineHeight: 1.1 }}>
+      <h1 className="briefing-greeting">
         {getGreeting()}, {displayName}.
       </h1>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
-        <p className="mono" style={{ color: '#888', fontSize: 13, margin: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
+        <p className="mono" style={{ color: '#888', fontSize: 13, margin: 0, letterSpacing: '0.02em' }}>
           {fullDate}
         </p>
         {streak > 0 ? (
-          <span
-            className={streak >= 7 ? 'streak-glow' : ''}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              padding: '2px 10px',
-              fontSize: 12,
-              fontWeight: 700,
-              borderRadius: 20,
-              background: streak >= 7 ? 'rgba(251, 146, 60, 0.15)' : 'rgba(251, 146, 60, 0.1)',
-              color: streak >= 7 ? '#FB923C' : '#D97706',
-              border: `1px solid ${streak >= 7 ? 'rgba(251, 146, 60, 0.3)' : 'rgba(251, 146, 60, 0.2)'}`,
-              whiteSpace: 'nowrap',
-            }}
-          >
+          <span className={`streak-badge ${streak >= 7 ? 'streak-badge--hot streak-glow' : 'streak-badge--active'}`}>
             <span role="img" aria-label="fire">&#128293;</span> {streak}-day streak
           </span>
         ) : (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              padding: '2px 10px',
-              fontSize: 12,
-              fontWeight: 600,
-              borderRadius: 20,
-              background: 'rgba(156, 163, 175, 0.1)',
-              color: '#9CA3AF',
-              border: '1px solid rgba(156, 163, 175, 0.2)',
-              whiteSpace: 'nowrap',
-            }}
-          >
+          <span className="streak-badge streak-badge--inactive">
             <span role="img" aria-label="fire">&#128293;</span> Start your streak today!
           </span>
         )}
       </div>
 
       {/* ---- TODAY'S FOCUS ---- */}
-      <div style={{ marginTop: 36 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <div className="label" style={{ color: '#999' }}>
-            Today&apos;s Focus
-          </div>
+      <div style={{ marginTop: 40 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <h3 className="section-header" style={{ marginBottom: 0 }}>Today&apos;s Focus</h3>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               onClick={() => setCurrentPage('tasks')}
@@ -253,7 +222,8 @@ export default function DailyBriefing() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-[10px]">
           {/* Due Today */}
-          <div className="stat-card">
+          <div className="stat-card stat-card--has-accent">
+            <div className="stat-card-accent stat-card-accent--blue" />
             <div className="stat-value">{tasksDueToday.length}</div>
             <div className="stat-label">Due Today</div>
             <div style={{ marginTop: 12 }}>
@@ -292,13 +262,14 @@ export default function DailyBriefing() {
 
           {/* Overdue */}
           <div
-            className="stat-card"
+            className="stat-card stat-card--has-accent"
             style={
               overdueTasks.length > 0
                 ? { borderColor: 'rgba(255,51,51,0.25)' }
                 : undefined
             }
           >
+            <div className="stat-card-accent stat-card-accent--red" />
             <div
               className="stat-value"
               style={overdueTasks.length > 0 ? { color: '#FF3333' } : undefined}
@@ -337,7 +308,8 @@ export default function DailyBriefing() {
           </div>
 
           {/* Meetings Today */}
-          <div className="stat-card">
+          <div className="stat-card stat-card--has-accent">
+            <div className="stat-card-accent stat-card-accent--purple" />
             <div className="stat-value">{meetingsToday.length}</div>
             <div className="stat-label">Meetings Today</div>
             <div style={{ marginTop: 12 }}>
@@ -371,11 +343,9 @@ export default function DailyBriefing() {
 
       {/* ---- YESTERDAY'S WINS ---- */}
       {yesterdayWins.length > 0 && (
-        <div style={{ marginTop: 32 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <div className="label" style={{ color: '#999' }}>
-              Yesterday&apos;s Wins
-            </div>
+        <div style={{ marginTop: 36 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <h3 className="section-header" style={{ marginBottom: 0 }}>Yesterday&apos;s Wins</h3>
             <button
               onClick={() => setCurrentPage('activity')}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#999', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 4, transition: 'color 0.15s' }}
@@ -412,25 +382,28 @@ export default function DailyBriefing() {
 
       {/* ---- ONE THING THAT NEEDS YOU ---- */}
       {oneThingCard && (
-        <div style={{ marginTop: 32 }}>
-          <div className="label" style={{ color: '#999', marginBottom: 10 }}>
-            One Thing That Needs You
-          </div>
+        <div style={{ marginTop: 36 }}>
+          <h3 className="section-header" style={{ marginBottom: 14 }}>One Thing That Needs You</h3>
           <div
-            className="card"
+            className={`card ${oneThingCard.accent === '#FF3333' ? 'one-thing-urgent' : ''}`}
             style={{
-              borderLeft: `3px solid ${oneThingCard.accent}`,
-              padding: '16px 20px',
+              borderLeft: `4px solid ${oneThingCard.accent}`,
+              padding: '20px 24px',
+              background: oneThingCard.accent === '#FF3333'
+                ? 'linear-gradient(135deg, var(--color-cell) 0%, rgba(220, 38, 38, 0.03) 100%)'
+                : oneThingCard.accent === '#F59E0B'
+                ? 'linear-gradient(135deg, var(--color-cell) 0%, rgba(245, 158, 11, 0.03) 100%)'
+                : 'linear-gradient(135deg, var(--color-cell) 0%, rgba(37, 99, 235, 0.03) 100%)',
             }}
           >
             <div
               className="label"
-              style={{ color: oneThingCard.accent, marginBottom: 6 }}
+              style={{ color: oneThingCard.accent, marginBottom: 8 }}
             >
               {oneThingCard.label}
             </div>
-            <div style={{ fontSize: 15, fontWeight: 700 }}>{oneThingCard.title}</div>
-            <div className="mono" style={{ color: '#888', marginTop: 4, fontSize: 13 }}>
+            <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em' }}>{oneThingCard.title}</div>
+            <div className="mono" style={{ color: '#888', marginTop: 6, fontSize: 13 }}>
               {oneThingCard.detail}
               {oneThingCard.detailDate && (
                 <>{' '}<RelativeTime date={oneThingCard.detailDate} /></>
@@ -442,10 +415,8 @@ export default function DailyBriefing() {
 
       {/* ---- GOALS PROGRESS ---- */}
       {activeGoals.length > 0 && (
-        <div style={{ marginTop: 32 }}>
-          <div className="label" style={{ color: '#999', marginBottom: 10 }}>
-            Goals Progress
-          </div>
+        <div style={{ marginTop: 36 }}>
+          <h3 className="section-header" style={{ marginBottom: 14 }}>Goals Progress</h3>
           <div
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[10px]"
           >
@@ -512,7 +483,7 @@ export default function DailyBriefing() {
       )}
 
       {/* ---- CTA BUTTON ---- */}
-      <div style={{ marginTop: 44, textAlign: 'center' }}>
+      <div style={{ marginTop: 48, textAlign: 'center' }}>
         <button
           className="btn-primary"
           onClick={() => setCurrentPage('dashboard')}

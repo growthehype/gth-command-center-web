@@ -39,7 +39,7 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
   }, [runningTimer])
 
   return (
-    <header className="h-11 border-b border-border flex items-center px-2 md:px-4 gap-2 md:gap-4 flex-shrink-0 select-none text-white" style={{ backgroundColor: '#111111' }}>
+    <header className="topbar-header h-11 flex items-center px-2 md:px-4 gap-2 md:gap-4 flex-shrink-0 select-none text-white" style={{ backgroundColor: '#111111' }}>
       {/* Mobile hamburger */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -53,7 +53,7 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
         <img src="./icon.png" alt="GTH" className="w-[26px] h-[26px]" draggable={false} style={{ filter: 'brightness(0) invert(1)' }} />
         <span
           className="font-sans font-[800] uppercase hidden md:inline"
-          style={{ fontSize: '14px', letterSpacing: '0.04em', color: '#FFFFFF' }}
+          style={{ fontSize: '14px', letterSpacing: '0.12em', color: '#FFFFFF' }}
         >
           Operations Command Center
         </span>
@@ -64,7 +64,7 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
       {/* Search trigger */}
       <button
         onClick={() => setCommandPaletteOpen(true)}
-        className="hidden md:flex items-center gap-2 transition-colors px-3 py-1.5 border"
+        className="topbar-icon-btn hidden md:flex items-center gap-2 px-3 py-1.5 border"
         style={{ color: 'rgba(255,255,255,0.5)', borderColor: 'rgba(255,255,255,0.2)' }}
         title="Search (Ctrl+K)"
       >
@@ -97,7 +97,7 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
       {/* AI Panel toggle */}
       <button
         onClick={() => setAiPanelOpen(!aiPanelOpen)}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 transition-colors"
+        className="topbar-icon-btn flex items-center gap-1.5 px-2.5 py-1.5"
         style={{
           color: aiPanelOpen ? '#FFFFFF' : 'rgba(255,255,255,0.5)',
           backgroundColor: aiPanelOpen ? 'rgba(255,255,255,0.15)' : 'transparent',
@@ -111,7 +111,7 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
       {/* Theme toggle */}
       <button
         onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-        className="flex items-center justify-center w-8 h-8 transition-colors"
+        className="topbar-icon-btn flex items-center justify-center w-8 h-8"
         style={{ color: 'rgba(255,255,255,0.5)' }}
         title="Toggle dark mode"
       >
@@ -121,7 +121,7 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
       {/* Keyboard shortcuts help */}
       <button
         onClick={onHelpClick}
-        className="hidden md:flex items-center justify-center w-8 h-8 transition-colors"
+        className="topbar-icon-btn hidden md:flex items-center justify-center w-8 h-8"
         style={{ color: 'rgba(255,255,255,0.5)' }}
         title="Keyboard Shortcuts (?)"
       >
@@ -138,7 +138,7 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
         <span className="hidden md:inline" style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>
           {displayName}
         </span>
-        <div className="w-7 h-7 rounded-full flex items-center justify-center" title="Profile" style={{ backgroundColor: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)' }}>
+        <div className="topbar-avatar w-7 h-7 rounded-full flex items-center justify-center" title="Profile" style={{ backgroundColor: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.2)' }}>
           <span className="font-bold" style={{ fontSize: '10px', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.8)' }}>
             {initials}
           </span>

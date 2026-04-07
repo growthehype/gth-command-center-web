@@ -305,7 +305,7 @@ export default function Clients() {
                   return (
                     <ContextMenu key={c.id} items={ctxItems}>
                     <tr
-                      className={`table-row cursor-pointer ${selectedId === c.id ? 'bg-surface-2' : ''}`}
+                      className={`table-row cursor-pointer ${selectedId === c.id ? 'row-selected' : ''}`}
                       onClick={() => openDrawer(c.id)}
                     >
                       <td className="py-2.5 px-3 font-[700] text-polar">

@@ -150,12 +150,12 @@ export default function Shell({ onLock }: ShellProps) {
         )}
         {/* Sidebar - hidden on mobile unless open */}
         <div className={`
-          fixed inset-y-0 left-0 z-50 w-56 transform transition-transform duration-200 ease-in-out md:relative md:translate-x-0 md:w-48 md:z-auto
+          fixed inset-y-0 left-0 z-50 w-56 transform transition-transform duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] md:relative md:translate-x-0 md:w-48 md:z-auto
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `} style={{ top: 'var(--topbar-h, 44px)' }}>
           <Sidebar onNavigate={() => setSidebarOpen(false)} />
         </div>
-        <main className="flex-1 overflow-y-auto p-3 md:p-6">
+        <main className="shell-main flex-1 overflow-y-auto p-3 md:p-6">
           {demoMode && (
             <div className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-amber-500/15 border border-amber-500/30 px-4 py-2 text-sm text-amber-300">
               <span className="font-semibold tracking-wide">DEMO MODE — Sample data shown</span>

@@ -26,14 +26,17 @@ export default function Modal({ open, onClose, title, children, width = '480px' 
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 flex items-center justify-center z-[100]" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+      className="fixed inset-0 flex items-center justify-center z-[100] modal-backdrop"
       onClick={(e) => { if (e.target === overlayRef.current) onClose() }}
     >
-      <div className="bg-surface border border-border overflow-hidden w-[95vw]" style={{ maxWidth: width, maxHeight: '85vh' }}>
+      <div
+        className="modal-container bg-surface overflow-hidden w-[95vw]"
+        style={{ maxWidth: width, maxHeight: '85vh' }}
+      >
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h3 className="font-[800]" style={{ fontSize: '14px' }}>{title}</h3>
-          <button onClick={onClose} className="text-dim hover:text-steel transition-colors">
-            <X size={16} />
+          <h3 className="font-[800]" style={{ fontSize: '15px', letterSpacing: '-0.01em' }}>{title}</h3>
+          <button onClick={onClose} className="modal-close-btn cursor-pointer">
+            <X size={15} />
           </button>
         </div>
         <div className="px-6 py-5 overflow-y-auto" style={{ maxHeight: 'calc(85vh - 60px)' }}>
