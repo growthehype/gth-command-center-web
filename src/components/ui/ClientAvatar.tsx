@@ -6,10 +6,10 @@ const PALETTE = [
   '#2563EB', // blue
   '#7C3AED', // violet
   '#DB2777', // pink
-  '#DC2626', // red
+  '#FF3333', // red
   '#EA580C', // orange
   '#CA8A04', // yellow
-  '#16A34A', // green
+  '#22C55E', // green
   '#0D9488', // teal
   '#0284C7', // sky
   '#6D28D9', // purple

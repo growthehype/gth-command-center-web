@@ -123,7 +123,7 @@ export default function Dashboard() {
       { key: 'backlog', label: 'Backlog', color: '#6B7280' },
       { key: 'progress', label: 'In Progress', color: '#2563EB' },
       { key: 'review', label: 'Review', color: '#D97706' },
-      { key: 'done', label: 'Done', color: '#16A34A' },
+      { key: 'done', label: 'Done', color: '#22C55E' },
     ]
     return statuses.map((s) => ({
       ...s,

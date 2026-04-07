@@ -53,7 +53,7 @@ export function useFaviconBadge(count: number) {
       // Red circle
       ctx.beginPath()
       ctx.arc(cx, cy, badgeRadius, 0, 2 * Math.PI)
-      ctx.fillStyle = '#DC2626'
+      ctx.fillStyle = '#FF3333'
       ctx.fill()
 
       // White text

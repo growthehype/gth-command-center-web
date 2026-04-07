@@ -24,9 +24,9 @@
   --color-ghost: #F0F0F0;
 
   /* Semantic — status only */
-  --color-ok: #16A34A;
+  --color-ok: #22C55E;
   --color-warn: #D97706;
-  --color-err: #DC2626;
+  --color-err: #FF3333;
   --color-info: #2563EB;
 
   /* Font families */
@@ -50,16 +50,16 @@
    ======================================== */
 
 [data-theme="dark"] {
-  --color-obsidian: #0A0A0A;
-  --color-polar: #E8E8E8;
-  --color-charcoal: #141414;
+  --color-obsidian: #000000;
+  --color-polar: #FFFFFF;
+  --color-charcoal: #1A1A1A;
   --color-cream: #1A1A1A;
-  --color-steel: #AAAAAA;
+  --color-steel: #888888;
   --color-ash: #222222;
 
-  --color-cell: #111111;
-  --color-surface: #141414;
-  --color-surface-2: #1C1C1C;
+  --color-cell: #0A0A0A;
+  --color-surface: #1A1A1A;
+  --color-surface-2: #1A1A1A;
   --color-border: #2A2A2A;
   --color-border-hard: #333333;
   --color-dim: #666666;
@@ -257,15 +257,15 @@
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+    background: linear-gradient(135deg, #FF3333 0%, #CC2929 100%);
     color: #FFFFFF;
-    border: 1px solid rgba(220, 38, 38, 0.3);
-    box-shadow: 0 1px 3px rgba(220, 38, 38, 0.2);
+    border: 1px solid rgba(255, 51, 51, 0.3);
+    box-shadow: 0 1px 3px rgba(255, 51, 51, 0.2);
   }
 
   .btn-danger:hover {
-    background: linear-gradient(135deg, #B91C1C 0%, #991B1B 100%);
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+    background: linear-gradient(135deg, #CC2929 0%, #AA2222 100%);
+    box-shadow: 0 4px 12px rgba(255, 51, 51, 0.3);
   }
 
   /* Status badges */
@@ -282,8 +282,8 @@
 
   .badge-ok {
     @apply text-ok;
-    background: rgba(22, 163, 74, 0.12);
-    border: 1px solid rgba(22, 163, 74, 0.15);
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.15);
   }
 
   .badge-warn {
@@ -294,8 +294,8 @@
 
   .badge-err {
     @apply text-err;
-    background: rgba(220, 38, 38, 0.12);
-    border: 1px solid rgba(220, 38, 38, 0.15);
+    background: rgba(255, 51, 51, 0.12);
+    border: 1px solid rgba(255, 51, 51, 0.15);
   }
 
   .badge-neutral {
@@ -482,11 +482,11 @@
     border-radius: 0 4px 4px 0;
   }
 
-  .stat-card-accent--green { background: linear-gradient(180deg, #16A34A, #22C55E); }
+  .stat-card-accent--green { background: linear-gradient(180deg, #1B9E47, #22C55E); }
   .stat-card-accent--blue { background: linear-gradient(180deg, #2563EB, #3B82F6); }
   .stat-card-accent--purple { background: linear-gradient(180deg, #7C3AED, #8B5CF6); }
   .stat-card-accent--amber { background: linear-gradient(180deg, #D97706, #F59E0B); }
-  .stat-card-accent--red { background: linear-gradient(180deg, #DC2626, #EF4444); }
+  .stat-card-accent--red { background: linear-gradient(180deg, #FF3333, #FF5555); }
   .stat-card-accent--cyan { background: linear-gradient(180deg, #0891B2, #06B6D4); }
 
   .stat-card--has-accent {
@@ -526,7 +526,7 @@
 
   /* Task chart bars */
   .chart-bar--completed {
-    background: linear-gradient(180deg, rgba(22, 163, 74, 0.8) 0%, rgba(22, 163, 74, 0.45) 100%);
+    background: linear-gradient(180deg, rgba(34, 197, 94, 0.8) 0%, rgba(34, 197, 94, 0.45) 100%);
   }
 
   .chart-bar--created {
@@ -548,8 +548,8 @@
 
   /* One Thing urgent pulse */
   @keyframes urgentPulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
-    50% { box-shadow: 0 0 16px 2px rgba(220, 38, 38, 0.1); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 51, 51, 0); }
+    50% { box-shadow: 0 0 16px 2px rgba(255, 51, 51, 0.1); }
   }
 
   .one-thing-urgent {
@@ -755,7 +755,7 @@
 
 @keyframes taskComplete {
   0%   { background-color: transparent; }
-  20%  { background-color: rgba(22, 163, 74, 0.15); }
+  20%  { background-color: rgba(34, 197, 94, 0.15); }
   100% { background-color: transparent; }
 }
 

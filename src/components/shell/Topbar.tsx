@@ -74,13 +74,13 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
 
       {/* Connection status */}
       {connectionStatus === 'offline' && (
-        <div className="flex items-center gap-1.5" style={{ color: '#DC2626' }}>
+        <div className="flex items-center gap-1.5" style={{ color: '#FF3333' }}>
           <WifiOff size={12} />
           <span className="font-mono font-bold" style={{ fontSize: '11px' }}>Offline</span>
         </div>
       )}
       {connectionStatus === 'reconnected' && (
-        <div className="flex items-center gap-1.5" style={{ color: '#16A34A', animation: 'fadeIn 0.15s ease-out' }}>
+        <div className="flex items-center gap-1.5" style={{ color: '#22C55E', animation: 'fadeIn 0.15s ease-out' }}>
           <Wifi size={12} />
           <span className="font-mono font-bold" style={{ fontSize: '11px' }}>Back online</span>
         </div>

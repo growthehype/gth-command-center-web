@@ -13,7 +13,7 @@ const BRAND_COLORS = [
   { name: 'Polar', hex: '#FFFFFF' },
   { name: 'Cream', hex: '#F5F0EB' },
   { name: 'Charcoal', hex: '#1A1A1A' },
-  { name: 'Steel', hex: '#555555' },
+  { name: 'Steel', hex: '#888888' },
   { name: 'Ash', hex: '#E8E8E8' },
 ]
 
@@ -185,7 +185,7 @@ export default function BrandAssets() {
               </div>
               <div className="card">
                 <h3 className="text-polar font-[700] mb-2" style={{ fontSize: '13px' }}>Dark Background</h3>
-                <p className="text-dim" style={{ fontSize: '12px' }}>Obsidian (#0A0A0A) base with subtle cell/surface layering.</p>
+                <p className="text-dim" style={{ fontSize: '12px' }}>Obsidian (#000000) base with subtle cell/surface layering.</p>
               </div>
               <div className="card">
                 <h3 className="text-polar font-[700] mb-2" style={{ fontSize: '13px' }}>Tight Spacing</h3>

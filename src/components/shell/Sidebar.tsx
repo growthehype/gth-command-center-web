@@ -149,7 +149,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                           fontSize: '9px',
                           lineHeight: 1,
                           padding: '0 4px',
-                          backgroundColor: notif.color === 'red' ? '#DC2626' : '#D97706',
+                          backgroundColor: notif.color === 'red' ? '#FF3333' : '#D97706',
                         }}
                       >
                         {notifCount > 99 ? '99+' : notifCount}

@@ -61,7 +61,7 @@ export const demoClients: Client[] = [
     email: 'mike@greenleafyeg.ca',
     phone: '780-555-0391',
     website: 'https://greenleafyeg.ca',
-    colors: '#16A34A, #A3E635',
+    colors: '#22C55E, #A3E635',
     logo_path: null,
     last_activity: '2026-04-02',
     notes: 'Seasonal push starting — needs spring landing page.',
