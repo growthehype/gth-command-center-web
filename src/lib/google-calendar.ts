@@ -177,6 +177,7 @@ export async function clearTokens() {
 /**
  * On app load, hydrate localStorage from Supabase so isGoogleConnected()
  * works synchronously even on a new device.
+ * If token exists but is expired, attempt a silent re-auth redirect.
  */
 export async function initGoogleToken(): Promise<boolean> {
   // If localStorage already has a valid token, we're good
@@ -190,14 +191,29 @@ export async function initGoogleToken(): Promise<boolean> {
     return true
   }
 
-  // Nothing valid
+  // Token existed but expired — user was previously connected.
+  // Attempt a silent re-auth so they don't have to click "Connect" again.
+  const hadToken = !!local || !!remote
+  if (hadToken) {
+    // Mark that we're attempting silent re-auth to avoid infinite loops
+    const silentKey = 'gth_gcal_silent_reauth'
+    const lastAttempt = sessionStorage.getItem(silentKey)
+    if (!lastAttempt) {
+      sessionStorage.setItem(silentKey, Date.now().toString())
+      connectGoogleCalendar(true)
+      return false // Will redirect, page won't continue
+    }
+    // Already tried this session, don't loop
+    sessionStorage.removeItem(silentKey)
+  }
+
   clearLocalToken()
   return false
 }
 
 // ── Connect via Google OAuth implicit flow ──
 
-export function connectGoogleCalendar() {
+export function connectGoogleCalendar(silent = false) {
   const params = new URLSearchParams({
     client_id: GCAL_CLIENT_ID,
     redirect_uri: REDIRECT_URI,
@@ -205,7 +221,11 @@ export function connectGoogleCalendar() {
     scope: CALENDAR_SCOPE,
     include_granted_scopes: 'true',
   })
-  // No 'prompt' parameter — Google will silently reuse existing grants
+  // For silent re-auth after token expiry (user already granted access before)
+  if (silent) {
+    params.set('prompt', 'none')
+  }
+  // No 'prompt' parameter by default — Google will silently reuse existing grants
   window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`
 }
 
@@ -213,15 +233,34 @@ export function connectGoogleCalendar() {
 
 export async function captureTokenFromUrl(): Promise<boolean> {
   const hash = window.location.hash
-  if (!hash || !hash.includes('access_token')) return false
+  if (!hash) return false
 
   const params = new URLSearchParams(hash.substring(1))
+
+  // Handle error from silent re-auth (e.g. user revoked access)
+  const error = params.get('error')
+  if (error) {
+    // Silent re-auth failed — clear the attempt flag and clean URL
+    sessionStorage.removeItem('gth_gcal_silent_reauth')
+    window.history.replaceState(null, '', window.location.pathname)
+    if (error === 'interaction_required' || error === 'access_denied') {
+      // User needs to manually reconnect — clear old tokens
+      clearLocalToken()
+      await clearSupabaseToken()
+    }
+    return false
+  }
+
+  if (!hash.includes('access_token')) return false
+
   const token = params.get('access_token')
   const expiresIn = params.get('expires_in')
 
   if (token) {
     const seconds = expiresIn ? parseInt(expiresIn, 10) : 3600
     await storeToken(token, seconds)
+    // Clear silent re-auth flag on success
+    sessionStorage.removeItem('gth_gcal_silent_reauth')
     // Clean the URL
     window.history.replaceState(null, '', window.location.pathname)
     return true

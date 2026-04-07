@@ -120,24 +120,26 @@ export default function Calendar() {
 
   // Check connection on mount — hydrate from Supabase if needed
   useEffect(() => {
-    initGoogleToken().then((connected) => setGoogleConnected(connected))
+    initGoogleToken().then((connected) => {
+      setGoogleConnected(connected)
+    })
   }, [])
 
   // Load Google events when connected or week changes
   const loadEvents = useCallback(() => {
-    if (!isGoogleConnected()) return
+    if (!googleConnected) return
     setLoading(true)
     fetchGoogleEvents(weekStart.toISOString(), weekEnd.toISOString())
       .then((evts) => {
         setEvents(evts)
-        // If we got 0 events and token might be expired, update connection status
-        if (evts.length === 0 && !isGoogleConnected()) {
-          setGoogleConnected(false)
-        }
         setLoading(false)
       })
-      .catch(() => setLoading(false))
-  }, [weekStart, weekEnd])
+      .catch(() => {
+        // Token may have been invalidated mid-request
+        if (!isGoogleConnected()) setGoogleConnected(false)
+        setLoading(false)
+      })
+  }, [googleConnected, weekStart, weekEnd])
 
   useEffect(() => {
     loadEvents()

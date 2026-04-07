@@ -23,9 +23,14 @@ export default function App() {
   )
   useFaviconBadge(overdueCount)
 
-  // Capture Google OAuth token from URL hash on mount (after redirect)
+  // Capture Google OAuth token from URL hash on mount (after redirect),
+  // then hydrate from Supabase if needed
   useEffect(() => {
-    captureTokenFromUrl()
+    captureTokenFromUrl().then(() => {
+      if (useAppStore.getState().user) {
+        initGoogleToken()
+      }
+    })
   }, [])
 
   // Hydrate Google token from Supabase on login (cross-device persistence)
