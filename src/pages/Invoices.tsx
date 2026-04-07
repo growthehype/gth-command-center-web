@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { Receipt, Upload, Trash2, ExternalLink, FolderOpen, Pencil, Search, FileText, FileSpreadsheet, Image, Archive, File, Download, DollarSign } from 'lucide-react'
+import { Receipt, Upload, Trash2, ExternalLink, FolderOpen, Pencil, Search, FileText, FileSpreadsheet, Image, Archive, File, Download, DollarSign, Eye } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import type { Invoice } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
@@ -8,6 +8,7 @@ import { exportToCSV } from '@/lib/export-csv'
 import ContextMenu, { ContextMenuItem } from '@/components/ui/ContextMenu'
 import { invoiceFiles } from '@/lib/api'
 import { SkeletonTable } from '@/components/ui/Skeleton'
+import FilePreview from '@/components/ui/FilePreview'
 
 interface InvoiceFile {
   id: string
@@ -62,6 +63,9 @@ export default function Invoices() {
   const [dragOver, setDragOver] = useState(false)
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
+  const [previewUrl, setPreviewUrl] = useState('')
+  const [previewName, setPreviewName] = useState('')
+  const [previewOpen, setPreviewOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   /* ── Load files ── */
@@ -137,11 +141,15 @@ export default function Invoices() {
     if (f.length > 0) await uploadFiles(f)
   }
 
-  /* ── Open file ── */
+  /* ── Open file — in-app preview (works on all devices) ── */
   const openFile = async (doc: InvoiceFile) => {
     try {
       const signedUrl = await invoiceFiles.getFileUrl(doc.id)
-      if (signedUrl) window.open(signedUrl, '_blank')
+      if (signedUrl) {
+        setPreviewUrl(signedUrl)
+        setPreviewName(doc.name)
+        setPreviewOpen(true)
+      }
     } catch {
       showToast('Could not open file', 'error')
     }
@@ -486,6 +494,14 @@ export default function Invoices() {
           </p>
         </div>
       )}
+
+      {/* In-app file preview (works on mobile, laptop, desktop) */}
+      <FilePreview
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        url={previewUrl}
+        fileName={previewName}
+      />
     </div>
   )
 }

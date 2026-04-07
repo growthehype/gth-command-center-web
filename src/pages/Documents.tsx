@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { FileText, Upload, Trash2, ExternalLink, FolderOpen, Pencil } from 'lucide-react'
+import { FileText, Upload, Trash2, ExternalLink, FolderOpen, Pencil, Eye } from 'lucide-react'
 import { showToast } from '@/components/ui/Toast'
 import { formatDate } from '@/lib/utils'
 import ContextMenu, { ContextMenuItem } from '@/components/ui/ContextMenu'
 import { documents } from '@/lib/api'
+import FilePreview from '@/components/ui/FilePreview'
 
 /* ── Category mapping ── */
 const CATEGORIES = [
@@ -50,7 +51,9 @@ export default function Documents() {
   const [docs, setDocs] = useState<DocFile[]>([])
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(false)
-  // PDF viewer removed — opens in dedicated child window now
+  const [previewUrl, setPreviewUrl] = useState('')
+  const [previewName, setPreviewName] = useState('')
+  const [previewOpen, setPreviewOpen] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
@@ -113,11 +116,15 @@ export default function Documents() {
     if (files.length > 0) await uploadFiles(files)
   }
 
-  /* ── Open file in system app ── */
+  /* ── Open file — in-app preview (works on all devices including mobile) ── */
   const openFile = async (doc: DocFile) => {
     try {
       const signedUrl = await documents.getFileUrl(doc.id)
-      if (signedUrl) window.open(signedUrl, '_blank')
+      if (signedUrl) {
+        setPreviewUrl(signedUrl)
+        setPreviewName(doc.name)
+        setPreviewOpen(true)
+      }
     } catch {
       showToast('Could not open file', 'error')
     }
@@ -246,7 +253,7 @@ export default function Documents() {
           {docs.map(doc => {
 
             const ctxItems: ContextMenuItem[] = [
-              { label: 'Open', icon: ExternalLink, action: () => openFile(doc) },
+              { label: 'Preview', icon: Eye, action: () => openFile(doc) },
               { label: 'Rename', icon: Pencil, action: () => startRename(doc) },
               { label: '', action: () => {}, divider: true },
               { label: 'Delete', icon: Trash2, action: () => deleteDoc(doc.id, doc.name), danger: true },
@@ -310,6 +317,13 @@ export default function Documents() {
         </div>
       )}
 
+      {/* In-app file preview (works on mobile, laptop, desktop) */}
+      <FilePreview
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        url={previewUrl}
+        fileName={previewName}
+      />
     </div>
   )
 }
