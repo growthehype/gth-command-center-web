@@ -118,6 +118,7 @@ export default function Clients() {
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({ ...EMPTY_FORM })
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
   // Inline editing state
   const [inlineEditId, setInlineEditId] = useState<string | null>(null)
@@ -195,7 +196,7 @@ export default function Clients() {
       await clientsApi.update(client.id, { status: next })
       await refreshClients()
       showToast(`${client.name} → ${next}`, 'success')
-    } catch { showToast('Failed to update status', 'error') }
+    } catch (err: any) { console.error('Client status update failed:', err); showToast(err?.message || 'Failed to update status', 'error') }
   }
 
   // Create / Edit
@@ -219,6 +220,8 @@ export default function Clients() {
 
   const saveClient = async () => {
     if (!form.name.trim()) { showToast('Name is required', 'warn'); return }
+    if (saving) return
+    setSaving(true)
     try {
       const payload = {
         ...form,
@@ -244,7 +247,12 @@ export default function Clients() {
       }
       await Promise.all([refreshClients(), refreshActivity()])
       setModalOpen(false)
-    } catch { showToast('Save failed', 'error') }
+    } catch (err: any) {
+      console.error('Client save failed:', err)
+      showToast(err?.message || 'Save failed', 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
   // Delete
@@ -255,7 +263,7 @@ export default function Clients() {
       if (selectedId === id) setSelectedId(null)
       await Promise.all([refreshClients(), refreshActivity()])
       showToast('Client deleted', 'info')
-    } catch { showToast('Delete failed', 'error') }
+    } catch (err: any) { console.error('Client delete failed:', err); showToast(err?.message || 'Delete failed', 'error') }
   }
 
   // Row click => open drawer
@@ -524,7 +532,7 @@ export default function Clients() {
 
       {/* Add / Edit Modal */}
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? 'Edit Client' : 'New Client'} width="560px">
-        <ClientForm form={form} setForm={setForm} onSave={saveClient} clients={clients} editingId={editingId} />
+        <ClientForm form={form} setForm={setForm} onSave={saveClient} clients={clients} editingId={editingId} saving={saving} />
       </Modal>
     </div>
   )
@@ -573,12 +581,13 @@ function levenshtein(a: string, b: string): number {
 }
 
 function ClientForm({
-  form, setForm, onSave, clients, editingId,
+  form, setForm, onSave, clients, editingId, saving,
 }: {
   form: Record<string, any>
   setForm: (fn: any) => void
   onSave: () => void
   clients: Client[]
+  saving?: boolean
   editingId: string | null
 }) {
   const set = useCallback((key: string, val: any) => setForm((prev: any) => ({ ...prev, [key]: val })), [setForm])
@@ -653,7 +662,9 @@ function ClientForm({
         />
       </div>
       <div className="flex justify-end gap-3 pt-2">
-        <button onClick={onSave} className="btn-primary">Save Client</button>
+        <button onClick={onSave} className="btn-primary" disabled={saving || !form.name?.trim()} style={{ opacity: (saving || !form.name?.trim()) ? 0.5 : 1 }}>
+          {saving ? 'Saving...' : 'Save Client'}
+        </button>
       </div>
     </div>
   )
@@ -883,7 +894,7 @@ function ContactsTab({
       showToast('Contact added', 'success')
       setAdding(false)
       setName(''); setRole(''); setEmail(''); setPhone('')
-    } catch { showToast('Failed to add contact', 'error') }
+    } catch (err: any) { console.error('Client contact add failed:', err); showToast(err?.message || 'Failed to add contact', 'error') }
   }
 
   return (
@@ -1239,7 +1250,7 @@ function NotesTab({
       await clientsApi.update(client.id, { notes })
       await refreshClients()
       showToast('Notes saved', 'success')
-    } catch { showToast('Failed to save notes', 'error') }
+    } catch (err: any) { console.error('Client notes save failed:', err); showToast(err?.message || 'Failed to save notes', 'error') }
   }, [notes, client.id, client.notes, refreshClients])
 
   return (

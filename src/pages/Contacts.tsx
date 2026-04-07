@@ -43,6 +43,7 @@ export default function Contacts() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [nameDupWarning, setNameDupWarning] = useState<string | null>(null)
   const [emailDupWarning, setEmailDupWarning] = useState<string | null>(null)
   const nameDupTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -135,6 +136,8 @@ export default function Contacts() {
 
   const handleSave = async () => {
     if (!form.name.trim()) { showToast('Name is required', 'warn'); return }
+    if (saving) return
+    setSaving(true)
     try {
       const data = {
         name: form.name.trim(),
@@ -154,7 +157,12 @@ export default function Contacts() {
       }
       await refreshContacts()
       setModalOpen(false)
-    } catch { showToast('Failed to save contact', 'error') }
+    } catch (err: any) {
+      console.error('Contact save failed:', err)
+      showToast(err?.message || 'Failed to save contact', 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleDelete = async (contact: Contact, e: React.MouseEvent) => {
@@ -164,7 +172,7 @@ export default function Contacts() {
       await contactsApi.delete(contact.id)
       await refreshContacts()
       showToast(`Deleted ${contact.name}`, 'success')
-    } catch { showToast('Failed to delete', 'error') }
+    } catch (err: any) { console.error('Contact delete failed:', err); showToast(err?.message || 'Failed to delete', 'error') }
   }
 
   /* ── bulk selection helpers ── */
@@ -537,8 +545,8 @@ export default function Contacts() {
           </div>
           <div className="flex gap-3 justify-end mt-2">
             <button onClick={() => setModalOpen(false)} className="btn-ghost">Cancel</button>
-            <button onClick={handleSave} className="btn-primary">
-              {editingId ? 'Update' : 'Create'}
+            <button onClick={handleSave} className="btn-primary" disabled={saving || !form.name.trim()} style={{ opacity: (saving || !form.name.trim()) ? 0.5 : 1 }}>
+              {saving ? 'Saving...' : editingId ? 'Update' : 'Create'}
             </button>
           </div>
         </div>

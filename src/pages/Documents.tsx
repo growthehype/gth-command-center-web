@@ -125,8 +125,9 @@ export default function Documents() {
         setPreviewName(doc.name)
         setPreviewOpen(true)
       }
-    } catch {
-      showToast('Could not open file', 'error')
+    } catch (err: any) {
+      console.error('Document open failed:', err)
+      showToast(err?.message || 'Could not open file', 'error')
     }
   }
 
@@ -138,8 +139,9 @@ export default function Documents() {
       showToast(`Deleted ${fileName}`, 'info')
       await loadDocs(activeKey)
       await loadCounts()
-    } catch {
-      showToast('Delete failed', 'error')
+    } catch (err: any) {
+      console.error('Document delete failed:', err)
+      showToast(err?.message || 'Delete failed', 'error')
     }
   }
 
@@ -155,8 +157,9 @@ export default function Documents() {
       await documents.rename(renamingId, renameValue.trim())
       showToast('File renamed', 'success')
       await loadDocs(activeKey)
-    } catch {
-      showToast('Rename failed', 'error')
+    } catch (err: any) {
+      console.error('Document rename failed:', err)
+      showToast(err?.message || 'Rename failed', 'error')
     }
     setRenamingId(null)
     setRenameValue('')

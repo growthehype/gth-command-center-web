@@ -80,8 +80,9 @@ export default function Credentials() {
       setFormFields([{ label: '', value: '' }])
       setModalOpen(false)
       showToast('Credential saved', 'success')
-    } catch {
-      showToast('Failed to save credential', 'error')
+    } catch (err: any) {
+      console.error('Credential save failed:', err)
+      showToast(err?.message || 'Failed to save credential', 'error')
     }
   }, [formPlatform, formClientId, formFields, refreshCredentials, refreshActivity])
 
@@ -93,8 +94,9 @@ export default function Credentials() {
       await Promise.all([refreshCredentials(), refreshActivity()])
       setDeleteId(null)
       showToast('Credential deleted', 'info')
-    } catch {
-      showToast('Failed to delete credential', 'error')
+    } catch (err: any) {
+      console.error('Credential delete failed:', err)
+      showToast(err?.message || 'Failed to delete credential', 'error')
     }
   }, [deleteId, refreshCredentials, refreshActivity])
 

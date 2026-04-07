@@ -150,8 +150,9 @@ export default function Invoices() {
         setPreviewName(doc.name)
         setPreviewOpen(true)
       }
-    } catch {
-      showToast('Could not open file', 'error')
+    } catch (err: any) {
+      console.error('Invoice file open failed:', err)
+      showToast(err?.message || 'Could not open file', 'error')
     }
   }
 
@@ -162,8 +163,9 @@ export default function Invoices() {
       await invoiceFiles.delete(id)
       showToast(`Deleted ${fileName}`, 'info')
       await loadFiles()
-    } catch {
-      showToast('Delete failed', 'error')
+    } catch (err: any) {
+      console.error('Invoice file delete failed:', err)
+      showToast(err?.message || 'Delete failed', 'error')
     }
   }
 
@@ -179,8 +181,9 @@ export default function Invoices() {
       await invoiceFiles.rename(renamingId, renameValue.trim())
       showToast('File renamed', 'success')
       await loadFiles()
-    } catch {
-      showToast('Rename failed', 'error')
+    } catch (err: any) {
+      console.error('Invoice file rename failed:', err)
+      showToast(err?.message || 'Rename failed', 'error')
     }
     setRenamingId(null)
     setRenameValue('')

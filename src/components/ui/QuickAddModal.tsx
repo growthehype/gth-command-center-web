@@ -79,8 +79,9 @@ export default function QuickAddModal({ open, onClose }: QuickAddModalProps) {
       await refreshTasks()
       showToast('Task added', 'success')
       onClose()
-    } catch {
-      showToast('Failed to add task', 'error')
+    } catch (err: any) {
+      console.error('Quick add task failed:', err)
+      showToast(err?.message || 'Failed to add task', 'error')
     } finally {
       setLoading(false)
     }
@@ -99,8 +100,9 @@ export default function QuickAddModal({ open, onClose }: QuickAddModalProps) {
       await refreshContacts()
       showToast('Contact added', 'success')
       onClose()
-    } catch {
-      showToast('Failed to add contact', 'error')
+    } catch (err: any) {
+      console.error('Quick add contact failed:', err)
+      showToast(err?.message || 'Failed to add contact', 'error')
     } finally {
       setLoading(false)
     }
@@ -131,8 +133,9 @@ export default function QuickAddModal({ open, onClose }: QuickAddModalProps) {
       await notesApi.save(JSON.stringify(allNotes))
       showToast('Note saved', 'success')
       onClose()
-    } catch {
-      showToast('Failed to save note', 'error')
+    } catch (err: any) {
+      console.error('Quick add note failed:', err)
+      showToast(err?.message || 'Failed to save note', 'error')
     } finally {
       setLoading(false)
     }

@@ -61,6 +61,7 @@ export default function Tasks() {
   const [form, setForm] = useState({ ...EMPTY_FORM })
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [recentlyCompleted, setRecentlyCompleted] = useState<Set<string>>(new Set())
 
   /* ── Timer state ── */
@@ -195,7 +196,8 @@ export default function Tasks() {
   }, [refreshTasks, refreshActivity])
 
   const handleCreate = useCallback(async () => {
-    if (!form.text.trim()) return
+    if (!form.text.trim() || saving) return
+    setSaving(true)
     try {
       await tasksApi.create({
         text: form.text.trim(),
@@ -211,13 +213,17 @@ export default function Tasks() {
       setForm({ ...EMPTY_FORM })
       setModalOpen(false)
       showToast('Task created', 'success')
-    } catch {
-      showToast('Failed to create task', 'error')
+    } catch (err: any) {
+      console.error('Task create failed:', err)
+      showToast(err?.message || 'Failed to create task', 'error')
+    } finally {
+      setSaving(false)
     }
-  }, [form, refreshTasks, refreshActivity])
+  }, [form, saving, refreshTasks, refreshActivity])
 
   const handleUpdate = useCallback(async () => {
-    if (!form.text.trim() || !editingId) return
+    if (!form.text.trim() || !editingId || saving) return
+    setSaving(true)
     try {
       await tasksApi.update(editingId, {
         text: form.text.trim(),
@@ -233,10 +239,13 @@ export default function Tasks() {
       setEditingId(null)
       setModalOpen(false)
       showToast('Task updated', 'success')
-    } catch {
-      showToast('Failed to update task', 'error')
+    } catch (err: any) {
+      console.error('Task update failed:', err)
+      showToast(err?.message || 'Failed to update task', 'error')
+    } finally {
+      setSaving(false)
     }
-  }, [editingId, form, refreshTasks, refreshActivity])
+  }, [editingId, form, saving, refreshTasks, refreshActivity])
 
   const openEdit = useCallback((task: typeof tasks[number]) => {
     const tags = safeParseJSON<string[]>(task.tags, [])
@@ -900,10 +909,10 @@ export default function Tasks() {
             <button
               className="btn-primary"
               onClick={editingId ? handleUpdate : handleCreate}
-              disabled={!form.text.trim()}
-              style={{ opacity: form.text.trim() ? 1 : 0.4 }}
+              disabled={!form.text.trim() || saving}
+              style={{ opacity: (!form.text.trim() || saving) ? 0.5 : 1 }}
             >
-              {editingId ? 'Save Changes' : 'Create Task'}
+              {saving ? 'Saving...' : editingId ? 'Save Changes' : 'Create Task'}
             </button>
           </div>
         </div>

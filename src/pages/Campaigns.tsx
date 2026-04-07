@@ -30,6 +30,7 @@ export default function Campaigns() {
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({ ...EMPTY_FORM })
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
   // Stats
   const stats = useMemo(() => {
@@ -53,7 +54,7 @@ export default function Campaigns() {
       await campaignsApi.update(campaign.id, { status: next })
       await refreshCampaigns()
       showToast(`${campaign.name} -> ${next}`, 'success')
-    } catch { showToast('Failed to update status', 'error') }
+    } catch (err: any) { console.error('Campaign status update failed:', err); showToast(err?.message || 'Failed to update status', 'error') }
   }
 
   const openCreate = () => {
@@ -77,6 +78,8 @@ export default function Campaigns() {
 
   const handleSave = async () => {
     if (!form.name.trim()) { showToast('Campaign name is required', 'warn'); return }
+    if (saving) return
+    setSaving(true)
     try {
       const data = {
         client_id: form.client_id || null,
@@ -95,7 +98,12 @@ export default function Campaigns() {
       }
       await refreshCampaigns()
       setModalOpen(false)
-    } catch { showToast('Failed to save campaign', 'error') }
+    } catch (err: any) {
+      console.error('Campaign save failed:', err)
+      showToast(err?.message || 'Failed to save campaign', 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleDelete = async (campaign: Campaign, e: React.MouseEvent) => {
@@ -104,7 +112,7 @@ export default function Campaigns() {
       await campaignsApi.delete(campaign.id)
       await refreshCampaigns()
       showToast(`Deleted ${campaign.name}`, 'success')
-    } catch { showToast('Failed to delete', 'error') }
+    } catch (err: any) { console.error('Campaign delete failed:', err); showToast(err?.message || 'Failed to delete', 'error') }
   }
 
   return (
@@ -265,8 +273,8 @@ export default function Campaigns() {
           </div>
           <div className="flex gap-3 justify-end mt-2">
             <button onClick={() => setModalOpen(false)} className="btn-ghost">Cancel</button>
-            <button onClick={handleSave} className="btn-primary">
-              {editingId ? 'Update' : 'Create'}
+            <button onClick={handleSave} className="btn-primary" disabled={saving || !form.name.trim()} style={{ opacity: (saving || !form.name.trim()) ? 0.5 : 1 }}>
+              {saving ? 'Saving...' : editingId ? 'Update' : 'Create'}
             </button>
           </div>
         </div>

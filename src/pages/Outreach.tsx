@@ -36,6 +36,7 @@ export default function Outreach() {
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({ ...EMPTY_FORM })
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState<'name' | 'deal_value' | 'stage'>('name')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
@@ -95,7 +96,7 @@ export default function Outreach() {
       await outreach.update(lead.id, { stage: next })
       await refreshLeads()
       showToast(`${lead.name} -> ${next}`, 'success')
-    } catch { showToast('Failed to update stage', 'error') }
+    } catch (err: any) { console.error('Outreach stage update failed:', err); showToast(err?.message || 'Failed to update stage', 'error') }
   }
 
   const openCreate = () => {
@@ -119,6 +120,8 @@ export default function Outreach() {
 
   const handleSave = async () => {
     if (!form.name.trim()) { showToast('Name is required', 'warn'); return }
+    if (saving) return
+    setSaving(true)
     try {
       const data = {
         name: form.name.trim(),
@@ -137,7 +140,12 @@ export default function Outreach() {
       }
       await refreshLeads()
       setModalOpen(false)
-    } catch { showToast('Failed to save lead', 'error') }
+    } catch (err: any) {
+      console.error('Outreach save failed:', err)
+      showToast(err?.message || 'Failed to save lead', 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleDelete = async (lead: OutreachLead, e: React.MouseEvent) => {
@@ -147,7 +155,7 @@ export default function Outreach() {
       await outreach.delete(lead.id)
       await refreshLeads()
       showToast(`Deleted ${lead.name}`, 'success')
-    } catch { showToast('Failed to delete', 'error') }
+    } catch (err: any) { console.error('Outreach delete failed:', err); showToast(err?.message || 'Failed to delete', 'error') }
   }
 
   return (
@@ -351,8 +359,8 @@ export default function Outreach() {
           </div>
           <div className="flex gap-3 justify-end mt-2">
             <button onClick={() => setModalOpen(false)} className="btn-ghost">Cancel</button>
-            <button onClick={handleSave} className="btn-primary">
-              {editingId ? 'Update' : 'Create'}
+            <button onClick={handleSave} className="btn-primary" disabled={saving || !form.name.trim()} style={{ opacity: (saving || !form.name.trim()) ? 0.5 : 1 }}>
+              {saving ? 'Saving...' : editingId ? 'Update' : 'Create'}
             </button>
           </div>
         </div>

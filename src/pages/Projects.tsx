@@ -85,6 +85,7 @@ export default function Projects() {
   const [form, setForm] = useState({ ...EMPTY_FORM })
 
   // Drag and drop state
+  const [saving, setSaving] = useState(false)
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<ColumnKey | null>(null)
 
@@ -219,7 +220,8 @@ export default function Projects() {
 
   /* ── Save (create or update) ── */
   const handleSave = useCallback(async () => {
-    if (!form.title.trim()) return
+    if (!form.title.trim() || saving) return
+    setSaving(true)
     const payload = {
       title: form.title.trim(),
       description: form.description.trim() || null,
@@ -246,8 +248,10 @@ export default function Projects() {
     } catch (err: any) {
       console.error('Failed to save project:', err)
       showToast(`Error: ${err?.message || 'Failed to save'}`, 'error')
+    } finally {
+      setSaving(false)
     }
-  }, [form, editProject, refreshProjects, refreshActivity])
+  }, [form, saving, editProject, refreshProjects, refreshActivity])
 
   /* ── Client name resolver ── */
   const clientName = useCallback((project: Project): string => {
@@ -447,10 +451,10 @@ export default function Projects() {
               <button
                 className="btn-primary"
                 onClick={handleSave}
-                disabled={!form.title.trim()}
-                style={{ opacity: form.title.trim() ? 1 : 0.4 }}
+                disabled={!form.title.trim() || saving}
+                style={{ opacity: (!form.title.trim() || saving) ? 0.5 : 1 }}
               >
-                {editProject ? 'Save Changes' : 'Create Project'}
+                {saving ? 'Saving...' : editProject ? 'Save Changes' : 'Create Project'}
               </button>
             </div>
           </div>

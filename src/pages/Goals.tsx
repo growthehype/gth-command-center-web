@@ -48,6 +48,7 @@ export default function Goals() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState({ ...EMPTY_FORM })
+  const [saving, setSaving] = useState(false)
 
   const activeGoals = useMemo(() => goals.filter(g => g.status === 'active'), [goals])
   const achievedGoals = useMemo(() => goals.filter(g => g.status === 'achieved'), [goals])
@@ -77,6 +78,8 @@ export default function Goals() {
 
   const save = async () => {
     if (!form.title.trim()) { showToast('Title is required', 'warn'); return }
+    if (saving) return
+    setSaving(true)
     try {
       const payload = {
         title: form.title,
@@ -96,7 +99,12 @@ export default function Goals() {
       }
       await Promise.all([refreshGoals(), refreshActivity()])
       setModalOpen(false)
-    } catch { showToast('Save failed', 'error') }
+    } catch (err: any) {
+      console.error('Goal save failed:', err)
+      showToast(err?.message || 'Save failed', 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const deleteGoal = async (id: string) => {
@@ -104,7 +112,7 @@ export default function Goals() {
       await goalsApi.delete(id)
       await Promise.all([refreshGoals(), refreshActivity()])
       showToast('Goal deleted', 'info')
-    } catch { showToast('Delete failed', 'error') }
+    } catch (err: any) { console.error('Goal delete failed:', err); showToast(err?.message || 'Delete failed', 'error') }
   }
 
   const GoalCard = ({ g }: { g: Goal }) => {
@@ -321,8 +329,8 @@ export default function Goals() {
 
           <div className="flex items-center justify-between pt-2">
             <div className="flex gap-2">
-              <button onClick={save} className="btn-primary">
-                {editingId ? 'Update' : 'Create'}
+              <button onClick={save} className="btn-primary" disabled={saving || !form.title.trim()} style={{ opacity: (saving || !form.title.trim()) ? 0.5 : 1 }}>
+                {saving ? 'Saving...' : editingId ? 'Update' : 'Create'}
               </button>
               <button onClick={() => setModalOpen(false)} className="btn-ghost">Cancel</button>
             </div>

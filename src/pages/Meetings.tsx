@@ -38,6 +38,7 @@ export default function Meetings() {
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({ ...EMPTY_FORM })
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
   const [filterClient, setFilterClient] = useState('')
   const [filterType, setFilterType] = useState('')
   const [collapsedWeeks, setCollapsedWeeks] = useState<Set<string>>(new Set())
@@ -116,6 +117,8 @@ export default function Meetings() {
   const handleSave = async () => {
     if (!form.title.trim()) { showToast('Title is required', 'warn'); return }
     if (!form.date) { showToast('Date is required', 'warn'); return }
+    if (saving) return
+    setSaving(true)
     try {
       const cleanActions = form.action_items.filter(a => a.trim())
       const data = {
@@ -137,7 +140,12 @@ export default function Meetings() {
       }
       await refreshMeetings()
       setModalOpen(false)
-    } catch { showToast('Failed to save meeting', 'error') }
+    } catch (err: any) {
+      console.error('Meeting save failed:', err)
+      showToast(err?.message || 'Failed to save meeting', 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleDelete = async (meeting: MeetingNote, e: React.MouseEvent) => {
@@ -402,8 +410,8 @@ export default function Meetings() {
           </div>
           <div className="flex gap-3 justify-end mt-2">
             <button onClick={() => setModalOpen(false)} className="btn-ghost">Cancel</button>
-            <button onClick={handleSave} className="btn-primary">
-              {editingId ? 'Update' : 'Create'}
+            <button onClick={handleSave} className="btn-primary" disabled={saving || !form.title.trim()} style={{ opacity: (saving || !form.title.trim()) ? 0.5 : 1 }}>
+              {saving ? 'Saving...' : editingId ? 'Update' : 'Create'}
             </button>
           </div>
         </div>
