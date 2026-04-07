@@ -1096,7 +1096,7 @@ function TimeTab({ client, timeEntries }: { client: Client; timeEntries: any[] }
 
 function CredentialsTab({ client, credentials }: { client: Client; credentials: any[] }) {
   const clientCreds = useMemo(
-    () => credentials.filter(cr => cr.client_id === client.id),
+    () => credentials.filter(cr => cr.client_id === client.id && cr.platform !== 'google_calendar'),
     [credentials, client.id]
   )
 

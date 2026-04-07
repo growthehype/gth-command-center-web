@@ -95,12 +95,14 @@ export default function Credentials() {
     return map
   }, [clients])
 
-  /* ── Filtered + enriched credentials ── */
+  /* ── Filtered + enriched credentials (exclude internal tokens like google_calendar) ── */
   const filtered = useMemo(() => {
-    let list = credentials.map(c => ({
-      ...c,
-      client_name: c.client_id ? clientMap[c.client_id] || null : null,
-    }))
+    let list = credentials
+      .filter(c => c.platform !== 'google_calendar')
+      .map(c => ({
+        ...c,
+        client_name: c.client_id ? clientMap[c.client_id] || null : null,
+      }))
 
     if (filterClient) {
       list = list.filter(c => c.client_id === filterClient)
@@ -115,16 +117,17 @@ export default function Credentials() {
     return list
   }, [credentials, clientMap, search, filterClient])
 
-  /* ── Stats ── */
+  /* ── Stats (exclude internal tokens) ── */
+  const userCredentials = useMemo(() => credentials.filter(c => c.platform !== 'google_calendar'), [credentials])
   const stats = useMemo(() => {
-    const total = credentials.length
-    const aging = credentials.filter(c => {
+    const total = userCredentials.length
+    const aging = userCredentials.filter(c => {
       const age = credentialAge(c.created_at)
       return age.color === 'warn' || age.color === 'err'
     }).length
-    const uniquePlatforms = new Set(credentials.map(c => c.platform.toLowerCase())).size
+    const uniquePlatforms = new Set(userCredentials.map(c => c.platform.toLowerCase())).size
     return { total, aging, uniquePlatforms }
-  }, [credentials])
+  }, [userCredentials])
 
   /* ── Reveal/hide all fields on a card ── */
   const toggleRevealCard = useCallback((credId: string) => {
@@ -160,7 +163,8 @@ export default function Credentials() {
 
   /* ── Open edit modal ── */
   const openEdit = (cred: Credential & { client_name?: string | null }) => {
-    const fields: FieldPair[] = safeParseJSON(cred.fields, [])
+    const rawFields = safeParseJSON(cred.fields, [])
+    const fields: FieldPair[] = Array.isArray(rawFields) ? rawFields : []
     // Extract url and notes from fields if they exist
     const urlField = fields.find(f => f.label.toLowerCase() === 'url' || f.label.toLowerCase() === 'login url')
     const notesField = fields.find(f => f.label.toLowerCase() === 'notes')
@@ -324,7 +328,8 @@ export default function Credentials() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map(cred => {
-            const fields: FieldPair[] = safeParseJSON(cred.fields, [])
+            const rawFields = safeParseJSON(cred.fields, [])
+    const fields: FieldPair[] = Array.isArray(rawFields) ? rawFields : []
             const age = credentialAge(cred.created_at)
             const isRevealed = revealedCards.has(cred.id)
             const meta = getPlatformMeta(cred.platform)
