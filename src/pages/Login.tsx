@@ -1,30 +1,39 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useAppStore } from '@/lib/store'
 
 export default function Login() {
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
+  const [resetMsg, setResetMsg] = useState<string | null>(null)
+  const enterDemoMode = useAppStore((s) => s.enterDemoMode)
+
+  const handleForgotPassword = async () => {
+    setResetMsg(null)
+    setError(null)
+    if (!email.trim()) {
+      setError('Enter your email address first')
+      return
+    }
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email)
+      if (error) throw error
+      setResetMsg('Password reset email sent! Check your inbox.')
+    } catch (err: any) {
+      setError(err.message || 'Failed to send reset email')
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    setMessage(null)
 
     try {
-      if (mode === 'signup') {
-        const { error } = await supabase.auth.signUp({ email, password })
-        if (error) throw error
-        setMessage('Account created! Check your email to confirm, then sign in.')
-        setMode('signin')
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
-        if (error) throw error
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) throw error
     } catch (err: any) {
       setError(err.message || 'Something went wrong')
     } finally {
@@ -46,7 +55,7 @@ export default function Login() {
             GTH Operations Command Center
           </h1>
           <p className="text-sm text-frost mt-1">
-            {mode === 'signin' ? 'Sign in to your account' : 'Create a new account'}
+            Sign in to your account
           </p>
         </div>
 
@@ -81,24 +90,31 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                autoComplete="current-password"
                 minLength={6}
                 className="w-full px-3 py-2 bg-obsidian border border-graphite rounded-lg text-polar placeholder-frost/40 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-                placeholder={mode === 'signup' ? 'Min 6 characters' : 'Your password'}
+                placeholder="Your password"
               />
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                className="text-xs text-frost/60 hover:text-frost transition-colors mt-1.5 cursor-pointer bg-transparent border-none p-0"
+              >
+                Forgot password?
+              </button>
             </div>
+
+            {/* Success message */}
+            {resetMsg && (
+              <div className="text-green-400 text-sm bg-green-400/10 border border-green-400/20 rounded-lg px-3 py-2">
+                {resetMsg}
+              </div>
+            )}
 
             {/* Error */}
             {error && (
               <div className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-3 py-2">
                 {error}
-              </div>
-            )}
-
-            {/* Success message */}
-            {message && (
-              <div className="text-emerald-400 text-sm bg-emerald-400/10 border border-emerald-400/20 rounded-lg px-3 py-2">
-                {message}
               </div>
             )}
 
@@ -108,38 +124,27 @@ export default function Login() {
               disabled={loading}
               className="btn-primary w-full py-2.5 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading
-                ? 'Please wait...'
-                : mode === 'signin'
-                  ? 'Sign In'
-                  : 'Create Account'}
+              {loading ? 'Please wait...' : 'Sign In'}
             </button>
           </form>
 
-          {/* Toggle mode */}
-          <div className="mt-4 text-center text-sm text-frost">
-            {mode === 'signin' ? (
-              <>
-                Don't have an account?{' '}
-                <button
-                  onClick={() => { setMode('signup'); setError(null); setMessage(null) }}
-                  className="text-accent hover:underline font-medium"
-                >
-                  Create Account
-                </button>
-              </>
-            ) : (
-              <>
-                Already have an account?{' '}
-                <button
-                  onClick={() => { setMode('signin'); setError(null); setMessage(null) }}
-                  className="text-accent hover:underline font-medium"
-                >
-                  Sign In
-                </button>
-              </>
-            )}
+          {/* Divider */}
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-graphite" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-charcoal px-2 text-frost/50">or</span>
+            </div>
           </div>
+
+          {/* Demo button */}
+          <button
+            onClick={enterDemoMode}
+            className="w-full py-2.5 rounded-lg font-medium border border-graphite text-frost hover:bg-graphite/40 transition-colors"
+          >
+            Try Demo
+          </button>
         </div>
 
         {/* Footer */}

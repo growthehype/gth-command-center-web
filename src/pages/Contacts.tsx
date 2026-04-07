@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Users, Plus, Trash2, Search, Mail, X } from 'lucide-react'
+import { Users, Plus, Trash2, Search, Mail, X, Download, ChevronUp, ChevronDown } from 'lucide-react'
 import { useAppStore, Contact } from '@/lib/store'
 import { contacts as contactsApi, shell } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
@@ -7,6 +7,8 @@ import Modal from '@/components/ui/Modal'
 import EmptyState from '@/components/ui/EmptyState'
 import VoiceTextarea from '@/components/ui/VoiceTextarea'
 import { relativeDate } from '@/lib/utils'
+import { exportToCSV } from '@/lib/export-csv'
+import ClientAvatar from '@/components/ui/ClientAvatar'
 
 const EMPTY_FORM = {
   name: '', role: '', client_id: '', email: '', phone: '',
@@ -22,8 +24,22 @@ export default function Contacts() {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'all' | 'primary'>('all')
   const [detailContact, setDetailContact] = useState<Contact | null>(null)
+  const [sortField, setSortField] = useState<'name' | 'email' | 'role'>('name')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
-  // Filter + search
+  const handleSort = (field: 'name' | 'email' | 'role') => {
+    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortField(field); setSortDir('asc') }
+  }
+
+  const SortIcon = ({ col }: { col: string }) => {
+    if (sortField !== col) return <ChevronUp size={10} className="text-dim ml-1 inline" />
+    return sortDir === 'asc'
+      ? <ChevronUp size={10} className="text-polar ml-1 inline" />
+      : <ChevronDown size={10} className="text-polar ml-1 inline" />
+  }
+
+  // Filter + search + sort
   const visible = useMemo(() => {
     let list = [...contacts]
     if (filter === 'primary') list = list.filter(c => c.is_primary === 1)
@@ -36,8 +52,14 @@ export default function Contacts() {
         (c.email || '').toLowerCase().includes(q)
       )
     }
+    list.sort((a, b) => {
+      const aVal = (a[sortField] || '').toLowerCase()
+      const bVal = (b[sortField] || '').toLowerCase()
+      const cmp = aVal.localeCompare(bVal)
+      return sortDir === 'asc' ? cmp : -cmp
+    })
     return list
-  }, [contacts, filter, search])
+  }, [contacts, filter, search, sortField, sortDir])
 
   const openCreate = () => {
     setForm({ ...EMPTY_FORM })
@@ -100,9 +122,26 @@ export default function Contacts() {
           <h1>Contacts</h1>
           <p className="text-dim mt-1" style={{ fontSize: '13px' }}>{contacts.length} contacts across all clients</p>
         </div>
-        <button onClick={openCreate} className="btn-primary flex items-center gap-2">
-          <Plus size={14} /> Add Contact
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => exportToCSV(
+              visible.map(c => ({
+                name: c.name || '',
+                email: c.email || '',
+                phone: c.phone || '',
+                role: c.role || '',
+                company: c.client_name || '',
+              })),
+              'contacts-export'
+            )}
+            className="btn-ghost flex items-center gap-2"
+          >
+            <Download size={14} /> Export CSV
+          </button>
+          <button onClick={openCreate} className="btn-primary flex items-center gap-2">
+            <Plus size={14} /> Add Contact
+          </button>
+        </div>
       </div>
 
       {/* Search + Filters */}
@@ -146,10 +185,10 @@ export default function Contacts() {
           <table className="w-full min-w-[700px]" style={{ fontSize: '13px' }}>
             <thead>
               <tr className="border-b border-border text-left">
-                <th className="label px-4 py-3">Name</th>
-                <th className="label px-4 py-3">Role</th>
+                <th className="label px-4 py-3 cursor-pointer select-none" onClick={() => handleSort('name')}>Name <SortIcon col="name" /></th>
+                <th className="label px-4 py-3 cursor-pointer select-none" onClick={() => handleSort('role')}>Role <SortIcon col="role" /></th>
                 <th className="label px-4 py-3">Client</th>
-                <th className="label px-4 py-3">Email</th>
+                <th className="label px-4 py-3 cursor-pointer select-none" onClick={() => handleSort('email')}>Email <SortIcon col="email" /></th>
                 <th className="label px-4 py-3">Phone</th>
                 <th className="label px-4 py-3">Last Contacted</th>
                 <th className="label px-4 py-3">Primary</th>
@@ -165,7 +204,14 @@ export default function Contacts() {
                 >
                   <td className="px-4 py-3 text-polar font-semibold">{c.name}</td>
                   <td className="px-4 py-3 text-steel">{c.role || '-'}</td>
-                  <td className="px-4 py-3 text-steel">{c.client_name || '-'}</td>
+                  <td className="px-4 py-3 text-steel">
+                    {c.client_name ? (
+                      <div className="flex items-center gap-2">
+                        <ClientAvatar name={c.client_name} size="sm" />
+                        {c.client_name}
+                      </div>
+                    ) : '-'}
+                  </td>
                   <td className="px-4 py-3 text-dim mono">{c.email || '-'}</td>
                   <td className="px-4 py-3 text-dim mono">{c.phone || '-'}</td>
                   <td className="px-4 py-3 text-dim">{relativeDate(c.last_contacted)}</td>

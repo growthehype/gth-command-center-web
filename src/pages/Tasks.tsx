@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
-import { CheckSquare, Plus, Trash2, RefreshCw, Calendar as CalIcon, Edit3, Check } from 'lucide-react'
+import { CheckSquare, Plus, Trash2, RefreshCw, Calendar as CalIcon, Edit3, Check, AlertTriangle, Clock, Download, X } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { tasks as tasksApi } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
@@ -8,7 +8,8 @@ import EmptyState from '@/components/ui/EmptyState'
 import VoiceTextarea from '@/components/ui/VoiceTextarea'
 import ContextMenu, { ContextMenuItem } from '@/components/ui/ContextMenu'
 import { formatDate, friendlyDate, isOverdue, safeParseJSON } from '@/lib/utils'
-import { isToday, parseISO } from 'date-fns'
+import { exportToCSV } from '@/lib/export-csv'
+import { isToday, parseISO, differenceInCalendarDays } from 'date-fns'
 
 /* Priority sort weight — lower = higher priority */
 const PRIORITY_WEIGHT: Record<string, number> = {
@@ -38,6 +39,9 @@ export default function Tasks() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState({ ...EMPTY_FORM })
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkLoading, setBulkLoading] = useState(false)
+  const [recentlyCompleted, setRecentlyCompleted] = useState<Set<string>>(new Set())
 
   /* ── counts ── */
   const counts = useMemo(() => {
@@ -101,9 +105,24 @@ export default function Tasks() {
 
   /* ── handlers ── */
   const handleToggle = useCallback(async (id: string) => {
+    // Check if the task is currently not done (i.e. being completed)
+    const task = tasks.find(t => t.id === id)
+    const isCompleting = task && !task.done
+
     await tasksApi.toggle(id)
     await Promise.all([refreshTasks(), refreshActivity()])
-  }, [refreshTasks, refreshActivity])
+
+    if (isCompleting) {
+      setRecentlyCompleted(prev => new Set(prev).add(id))
+      setTimeout(() => {
+        setRecentlyCompleted(prev => {
+          const next = new Set(prev)
+          next.delete(id)
+          return next
+        })
+      }, 1000)
+    }
+  }, [tasks, refreshTasks, refreshActivity])
 
   const handleDelete = useCallback(async (id: string) => {
     if (!confirm('Delete this task? This cannot be undone.')) return
@@ -165,6 +184,59 @@ export default function Tasks() {
     setModalOpen(true)
   }, [])
 
+  /* ── bulk selection helpers ── */
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds(prev => {
+      if (prev.size === filteredTasks.length && filteredTasks.length > 0) return new Set()
+      return new Set(filteredTasks.map(t => t.id))
+    })
+  }, [filteredTasks])
+
+  const handleBulkDone = useCallback(async () => {
+    if (selectedIds.size === 0) return
+    setBulkLoading(true)
+    try {
+      const undone = tasks.filter(t => selectedIds.has(t.id) && !t.done)
+      await Promise.all(
+        undone.map(t => tasksApi.update(t.id, { done: true, completed_at: new Date().toISOString() }))
+      )
+      await Promise.all([refreshTasks(), refreshActivity()])
+      showToast(`${undone.length} task${undone.length !== 1 ? 's' : ''} marked done`, 'success')
+    } catch {
+      showToast('Failed to mark tasks done', 'error')
+    } finally {
+      setSelectedIds(new Set())
+      setBulkLoading(false)
+    }
+  }, [selectedIds, tasks, refreshTasks, refreshActivity])
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedIds.size === 0) return
+    if (!confirm(`Delete ${selectedIds.size} task${selectedIds.size !== 1 ? 's' : ''}? This cannot be undone.`)) return
+    setBulkLoading(true)
+    try {
+      await Promise.all(
+        Array.from(selectedIds).map(id => tasksApi.delete(id))
+      )
+      await Promise.all([refreshTasks(), refreshActivity()])
+      showToast(`${selectedIds.size} task${selectedIds.size !== 1 ? 's' : ''} deleted`, 'info')
+    } catch {
+      showToast('Failed to delete tasks', 'error')
+    } finally {
+      setSelectedIds(new Set())
+      setBulkLoading(false)
+    }
+  }, [selectedIds, refreshTasks, refreshActivity])
+
   /* ── helpers ── */
   function priorityBadge(priority: string) {
     switch (priority) {
@@ -196,17 +268,34 @@ export default function Tasks() {
 
   /* ── render ── */
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" style={{ paddingBottom: selectedIds.size > 0 ? '80px' : undefined }}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h1>Tasks</h1>
           <CheckSquare size={14} className="text-dim" />
         </div>
-        <button className="btn-primary flex items-center gap-2" onClick={() => { setEditingId(null); setForm({ ...EMPTY_FORM }); setModalOpen(true) }}>
-          <Plus size={12} strokeWidth={2.5} />
-          New Task
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => exportToCSV(
+              filteredTasks.map(t => ({
+                title: t.text || '',
+                status: t.done ? 'done' : 'todo',
+                priority: t.priority || '',
+                due_date: t.due_date || '',
+                client: t.client_name || '',
+              })),
+              'tasks-export'
+            )}
+            className="btn-ghost flex items-center gap-2"
+          >
+            <Download size={12} /> Export CSV
+          </button>
+          <button className="btn-primary flex items-center gap-2" onClick={() => { setEditingId(null); setForm({ ...EMPTY_FORM }); setModalOpen(true) }}>
+            <Plus size={12} strokeWidth={2.5} />
+            New Task
+          </button>
+        </div>
       </div>
 
       {/* Filter chips */}
@@ -248,11 +337,43 @@ export default function Tasks() {
         />
       ) : (
         <div>
+          {/* Select-all header */}
+          <div className="flex items-center gap-3 px-2 py-1.5 border-b border-border-hard" style={{ marginBottom: '2px' }}>
+            <button
+              onClick={toggleSelectAll}
+              className={`flex-shrink-0 w-3.5 h-3.5 border cursor-pointer transition-colors duration-100 flex items-center justify-center ${
+                selectedIds.size === filteredTasks.length && filteredTasks.length > 0
+                  ? 'bg-polar/20 border-polar text-polar'
+                  : selectedIds.size > 0
+                    ? 'bg-polar/10 border-polar/50 text-polar/50'
+                    : 'border-dim hover:border-steel text-transparent hover:text-dim'
+              }`}
+              style={{ borderRadius: '2px' }}
+            >
+              {selectedIds.size > 0 && (
+                <svg width="7" height="7" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  {selectedIds.size === filteredTasks.length
+                    ? <polyline points="2 6 5 9 10 3" />
+                    : <line x1="3" y1="6" x2="9" y2="6" />
+                  }
+                </svg>
+              )}
+            </button>
+            <span className="text-dim" style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+              {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Select all'}
+            </span>
+          </div>
           {filteredTasks.map(task => {
             const tags = safeParseJSON<string[]>(task.tags, [])
             const overdue = !task.done && isOverdue(task.due_date)
             const todayTask = !task.done && task.due_date && (() => {
               try { return isToday(parseISO(task.due_date!)) } catch { return false }
+            })()
+            const dueSoon = !task.done && !overdue && !todayTask && task.due_date && (() => {
+              try {
+                const diff = differenceInCalendarDays(parseISO(task.due_date!), new Date())
+                return diff > 0 && diff <= 2
+              } catch { return false }
             })()
 
             const taskCtx: ContextMenuItem[] = [
@@ -264,12 +385,29 @@ export default function Tasks() {
             return (
               <ContextMenu key={task.id} items={taskCtx}>
               <div
-                className={`table-row flex items-center gap-3 py-2.5 px-2 ${task.done ? 'opacity-40' : ''}`}
+                className={`table-row flex items-center gap-3 py-2.5 px-2 ${task.done ? 'opacity-40' : ''} ${selectedIds.has(task.id) ? 'bg-polar/5' : ''} ${recentlyCompleted.has(task.id) ? 'task-just-completed' : ''}`}
               >
-                {/* Checkbox */}
+                {/* Selection checkbox */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleSelect(task.id) }}
+                  className={`flex-shrink-0 w-3.5 h-3.5 border cursor-pointer transition-colors duration-100 flex items-center justify-center ${
+                    selectedIds.has(task.id)
+                      ? 'bg-polar/20 border-polar text-polar'
+                      : 'border-dim/50 hover:border-steel text-transparent hover:text-dim'
+                  }`}
+                  style={{ borderRadius: '2px' }}
+                >
+                  {selectedIds.has(task.id) && (
+                    <svg width="7" height="7" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="2 6 5 9 10 3" />
+                    </svg>
+                  )}
+                </button>
+
+                {/* Done toggle checkbox */}
                 <button
                   onClick={() => handleToggle(task.id)}
-                  className={`flex-shrink-0 w-4 h-4 border cursor-pointer transition-colors duration-100 flex items-center justify-center ${
+                  className={`done-checkbox flex-shrink-0 w-4 h-4 border cursor-pointer transition-colors duration-100 flex items-center justify-center ${
                     task.done
                       ? 'bg-ok/20 border-ok text-ok'
                       : 'border-dim hover:border-steel text-transparent hover:text-dim'
@@ -287,7 +425,7 @@ export default function Tasks() {
                 <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openEdit(task)}>
                   <div
                     className={`truncate ${task.done ? 'line-through text-steel' : overdue ? 'text-err' : ''}`}
-                    style={{ fontSize: '13px', fontWeight: 600 }}
+                    style={{ fontSize: '13px', fontWeight: 600, transition: 'all 0.4s ease', opacity: recentlyCompleted.has(task.id) || task.done ? 0.5 : 1 }}
                   >
                     {task.text}
                   </div>
@@ -308,12 +446,24 @@ export default function Tasks() {
                 {/* Due date */}
                 {task.due_date && (
                   <span
-                    className={`flex-shrink-0 mono flex items-center gap-1 ${
-                      task.done ? 'text-steel' : overdue ? 'text-err' : todayTask ? 'text-warn' : 'text-steel'
+                    className={`flex-shrink-0 mono flex items-center gap-1.5 ${
+                      task.done ? 'text-steel' : overdue ? 'text-err' : (todayTask || dueSoon) ? 'text-warn' : 'text-steel'
                     }`}
                   >
                     <CalIcon size={9} />
                     {friendlyDate(task.due_date)}
+                    {overdue && !task.done && (
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-err/15 text-err px-1.5 py-0.5" style={{ fontSize: '9px', fontWeight: 700, lineHeight: 1 }}>
+                        <AlertTriangle size={8} />
+                        OVERDUE
+                      </span>
+                    )}
+                    {todayTask && (
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-warn/15 text-warn px-1.5 py-0.5" style={{ fontSize: '9px', fontWeight: 700, lineHeight: 1 }}>
+                        <Clock size={8} />
+                        DUE TODAY
+                      </span>
+                    )}
                   </span>
                 )}
 
@@ -481,6 +631,71 @@ export default function Tasks() {
           </div>
         </div>
       </Modal>
+
+      {/* ── Bulk Action Bar ── */}
+      {selectedIds.size > 0 && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-center pointer-events-none"
+          style={{ padding: '16px 16px 24px' }}
+        >
+          <div
+            className="pointer-events-auto flex items-center gap-3 px-5 py-3 rounded-lg shadow-lg"
+            style={{
+              background: 'var(--obsidian, #0d0d0d)',
+              border: '1px solid var(--border-hard, #2a2a2a)',
+              maxWidth: '480px',
+              width: '100%',
+            }}
+          >
+            <span className="text-polar font-semibold whitespace-nowrap" style={{ fontSize: '13px' }}>
+              {selectedIds.size} task{selectedIds.size !== 1 ? 's' : ''} selected
+            </span>
+
+            <div className="flex-1" />
+
+            <button
+              onClick={handleBulkDone}
+              disabled={bulkLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded cursor-pointer transition-colors"
+              style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                background: 'var(--ok, #22c55e)',
+                color: '#fff',
+                opacity: bulkLoading ? 0.5 : 1,
+              }}
+            >
+              <Check size={12} strokeWidth={2.5} />
+              Mark Done
+            </button>
+
+            <button
+              onClick={handleBulkDelete}
+              disabled={bulkLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded cursor-pointer transition-colors"
+              style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                background: 'var(--err, #ef4444)',
+                color: '#fff',
+                opacity: bulkLoading ? 0.5 : 1,
+              }}
+            >
+              <Trash2 size={12} />
+              Delete
+            </button>
+
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="flex items-center gap-1 px-2 py-1.5 rounded cursor-pointer text-steel hover:text-polar transition-colors"
+              style={{ fontSize: '11px', fontWeight: 600 }}
+            >
+              <X size={12} />
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

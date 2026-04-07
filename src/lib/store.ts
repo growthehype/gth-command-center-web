@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { clients as clientsApi, tasks as tasksApi, projects as projectsApi, invoices as invoicesApi, outreach as outreachApi, events as eventsApi, campaigns as campaignsApi, contacts as contactsApi, meetings as meetingsApi, services as servicesApi, templates as templatesApi, goals as goalsApi, activity as activityApi, credentials as credentialsApi, sops as sopsApi, timeEntries as timeEntriesApi, settings as settingsApi } from '@/lib/api'
+import { demoData } from '@/lib/demo-data'
 import type { User } from '@supabase/supabase-js'
 
 // Types
@@ -73,6 +74,11 @@ interface AppStore {
   user: User | null
   setUser: (user: User | null) => void
 
+  // Demo mode
+  demoMode: boolean
+  enterDemoMode: () => void
+  exitDemoMode: () => void
+
   // Data
   clients: Client[]
   tasks: Task[]
@@ -135,6 +141,22 @@ export const useAppStore = create<AppStore>((set) => ({
   user: null,
   setUser: (user) => set({ user }),
 
+  demoMode: localStorage.getItem('gth_demo_mode') === 'true',
+  enterDemoMode: () => {
+    localStorage.setItem('gth_demo_mode', 'true')
+    set({ demoMode: true, ...demoData })
+  },
+  exitDemoMode: () => {
+    localStorage.removeItem('gth_demo_mode')
+    set({
+      demoMode: false,
+      clients: [], tasks: [], projects: [], invoices: [], leads: [], events: [],
+      campaigns: [], contacts: [], meetings: [], services: [], templates: [],
+      goals: [], activity: [], credentials: [], sops: [], timeEntries: [],
+      settings: {}, runningTimer: null, currentPage: 'briefing',
+    })
+  },
+
   clients: [],
   tasks: [],
   projects: [],
@@ -173,6 +195,11 @@ export const useAppStore = create<AppStore>((set) => ({
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
 
   loadAllData: async () => {
+    // In demo mode, load demo data instead of calling Supabase
+    if (useAppStore.getState().demoMode) {
+      set({ ...demoData })
+      return
+    }
     try {
       const safe = async <T,>(fn: () => Promise<T>, fallback: T): Promise<T> => {
         try { return await fn() } catch { return fallback }

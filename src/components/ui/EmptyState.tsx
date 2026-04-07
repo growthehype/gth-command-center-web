@@ -6,9 +6,10 @@ interface EmptyStateProps {
   description: string
   actionLabel?: string
   onAction?: () => void
+  action?: React.ReactNode
 }
 
-export default function EmptyState({ icon: Icon = FileX, title, description, actionLabel, onAction }: EmptyStateProps) {
+export default function EmptyState({ icon: Icon = FileX, title, description, actionLabel, onAction, action }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <Icon size={32} className="text-dim mb-4" strokeWidth={1.5} />
@@ -19,6 +20,7 @@ export default function EmptyState({ icon: Icon = FileX, title, description, act
           {actionLabel}
         </button>
       )}
+      {action && !actionLabel && action}
     </div>
   )
 }

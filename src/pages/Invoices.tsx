@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { Receipt, Upload, Trash2, ExternalLink, FolderOpen, Pencil, Search } from 'lucide-react'
+import { Receipt, Upload, Trash2, ExternalLink, FolderOpen, Pencil, Search, FileText, FileSpreadsheet, Image, Archive, File, Download, DollarSign } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
+import type { Invoice } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import { formatDate } from '@/lib/utils'
+import { exportToCSV } from '@/lib/export-csv'
 import ContextMenu, { ContextMenuItem } from '@/components/ui/ContextMenu'
 import { invoiceFiles } from '@/lib/api'
+import { SkeletonTable } from '@/components/ui/Skeleton'
 
 interface InvoiceFile {
   id: string
@@ -25,16 +28,32 @@ function formatFileSize(bytes: number): string {
 
 function fileIcon(name: string) {
   const ext = name.split('.').pop()?.toLowerCase()
-  if (ext === 'pdf') return '📄'
-  if (['doc', 'docx'].includes(ext || '')) return '📝'
-  if (['xls', 'xlsx'].includes(ext || '')) return '📊'
-  if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext || '')) return '🖼'
-  if (['zip', 'rar', '7z'].includes(ext || '')) return '📦'
-  return '📎'
+  const base = 'w-7 h-7 flex items-center justify-center rounded-full'
+  if (ext === 'pdf')
+    return <span className={`${base} bg-err/10`}><FileText size={14} className="text-err" /></span>
+  if (['doc', 'docx'].includes(ext || ''))
+    return <span className={`${base} bg-blue-500/10`}><FileText size={14} className="text-blue-400" /></span>
+  if (['xls', 'xlsx', 'csv'].includes(ext || ''))
+    return <span className={`${base} bg-ok/10`}><FileSpreadsheet size={14} className="text-ok" /></span>
+  if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext || ''))
+    return <span className={`${base} bg-purple-500/10`}><Image size={14} className="text-purple-400" /></span>
+  if (['zip', 'rar', '7z'].includes(ext || ''))
+    return <span className={`${base} bg-warn/10`}><Archive size={14} className="text-warn" /></span>
+  return <span className={`${base} bg-dim/10`}><File size={14} className="text-dim" /></span>
+}
+
+function getInvoiceStatus(inv: Invoice): { label: string; color: string; bg: string } {
+  if (inv.status === 'paid') return { label: 'Paid', color: 'text-ok', bg: 'bg-ok/10' }
+  if (inv.due_date && new Date(inv.due_date) < new Date()) return { label: 'Overdue', color: 'text-err', bg: 'bg-err/10' }
+  return { label: 'Pending', color: 'text-warn', bg: 'bg-warn/10' }
+}
+
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount)
 }
 
 export default function Invoices() {
-  const { clients } = useAppStore()
+  const { clients, invoices } = useAppStore()
 
   const [files, setFiles] = useState<InvoiceFile[]>([])
   const [activeClient, setActiveClient] = useState<string>('all')
@@ -159,6 +178,29 @@ export default function Invoices() {
     setRenameValue('')
   }
 
+  /* ── Invoice records (from store) ── */
+  const filteredInvoices = useMemo(() => {
+    let list = invoices
+    if (activeClient !== 'all') list = list.filter(i => i.client_id === activeClient)
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      list = list.filter(i =>
+        (i.num || '').toLowerCase().includes(q) ||
+        (i.client_name || '').toLowerCase().includes(q) ||
+        String(i.amount).includes(q)
+      )
+    }
+    return list
+  }, [invoices, activeClient, search])
+
+  const totalOutstanding = useMemo(() =>
+    invoices.filter(i => i.status !== 'paid').reduce((sum, i) => sum + (i.amount || 0), 0),
+  [invoices])
+
+  const totalOverdue = useMemo(() =>
+    invoices.filter(i => i.status !== 'paid' && i.due_date && new Date(i.due_date) < new Date()).reduce((sum, i) => sum + (i.amount || 0), 0),
+  [invoices])
+
   const activeClientName = activeClient === 'all'
     ? 'All Clients'
     : clients.find(c => c.id === activeClient)?.name || 'Client'
@@ -193,6 +235,20 @@ export default function Invoices() {
               style={{ fontSize: '12px' }}
             />
           </div>
+          <button
+            onClick={() => exportToCSV(
+              visible.map(f => ({
+                name: f.name || '',
+                client: f.client_name || '',
+                size: formatFileSize(f.size),
+                uploaded_date: f.uploaded_at || '',
+              })),
+              'invoices-export'
+            )}
+            className="btn-ghost flex items-center gap-2"
+          >
+            <Download size={12} /> Export CSV
+          </button>
           <input
             ref={fileInputRef}
             type="file"
@@ -257,9 +313,74 @@ export default function Invoices() {
         ))}
       </div>
 
+      {/* Invoice Records */}
+      {filteredInvoices.length > 0 && (
+        <div className="space-y-3">
+          {/* Summary bar */}
+          <div className="flex items-center gap-6 px-4 py-3 border border-border bg-surface">
+            <div className="flex items-center gap-2">
+              <DollarSign size={13} className="text-dim" />
+              <span className="text-steel" style={{ fontSize: '12px' }}>Total Outstanding:</span>
+              <span className="text-polar font-[700] mono" style={{ fontSize: '13px' }}>{formatCurrency(totalOutstanding)}</span>
+            </div>
+            {totalOverdue > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-steel" style={{ fontSize: '12px' }}>Overdue:</span>
+                <span className="text-err font-[700] mono" style={{ fontSize: '13px' }}>{formatCurrency(totalOverdue)}</span>
+              </div>
+            )}
+            <span className="text-dim" style={{ fontSize: '11px' }}>{filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? 's' : ''}</span>
+          </div>
+
+          {/* Invoice table */}
+          <div className="border border-border overflow-x-auto">
+            <div className="grid grid-cols-12 gap-4 px-4 py-2 border-b border-border bg-surface min-w-[600px]">
+              <span className="label text-dim col-span-2">INVOICE #</span>
+              <span className="label text-dim col-span-3">CLIENT</span>
+              <span className="label text-dim col-span-2 text-right">AMOUNT</span>
+              <span className="label text-dim col-span-2 text-center">STATUS</span>
+              <span className="label text-dim col-span-3">DUE DATE</span>
+            </div>
+            {filteredInvoices.map(inv => {
+              const st = getInvoiceStatus(inv)
+              return (
+                <div key={inv.id} className="table-row grid grid-cols-12 gap-4 px-4 py-3 items-center min-w-[600px]">
+                  <span className="col-span-2 text-polar font-[600] mono" style={{ fontSize: '13px' }}>
+                    {inv.num || '---'}
+                  </span>
+                  <span className="col-span-3 text-steel truncate" style={{ fontSize: '12px' }}>
+                    {inv.client_name || '---'}
+                  </span>
+                  <span className="col-span-2 text-polar font-[600] mono text-right" style={{ fontSize: '13px' }}>
+                    {formatCurrency(inv.amount || 0)}
+                  </span>
+                  <div className="col-span-2 flex justify-center">
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 font-[700] uppercase ${st.color} ${st.bg}`}
+                      style={{ fontSize: '9px', letterSpacing: '0.1em', borderRadius: '9999px' }}
+                    >
+                      {st.label}
+                    </span>
+                  </div>
+                  <span className="col-span-3 mono text-dim" style={{ fontSize: '12px' }}>
+                    {inv.due_date ? formatDate(inv.due_date, 'MMM d, yyyy') : '---'}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Uploaded Files ── */}
+      <div className="flex items-center gap-2 pt-2">
+        <FolderOpen size={13} className="text-dim" />
+        <span className="label text-dim">UPLOADED FILES</span>
+      </div>
+
       {/* File list */}
       {loading ? (
-        <p className="text-dim text-center py-12" style={{ fontSize: '13px' }}>Loading...</p>
+        <SkeletonTable rows={6} columns={5} />
       ) : visible.length === 0 ? (
         <div
           onClick={() => {
@@ -310,7 +431,7 @@ export default function Invoices() {
                   className="table-row grid grid-cols-12 gap-4 px-4 py-3 items-center cursor-pointer min-w-[700px]"
                   onClick={() => { if (!isRenaming) openFile(doc) }}
                 >
-                  <div className="col-span-1 text-center" style={{ fontSize: '16px' }}>
+                  <div className="col-span-1 flex items-center justify-center">
                     {fileIcon(doc.name)}
                   </div>
                   <div className="col-span-4 flex items-center gap-2">

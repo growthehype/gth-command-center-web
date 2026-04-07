@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Settings as SettingsIcon, Download, Upload, Database, Shield, Eye, EyeOff } from 'lucide-react'
+import { Settings as SettingsIcon, Download, Upload, Database, Shield, Eye, EyeOff, HardDrive } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import { settings as settingsApi } from '@/lib/api'
@@ -53,6 +53,12 @@ export default function Settings() {
   const [aiKey, setAiKey] = useState('')
   const [aiKeyVisible, setAiKeyVisible] = useState(false)
   const [aiModel, setAiModel] = useState('claude-opus-4-6')
+
+  // Notification preferences
+  const [notifDailyBriefing, setNotifDailyBriefing] = useState(() => localStorage.getItem('gth_notif_daily_briefing') !== 'false')
+  const [notifOverdueTasks, setNotifOverdueTasks] = useState(() => localStorage.getItem('gth_notif_overdue_tasks') !== 'false')
+  const [notifInvoiceReminders, setNotifInvoiceReminders] = useState(() => localStorage.getItem('gth_notif_invoice_reminders') !== 'false')
+  const [notifWeeklySummary, setNotifWeeklySummary] = useState(() => localStorage.getItem('gth_notif_weekly_summary') !== 'false')
 
   // Reset confirm
   const [resetCount, setResetCount] = useState(0)
@@ -121,6 +127,51 @@ export default function Settings() {
     showToast('Backup is automatic with Supabase', 'info')
   }, [])
 
+  /* ── Full Data Export ── */
+  const handleFullExport = useCallback(() => {
+    const state = useAppStore.getState()
+    const backup = {
+      _meta: {
+        exported_at: new Date().toISOString(),
+        version: '1.0.0',
+        app: 'GTH Command Center',
+      },
+      clients: state.clients,
+      contacts: state.contacts,
+      tasks: state.tasks,
+      projects: state.projects,
+      invoices: state.invoices,
+      leads: state.leads,
+      events: state.events,
+      campaigns: state.campaigns,
+      meetings: state.meetings,
+      services: state.services,
+      templates: state.templates,
+      goals: state.goals,
+      activity: state.activity,
+      credentials: state.credentials,
+      sops: state.sops,
+      timeEntries: state.timeEntries,
+      settings: state.settings,
+    }
+
+    const jsonStr = JSON.stringify(backup, null, 2)
+    const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+
+    const today = new Date().toISOString().slice(0, 10)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `gth-backup-${today}.json`
+    link.style.display = 'none'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    showToast('Full backup downloaded', 'success')
+  }, [])
+
   const handleReset = useCallback(async () => {
     if (resetCount < 2) {
       setResetCount(prev => prev + 1)
@@ -134,6 +185,13 @@ export default function Settings() {
     showToast('Dashboard reset is not available in the web version', 'info')
     setResetCount(0)
   }, [resetCount])
+
+  const toggleNotif = useCallback((key: string, current: boolean, setter: (v: boolean) => void) => {
+    const next = !current
+    setter(next)
+    localStorage.setItem(key, String(next))
+    showToast('Notification preference updated', 'success')
+  }, [])
 
   const inputClass = 'w-full bg-cell border border-border px-3 py-2 text-polar placeholder:text-dim focus:outline-none focus:border-dim transition-colors'
   const selectClass = 'w-full bg-cell border border-border px-3 py-2 text-polar focus:outline-none focus:border-dim transition-colors cursor-pointer'
@@ -334,6 +392,35 @@ export default function Settings() {
           </div>
         </Section>
 
+        {/* ── Notifications ── */}
+        <Section title="Notifications">
+          {([
+            { key: 'gth_notif_daily_briefing', label: 'Daily Briefing Email', desc: 'Receive a morning summary of your tasks, events, and priorities', value: notifDailyBriefing, setter: setNotifDailyBriefing },
+            { key: 'gth_notif_overdue_tasks', label: 'Overdue Task Alerts', desc: 'Get notified when tasks pass their due date', value: notifOverdueTasks, setter: setNotifOverdueTasks },
+            { key: 'gth_notif_invoice_reminders', label: 'Invoice Payment Reminders', desc: 'Reminders for upcoming and overdue invoice payments', value: notifInvoiceReminders, setter: setNotifInvoiceReminders },
+            { key: 'gth_notif_weekly_summary', label: 'Weekly Summary', desc: 'A weekly digest of completed work and upcoming deadlines', value: notifWeeklySummary, setter: setNotifWeeklySummary },
+          ] as const).map((item) => (
+            <div key={item.key} className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <span className="text-polar block" style={{ fontSize: '13px', fontWeight: 600 }}>{item.label}</span>
+                <span className="text-dim block" style={{ fontSize: '11px', lineHeight: '1.4' }}>{item.desc}</span>
+              </div>
+              <button
+                onClick={() => toggleNotif(item.key, item.value, item.setter)}
+                className={`flex-shrink-0 w-9 h-5 flex items-center px-0.5 transition-colors cursor-pointer ${item.value ? 'bg-ok' : 'bg-border-hard'}`}
+              >
+                <div
+                  className="w-4 h-4 bg-polar transition-transform"
+                  style={{ transform: item.value ? 'translateX(16px)' : 'translateX(0)' }}
+                />
+              </button>
+            </div>
+          ))}
+          <p className="text-dim" style={{ fontSize: '10px', lineHeight: '1.6' }}>
+            Notification delivery will be available once email integration is configured.
+          </p>
+        </Section>
+
         {/* ── Preferences ── */}
         <Section title="Preferences">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -389,6 +476,28 @@ export default function Settings() {
                 <option value="dark">Dark</option>
                 <option value="light">Light</option>
               </select>
+            </div>
+          </div>
+        </Section>
+
+        {/* ── Backup & Export ── */}
+        <Section title="Backup & Export">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 flex items-center justify-center bg-ok/10 shrink-0" style={{ borderRadius: '8px' }}>
+              <HardDrive size={18} className="text-ok" />
+            </div>
+            <div className="flex-1">
+              <p className="text-polar font-[600]" style={{ fontSize: '13px' }}>Export All Data</p>
+              <p className="text-dim mt-1" style={{ fontSize: '11px', lineHeight: '1.6' }}>
+                Download a full backup of all your CRM data — clients, contacts, tasks, projects, invoices, campaigns, goals, credentials, and more — as a single JSON file.
+              </p>
+              <button
+                className="btn-primary flex items-center gap-2 mt-3"
+                onClick={handleFullExport}
+              >
+                <Download size={11} />
+                Export All Data
+              </button>
             </div>
           </div>
         </Section>

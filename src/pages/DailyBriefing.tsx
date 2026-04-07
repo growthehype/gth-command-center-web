@@ -2,6 +2,14 @@ import { useMemo } from 'react'
 import { format, parseISO, isToday, isYesterday, startOfDay } from 'date-fns'
 import { useAppStore } from '@/lib/store'
 import { getGreeting, formatCurrency, isOverdue, daysSince, relativeDate } from '@/lib/utils'
+import { useRelativeTime } from '@/hooks/useRelativeTime'
+import { Plus } from 'lucide-react'
+
+/* Inline component for live-updating relative timestamps */
+function RelativeTime({ date, className, style }: { date: string | null; className?: string; style?: React.CSSProperties }) {
+  const timeAgo = useRelativeTime(date)
+  return <span className={className} style={style}>{timeAgo}</span>
+}
 
 export default function DailyBriefing() {
   const {
@@ -13,6 +21,43 @@ export default function DailyBriefing() {
   const now = new Date()
   const todayStr = format(now, 'yyyy-MM-dd')
   const fullDate = format(now, 'EEEE, MMMM d, yyyy')
+
+  // --------------- PRODUCTIVITY STREAK ---------------
+
+  const streak = useMemo(() => {
+    // Get all dates that have at least 1 completed task
+    const completedDates = new Set<string>()
+    tasks.forEach((t) => {
+      if (t.done && t.completed_at) {
+        try {
+          const dateStr = t.completed_at.slice(0, 10)
+          completedDates.add(dateStr)
+        } catch { /* skip malformed dates */ }
+      }
+    })
+
+    // Count consecutive days backwards from yesterday (today is still in progress)
+    // But if today already has completions, include it and count from today
+    let count = 0
+    const check = startOfDay(new Date())
+
+    // If today has completions, count today
+    if (completedDates.has(format(check, 'yyyy-MM-dd'))) {
+      count = 1
+      check.setDate(check.getDate() - 1)
+    } else {
+      // Start checking from yesterday
+      check.setDate(check.getDate() - 1)
+    }
+
+    // Count consecutive days backwards
+    while (completedDates.has(format(check, 'yyyy-MM-dd'))) {
+      count++
+      check.setDate(check.getDate() - 1)
+    }
+
+    return count
+  }, [tasks])
 
   // --------------- TODAY'S FOCUS ---------------
 
@@ -72,7 +117,8 @@ export default function DailyBriefing() {
       return {
         label: 'Overdue Invoice',
         title: `${overdueInvoice.client_name || overdueInvoice.num} — ${formatCurrency(overdueInvoice.amount)}`,
-        detail: `Due ${relativeDate(overdueInvoice.due_date)}`,
+        detail: 'Due',
+        detailDate: overdueInvoice.due_date,
         accent: '#FF3333',
       }
     }
@@ -86,6 +132,7 @@ export default function DailyBriefing() {
         label: 'Stale Client',
         title: staleClient.name,
         detail: `No activity in ${daysSince(staleClient.last_activity)} days`,
+        detailDate: null as string | null,
         accent: '#F59E0B',
       }
     }
@@ -96,7 +143,8 @@ export default function DailyBriefing() {
       return {
         label: 'Overdue Task',
         title: highPriorityOverdue.text,
-        detail: `Due ${relativeDate(highPriorityOverdue.due_date)}`,
+        detail: 'Due',
+        detailDate: highPriorityOverdue.due_date,
         accent: '#FF3333',
       }
     }
@@ -108,6 +156,7 @@ export default function DailyBriefing() {
         label: 'Due Today',
         title: t.text,
         detail: t.client_name || 'Personal',
+        detailDate: null as string | null,
         accent: '#3B82F6',
       }
     }
@@ -130,14 +179,76 @@ export default function DailyBriefing() {
       <h1 style={{ fontSize: 28, fontWeight: 900, letterSpacing: '-0.025em', lineHeight: 1.1 }}>
         {getGreeting()}, {displayName}.
       </h1>
-      <p className="mono" style={{ color: '#888', marginTop: 6, fontSize: 13 }}>
-        {fullDate}
-      </p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+        <p className="mono" style={{ color: '#888', fontSize: 13, margin: 0 }}>
+          {fullDate}
+        </p>
+        {streak > 0 ? (
+          <span
+            className={streak >= 7 ? 'streak-glow' : ''}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '2px 10px',
+              fontSize: 12,
+              fontWeight: 700,
+              borderRadius: 20,
+              background: streak >= 7 ? 'rgba(251, 146, 60, 0.15)' : 'rgba(251, 146, 60, 0.1)',
+              color: streak >= 7 ? '#FB923C' : '#D97706',
+              border: `1px solid ${streak >= 7 ? 'rgba(251, 146, 60, 0.3)' : 'rgba(251, 146, 60, 0.2)'}`,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span role="img" aria-label="fire">&#128293;</span> {streak}-day streak
+          </span>
+        ) : (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '2px 10px',
+              fontSize: 12,
+              fontWeight: 600,
+              borderRadius: 20,
+              background: 'rgba(156, 163, 175, 0.1)',
+              color: '#9CA3AF',
+              border: '1px solid rgba(156, 163, 175, 0.2)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span role="img" aria-label="fire">&#128293;</span> Start your streak today!
+          </span>
+        )}
+      </div>
 
       {/* ---- TODAY'S FOCUS ---- */}
       <div style={{ marginTop: 36 }}>
-        <div className="label" style={{ color: '#999', marginBottom: 10 }}>
-          Today&apos;s Focus
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <div className="label" style={{ color: '#999' }}>
+            Today&apos;s Focus
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => setCurrentPage('tasks')}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#999', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 4, transition: 'color 0.15s' }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-polar)')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#999')}
+            >
+              <Plus size={12} strokeWidth={2.5} />
+              Add Task
+            </button>
+            <button
+              onClick={() => setCurrentPage('calendar')}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#999', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 4, transition: 'color 0.15s' }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-polar)')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#999')}
+            >
+              <Plus size={12} strokeWidth={2.5} />
+              Add Event
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-[10px]">
@@ -214,9 +325,7 @@ export default function DailyBriefing() {
                   <span style={{ opacity: 0.85, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {t.text}
                   </span>
-                  <span className="mono" style={{ color: '#FF3333', flexShrink: 0, fontSize: 13 }}>
-                    {relativeDate(t.due_date)}
-                  </span>
+                  <RelativeTime date={t.due_date} className="mono" style={{ color: '#FF3333', flexShrink: 0, fontSize: 13 }} />
                 </div>
               ))}
               {overdueTasks.length > 3 && (
@@ -263,8 +372,19 @@ export default function DailyBriefing() {
       {/* ---- YESTERDAY'S WINS ---- */}
       {yesterdayWins.length > 0 && (
         <div style={{ marginTop: 32 }}>
-          <div className="label" style={{ color: '#999', marginBottom: 10 }}>
-            Yesterday&apos;s Wins
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div className="label" style={{ color: '#999' }}>
+              Yesterday&apos;s Wins
+            </div>
+            <button
+              onClick={() => setCurrentPage('activity')}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#999', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 4, transition: 'color 0.15s' }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-polar)')}
+              onMouseLeave={e => (e.currentTarget.style.color = '#999')}
+            >
+              <Plus size={12} strokeWidth={2.5} />
+              Log a Win
+            </button>
           </div>
           <div className="card" style={{ padding: '14px 16px' }}>
             {yesterdayWins.map((a, i) => (
@@ -312,6 +432,9 @@ export default function DailyBriefing() {
             <div style={{ fontSize: 15, fontWeight: 700 }}>{oneThingCard.title}</div>
             <div className="mono" style={{ color: '#888', marginTop: 4, fontSize: 13 }}>
               {oneThingCard.detail}
+              {oneThingCard.detailDate && (
+                <>{' '}<RelativeTime date={oneThingCard.detailDate} /></>
+              )}
             </div>
           </div>
         </div>

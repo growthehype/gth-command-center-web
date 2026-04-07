@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-import { Building2, Plus, Search, ChevronUp, ChevronDown, ExternalLink, Globe, Edit3, Trash2, Eye, RefreshCw } from 'lucide-react'
+import { Building2, Plus, Search, ChevronUp, ChevronDown, ExternalLink, Globe, Edit3, Trash2, Eye, RefreshCw, Download } from 'lucide-react'
 import { useAppStore, Client } from '@/lib/store'
 import { clients as clientsApi, contacts as contactsApi, shell } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
@@ -8,6 +8,8 @@ import EmptyState from '@/components/ui/EmptyState'
 import ContextMenu, { ContextMenuItem } from '@/components/ui/ContextMenu'
 import VoiceTextarea from '@/components/ui/VoiceTextarea'
 import { daysSince, clientHealth, formatCurrency, relativeDate, safeParseJSON } from '@/lib/utils'
+import ClientAvatar from '@/components/ui/ClientAvatar'
+import { exportToCSV } from '@/lib/export-csv'
 
 /* ========================================
    CONSTANTS
@@ -51,6 +53,7 @@ export default function Clients() {
   const {
     clients, tasks, projects, invoices, contacts, credentials, meetings, timeEntries,
     refreshClients, refreshActivity, refreshContacts,
+    setSelectedClientId, setCurrentPage,
   } = useAppStore()
 
   // UI state
@@ -199,9 +202,26 @@ export default function Clients() {
             {clients.length} total &middot; {counts.active || 0} active
           </p>
         </div>
-        <button onClick={openCreate} className="btn-primary flex items-center gap-2">
-          <Plus size={12} /> Add Client
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => exportToCSV(
+              visible.map(c => ({
+                name: c.name || '',
+                email: c.email || '',
+                phone: c.phone || '',
+                status: c.status || '',
+                created_at: c.created_at || '',
+              })),
+              'clients-export'
+            )}
+            className="btn-ghost flex items-center gap-2"
+          >
+            <Download size={12} /> Export CSV
+          </button>
+          <button onClick={openCreate} className="btn-primary flex items-center gap-2">
+            <Plus size={12} /> Add Client
+          </button>
+        </div>
       </div>
 
       {/* Filter chips + search */}
@@ -271,8 +291,12 @@ export default function Clients() {
                 {visible.map(c => {
                   const days = daysSince(c.last_activity)
                   const health = clientHealth(days)
+                  const openClientDetail = () => {
+                    setSelectedClientId(c.id)
+                    setCurrentPage('client-detail')
+                  }
                   const ctxItems: ContextMenuItem[] = [
-                    { label: 'View Details', icon: Eye, action: () => openDrawer(c.id) },
+                    { label: 'View Details', icon: Eye, action: openClientDetail },
                     { label: 'Edit Client', icon: Edit3, action: () => openEdit(c) },
                     { label: 'Cycle Status', icon: RefreshCw, action: () => cycleStatus(c, {} as any) },
                     { label: '', action: () => {}, divider: true },
@@ -284,7 +308,17 @@ export default function Clients() {
                       className={`table-row cursor-pointer ${selectedId === c.id ? 'bg-surface-2' : ''}`}
                       onClick={() => openDrawer(c.id)}
                     >
-                      <td className="py-2.5 px-3 font-[700] text-polar">{c.name}</td>
+                      <td className="py-2.5 px-3 font-[700] text-polar">
+                        <div className="flex items-center gap-2">
+                          <ClientAvatar name={c.name} size="sm" />
+                          <button
+                            onClick={(e) => { e.stopPropagation(); openClientDetail() }}
+                            className="hover:underline cursor-pointer text-left text-polar"
+                          >
+                            {c.name}
+                          </button>
+                        </div>
+                      </td>
                       <td className="py-2.5 px-3 text-steel">{c.service || '\u2014'}</td>
                       <td className="py-2.5 px-3 mono">{c.retainer || formatCurrency(c.mrr)}</td>
                       <td className="py-2.5 px-3">

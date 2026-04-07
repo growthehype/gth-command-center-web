@@ -1,14 +1,17 @@
 import { useAppStore } from '@/lib/store'
-import { Search, Timer, Sparkles, Clock, Menu, Moon, Sun } from 'lucide-react'
+import { Search, Timer, Sparkles, Clock, Menu, Moon, Sun, HelpCircle, WifiOff, Wifi } from 'lucide-react'
+import { useOnlineStatus } from '@/hooks/useOnlineStatus'
 import { format } from 'date-fns'
 import { useState, useEffect } from 'react'
 
 interface TopbarProps {
   onLock?: () => void
+  onHelpClick?: () => void
 }
 
-export default function Topbar({ onLock }: TopbarProps) {
+export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
   const { setCommandPaletteOpen, aiPanelOpen, setAiPanelOpen, settings, runningTimer, sidebarOpen, setSidebarOpen, theme, setTheme } = useAppStore()
+  const connectionStatus = useOnlineStatus()
   const displayName = settings.display_name || 'Omar Alladina'
   const initials = settings.avatar_initials || 'OA'
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -41,6 +44,7 @@ export default function Topbar({ onLock }: TopbarProps) {
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
         className="md:hidden flex items-center justify-center w-8 h-8 text-white/70 hover:text-white transition-colors"
+        title="Menu"
       >
         <Menu size={18} />
       </button>
@@ -68,9 +72,23 @@ export default function Topbar({ onLock }: TopbarProps) {
         <span className="font-mono" style={{ fontSize: '11px' }}>Ctrl+K</span>
       </button>
 
+      {/* Connection status */}
+      {connectionStatus === 'offline' && (
+        <div className="flex items-center gap-1.5" style={{ color: '#DC2626' }}>
+          <WifiOff size={12} />
+          <span className="font-mono font-bold" style={{ fontSize: '11px' }}>Offline</span>
+        </div>
+      )}
+      {connectionStatus === 'reconnected' && (
+        <div className="flex items-center gap-1.5" style={{ color: '#16A34A', animation: 'fadeIn 0.15s ease-out' }}>
+          <Wifi size={12} />
+          <span className="font-mono font-bold" style={{ fontSize: '11px' }}>Back online</span>
+        </div>
+      )}
+
       {/* Timer */}
       {runningTimer && elapsed && (
-        <div className="flex items-center gap-2 text-ok">
+        <div className="flex items-center gap-2 text-ok" title={`Timer running: ${elapsed}`}>
           <Timer size={12} />
           <span className="font-mono font-bold" style={{ fontSize: '12px' }}>{elapsed}</span>
         </div>
@@ -84,7 +102,7 @@ export default function Topbar({ onLock }: TopbarProps) {
           color: aiPanelOpen ? '#FFFFFF' : 'rgba(255,255,255,0.5)',
           backgroundColor: aiPanelOpen ? 'rgba(255,255,255,0.15)' : 'transparent',
         }}
-        title="AI Assist (Ctrl+J)"
+        title="AI Assistant (Ctrl+J)"
       >
         <Sparkles size={13} />
         <span style={{ fontSize: '11px', fontWeight: 600 }}>AI</span>
@@ -95,9 +113,19 @@ export default function Topbar({ onLock }: TopbarProps) {
         onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
         className="flex items-center justify-center w-8 h-8 transition-colors"
         style={{ color: 'rgba(255,255,255,0.5)' }}
-        title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        title="Toggle dark mode"
       >
         {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
+      </button>
+
+      {/* Keyboard shortcuts help */}
+      <button
+        onClick={onHelpClick}
+        className="hidden md:flex items-center justify-center w-8 h-8 transition-colors"
+        style={{ color: 'rgba(255,255,255,0.5)' }}
+        title="Keyboard Shortcuts (?)"
+      >
+        <HelpCircle size={14} />
       </button>
 
       {/* Time */}
@@ -110,7 +138,7 @@ export default function Topbar({ onLock }: TopbarProps) {
         <span className="hidden md:inline" style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>
           {displayName}
         </span>
-        <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)' }}>
+        <div className="w-7 h-7 rounded-full flex items-center justify-center" title="Profile" style={{ backgroundColor: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)' }}>
           <span className="font-bold" style={{ fontSize: '10px', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.8)' }}>
             {initials}
           </span>

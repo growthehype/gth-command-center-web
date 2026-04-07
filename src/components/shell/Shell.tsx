@@ -1,10 +1,13 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppStore } from '@/lib/store'
 import Topbar from './Topbar'
 import Sidebar from './Sidebar'
 import ToastContainer from '@/components/ui/Toast'
 import CommandPalette from '@/components/command-palette/CommandPalette'
 import AiPanel from '@/components/ai-panel/AiPanel'
+import KeyboardShortcutsModal from '@/components/ui/KeyboardShortcutsModal'
+import QuickAddModal from '@/components/ui/QuickAddModal'
+import WelcomeModal from '@/components/ui/WelcomeModal'
 import { Plus } from 'lucide-react'
 
 // Page imports
@@ -31,6 +34,7 @@ import SOPs from '@/pages/SOPs'
 import Notes from '@/pages/Notes'
 import ActivityPage from '@/pages/Activity'
 import SettingsPage from '@/pages/Settings'
+import ClientDetail from '@/pages/ClientDetail'
 
 interface ShellProps {
   onLock?: () => void
@@ -60,10 +64,13 @@ const pageMap: Record<string, React.ComponentType> = {
   notes: Notes,
   activity: ActivityPage,
   settings: SettingsPage,
+  'client-detail': ClientDetail,
 }
 
 export default function Shell({ onLock }: ShellProps) {
-  const { currentPage, setCommandPaletteOpen, setCurrentPage, setAiPanelOpen, aiPanelOpen, sidebarOpen, setSidebarOpen } = useAppStore()
+  const { currentPage, setCommandPaletteOpen, setCurrentPage, setAiPanelOpen, aiPanelOpen, sidebarOpen, setSidebarOpen, demoMode, exitDemoMode } = useAppStore()
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
+  const [quickAddOpen, setQuickAddOpen] = useState(false)
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -79,7 +86,7 @@ export default function Shell({ onLock }: ShellProps) {
         switch (e.key) {
           case 'k': e.preventDefault(); setCommandPaletteOpen(true); return
           case 'j': e.preventDefault(); setAiPanelOpen(!aiPanelOpen); return
-          case 'n': e.preventDefault(); setCommandPaletteOpen(true); return
+          case 'n': e.preventDefault(); setQuickAddOpen(prev => !prev); return
           case 'l': e.preventDefault(); onLock?.(); return
           case ',': e.preventDefault(); setCurrentPage('settings'); return
         }
@@ -113,6 +120,13 @@ export default function Shell({ onLock }: ShellProps) {
         if (page) { e.preventDefault(); setCurrentPage(page) }
       }
 
+      // ? to show keyboard shortcuts
+      if (e.key === '?') {
+        e.preventDefault()
+        setShortcutsOpen(prev => !prev)
+        return
+      }
+
       // / to focus search
       if (e.key === '/') {
         e.preventDefault()
@@ -128,7 +142,7 @@ export default function Shell({ onLock }: ShellProps) {
 
   return (
     <div className="h-screen w-screen flex flex-col bg-obsidian overflow-hidden">
-      <Topbar onLock={onLock} />
+      <Topbar onLock={onLock} onHelpClick={() => setShortcutsOpen(true)} />
       <div className="flex flex-1 overflow-hidden relative">
         {/* Mobile sidebar overlay */}
         {sidebarOpen && (
@@ -142,7 +156,20 @@ export default function Shell({ onLock }: ShellProps) {
           <Sidebar onNavigate={() => setSidebarOpen(false)} />
         </div>
         <main className="flex-1 overflow-y-auto p-3 md:p-6">
-          <PageComponent />
+          {demoMode && (
+            <div className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-amber-500/15 border border-amber-500/30 px-4 py-2 text-sm text-amber-300">
+              <span className="font-semibold tracking-wide">DEMO MODE — Sample data shown</span>
+              <button
+                onClick={exitDemoMode}
+                className="shrink-0 rounded-md bg-amber-500/20 px-3 py-1 text-xs font-medium text-amber-200 hover:bg-amber-500/30 transition-colors"
+              >
+                Exit Demo
+              </button>
+            </div>
+          )}
+          <div key={currentPage} className="page-enter">
+            <PageComponent />
+          </div>
         </main>
         {aiPanelOpen && <AiPanel />}
       </div>
@@ -157,6 +184,9 @@ export default function Shell({ onLock }: ShellProps) {
       </button>
 
       <CommandPalette />
+      <QuickAddModal open={quickAddOpen} onClose={() => setQuickAddOpen(false)} />
+      <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <WelcomeModal />
       <ToastContainer />
     </div>
   )

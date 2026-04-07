@@ -4,8 +4,10 @@ import { showToast } from '@/components/ui/Toast'
 import Modal from '@/components/ui/Modal'
 import EmptyState from '@/components/ui/EmptyState'
 import ContextMenu, { type ContextMenuItem } from '@/components/ui/ContextMenu'
+import FilterChips from '@/components/ui/FilterChips'
 import { formatDate } from '@/lib/utils'
 import { documents } from '@/lib/api'
+import { SkeletonCard } from '@/components/ui/Skeleton'
 
 // Template categories — stored as "template-<slug>" in the documents table
 const CATEGORIES = ['All', 'Letterhead', 'Proposals', 'Invoices', 'Contracts', 'Reports', 'Other'] as const
@@ -152,8 +154,18 @@ export default function Templates() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24 text-dim" style={{ fontSize: '13px' }}>
-        Loading templates...
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3"><h1>File Templates</h1><FileText size={14} className="text-dim" /></div>
+            <p className="text-steel mt-1" style={{ fontSize: '13px' }}>Loading templates...</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
       </div>
     )
   }
@@ -174,20 +186,16 @@ export default function Templates() {
       </div>
 
       {/* Filter chips + search */}
-      <div className="flex items-center gap-3 flex-wrap">
-        {CATEGORIES.map(cat => (
-          <button
-            key={cat}
-            onClick={() => setFilter(cat)}
-            className={`label-md px-3 py-1.5 border transition-colors cursor-pointer ${
-              filter === cat
-                ? 'bg-polar text-obsidian border-polar'
-                : 'bg-transparent text-steel border-border-hard hover:border-dim'
-            }`}
-          >
-            {cat} <span className="ml-1 mono" style={{ fontSize: '10px' }}>({counts[cat] ?? 0})</span>
-          </button>
-        ))}
+      <div className="flex items-center gap-3">
+        <FilterChips
+          options={CATEGORIES.map(cat => ({
+            value: cat,
+            label: cat,
+            count: counts[cat] ?? 0,
+          }))}
+          value={filter}
+          onChange={(v) => setFilter(v as Category)}
+        />
         <div className="ml-auto relative">
           <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-dim" />
           <input

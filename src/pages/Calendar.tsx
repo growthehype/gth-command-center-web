@@ -6,6 +6,7 @@ import {
   connectGoogleCalendar,
   disconnectGoogle,
   isGoogleConnected,
+  initGoogleToken,
   fetchGoogleEvents,
   createGoogleEvent,
   deleteGoogleEvent,
@@ -117,9 +118,9 @@ export default function Calendar() {
   const [form, setForm] = useState<EventForm>(blankForm())
   const [saving, setSaving] = useState(false)
 
-  // Check connection on mount
+  // Check connection on mount — hydrate from Supabase if needed
   useEffect(() => {
-    setGoogleConnected(isGoogleConnected())
+    initGoogleToken().then((connected) => setGoogleConnected(connected))
   }, [])
 
   // Load Google events when connected or week changes
@@ -162,8 +163,8 @@ export default function Calendar() {
   /* ---- Google connect/disconnect ---- */
   const handleConnect = () => connectGoogleCalendar()
 
-  const handleDisconnect = () => {
-    disconnectGoogle()
+  const handleDisconnect = async () => {
+    await disconnectGoogle()
     setGoogleConnected(false)
     setEvents([])
     showToast('Google Calendar disconnected', 'info')

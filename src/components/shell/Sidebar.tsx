@@ -72,6 +72,8 @@ const navGroups: NavGroup[] = [
 export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { currentPage, setCurrentPage, clients, projects, tasks, invoices, leads } = useAppStore()
 
+  const now = new Date()
+
   const badges: Record<string, number> = {
     activeClients: clients.filter(c => c.status === 'active').length,
     openProjects: projects.filter(p => p.status !== 'done').length,
@@ -81,6 +83,17 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   }
 
   const hasOverdue = invoices.some(i => i.status === 'sent' && i.due_date && new Date(i.due_date) < new Date())
+
+  // Notification badge counts
+  const overdueTaskCount = tasks.filter(t => !t.done && t.due_date && new Date(t.due_date) < now).length
+  const unpaidInvoiceCount = invoices.filter(i => i.status !== 'paid').length
+  const overdueFollowUpCount = leads.filter(l => l.next_follow_up && new Date(l.next_follow_up) < now && l.stage !== 'closed-won' && l.stage !== 'closed-lost').length
+
+  const notificationBadges: Record<string, { count: number; color: 'red' | 'amber' }> = {
+    tasks: { count: overdueTaskCount, color: 'red' },
+    invoices: { count: unpaidInvoiceCount, color: 'amber' },
+    outreach: { count: overdueFollowUpCount, color: 'amber' },
+  }
 
   return (
     <nav className="w-full h-full bg-obsidian border-r border-border overflow-y-auto flex-shrink-0 select-none">
@@ -99,6 +112,9 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               const badgeCount = item.badgeKey ? badges[item.badgeKey] : undefined
               const isOverdueInvoice = item.id === 'invoices' && hasOverdue
 
+              const notif = notificationBadges[item.id]
+              const notifCount = notif?.count ?? 0
+
               return (
                 <button
                   key={item.id}
@@ -111,10 +127,23 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                 >
                   <Icon size={13} strokeWidth={isActive ? 2.5 : 2} />
                   <span
-                    className="flex-1 font-sans"
+                    className="relative flex-1 font-sans"
                     style={{ fontSize: '12px', fontWeight: isActive ? 700 : 500 }}
                   >
                     {item.label}
+                    {notifCount > 0 && (
+                      <span
+                        className="absolute -top-1.5 -right-1 min-w-[16px] h-[16px] rounded-full flex items-center justify-center text-white font-bold"
+                        style={{
+                          fontSize: '9px',
+                          lineHeight: 1,
+                          padding: '0 4px',
+                          backgroundColor: notif.color === 'red' ? '#DC2626' : '#D97706',
+                        }}
+                      >
+                        {notifCount > 99 ? '99+' : notifCount}
+                      </span>
+                    )}
                   </span>
                   {badgeCount !== undefined && badgeCount > 0 && (
                     <span

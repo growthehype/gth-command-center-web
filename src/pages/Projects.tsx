@@ -70,7 +70,7 @@ function sortByPriorityThenDue(a: Project, b: Project): number {
 /* ── Component ── */
 
 export default function Projects() {
-  const { projects, clients, refreshProjects, refreshActivity } = useAppStore()
+  const { projects, clients, tasks, refreshProjects, refreshActivity } = useAppStore()
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editProject, setEditProject] = useState<Project | null>(null)
@@ -79,6 +79,19 @@ export default function Projects() {
   // Drag and drop state
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<ColumnKey | null>(null)
+
+  /* ── Task progress per project (by client_id) ── */
+  const taskProgress = useMemo(() => {
+    const map: Record<string, { total: number; done: number }> = {}
+    for (const p of projects) {
+      if (!p.client_id) continue
+      if (!map[p.id]) {
+        const linked = tasks.filter(t => t.client_id === p.client_id)
+        map[p.id] = { total: linked.length, done: linked.filter(t => t.done).length }
+      }
+    }
+    return map
+  }, [projects, tasks])
 
   /* ── Columns data ── */
   const columns = useMemo(() => {
@@ -614,6 +627,46 @@ export default function Projects() {
                           </button>
                         </div>
                       </div>
+
+                      {/* Task progress bar */}
+                      {(() => {
+                        const prog = taskProgress[project.id]
+                        if (!prog || prog.total === 0) {
+                          return (
+                            <div className="text-dim mt-2" style={{ fontSize: '10px' }}>
+                              No tasks
+                            </div>
+                          )
+                        }
+                        const pct = (prog.done / prog.total) * 100
+                        return (
+                          <div className="mt-2">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-steel" style={{ fontSize: '10px', fontWeight: 600 }}>
+                                {prog.done}/{prog.total} tasks
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                height: '4px',
+                                borderRadius: '2px',
+                                backgroundColor: 'var(--color-border, #333)',
+                                overflow: 'hidden',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  height: '100%',
+                                  width: `${pct}%`,
+                                  borderRadius: '2px',
+                                  backgroundColor: 'var(--color-ok, #A3BE8C)',
+                                  transition: 'width 0.3s ease',
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )
+                      })()}
                     </div>
                     </ContextMenu>
                   )

@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react'
-import { Target, Plus, Trash2, ChevronUp, ChevronDown, Search } from 'lucide-react'
+import { Target, Plus, Trash2, ChevronUp, ChevronDown, Search, AlertTriangle, Clock } from 'lucide-react'
 import { useAppStore, OutreachLead } from '@/lib/store'
 import { outreach } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
 import Modal from '@/components/ui/Modal'
 import EmptyState from '@/components/ui/EmptyState'
 import VoiceTextarea from '@/components/ui/VoiceTextarea'
-import { formatCurrency, relativeDate, friendlyDate } from '@/lib/utils'
+import { formatCurrency, relativeDate, friendlyDate, isOverdue } from '@/lib/utils'
+import { isToday, parseISO, differenceInCalendarDays } from 'date-fns'
 
 const STAGES = ['New Lead', 'Contacted', 'Responded', 'Meeting Set', 'Closed Won'] as const
 type Stage = (typeof STAGES)[number]
@@ -237,7 +238,38 @@ export default function Outreach() {
                   </td>
                   <td className="px-4 py-3 text-right mono text-steel">{formatCurrency(lead.deal_value)}</td>
                   <td className="px-4 py-3 text-dim">{relativeDate(lead.last_contact)}</td>
-                  <td className="px-4 py-3 text-dim">{friendlyDate(lead.next_follow_up)}</td>
+                  <td className="px-4 py-3">
+                    {(() => {
+                      if (!lead.next_follow_up) return <span className="text-dim">-</span>
+                      const overdue = isOverdue(lead.next_follow_up)
+                      let today = false
+                      let dueSoon = false
+                      try {
+                        today = isToday(parseISO(lead.next_follow_up))
+                        if (!overdue && !today) {
+                          const diff = differenceInCalendarDays(parseISO(lead.next_follow_up), new Date())
+                          dueSoon = diff >= 0 && diff <= 2
+                        }
+                      } catch { /* skip */ }
+                      return (
+                        <span className={`mono flex items-center gap-1.5 ${overdue ? 'text-err' : (today || dueSoon) ? 'text-warn' : 'text-dim'}`}>
+                          {friendlyDate(lead.next_follow_up)}
+                          {overdue && (
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-err/15 text-err px-1.5 py-0.5" style={{ fontSize: '9px', fontWeight: 700, lineHeight: 1 }}>
+                              <AlertTriangle size={8} />
+                              OVERDUE
+                            </span>
+                          )}
+                          {today && (
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-warn/15 text-warn px-1.5 py-0.5" style={{ fontSize: '9px', fontWeight: 700, lineHeight: 1 }}>
+                              <Clock size={8} />
+                              TODAY
+                            </span>
+                          )}
+                        </span>
+                      )
+                    })()}
+                  </td>
                   <td className="px-4 py-3 text-dim" style={{ maxWidth: '160px' }}>
                     <span className="truncate block">{lead.notes || '-'}</span>
                   </td>

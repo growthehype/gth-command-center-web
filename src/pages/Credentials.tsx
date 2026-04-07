@@ -1,11 +1,24 @@
 import { useState, useMemo, useCallback } from 'react'
-import { Plus, Trash2, Search, Lock, Eye, EyeOff, X } from 'lucide-react'
+import { Plus, Trash2, Search, Lock, Eye, EyeOff, X, AlertTriangle, Clock } from 'lucide-react'
 import { useAppStore, type Credential } from '@/lib/store'
 import { credentials as credentialsApi } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
 import { safeParseJSON, fuzzyMatch } from '@/lib/utils'
 import Modal from '@/components/ui/Modal'
 import EmptyState from '@/components/ui/EmptyState'
+import { differenceInCalendarDays, parseISO } from 'date-fns'
+
+function credentialAge(createdAt: string): { days: number; label: string; color: 'ok' | 'warn' | 'err' } {
+  try {
+    const days = differenceInCalendarDays(new Date(), parseISO(createdAt))
+    if (days < 0) return { days: 0, label: 'Just now', color: 'ok' }
+    if (days <= 30) return { days, label: days === 0 ? 'Today' : `${days}d ago`, color: 'ok' }
+    if (days <= 90) return { days, label: `${days}d ago`, color: 'warn' }
+    return { days, label: `${days}d ago`, color: 'err' }
+  } catch {
+    return { days: -1, label: 'Unknown', color: 'warn' }
+  }
+}
 
 interface FieldPair {
   label: string
@@ -135,17 +148,32 @@ export default function Credentials() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(cred => {
             const fields: FieldPair[] = safeParseJSON(cred.fields, [])
+            const age = credentialAge(cred.created_at)
             return (
               <div key={cred.id} className="border border-border bg-surface">
                 {/* Card header */}
                 <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                   <div>
-                    <span
-                      className="text-dim font-sans uppercase font-bold block"
-                      style={{ fontSize: '10px', letterSpacing: '0.14em' }}
-                    >
-                      {cred.platform}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="text-dim font-sans uppercase font-bold"
+                        style={{ fontSize: '10px', letterSpacing: '0.14em' }}
+                      >
+                        {cred.platform}
+                      </span>
+                      {age.color === 'err' && (
+                        <span className="inline-flex items-center gap-0.5 rounded-full bg-err/15 text-err px-1.5 py-0.5" style={{ fontSize: '9px', fontWeight: 700, lineHeight: 1 }}>
+                          <AlertTriangle size={8} />
+                          Review
+                        </span>
+                      )}
+                      {age.color === 'warn' && (
+                        <span className="inline-flex items-center gap-0.5 rounded-full bg-warn/15 text-warn px-1.5 py-0.5" style={{ fontSize: '9px', fontWeight: 700, lineHeight: 1 }}>
+                          <Clock size={8} />
+                          Aging
+                        </span>
+                      )}
+                    </div>
                     {cred.client_name && (
                       <span className="text-polar block mt-0.5" style={{ fontSize: '15px', fontWeight: 800 }}>
                         {cred.client_name}
@@ -191,6 +219,17 @@ export default function Credentials() {
                   {fields.length === 0 && (
                     <span className="text-dim" style={{ fontSize: '11px' }}>No fields stored</span>
                   )}
+                </div>
+
+                {/* Staleness indicator */}
+                <div className="px-4 py-2 border-t border-border">
+                  <span
+                    className={`mono ${age.color === 'ok' ? 'text-ok' : age.color === 'warn' ? 'text-warn' : 'text-err'}`}
+                    style={{ fontSize: '10px' }}
+                    title={`Created: ${cred.created_at}`}
+                  >
+                    Last updated: {age.label}
+                  </span>
                 </div>
               </div>
             )

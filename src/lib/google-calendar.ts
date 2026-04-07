@@ -1,24 +1,198 @@
+import { supabase } from './supabase'
+
 const TOKEN_KEY = 'gth_google_token'
 const GCAL_CLIENT_ID = '272925349594-4dtb910g2m3jp2433na7r9eac297hoot.apps.googleusercontent.com'
 const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events'
 const REDIRECT_URI = window.location.origin
+const CREDENTIAL_PLATFORM = 'google_calendar'
 
-// ── Token management ──
+// ── Token shape stored in both localStorage and Supabase ──
 
-export function getStoredToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
+interface StoredToken {
+  access_token: string
+  expires_at: number // unix ms
 }
 
-export function storeToken(accessToken: string) {
-  localStorage.setItem(TOKEN_KEY, accessToken)
+// ── Helpers ──
+
+async function currentUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getUser()
+  return data.user?.id ?? null
 }
 
-export function clearTokens() {
+function isExpired(token: StoredToken): boolean {
+  // Treat as expired 60 s early to avoid mid-request failures
+  return Date.now() >= token.expires_at - 60_000
+}
+
+// ── Local cache (fast, device-specific) ──
+
+function getLocalToken(): StoredToken | null {
+  try {
+    const raw = localStorage.getItem(TOKEN_KEY)
+    if (!raw) return null
+    return JSON.parse(raw) as StoredToken
+  } catch {
+    localStorage.removeItem(TOKEN_KEY)
+    return null
+  }
+}
+
+function setLocalToken(token: StoredToken) {
+  localStorage.setItem(TOKEN_KEY, JSON.stringify(token))
+}
+
+function clearLocalToken() {
   localStorage.removeItem(TOKEN_KEY)
 }
 
+// ── Supabase persistence (cross-device source of truth) ──
+
+async function getSupabaseToken(): Promise<StoredToken | null> {
+  const userId = await currentUserId()
+  if (!userId) return null
+
+  const { data } = await supabase
+    .from('credentials')
+    .select('id, fields')
+    .eq('user_id', userId)
+    .eq('platform', CREDENTIAL_PLATFORM)
+    .is('client_id', null)
+    .limit(1)
+    .maybeSingle()
+
+  if (!data?.fields) return null
+
+  try {
+    const parsed = typeof data.fields === 'string' ? JSON.parse(data.fields) : data.fields
+    if (parsed.access_token && parsed.expires_at) {
+      return parsed as StoredToken
+    }
+  } catch { /* bad data, ignore */ }
+  return null
+}
+
+async function saveSupabaseToken(token: StoredToken) {
+  const userId = await currentUserId()
+  if (!userId) return
+
+  const fields = JSON.stringify(token)
+
+  // Upsert: update existing row or insert new one
+  const { data: existing } = await supabase
+    .from('credentials')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('platform', CREDENTIAL_PLATFORM)
+    .is('client_id', null)
+    .limit(1)
+    .maybeSingle()
+
+  if (existing) {
+    await supabase
+      .from('credentials')
+      .update({ fields })
+      .eq('id', existing.id)
+  } else {
+    await supabase
+      .from('credentials')
+      .insert({
+        user_id: userId,
+        platform: CREDENTIAL_PLATFORM,
+        client_id: null,
+        fields,
+        created_at: new Date().toISOString(),
+      })
+  }
+}
+
+async function clearSupabaseToken() {
+  const userId = await currentUserId()
+  if (!userId) return
+
+  await supabase
+    .from('credentials')
+    .delete()
+    .eq('user_id', userId)
+    .eq('platform', CREDENTIAL_PLATFORM)
+    .is('client_id', null)
+}
+
+// ── Public token API ──
+
+/**
+ * Get a valid access token. Checks localStorage first, then Supabase.
+ * Returns null if no token or token is expired.
+ */
+export async function getStoredToken(): Promise<string | null> {
+  // 1. Fast path: check localStorage cache
+  const local = getLocalToken()
+  if (local && !isExpired(local)) {
+    return local.access_token
+  }
+
+  // 2. Slow path: check Supabase (cross-device)
+  const remote = await getSupabaseToken()
+  if (remote && !isExpired(remote)) {
+    // Cache locally for next time
+    setLocalToken(remote)
+    return remote.access_token
+  }
+
+  // 3. No valid token anywhere — clear stale data
+  clearLocalToken()
+  return null
+}
+
+/**
+ * Synchronous check — uses localStorage only.
+ * For UI that needs an instant answer (e.g. showing Connect button).
+ * Call initGoogleToken() on app load to hydrate localStorage from Supabase.
+ */
 export function isGoogleConnected(): boolean {
-  return !!localStorage.getItem(TOKEN_KEY)
+  const local = getLocalToken()
+  return !!local && !isExpired(local)
+}
+
+/**
+ * Store a new token in both localStorage and Supabase.
+ */
+export async function storeToken(accessToken: string, expiresInSeconds: number) {
+  const token: StoredToken = {
+    access_token: accessToken,
+    expires_at: Date.now() + expiresInSeconds * 1000,
+  }
+  setLocalToken(token)
+  await saveSupabaseToken(token)
+}
+
+/**
+ * Clear token from all stores.
+ */
+export async function clearTokens() {
+  clearLocalToken()
+  await clearSupabaseToken()
+}
+
+/**
+ * On app load, hydrate localStorage from Supabase so isGoogleConnected()
+ * works synchronously even on a new device.
+ */
+export async function initGoogleToken(): Promise<boolean> {
+  // If localStorage already has a valid token, we're good
+  const local = getLocalToken()
+  if (local && !isExpired(local)) return true
+
+  // Try Supabase
+  const remote = await getSupabaseToken()
+  if (remote && !isExpired(remote)) {
+    setLocalToken(remote)
+    return true
+  }
+
+  // Nothing valid
+  clearLocalToken()
+  return false
 }
 
 // ── Connect via Google OAuth implicit flow ──
@@ -29,22 +203,25 @@ export function connectGoogleCalendar() {
     redirect_uri: REDIRECT_URI,
     response_type: 'token',
     scope: CALENDAR_SCOPE,
-    prompt: 'consent',
     include_granted_scopes: 'true',
   })
+  // No 'prompt' parameter — Google will silently reuse existing grants
   window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`
 }
 
 // ── Parse token from URL hash after redirect ──
 
-export function captureTokenFromUrl(): boolean {
+export async function captureTokenFromUrl(): Promise<boolean> {
   const hash = window.location.hash
   if (!hash || !hash.includes('access_token')) return false
 
   const params = new URLSearchParams(hash.substring(1))
   const token = params.get('access_token')
+  const expiresIn = params.get('expires_in')
+
   if (token) {
-    storeToken(token)
+    const seconds = expiresIn ? parseInt(expiresIn, 10) : 3600
+    await storeToken(token, seconds)
     // Clean the URL
     window.history.replaceState(null, '', window.location.pathname)
     return true
@@ -52,11 +229,33 @@ export function captureTokenFromUrl(): boolean {
   return false
 }
 
-export function disconnectGoogle() {
-  clearTokens()
+export async function disconnectGoogle() {
+  await clearTokens()
 }
 
-// ── Fetch Google Calendar events ──
+// ── Helper: make an authenticated Google API request with 401 handling ──
+
+async function googleFetch(url: string, init?: RequestInit): Promise<Response | null> {
+  const token = await getStoredToken()
+  if (!token) return null
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    ...(init?.headers as Record<string, string> || {}),
+  }
+
+  const res = await fetch(url, { ...init, headers })
+
+  if (res.status === 401) {
+    // Token rejected — clear everywhere and signal reconnect needed
+    await clearTokens()
+    return null
+  }
+
+  return res
+}
+
+// ── Google Calendar event types ──
 
 export interface GoogleCalendarEvent {
   id: string
@@ -82,15 +281,9 @@ export async function createGoogleEvent(params: {
   endTime: string    // HH:mm
   description?: string
 }): Promise<boolean> {
-  const token = getStoredToken()
-  if (!token) return false
-
   try {
-    // Build ISO datetime strings with local timezone
     const startDt = `${params.date}T${params.startTime}:00`
     const endDt = `${params.date}T${params.endTime}:00`
-
-    // Get the user's timezone
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
     const body = {
@@ -100,24 +293,16 @@ export async function createGoogleEvent(params: {
       end: { dateTime: endDt, timeZone },
     }
 
-    const res = await fetch(
+    const res = await googleFetch(
       'https://www.googleapis.com/calendar/v3/calendars/primary/events',
       {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       }
     )
 
-    if (res.status === 401) {
-      clearTokens()
-      return false
-    }
-
-    return res.ok
+    return res?.ok ?? false
   } catch (err) {
     console.error('Failed to create Google Calendar event:', err)
     return false
@@ -127,27 +312,15 @@ export async function createGoogleEvent(params: {
 // ── Delete a Google Calendar event ──
 
 export async function deleteGoogleEvent(googleEventId: string): Promise<boolean> {
-  const token = getStoredToken()
-  if (!token) return false
-
-  // Strip the gcal_ prefix if present
   const realId = googleEventId.replace('gcal_', '')
 
   try {
-    const res = await fetch(
+    const res = await googleFetch(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events/${realId}`,
-      {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }
+      { method: 'DELETE' }
     )
 
-    if (res.status === 401) {
-      clearTokens()
-      return false
-    }
-
-    return res.ok || res.status === 204
+    return res ? (res.ok || res.status === 204) : false
   } catch (err) {
     console.error('Failed to delete Google Calendar event:', err)
     return false
@@ -160,9 +333,6 @@ export async function fetchGoogleEvents(
   timeMin: string,
   timeMax: string
 ): Promise<GoogleCalendarEvent[]> {
-  const token = getStoredToken()
-  if (!token) return []
-
   try {
     const params = new URLSearchParams({
       timeMin,
@@ -172,20 +342,12 @@ export async function fetchGoogleEvents(
       maxResults: '250',
     })
 
-    const res = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
+    const res = await googleFetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`
     )
 
-    if (res.status === 401) {
-      clearTokens()
-      return []
-    }
-
-    if (!res.ok) {
-      console.error('Google Calendar API error:', res.status)
+    if (!res || !res.ok) {
+      if (res && !res.ok) console.error('Google Calendar API error:', res.status)
       return []
     }
 

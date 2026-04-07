@@ -1,7 +1,9 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAppStore } from '@/lib/store'
-import { captureTokenFromUrl } from '@/lib/google-calendar'
+import { captureTokenFromUrl, initGoogleToken } from '@/lib/google-calendar'
+import { isOverdue } from '@/lib/utils'
+import { useFaviconBadge } from '@/hooks/useFaviconBadge'
 import Login from '@/pages/Login'
 import Shell from '@/components/shell/Shell'
 
@@ -10,12 +12,28 @@ export default function App() {
   const user = useAppStore((s) => s.user)
   const setUser = useAppStore((s) => s.setUser)
   const loadAllData = useAppStore((s) => s.loadAllData)
+  const demoMode = useAppStore((s) => s.demoMode)
+  const tasks = useAppStore((s) => s.tasks)
   const dataLoadedRef = useRef(false)
+
+  // Count overdue tasks for favicon badge
+  const overdueCount = useMemo(
+    () => tasks.filter((t) => !t.done && isOverdue(t.due_date)).length,
+    [tasks]
+  )
+  useFaviconBadge(overdueCount)
 
   // Capture Google OAuth token from URL hash on mount (after redirect)
   useEffect(() => {
     captureTokenFromUrl()
   }, [])
+
+  // Hydrate Google token from Supabase on login (cross-device persistence)
+  useEffect(() => {
+    if (user) {
+      initGoogleToken()
+    }
+  }, [user])
 
   // Apply saved theme
   useEffect(() => {
@@ -25,7 +43,17 @@ export default function App() {
     }
   }, [])
 
+  // If demo mode is active on mount, load demo data and skip auth
   useEffect(() => {
+    if (demoMode) {
+      if (!dataLoadedRef.current) {
+        dataLoadedRef.current = true
+        loadAllData()
+      }
+      setLoading(false)
+      return
+    }
+
     // Check initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
@@ -43,17 +71,17 @@ export default function App() {
     })
 
     return () => subscription.unsubscribe()
-  }, [setUser])
+  }, [setUser, demoMode, loadAllData])
 
-  // Load data ONCE when user becomes authenticated
+  // Load data ONCE when user becomes authenticated (non-demo)
   useEffect(() => {
-    if (user && !dataLoadedRef.current) {
+    if (user && !demoMode && !dataLoadedRef.current) {
       dataLoadedRef.current = true
       loadAllData().catch(() => {
         console.error('Failed to load data — check Supabase tables exist')
       })
     }
-  }, [user, loadAllData])
+  }, [user, loadAllData, demoMode])
 
   if (loading) {
     return (
@@ -64,6 +92,11 @@ export default function App() {
         </div>
       </div>
     )
+  }
+
+  // Demo mode — skip auth, render Shell directly
+  if (demoMode) {
+    return <Shell />
   }
 
   if (!user) {

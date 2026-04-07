@@ -1,10 +1,13 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Activity as ActivityIcon } from 'lucide-react'
+import { Activity as ActivityIcon, ChevronUp, ChevronDown } from 'lucide-react'
 import { useAppStore, type ActivityEntry } from '@/lib/store'
 import { activity as activityApi } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
-import { relativeDate, sanitizeActivityHtml } from '@/lib/utils'
+import { sanitizeActivityHtml } from '@/lib/utils'
+import { useRelativeTime } from '@/hooks/useRelativeTime'
 import EmptyState from '@/components/ui/EmptyState'
+import FilterChips from '@/components/ui/FilterChips'
+import { SkeletonList } from '@/components/ui/Skeleton'
 
 const PAGE_SIZE = 50
 
@@ -23,6 +26,53 @@ const DOT_COLORS: Record<string, string> = {
   upload: '#3B82F6',
 }
 
+/* Sub-component so useRelativeTime can be called per-row */
+function ActivityRow({ entry }: { entry: ActivityEntry }) {
+  const timeAgo = useRelativeTime(entry.timestamp)
+
+  return (
+    <div className="table-row flex items-start gap-3 py-2.5 px-2">
+      {/* Colored dot */}
+      <div className="flex-shrink-0 mt-1.5">
+        <div
+          style={{
+            width: '6px',
+            height: '6px',
+            backgroundColor: DOT_COLORS[entry.type] || '#6B7280',
+          }}
+        />
+      </div>
+
+      {/* Description */}
+      <div className="flex-1 min-w-0">
+        <span
+          className="text-polar"
+          style={{ fontSize: '13px', lineHeight: '1.6' }}
+          dangerouslySetInnerHTML={{ __html: sanitizeActivityHtml(entry.description) }}
+        />
+      </div>
+
+      {/* Entity badge */}
+      {entry.entity && (
+        <span
+          className="flex-shrink-0 badge badge-neutral"
+          style={{ fontSize: '9px' }}
+        >
+          {entry.entity}
+        </span>
+      )}
+
+      {/* Timestamp */}
+      <span
+        className="flex-shrink-0 text-dim mono"
+        style={{ fontSize: '11px', minWidth: '80px', textAlign: 'right' }}
+      >
+        {timeAgo}
+      </span>
+    </div>
+  )
+}
+
 export default function Activity() {
   const { activity, refreshActivity } = useAppStore()
   const [allEntries, setAllEntries] = useState<ActivityEntry[]>([])
@@ -30,6 +80,7 @@ export default function Activity() {
   const [hasMore, setHasMore] = useState(true)
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState<EntityFilter>('All')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
   /* ── Initial load from store ── */
   useEffect(() => {
@@ -54,37 +105,40 @@ export default function Activity() {
     }
   }, [offset, loading])
 
-  /* ── Filtered entries ── */
+  /* ── Filtered + sorted entries ── */
   const filtered = useMemo(() => {
-    if (filter === 'All') return allEntries
-    return allEntries.filter(e => e.entity === filter)
-  }, [allEntries, filter])
+    let list = filter === 'All' ? [...allEntries] : allEntries.filter(e => e.entity === filter)
+    list.sort((a, b) => {
+      const cmp = (a.timestamp || '').localeCompare(b.timestamp || '')
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+    return list
+  }, [allEntries, filter, sortDir])
 
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <h1>Activity</h1>
-        <ActivityIcon size={14} className="text-dim" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <h1>Activity</h1>
+          <ActivityIcon size={14} className="text-dim" />
+        </div>
+        <button
+          onClick={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')}
+          className="btn-ghost flex items-center gap-1.5"
+          style={{ fontSize: '11px' }}
+        >
+          {sortDir === 'desc' ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
+          {sortDir === 'desc' ? 'Newest First' : 'Oldest First'}
+        </button>
       </div>
 
       {/* Filter chips */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {ENTITY_FILTERS.map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 font-sans cursor-pointer transition-all duration-150 border ${
-              filter === f
-                ? 'bg-polar text-obsidian border-polar'
-                : 'bg-transparent text-steel border-border-hard hover:border-dim hover:text-polar'
-            }`}
-            style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
+      <FilterChips
+        options={ENTITY_FILTERS.map(f => ({ value: f, label: f }))}
+        value={filter}
+        onChange={(v) => setFilter(v as EntityFilter)}
+      />
 
       {/* Activity list */}
       {filtered.length === 0 ? (
@@ -96,61 +150,24 @@ export default function Activity() {
       ) : (
         <div>
           {filtered.map(entry => (
-            <div
-              key={entry.id}
-              className="table-row flex items-start gap-3 py-2.5 px-2"
-            >
-              {/* Colored dot */}
-              <div className="flex-shrink-0 mt-1.5">
-                <div
-                  style={{
-                    width: '6px',
-                    height: '6px',
-                    backgroundColor: DOT_COLORS[entry.type] || '#6B7280',
-                  }}
-                />
-              </div>
-
-              {/* Description */}
-              <div className="flex-1 min-w-0">
-                <span
-                  className="text-polar"
-                  style={{ fontSize: '13px', lineHeight: '1.6' }}
-                  dangerouslySetInnerHTML={{ __html: sanitizeActivityHtml(entry.description) }}
-                />
-              </div>
-
-              {/* Entity badge */}
-              {entry.entity && (
-                <span
-                  className="flex-shrink-0 badge badge-neutral"
-                  style={{ fontSize: '9px' }}
-                >
-                  {entry.entity}
-                </span>
-              )}
-
-              {/* Timestamp */}
-              <span
-                className="flex-shrink-0 text-dim mono"
-                style={{ fontSize: '11px', minWidth: '80px', textAlign: 'right' }}
-              >
-                {relativeDate(entry.timestamp)}
-              </span>
-            </div>
+            <ActivityRow key={entry.id} entry={entry} />
           ))}
 
           {/* Load more */}
           {hasMore && filter === 'All' && (
-            <div className="flex justify-center pt-4 pb-2">
-              <button
-                onClick={loadMore}
-                disabled={loading}
-                className="btn-ghost"
-                style={{ opacity: loading ? 0.5 : 1 }}
-              >
-                {loading ? 'Loading...' : 'Load More'}
-              </button>
+            <div className="pt-4 pb-2">
+              {loading ? (
+                <SkeletonList rows={3} />
+              ) : (
+                <div className="flex justify-center">
+                  <button
+                    onClick={loadMore}
+                    className="btn-ghost"
+                  >
+                    Load More
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

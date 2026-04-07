@@ -11,6 +11,7 @@ import {
   clientHealth,
   sanitizeActivityHtml,
 } from '@/lib/utils'
+import ClientAvatar from '@/components/ui/ClientAvatar'
 
 // Priority sort weight — lower = higher priority
 const PRIORITY_WEIGHT: Record<string, number> = {
@@ -412,6 +413,7 @@ export default function Dashboard() {
                 <div key={client.id} className="group">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2 min-w-0">
+                      <ClientAvatar name={client.name} size="sm" />
                       <span className="text-polar truncate" style={{ fontSize: '12px', fontWeight: 600 }}>{client.name}</span>
                       {client.service && (
                         <span className="text-dim truncate" style={{ fontSize: '10px' }}>{client.service}</span>
@@ -664,6 +666,7 @@ export default function Dashboard() {
                         setCurrentPage('clients')
                       }}
                     >
+                      <ClientAvatar name={c.name} size="sm" />
                       <div className="min-w-0 flex-1">
                         <div className="truncate" style={{ fontSize: '13px' }}>
                           {c.name}

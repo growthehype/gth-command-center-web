@@ -274,4 +274,73 @@
     color: #000000;
     padding: 8px;
   }
+
+  /* Skeleton shimmer */
+  .skeleton-shimmer {
+    @apply bg-surface-2;
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.06) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+
+  [data-theme="dark"] .skeleton-shimmer {
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.04) 50%,
+      transparent 100%
+    );
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-enter {
+  animation: fadeIn 0.15s ease-out;
+}
+
+/* Streak glow pulse for 7+ day streaks */
+@keyframes streakPulse {
+  0%, 100% { box-shadow: 0 0 4px rgba(251, 146, 60, 0.3); }
+  50% { box-shadow: 0 0 12px rgba(251, 146, 60, 0.5), 0 0 20px rgba(251, 146, 60, 0.2); }
+}
+
+.streak-glow {
+  animation: streakPulse 2s ease-in-out infinite;
+}
+
+/* ── Task completion micro-animations ── */
+
+@keyframes taskComplete {
+  0%   { background-color: transparent; }
+  20%  { background-color: rgba(22, 163, 74, 0.15); }
+  100% { background-color: transparent; }
+}
+
+@keyframes checkBounce {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.2); }
+  70%  { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+.task-just-completed {
+  animation: taskComplete 0.8s ease-out;
+}
+
+.task-just-completed .done-checkbox {
+  animation: checkBounce 0.35s ease-out;
 }
