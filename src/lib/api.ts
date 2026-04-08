@@ -196,11 +196,11 @@ export const invoices = {
     return { success: true, status: newStatus }
   },
   async getNextNum() {
-    const tenantId = tid()
+    const [col, val] = scope()
     // Get invoice prefix from settings (default: INV)
-    const { data: prefixSetting } = await supabase.from('settings').select('value').eq('tenant_id', tenantId).eq('key', 'invoice_prefix').single()
+    const { data: prefixSetting } = await supabase.from('settings').select('value').eq(col, val).eq('key', 'invoice_prefix').single()
     const prefix = prefixSetting?.value || 'INV'
-    const { data } = await supabase.from('invoices').select('num').eq('tenant_id', tenantId).order('num', { ascending: false }).limit(1)
+    const { data } = await supabase.from('invoices').select('num').eq(col, val).order('num', { ascending: false }).limit(1)
     if (!data || data.length === 0) return `${prefix}-001`
     // Extract number from any prefix format
     const numMatch = data[0].num.match(/(\d+)$/)
@@ -724,12 +724,12 @@ export const notes = {
   },
   async save(content: string) {
     const userId = await uid()
-    const tenantId = tid()
-    const { data: existing } = await supabase.from('global_notes').select('id').eq('tenant_id', tenantId).single()
+    const [col, val] = scope()
+    const { data: existing } = await supabase.from('global_notes').select('id').eq(col, val).single()
     if (existing) {
-      await supabase.from('global_notes').update({ content, updated_at: new Date().toISOString() }).eq('tenant_id', tenantId)
+      await supabase.from('global_notes').update({ content, updated_at: new Date().toISOString() }).eq(col, val)
     } else {
-      await supabase.from('global_notes').insert({ user_id: userId, tenant_id: tenantId, content, updated_at: new Date().toISOString() })
+      await supabase.from('global_notes').insert({ user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), content, updated_at: new Date().toISOString() })
     }
     return { success: true }
   },
@@ -749,12 +749,12 @@ export const settings = {
   },
   async set(key: string, value: string) {
     const userId = await uid()
-    const tenantId = tid()
-    const { data: existing } = await supabase.from('settings').select('id').eq('tenant_id', tenantId).eq('key', key).single()
+    const [col, val] = scope()
+    const { data: existing } = await supabase.from('settings').select('id').eq(col, val).eq('key', key).single()
     if (existing) {
       await supabase.from('settings').update({ value }).eq('id', existing.id)
     } else {
-      await supabase.from('settings').insert({ user_id: userId, tenant_id: tenantId, key, value })
+      await supabase.from('settings').insert({ user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), key, value })
     }
     return { success: true }
   },
@@ -771,12 +771,12 @@ export const taxStatus = {
   },
   async update(year: number, status: string) {
     const userId = await uid()
-    const tenantId = tid()
-    const { data: existing } = await supabase.from('tax_status').select('id').eq('tenant_id', tenantId).eq('year', year).single()
+    const [col, val] = scope()
+    const { data: existing } = await supabase.from('tax_status').select('id').eq(col, val).eq('year', year).single()
     if (existing) {
       await supabase.from('tax_status').update({ status, updated_at: new Date().toISOString() }).eq('id', existing.id)
     } else {
-      await supabase.from('tax_status').insert({ user_id: userId, tenant_id: tenantId, year, status, updated_at: new Date().toISOString() })
+      await supabase.from('tax_status').insert({ user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), year, status, updated_at: new Date().toISOString() })
     }
     return { success: true }
   },
@@ -793,13 +793,13 @@ export const portalTokens = {
   },
   async generate(clientId: string, expiresInDays = 90) {
     const userId = await uid()
-    const tenantId = tid()
+    const [col, val] = scope()
     const token = crypto.randomUUID()
     const expiresAt = new Date(Date.now() + expiresInDays * 86400000).toISOString()
     // Delete existing tokens for this client
-    await supabase.from('client_portal_tokens').delete().eq('tenant_id', tenantId).eq('client_id', clientId)
+    await supabase.from('client_portal_tokens').delete().eq(col, val).eq('client_id', clientId)
     const { data, error } = await supabase.from('client_portal_tokens').insert({
-      user_id: userId, tenant_id: tenantId, client_id: clientId, token, expires_at: expiresAt, created_at: new Date().toISOString(),
+      user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), client_id: clientId, token, expires_at: expiresAt, created_at: new Date().toISOString(),
     }).select().single()
     if (error) throw error
     return data
