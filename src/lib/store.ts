@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { clients as clientsApi, tasks as tasksApi, projects as projectsApi, invoices as invoicesApi, outreach as outreachApi, events as eventsApi, campaigns as campaignsApi, contacts as contactsApi, meetings as meetingsApi, services as servicesApi, templates as templatesApi, goals as goalsApi, activity as activityApi, credentials as credentialsApi, sops as sopsApi, timeEntries as timeEntriesApi, settings as settingsApi } from '@/lib/api'
+import { clients as clientsApi, tasks as tasksApi, projects as projectsApi, invoices as invoicesApi, outreach as outreachApi, events as eventsApi, campaigns as campaignsApi, contacts as contactsApi, meetings as meetingsApi, services as servicesApi, templates as templatesApi, goals as goalsApi, activity as activityApi, credentials as credentialsApi, sops as sopsApi, timeEntries as timeEntriesApi, settings as settingsApi, team as teamApi, invitations as invitationsApi } from '@/lib/api'
 import { demoData } from '@/lib/demo-data'
 import type { User } from '@supabase/supabase-js'
 
@@ -98,6 +98,16 @@ interface AppStore {
   timeEntries: TimeEntry[]
   settings: Record<string, string>
 
+  // Tenant
+  currentTenantId: string | null
+  currentTenantRole: string | null
+  currentTenantName: string | null
+  setCurrentTenant: (id: string | null, role: string | null, name: string | null) => void
+  teamMembers: any[]
+  pendingInvites: any[]
+  refreshTeamMembers: () => Promise<void>
+  refreshPendingInvites: () => Promise<void>
+
   // UI state
   currentPage: string
   selectedClientId: string | null
@@ -174,6 +184,15 @@ export const useAppStore = create<AppStore>((set) => ({
       settings: {}, runningTimer: null, currentPage: 'briefing',
     })
   },
+
+  currentTenantId: null,
+  currentTenantRole: 'owner',
+  currentTenantName: null,
+  setCurrentTenant: (id, role, name) => set({ currentTenantId: id, currentTenantRole: role, currentTenantName: name }),
+  teamMembers: [],
+  pendingInvites: [],
+  refreshTeamMembers: async () => { try { set({ teamMembers: await teamApi.getMembers() }) } catch (e) { console.error('refreshTeamMembers:', e) } },
+  refreshPendingInvites: async () => { try { set({ pendingInvites: await invitationsApi.getPending() }) } catch (e) { console.error('refreshPendingInvites:', e) } },
 
   clients: [],
   tasks: [],

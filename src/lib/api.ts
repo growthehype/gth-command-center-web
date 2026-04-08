@@ -7,13 +7,28 @@ async function uid(): Promise<string> {
   return data.user.id
 }
 
+// ---- Tenant Context ----
+let _currentTenantId: string | null = null
+
+export function setCurrentTenantId(id: string | null) {
+  _currentTenantId = id
+}
+
+export function getCurrentTenantId(): string {
+  if (!_currentTenantId) throw new Error('No tenant context — select a workspace first')
+  return _currentTenantId
+}
+
+function tid(): string {
+  return getCurrentTenantId()
+}
+
 // ============================================
 // CLIENTS
 // ============================================
 export const clients = {
   async getAll() {
-    const userId = await uid()
-    const { data, error } = await supabase.from('clients').select('*').eq('user_id', userId).order('name')
+    const { data, error } = await supabase.from('clients').select('*').eq('tenant_id', tid()).order('name')
     if (error) throw error
     return data || []
   },
@@ -24,7 +39,7 @@ export const clients = {
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('clients').insert({ ...d, user_id: userId, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('clients').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -45,14 +60,13 @@ export const clients = {
 // ============================================
 export const tasks = {
   async getAll() {
-    const userId = await uid()
-    const { data, error } = await supabase.from('tasks').select('*, clients(name)').eq('user_id', userId).order('created_at', { ascending: false })
+    const { data, error } = await supabase.from('tasks').select('*, clients(name)').eq('tenant_id', tid()).order('created_at', { ascending: false })
     if (error) throw error
     return (data || []).map((t: any) => ({ ...t, client_name: t.clients?.name || null }))
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('tasks').insert({ ...d, user_id: userId, created_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('tasks').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -84,14 +98,13 @@ export const tasks = {
 // ============================================
 export const projects = {
   async getAll() {
-    const userId = await uid()
-    const { data, error } = await supabase.from('projects').select('*, clients(name)').eq('user_id', userId).order('created_at', { ascending: false })
+    const { data, error } = await supabase.from('projects').select('*, clients(name)').eq('tenant_id', tid()).order('created_at', { ascending: false })
     if (error) throw error
     return (data || []).map((p: any) => ({ ...p, client_name: p.clients?.name || null }))
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('projects').insert({ ...d, user_id: userId, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('projects').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -117,14 +130,13 @@ export const projects = {
 // ============================================
 export const invoices = {
   async getAll() {
-    const userId = await uid()
-    const { data, error } = await supabase.from('invoices').select('*, clients(name)').eq('user_id', userId).order('created_at', { ascending: false })
+    const { data, error } = await supabase.from('invoices').select('*, clients(name)').eq('tenant_id', tid()).order('created_at', { ascending: false })
     if (error) throw error
     return (data || []).map((i: any) => ({ ...i, client_name: i.clients?.name || null }))
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('invoices').insert({ ...d, user_id: userId, created_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('invoices').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -150,11 +162,11 @@ export const invoices = {
     return { success: true, status: newStatus }
   },
   async getNextNum() {
-    const userId = await uid()
+    const tenantId = tid()
     // Get invoice prefix from settings (default: INV)
-    const { data: prefixSetting } = await supabase.from('settings').select('value').eq('user_id', userId).eq('key', 'invoice_prefix').single()
+    const { data: prefixSetting } = await supabase.from('settings').select('value').eq('tenant_id', tenantId).eq('key', 'invoice_prefix').single()
     const prefix = prefixSetting?.value || 'INV'
-    const { data } = await supabase.from('invoices').select('num').eq('user_id', userId).order('num', { ascending: false }).limit(1)
+    const { data } = await supabase.from('invoices').select('num').eq('tenant_id', tenantId).order('num', { ascending: false }).limit(1)
     if (!data || data.length === 0) return `${prefix}-001`
     // Extract number from any prefix format
     const numMatch = data[0].num.match(/(\d+)$/)
@@ -168,25 +180,23 @@ export const invoices = {
 // ============================================
 export const invoiceFiles = {
   async getAll() {
-    const userId = await uid()
-    const { data, error } = await supabase.from('invoice_files').select('*, clients(name)').eq('user_id', userId).order('uploaded_at', { ascending: false })
+    const { data, error } = await supabase.from('invoice_files').select('*, clients(name)').eq('tenant_id', tid()).order('uploaded_at', { ascending: false })
     if (error) throw error
     return (data || []).map((f: any) => ({ ...f, client_name: f.clients?.name || null }))
   },
   async getByClient(clientId: string) {
-    const userId = await uid()
-    const { data, error } = await supabase.from('invoice_files').select('*, clients(name)').eq('user_id', userId).eq('client_id', clientId).order('uploaded_at', { ascending: false })
+    const { data, error } = await supabase.from('invoice_files').select('*, clients(name)').eq('tenant_id', tid()).eq('client_id', clientId).order('uploaded_at', { ascending: false })
     if (error) throw error
     return (data || []).map((f: any) => ({ ...f, client_name: f.clients?.name || null }))
   },
   async upload(clientId: string, fileName: string, file: File) {
     const userId = await uid()
     const ext = fileName.split('.').pop()
-    const filePath = `${userId}/invoices/${clientId}/${crypto.randomUUID()}.${ext}`
+    const filePath = `${tid()}/invoices/${clientId}/${crypto.randomUUID()}.${ext}`
     const { error: uploadErr } = await supabase.storage.from('files').upload(filePath, file)
     if (uploadErr) throw uploadErr
     const { data, error } = await supabase.from('invoice_files').insert({
-      user_id: userId, client_id: clientId, name: fileName, size: file.size, file_path: filePath, uploaded_at: new Date().toISOString(),
+      user_id: userId, tenant_id: tid(), client_id: clientId, name: fileName, size: file.size, file_path: filePath, uploaded_at: new Date().toISOString(),
     }).select().single()
     if (error) throw error
     return data
@@ -218,20 +228,18 @@ export const invoiceFiles = {
 // ============================================
 export const events = {
   async getAll() {
-    const userId = await uid()
-    const { data, error } = await supabase.from('events').select('*, clients(name)').eq('user_id', userId).order('date')
+    const { data, error } = await supabase.from('events').select('*, clients(name)').eq('tenant_id', tid()).order('date')
     if (error) throw error
     return (data || []).map((e: any) => ({ ...e, client_name: e.clients?.name || null }))
   },
   async getByDateRange(start: string, end: string) {
-    const userId = await uid()
-    const { data, error } = await supabase.from('events').select('*, clients(name)').eq('user_id', userId).gte('date', start).lte('date', end).order('date')
+    const { data, error } = await supabase.from('events').select('*, clients(name)').eq('tenant_id', tid()).gte('date', start).lte('date', end).order('date')
     if (error) throw error
     return (data || []).map((e: any) => ({ ...e, client_name: e.clients?.name || null }))
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('events').insert({ ...d, user_id: userId, created_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('events').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -252,14 +260,13 @@ export const events = {
 // ============================================
 export const outreach = {
   async getAll() {
-    const userId = await uid()
-    const { data, error } = await supabase.from('outreach_leads').select('*').eq('user_id', userId).order('created_at', { ascending: false })
+    const { data, error } = await supabase.from('outreach_leads').select('*').eq('tenant_id', tid()).order('created_at', { ascending: false })
     if (error) throw error
     return data || []
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('outreach_leads').insert({ ...d, user_id: userId, created_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('outreach_leads').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -280,14 +287,13 @@ export const outreach = {
 // ============================================
 export const campaigns = {
   async getAll() {
-    const userId = await uid()
-    const { data, error } = await supabase.from('campaigns').select('*, clients(name)').eq('user_id', userId).order('name')
+    const { data, error } = await supabase.from('campaigns').select('*, clients(name)').eq('tenant_id', tid()).order('name')
     if (error) throw error
     return (data || []).map((c: any) => ({ ...c, client_name: c.clients?.name || null }))
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('campaigns').insert({ ...d, user_id: userId, updated_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('campaigns').insert({ ...d, user_id: userId, tenant_id: tid(), updated_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -308,14 +314,13 @@ export const campaigns = {
 // ============================================
 export const credentials = {
   async getAll() {
-    const userId = await uid()
-    const { data, error } = await supabase.from('credentials').select('*').eq('user_id', userId).order('platform')
+    const { data, error } = await supabase.from('credentials').select('*').eq('tenant_id', tid()).order('platform')
     if (error) throw error
     return data || []
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('credentials').insert({ ...d, user_id: userId, created_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('credentials').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -336,14 +341,13 @@ export const credentials = {
 // ============================================
 export const sops = {
   async getAll() {
-    const userId = await uid()
-    const { data, error } = await supabase.from('sops').select('*').eq('user_id', userId).order('title')
+    const { data, error } = await supabase.from('sops').select('*').eq('tenant_id', tid()).order('title')
     if (error) throw error
     return data || []
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('sops').insert({ ...d, user_id: userId, updated_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('sops').insert({ ...d, user_id: userId, tenant_id: tid(), updated_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -364,25 +368,23 @@ export const sops = {
 // ============================================
 export const documents = {
   async getAll() {
-    const userId = await uid()
-    const { data, error } = await supabase.from('documents').select('*').eq('user_id', userId).order('uploaded_at', { ascending: false })
+    const { data, error } = await supabase.from('documents').select('*').eq('tenant_id', tid()).order('uploaded_at', { ascending: false })
     if (error) throw error
     return data || []
   },
   async getByCategory(category: string) {
-    const userId = await uid()
-    const { data, error } = await supabase.from('documents').select('*').eq('user_id', userId).eq('category', category).order('uploaded_at', { ascending: false })
+    const { data, error } = await supabase.from('documents').select('*').eq('tenant_id', tid()).eq('category', category).order('uploaded_at', { ascending: false })
     if (error) throw error
     return data || []
   },
   async upload(category: string, fileName: string, file: File) {
     const userId = await uid()
     const ext = fileName.split('.').pop()
-    const filePath = `${userId}/documents/${category}/${crypto.randomUUID()}.${ext}`
+    const filePath = `${tid()}/documents/${category}/${crypto.randomUUID()}.${ext}`
     const { error: uploadErr } = await supabase.storage.from('files').upload(filePath, file)
     if (uploadErr) throw uploadErr
     const { data, error } = await supabase.from('documents').insert({
-      user_id: userId, category, name: fileName, size: file.size, file_path: filePath, uploaded_at: new Date().toISOString(),
+      user_id: userId, tenant_id: tid(), category, name: fileName, size: file.size, file_path: filePath, uploaded_at: new Date().toISOString(),
     }).select().single()
     if (error) throw error
     return data
@@ -414,14 +416,13 @@ export const documents = {
 // ============================================
 export const contacts = {
   async getAll() {
-    const userId = await uid()
-    const { data, error } = await supabase.from('contacts').select('*, clients(name)').eq('user_id', userId).order('name')
+    const { data, error } = await supabase.from('contacts').select('*, clients(name)').eq('tenant_id', tid()).order('name')
     if (error) throw error
     return (data || []).map((c: any) => ({ ...c, client_name: c.clients?.name || null }))
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('contacts').insert({ ...d, user_id: userId, created_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('contacts').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -442,14 +443,13 @@ export const contacts = {
 // ============================================
 export const meetings = {
   async getAll() {
-    const userId = await uid()
-    const { data, error } = await supabase.from('meeting_notes').select('*, clients(name), contacts(name)').eq('user_id', userId).order('date', { ascending: false })
+    const { data, error } = await supabase.from('meeting_notes').select('*, clients(name), contacts(name)').eq('tenant_id', tid()).order('date', { ascending: false })
     if (error) throw error
     return (data || []).map((m: any) => ({ ...m, client_name: m.clients?.name || null, contact_name: m.contacts?.name || null }))
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('meeting_notes').insert({ ...d, user_id: userId, created_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('meeting_notes').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -470,14 +470,13 @@ export const meetings = {
 // ============================================
 export const services = {
   async getAll() {
-    const userId = await uid()
-    const { data, error } = await supabase.from('services').select('*').eq('user_id', userId).order('name')
+    const { data, error } = await supabase.from('services').select('*').eq('tenant_id', tid()).order('name')
     if (error) throw error
     return data || []
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('services').insert({ ...d, user_id: userId, created_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('services').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -498,14 +497,13 @@ export const services = {
 // ============================================
 export const templates = {
   async getAll() {
-    const userId = await uid()
-    const { data, error } = await supabase.from('email_templates').select('*').eq('user_id', userId).order('name')
+    const { data, error } = await supabase.from('email_templates').select('*').eq('tenant_id', tid()).order('name')
     if (error) throw error
     return data || []
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('email_templates').insert({ ...d, user_id: userId, created_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('email_templates').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -532,26 +530,23 @@ export const templates = {
 // ============================================
 export const timeEntries = {
   async getAll() {
-    const userId = await uid()
-    const { data, error } = await supabase.from('time_entries').select('*, projects(title), clients(name)').eq('user_id', userId).order('started_at', { ascending: false })
+    const { data, error } = await supabase.from('time_entries').select('*, projects(title), clients(name)').eq('tenant_id', tid()).order('started_at', { ascending: false })
     if (error) throw error
     return (data || []).map((t: any) => ({ ...t, project_title: t.projects?.title || null, client_name: t.clients?.name || null }))
   },
   async getByClient(clientId: string) {
-    const userId = await uid()
-    const { data, error } = await supabase.from('time_entries').select('*, projects(title), clients(name)').eq('user_id', userId).eq('client_id', clientId).order('started_at', { ascending: false })
+    const { data, error } = await supabase.from('time_entries').select('*, projects(title), clients(name)').eq('tenant_id', tid()).eq('client_id', clientId).order('started_at', { ascending: false })
     if (error) throw error
     return (data || []).map((t: any) => ({ ...t, project_title: t.projects?.title || null, client_name: t.clients?.name || null }))
   },
   async getByProject(projectId: string) {
-    const userId = await uid()
-    const { data, error } = await supabase.from('time_entries').select('*, projects(title), clients(name)').eq('user_id', userId).eq('project_id', projectId).order('started_at', { ascending: false })
+    const { data, error } = await supabase.from('time_entries').select('*, projects(title), clients(name)').eq('tenant_id', tid()).eq('project_id', projectId).order('started_at', { ascending: false })
     if (error) throw error
     return (data || []).map((t: any) => ({ ...t, project_title: t.projects?.title || null, client_name: t.clients?.name || null }))
   },
   async start(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('time_entries').insert({ ...d, user_id: userId, started_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('time_entries').insert({ ...d, user_id: userId, tenant_id: tid(), started_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -566,7 +561,7 @@ export const timeEntries = {
   },
   async getRunning() {
     const userId = await uid()
-    const { data, error } = await supabase.from('time_entries').select('*, projects(title), clients(name)').eq('user_id', userId).is('ended_at', null).limit(1).single()
+    const { data, error } = await supabase.from('time_entries').select('*, projects(title), clients(name)').eq('user_id', userId).eq('tenant_id', tid()).is('ended_at', null).limit(1).single()
     if (error && error.code !== 'PGRST116') throw error
     if (!data) return null
     return { ...data, project_title: data.projects?.title || null, client_name: data.clients?.name || null }
@@ -578,14 +573,13 @@ export const timeEntries = {
 // ============================================
 export const goals = {
   async getAll() {
-    const userId = await uid()
-    const { data, error } = await supabase.from('goals').select('*').eq('user_id', userId).order('status').order('target_date')
+    const { data, error } = await supabase.from('goals').select('*').eq('tenant_id', tid()).order('status').order('target_date')
     if (error) throw error
     return data || []
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('goals').insert({ ...d, user_id: userId, created_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('goals').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -612,7 +606,7 @@ export const clientLinks = {
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('client_links').insert({ ...d, user_id: userId }).select().single()
+    const { data, error } = await supabase.from('client_links').insert({ ...d, user_id: userId, tenant_id: tid() }).select().single()
     if (error) throw error
     return data
   },
@@ -640,11 +634,11 @@ export const clientFiles = {
   async upload(clientId: string, category: string, fileName: string, file: File) {
     const userId = await uid()
     const ext = fileName.split('.').pop()
-    const filePath = `${userId}/clients/${clientId}/${category}/${crypto.randomUUID()}.${ext}`
+    const filePath = `${tid()}/clients/${clientId}/${category}/${crypto.randomUUID()}.${ext}`
     const { error: uploadErr } = await supabase.storage.from('files').upload(filePath, file)
     if (uploadErr) throw uploadErr
     const { data, error } = await supabase.from('client_files').insert({
-      user_id: userId, client_id: clientId, category, name: fileName, size: file.size, file_path: filePath, uploaded_at: new Date().toISOString(),
+      user_id: userId, tenant_id: tid(), client_id: clientId, category, name: fileName, size: file.size, file_path: filePath, uploaded_at: new Date().toISOString(),
     }).select().single()
     if (error) throw error
     return data
@@ -671,20 +665,18 @@ export const clientFiles = {
 // ============================================
 export const activity = {
   async getAll(limit = 50, offset = 0) {
-    const userId = await uid()
-    const { data, error } = await supabase.from('activity_log').select('*').eq('user_id', userId).order('timestamp', { ascending: false }).range(offset, offset + limit - 1)
+    const { data, error } = await supabase.from('activity_log').select('*').eq('tenant_id', tid()).order('timestamp', { ascending: false }).range(offset, offset + limit - 1)
     if (error) throw error
     return data || []
   },
   async getByEntity(entity: string, limit = 50) {
-    const userId = await uid()
-    const { data, error } = await supabase.from('activity_log').select('*').eq('user_id', userId).eq('entity', entity).order('timestamp', { ascending: false }).limit(limit)
+    const { data, error } = await supabase.from('activity_log').select('*').eq('tenant_id', tid()).eq('entity', entity).order('timestamp', { ascending: false }).limit(limit)
     if (error) throw error
     return data || []
   },
   async log(type: string, entity: string, entityId: string | null, description: string) {
     const userId = await uid()
-    await supabase.from('activity_log').insert({ user_id: userId, type, entity, entity_id: entityId, description, timestamp: new Date().toISOString() })
+    await supabase.from('activity_log').insert({ user_id: userId, tenant_id: tid(), type, entity, entity_id: entityId, description, timestamp: new Date().toISOString() })
   },
 }
 
@@ -693,17 +685,17 @@ export const activity = {
 // ============================================
 export const notes = {
   async get() {
-    const userId = await uid()
-    const { data } = await supabase.from('global_notes').select('content').eq('user_id', userId).single()
+    const { data } = await supabase.from('global_notes').select('content').eq('tenant_id', tid()).single()
     return data?.content || ''
   },
   async save(content: string) {
     const userId = await uid()
-    const { data: existing } = await supabase.from('global_notes').select('id').eq('user_id', userId).single()
+    const tenantId = tid()
+    const { data: existing } = await supabase.from('global_notes').select('id').eq('tenant_id', tenantId).single()
     if (existing) {
-      await supabase.from('global_notes').update({ content, updated_at: new Date().toISOString() }).eq('user_id', userId)
+      await supabase.from('global_notes').update({ content, updated_at: new Date().toISOString() }).eq('tenant_id', tenantId)
     } else {
-      await supabase.from('global_notes').insert({ user_id: userId, content, updated_at: new Date().toISOString() })
+      await supabase.from('global_notes').insert({ user_id: userId, tenant_id: tenantId, content, updated_at: new Date().toISOString() })
     }
     return { success: true }
   },
@@ -714,22 +706,21 @@ export const notes = {
 // ============================================
 export const settings = {
   async get(key: string) {
-    const userId = await uid()
-    const { data } = await supabase.from('settings').select('value').eq('user_id', userId).eq('key', key).single()
+    const { data } = await supabase.from('settings').select('value').eq('tenant_id', tid()).eq('key', key).single()
     return data?.value
   },
   async getAll() {
-    const userId = await uid()
-    const { data } = await supabase.from('settings').select('*').eq('user_id', userId)
+    const { data } = await supabase.from('settings').select('*').eq('tenant_id', tid())
     return Object.fromEntries((data || []).map((r: any) => [r.key, r.value]))
   },
   async set(key: string, value: string) {
     const userId = await uid()
-    const { data: existing } = await supabase.from('settings').select('id').eq('user_id', userId).eq('key', key).single()
+    const tenantId = tid()
+    const { data: existing } = await supabase.from('settings').select('id').eq('tenant_id', tenantId).eq('key', key).single()
     if (existing) {
       await supabase.from('settings').update({ value }).eq('id', existing.id)
     } else {
-      await supabase.from('settings').insert({ user_id: userId, key, value })
+      await supabase.from('settings').insert({ user_id: userId, tenant_id: tenantId, key, value })
     }
     return { success: true }
   },
@@ -740,18 +731,18 @@ export const settings = {
 // ============================================
 export const taxStatus = {
   async getAll() {
-    const userId = await uid()
-    const { data, error } = await supabase.from('tax_status').select('*').eq('user_id', userId).order('year', { ascending: false })
+    const { data, error } = await supabase.from('tax_status').select('*').eq('tenant_id', tid()).order('year', { ascending: false })
     if (error) throw error
     return data || []
   },
   async update(year: number, status: string) {
     const userId = await uid()
-    const { data: existing } = await supabase.from('tax_status').select('id').eq('user_id', userId).eq('year', year).single()
+    const tenantId = tid()
+    const { data: existing } = await supabase.from('tax_status').select('id').eq('tenant_id', tenantId).eq('year', year).single()
     if (existing) {
       await supabase.from('tax_status').update({ status, updated_at: new Date().toISOString() }).eq('id', existing.id)
     } else {
-      await supabase.from('tax_status').insert({ user_id: userId, year, status, updated_at: new Date().toISOString() })
+      await supabase.from('tax_status').insert({ user_id: userId, tenant_id: tenantId, year, status, updated_at: new Date().toISOString() })
     }
     return { success: true }
   },
@@ -762,26 +753,25 @@ export const taxStatus = {
 // ============================================
 export const portalTokens = {
   async getByClient(clientId: string) {
-    const userId = await uid()
-    const { data, error } = await supabase.from('client_portal_tokens').select('*').eq('user_id', userId).eq('client_id', clientId).order('created_at', { ascending: false }).limit(1)
+    const { data, error } = await supabase.from('client_portal_tokens').select('*').eq('tenant_id', tid()).eq('client_id', clientId).order('created_at', { ascending: false }).limit(1)
     if (error) throw error
     return data?.[0] || null
   },
   async generate(clientId: string, expiresInDays = 90) {
     const userId = await uid()
+    const tenantId = tid()
     const token = crypto.randomUUID()
     const expiresAt = new Date(Date.now() + expiresInDays * 86400000).toISOString()
     // Delete existing tokens for this client
-    await supabase.from('client_portal_tokens').delete().eq('user_id', userId).eq('client_id', clientId)
+    await supabase.from('client_portal_tokens').delete().eq('tenant_id', tenantId).eq('client_id', clientId)
     const { data, error } = await supabase.from('client_portal_tokens').insert({
-      user_id: userId, client_id: clientId, token, expires_at: expiresAt, created_at: new Date().toISOString(),
+      user_id: userId, tenant_id: tenantId, client_id: clientId, token, expires_at: expiresAt, created_at: new Date().toISOString(),
     }).select().single()
     if (error) throw error
     return data
   },
   async revoke(clientId: string) {
-    const userId = await uid()
-    const { error } = await supabase.from('client_portal_tokens').delete().eq('user_id', userId).eq('client_id', clientId)
+    const { error } = await supabase.from('client_portal_tokens').delete().eq('tenant_id', tid()).eq('client_id', clientId)
     if (error) throw error
     return { success: true }
   },
@@ -800,6 +790,166 @@ export const shell = {
 }
 
 // ============================================
+// TENANTS
+// ============================================
+export const tenants = {
+  async getUserTenants() {
+    const { data, error } = await supabase.rpc('get_user_tenants')
+    if (error) throw error
+    return data || []
+  },
+  async update(id: string, d: any) {
+    const { error } = await supabase.from('tenants').update(d).eq('id', id)
+    if (error) throw error
+  },
+  async getCurrent() {
+    const { data, error } = await supabase.from('tenants').select('*').eq('id', tid()).single()
+    if (error) throw error
+    return data
+  },
+}
+
+// ============================================
+// TEAM MEMBERS
+// ============================================
+export const team = {
+  async getMembers() {
+    const { data, error } = await supabase
+      .from('tenant_members')
+      .select('*, users:user_id(email, raw_user_meta_data)')
+      .eq('tenant_id', tid())
+      .order('role')
+    if (error) throw error
+    return data || []
+  },
+  async updateRole(memberId: string, role: string) {
+    const { error } = await supabase.from('tenant_members').update({ role }).eq('id', memberId)
+    if (error) throw error
+  },
+  async removeMember(memberId: string) {
+    const { error } = await supabase.from('tenant_members').delete().eq('id', memberId)
+    if (error) throw error
+  },
+}
+
+// ============================================
+// INVITATIONS
+// ============================================
+export const invitations = {
+  async create(email: string, role: string) {
+    const userId = await uid()
+    const { data, error } = await supabase.from('tenant_invitations').insert({
+      tenant_id: tid(),
+      email,
+      role,
+      invited_by: userId,
+    }).select().single()
+    if (error) throw error
+    return data
+  },
+  async getPending() {
+    const { data, error } = await supabase
+      .from('tenant_invitations')
+      .select('*')
+      .eq('tenant_id', tid())
+      .is('accepted_at', null)
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    return data || []
+  },
+  async revoke(id: string) {
+    const { error } = await supabase.from('tenant_invitations').delete().eq('id', id)
+    if (error) throw error
+  },
+  async getByToken(token: string) {
+    const { data, error } = await supabase
+      .from('tenant_invitations')
+      .select('*, tenants(name, logo_url)')
+      .eq('token', token)
+      .is('accepted_at', null)
+      .single()
+    if (error) throw error
+    return data
+  },
+  async accept(token: string) {
+    const userId = await uid()
+    // Get the invitation
+    const { data: invite, error: fetchErr } = await supabase
+      .from('tenant_invitations')
+      .select('*')
+      .eq('token', token)
+      .is('accepted_at', null)
+      .single()
+    if (fetchErr || !invite) throw new Error('Invalid or expired invitation')
+
+    // Add to tenant_members
+    const { error: memberErr } = await supabase.from('tenant_members').insert({
+      tenant_id: invite.tenant_id,
+      user_id: userId,
+      role: invite.role,
+      invited_by: invite.invited_by,
+      accepted_at: new Date().toISOString(),
+    })
+    if (memberErr) throw memberErr
+
+    // Mark invitation as accepted
+    await supabase.from('tenant_invitations').update({ accepted_at: new Date().toISOString() }).eq('id', invite.id)
+
+    return invite
+  },
+}
+
+// ============================================
+// INTEGRATIONS
+// ============================================
+export const integrations = {
+  async getAll() {
+    const { data, error } = await supabase
+      .from('integrations')
+      .select('*')
+      .eq('tenant_id', tid())
+      .order('provider')
+    if (error) throw error
+    return data || []
+  },
+  async upsert(provider: string, config: any) {
+    const userId = await uid()
+    const { data, error } = await supabase
+      .from('integrations')
+      .upsert({
+        tenant_id: tid(),
+        provider,
+        config,
+        status: 'active',
+        connected_by: userId,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'tenant_id,provider' })
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+  async disconnect(provider: string) {
+    const { error } = await supabase
+      .from('integrations')
+      .update({ status: 'inactive', access_token: null, refresh_token: null })
+      .eq('tenant_id', tid())
+      .eq('provider', provider)
+    if (error) throw error
+  },
+  async getWebhookEvents(limit = 50) {
+    const { data, error } = await supabase
+      .from('webhook_events')
+      .select('*')
+      .eq('tenant_id', tid())
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    if (error) throw error
+    return data || []
+  },
+}
+
+// ============================================
 // Export as unified API matching electron shape
 // ============================================
 const api = {
@@ -807,6 +957,7 @@ const api = {
   campaigns, credentials, sops, documents, contacts, meetings,
   services, templates, timeEntries, goals, clientLinks, clientFiles,
   activity, notes, settings, taxStatus, portalTokens, shell,
+  tenants, team, invitations, integrations,
 }
 
 export default api

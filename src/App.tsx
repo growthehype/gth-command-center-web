@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { useAppStore } from '@/lib/store'
 import { captureTokenFromUrl, initGoogleToken } from '@/lib/google-calendar'
 import { captureGmailToken } from '@/lib/gmail'
+import { setCurrentTenantId, tenants as tenantsApi } from '@/lib/api'
 import { isOverdue } from '@/lib/utils'
 import { useFaviconBadge } from '@/hooks/useFaviconBadge'
 import Login from '@/pages/Login'
@@ -90,13 +91,30 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [setUser, demoMode, loadAllData])
 
-  // Load data ONCE when user becomes authenticated (non-demo)
+  // Load tenant context, then data, ONCE when user becomes authenticated (non-demo)
   useEffect(() => {
     if (user && !demoMode && !dataLoadedRef.current) {
       dataLoadedRef.current = true
-      loadAllData().catch(() => {
-        console.error('Failed to load data — check Supabase tables exist')
-      })
+      // Load tenants first, set context, then load all data
+      tenantsApi.getUserTenants()
+        .then((userTenants: any[]) => {
+          if (userTenants.length > 0) {
+            // Auto-select first tenant (or last used from localStorage)
+            const savedTenantId = localStorage.getItem('gth_current_tenant')
+            const tenant = userTenants.find((t: any) => t.tenant_id === savedTenantId) || userTenants[0]
+            setCurrentTenantId(tenant.tenant_id)
+            localStorage.setItem('gth_current_tenant', tenant.tenant_id)
+            useAppStore.getState().setCurrentTenant(tenant.tenant_id, tenant.role, tenant.tenant_name)
+          }
+          return loadAllData()
+        })
+        .catch((err: any) => {
+          console.error('Failed to load data:', err)
+          // Fallback: try loading without tenant context (pre-migration)
+          loadAllData().catch(() => {
+            console.error('Failed to load data — check Supabase tables exist')
+          })
+        })
     }
   }, [user, loadAllData, demoMode])
 

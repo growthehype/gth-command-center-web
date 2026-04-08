@@ -65,6 +65,8 @@ const navGroups: NavGroup[] = [
       { id: 'sops', label: 'SOPs', icon: BookOpen },
       { id: 'notes', label: 'Notes', icon: Pencil },
       { id: 'activity', label: 'Activity', icon: Activity },
+      { id: 'team', label: 'Team', icon: Users },
+      { id: 'integrations-settings', label: 'Integrations', icon: Link2 },
       { id: 'settings', label: 'Settings', icon: Settings },
       { id: 'help', label: 'Help & Guide', icon: HelpCircle },
     ]

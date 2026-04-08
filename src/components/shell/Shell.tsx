@@ -42,6 +42,8 @@ import SettingsPage from '@/pages/Settings'
 import ClientDetail from '@/pages/ClientDetail'
 import HelpPage from '@/pages/Help'
 import EmailTemplatesPage from '@/pages/EmailTemplates'
+import TeamManagement from '@/pages/TeamManagement'
+import IntegrationsPage from '@/pages/Integrations'
 
 interface ShellProps {
   onLock?: () => void
@@ -74,6 +76,8 @@ const pageMap: Record<string, React.ComponentType> = {
   'client-detail': ClientDetail,
   help: HelpPage,
   'email-templates': EmailTemplatesPage,
+  'team': TeamManagement,
+  'integrations-settings': IntegrationsPage,
 }
 
 export default function Shell({ onLock }: ShellProps) {
