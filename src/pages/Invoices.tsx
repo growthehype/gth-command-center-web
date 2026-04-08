@@ -1118,10 +1118,35 @@ export default function Invoices() {
           {/* Line items */}
           <div className="space-y-2">
             <span className="label text-dim">LINE ITEMS</span>
+            <datalist id="gth-services">
+              <option value="Website Design & Development" />
+              <option value="Social Media Management" />
+              <option value="Social Media Strategy" />
+              <option value="Brand Strategy & Identity" />
+              <option value="Content Creation & Production" />
+              <option value="SEO & Digital Marketing" />
+              <option value="Google Ads Management" />
+              <option value="Meta Ads Management" />
+              <option value="Email Marketing & Automation" />
+              <option value="Photography & Videography" />
+              <option value="Graphic Design" />
+              <option value="Monthly Retainer" />
+              <option value="Marketing Strategy & Consulting" />
+              <option value="Branding Package" />
+              <option value="Campaign Management" />
+              <option value="Copywriting" />
+              <option value="Landing Page Design" />
+              <option value="E-Commerce Setup" />
+              <option value="Analytics & Reporting" />
+              <option value="Creative Direction" />
+              <option value="Up To Date Marketing" />
+              <option value="Project Deposit" />
+              <option value="Rush Fee" />
+            </datalist>
             <div className="border border-border">
               {/* Header */}
               <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-surface border-b border-border">
-                <span className="label text-dim col-span-5" style={{ fontSize: '10px' }}>DESCRIPTION</span>
+                <span className="label text-dim col-span-5" style={{ fontSize: '10px' }}>SERVICE / DESCRIPTION</span>
                 <span className="label text-dim col-span-2 text-center" style={{ fontSize: '10px' }}>QTY</span>
                 <span className="label text-dim col-span-2 text-center" style={{ fontSize: '10px' }}>RATE</span>
                 <span className="label text-dim col-span-2 text-right" style={{ fontSize: '10px' }}>AMOUNT</span>
@@ -1130,9 +1155,10 @@ export default function Invoices() {
               {builderLineItems.map((li, i) => (
                 <div key={i} className="grid grid-cols-12 gap-2 px-3 py-2 items-center border-b border-border last:border-b-0">
                   <input
+                    list="gth-services"
                     value={li.description}
                     onChange={e => updateLineItem(i, 'description', e.target.value)}
-                    placeholder={i === 0 && builderLineItems.length === 1 ? 'e.g., Website Design & Development' : 'Description'}
+                    placeholder="Select or type a service..."
                     className="col-span-5 bg-cell border border-border text-polar px-2 py-1.5 font-sans outline-none focus:border-dim transition-colors"
                     style={{ fontSize: '12px' }}
                   />

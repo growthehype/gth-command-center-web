@@ -101,13 +101,16 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   // Right-aligned text helper — prints label: value pairs
   const metaRow = (label: string, value: string, yy: number, bold = false, highlight = false) => {
     const valX = W - R
-    const lblX = valX - 65
+    const lblX = valX - 58
 
     if (highlight) {
+      // Full-width highlight from label area to right margin
+      const boxX = lblX - 48
+      const boxW = (valX + 2) - boxX
       doc.setFillColor(...cream)
-      doc.rect(lblX - 3, yy - 4, 68, 6.5, 'F')
+      doc.rect(boxX, yy - 4.5, boxW, 7.5, 'F')
       doc.setFillColor(...black)
-      doc.rect(lblX - 3, yy - 4, 1.5, 6.5, 'F')
+      doc.rect(boxX, yy - 4.5, 2, 7.5, 'F')
     }
 
     doc.setFont('helvetica', bold ? 'bold' : 'normal')
@@ -116,7 +119,7 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
     doc.text(label + ':', lblX, yy, { align: 'right' })
 
     doc.setFont('helvetica', bold ? 'bold' : 'normal')
-    doc.setFontSize(8.5)
+    doc.setFontSize(highlight ? 9.5 : 8.5)
     doc.setTextColor(...dark)
     doc.text(value, valX, yy, { align: 'right' })
   }
@@ -402,14 +405,15 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   y += 7
 
   // Amount Due (CAD) — highlighted
-  const adBoxW = (valX + 5) - (lblX - 42)
+  const adBoxX = lblX - 55
+  const adBoxW2 = (valX + 3) - adBoxX
   doc.setFillColor(...cream)
-  doc.rect(lblX - 42, y - 4.5, adBoxW, 8, 'F')
+  doc.rect(adBoxX, y - 5, adBoxW2, 9, 'F')
   doc.setFillColor(...black)
-  doc.rect(lblX - 42, y - 4.5, 1.8, 8, 'F')
+  doc.rect(adBoxX, y - 5, 2, 9, 'F')
 
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(9.5)
+  doc.setFontSize(9)
   doc.setTextColor(...black)
   doc.text(`Amount Due (${currency}):`, lblX, y, { align: 'right' })
   doc.setFont('helvetica', 'bold')

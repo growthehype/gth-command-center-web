@@ -38,10 +38,17 @@ export default function App() {
     }
   }, [])
 
-  // Hydrate Google token from Supabase on login (cross-device persistence)
+  // Hydrate Google token from Supabase on login, and silently re-auth if expired
   useEffect(() => {
     if (user) {
-      initGoogleToken()
+      initGoogleToken().then((connected) => {
+        if (!connected) {
+          // Token expired — try silent re-auth (Google will skip consent if already granted)
+          import('@/lib/google-calendar').then(({ silentReconnectIfNeeded }) => {
+            silentReconnectIfNeeded()
+          })
+        }
+      })
     }
   }, [user])
 
