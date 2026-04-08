@@ -883,7 +883,7 @@ export default function Invoices() {
           {/* From / To */}
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-3">
-              <span className="label text-dim">FROM</span>
+              <span className="label" style={{ color: '#863bff' }}>FROM</span>
               <input
                 value={builderFromName}
                 onChange={e => setBuilderFromName(e.target.value)}
@@ -900,7 +900,7 @@ export default function Invoices() {
               />
             </div>
             <div className="space-y-3">
-              <span className="label text-dim">TO</span>
+              <span className="label" style={{ color: '#863bff' }}>TO</span>
               <select
                 value={builderClientId}
                 onChange={e => {
@@ -928,16 +928,22 @@ export default function Invoices() {
             </div>
           </div>
 
+          {/* Section divider */}
+          <div className="border-t border-border" />
+
           {/* Invoice details row */}
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-1">
               <span className="label text-dim">INVOICE #</span>
-              <input
-                value={builderNum}
-                onChange={e => setBuilderNum(e.target.value)}
-                className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors mono"
-                style={{ fontSize: '12px' }}
-              />
+              <div className="flex">
+                <span className="bg-surface border border-border border-r-0 text-dim px-2.5 py-2 mono flex items-center select-none" style={{ fontSize: '12px' }}>GTH-</span>
+                <input
+                  value={builderNum}
+                  onChange={e => setBuilderNum(e.target.value)}
+                  className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors mono"
+                  style={{ fontSize: '12px' }}
+                />
+              </div>
             </div>
             <div className="space-y-1">
               <span className="label text-dim">DATE</span>
@@ -961,6 +967,9 @@ export default function Invoices() {
             </div>
           </div>
 
+          {/* Section divider */}
+          <div className="border-t border-border" />
+
           {/* Line items */}
           <div className="space-y-2">
             <span className="label text-dim">LINE ITEMS</span>
@@ -978,7 +987,7 @@ export default function Invoices() {
                   <input
                     value={li.description}
                     onChange={e => updateLineItem(i, 'description', e.target.value)}
-                    placeholder="Description"
+                    placeholder={i === 0 && builderLineItems.length === 1 ? 'e.g., Website Design & Development' : 'Description'}
                     className="col-span-5 bg-cell border border-border text-polar px-2 py-1.5 font-sans outline-none focus:border-dim transition-colors"
                     style={{ fontSize: '12px' }}
                   />
@@ -1015,16 +1024,19 @@ export default function Invoices() {
             </div>
             <button
               onClick={addLineItem}
-              className="btn-ghost flex items-center gap-1.5"
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-border text-dim hover:text-polar hover:border-dim transition-colors w-full justify-center"
               style={{ fontSize: '11px' }}
             >
-              <Plus size={11} /> Add Line Item
+              <Plus size={12} /> Add Another Line Item
             </button>
           </div>
 
+          {/* Section divider */}
+          <div className="border-t border-border" />
+
           {/* Totals */}
           <div className="flex justify-end">
-            <div className="space-y-2 w-[260px]">
+            <div className="space-y-2 w-[280px] bg-surface border border-border p-4">
               <div className="flex justify-between items-center">
                 <span className="text-steel" style={{ fontSize: '12px' }}>Subtotal</span>
                 <span className="text-polar mono font-[600]" style={{ fontSize: '13px' }}>
@@ -1049,33 +1061,82 @@ export default function Invoices() {
                   ${builderTaxAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>
               </div>
-              <div className="border-t border-border pt-2 flex justify-between items-center">
+              <div className="pt-2 flex justify-between items-center" style={{ borderTop: '2px solid #863bff' }}>
                 <span className="text-polar font-[700]" style={{ fontSize: '14px' }}>Total</span>
-                <span className="text-polar mono font-[700]" style={{ fontSize: '16px' }}>
+                <span className="text-polar mono font-[700]" style={{ fontSize: '18px' }}>
                   ${builderTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
           </div>
 
+          {/* Section divider */}
+          <div className="border-t border-border" />
+
           {/* Footer fields */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
+            <div className="space-y-2">
               <span className="label text-dim">PAYMENT TERMS</span>
-              <input
-                value={builderTerms}
-                onChange={e => setBuilderTerms(e.target.value)}
-                placeholder="e.g., Net 30"
-                className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors"
-                style={{ fontSize: '12px' }}
-              />
+              <div className="flex flex-wrap gap-1.5">
+                {['Net 15', 'Net 30', 'Net 45', 'Net 60', 'Due on Receipt', 'Custom'].map(term => {
+                  const isCustom = term === 'Custom'
+                  const isActive = isCustom
+                    ? !['Net 15', 'Net 30', 'Net 45', 'Net 60', 'Due on Receipt'].includes(builderTerms)
+                    : builderTerms === term
+                  return (
+                    <button
+                      key={term}
+                      onClick={() => {
+                        if (isCustom) setBuilderTerms('')
+                        else setBuilderTerms(term)
+                      }}
+                      className="px-2.5 py-1 border transition-colors"
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: isActive ? 600 : 400,
+                        backgroundColor: isActive ? '#863bff' : 'transparent',
+                        color: isActive ? '#fff' : undefined,
+                        borderColor: isActive ? '#863bff' : undefined,
+                      }}
+                    >
+                      {term}
+                    </button>
+                  )
+                })}
+              </div>
+              {!['Net 15', 'Net 30', 'Net 45', 'Net 60', 'Due on Receipt'].includes(builderTerms) && (
+                <input
+                  value={builderTerms}
+                  onChange={e => setBuilderTerms(e.target.value)}
+                  placeholder="Enter custom terms..."
+                  className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors"
+                  style={{ fontSize: '12px' }}
+                />
+              )}
             </div>
-            <div className="space-y-1">
+            <div className="space-y-2">
               <span className="label text-dim">NOTES / MEMO</span>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { label: 'Thank you', value: 'Thank you for your business' },
+                  { label: 'Payment due', value: 'Payment is due within the specified terms' },
+                  { label: 'Include #', value: 'Please include invoice number with payment' },
+                  { label: 'Custom', value: '__custom__' },
+                ].map(opt => (
+                  <button
+                    key={opt.label}
+                    onClick={() => setBuilderMemo(opt.value === '__custom__' ? '' : opt.value)}
+                    className="px-2.5 py-1 border border-border text-dim hover:text-polar hover:border-dim transition-colors"
+                    style={{ fontSize: '10px' }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
               <textarea
                 value={builderMemo}
                 onChange={e => setBuilderMemo(e.target.value)}
-                placeholder="Thank you for your business"
+                placeholder="Add a note or memo for the client..."
                 rows={2}
                 className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors resize-none"
                 style={{ fontSize: '12px' }}
