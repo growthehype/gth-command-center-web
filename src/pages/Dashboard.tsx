@@ -1,7 +1,6 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo } from 'react'
 import { format, parseISO, addDays, isWithinInterval, startOfDay } from 'date-fns'
 import { useAppStore } from '@/lib/store'
-import { invoiceFiles } from '@/lib/api'
 import {
   formatCurrency,
   formatDate,
@@ -30,6 +29,7 @@ export default function Dashboard() {
     leads,
     events,
     activity,
+    invoices,
     setCurrentPage,
   } = useAppStore()
 
@@ -48,12 +48,15 @@ export default function Dashboard() {
     [clients],
   )
 
-  const [invoiceFileCount, setInvoiceFileCount] = useState(0)
-  useEffect(() => {
-    invoiceFiles.getAll().then((files: any[]) => {
-      setInvoiceFileCount(files?.length || 0)
-    }).catch(() => {})
-  }, [])
+  const invoiceCount = useMemo(() => invoices.length, [invoices])
+
+  const invoicePipelineValue = useMemo(
+    () =>
+      invoices
+        .filter((i) => i.status !== 'paid')
+        .reduce((sum, i) => sum + (i.amount || 0), 0),
+    [invoices],
+  )
 
   const pipelineValue = useMemo(
     () =>
@@ -338,19 +341,19 @@ export default function Dashboard() {
           onClick={() => setCurrentPage('invoices')}
         >
           <div className="stat-card-accent stat-card-accent--cyan" />
-          <div className="stat-value">{invoiceFileCount}</div>
+          <div className="stat-value">{invoiceCount}</div>
           <div className="stat-label">Invoices</div>
         </button>
 
         {/* Pipeline Value */}
         <button
           className="stat-card stat-card--has-accent text-left cursor-pointer"
-          onClick={() => setCurrentPage('outreach')}
+          onClick={() => setCurrentPage('invoices')}
         >
           <div className="stat-card-accent stat-card-accent--amber" />
           <div className="stat-value">
-            {formatCurrency(pipelineValue)}
-            {trendArrow(leads.filter((l) => l.stage !== 'closed' && l.stage !== 'lost').length)}
+            {formatCurrency(invoicePipelineValue + pipelineValue)}
+            {trendArrow(invoices.filter((i) => i.status !== 'paid').length + leads.filter((l) => l.stage !== 'closed' && l.stage !== 'lost').length)}
           </div>
           <div className="stat-label">Pipeline</div>
         </button>

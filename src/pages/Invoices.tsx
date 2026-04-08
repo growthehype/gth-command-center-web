@@ -148,6 +148,15 @@ export default function Invoices() {
   const [emailBody, setEmailBody] = useState('')
   const [emailSending, setEmailSending] = useState(false)
   const [pendingSendInvoiceId, setPendingSendInvoiceId] = useState<string | null>(null)
+  const [statusDropdownId, setStatusDropdownId] = useState<string | null>(null)
+
+  // Close status dropdown on outside click
+  useEffect(() => {
+    if (!statusDropdownId) return
+    const handler = () => setStatusDropdownId(null)
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
+  }, [statusDropdownId])
 
   /* ── Load files ── */
   const loadFiles = useCallback(async () => {
@@ -760,45 +769,104 @@ export default function Invoices() {
 
           {/* Invoice table */}
           <div className="border border-border overflow-x-auto">
-            <div className="grid grid-cols-12 gap-4 px-4 py-2 border-b border-border bg-surface min-w-[700px]">
-              <span className="label text-dim col-span-2">INVOICE #</span>
-              <span className="label text-dim col-span-2">CLIENT</span>
-              <span className="label text-dim col-span-2 text-right">AMOUNT</span>
-              <span className="label text-dim col-span-1 text-center">STATUS</span>
-              <span className="label text-dim col-span-2">DUE DATE</span>
-              <span className="label text-dim col-span-1">NOTES</span>
-              <span className="label text-dim col-span-2 text-right">ACTIONS</span>
-            </div>
+            <table className="w-full" style={{ minWidth: '760px' }}>
+              <thead>
+                <tr className="border-b border-border bg-surface">
+                  <th className="label text-dim text-left px-4 py-2" style={{ width: '100px' }}>INVOICE #</th>
+                  <th className="label text-dim text-left px-4 py-2" style={{ width: '160px' }}>CLIENT</th>
+                  <th className="label text-dim text-right px-4 py-2" style={{ width: '100px' }}>AMOUNT</th>
+                  <th className="label text-dim text-center px-4 py-2" style={{ width: '100px' }}>STATUS</th>
+                  <th className="label text-dim text-left px-4 py-2" style={{ width: '110px' }}>DUE DATE</th>
+                  <th className="label text-dim text-left px-4 py-2">NOTES</th>
+                  <th className="label text-dim text-right px-4 py-2" style={{ width: '100px' }}>ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody>
             {filteredInvoices.map(inv => {
               const st = getInvoiceStatus(inv)
               return (
-                <div
+                <tr
                   key={inv.id}
                   data-invoice-id={inv.id}
-                  className="table-row grid grid-cols-12 gap-4 px-4 py-3 items-center min-w-[700px] cursor-pointer"
+                  className="table-row cursor-pointer"
                   onClick={() => openEditInvoice(inv)}
                 >
-                  <span className="col-span-2 text-polar font-[600] mono" style={{ fontSize: '13px' }}>
-                    {inv.num || '---'}
-                  </span>
-                  <span className="col-span-2 text-steel truncate" style={{ fontSize: '12px' }}>
-                    {inv.client_name || '---'}
-                  </span>
-                  <span className="col-span-2 text-polar font-[600] mono text-right" style={{ fontSize: '13px' }}>
-                    {formatCurrency(inv.amount || 0)}
-                  </span>
-                  <div className="col-span-1 flex justify-center">
-                    <span className={st.badgeClass}>
-                      {st.label}
+                  <td className="px-4 py-3">
+                    <span className="text-polar font-[600] mono" style={{ fontSize: '13px' }}>
+                      {inv.num || '---'}
                     </span>
-                  </div>
-                  <span className="col-span-2 mono text-dim" style={{ fontSize: '12px' }}>
-                    {inv.due_date ? formatDate(inv.due_date, 'MMM d, yyyy') : '---'}
-                  </span>
-                  <span className="col-span-1 text-dim truncate" style={{ fontSize: '11px' }}>
-                    {displayMemo(inv.notes)}
-                  </span>
-                  <div className="col-span-2 flex justify-end gap-2" onClick={e => e.stopPropagation()}>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-steel truncate block" style={{ fontSize: '12px' }}>
+                      {inv.client_name || '---'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <span className="text-polar font-[600] mono" style={{ fontSize: '13px' }}>
+                      {formatCurrency(inv.amount || 0)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-center" onClick={e => e.stopPropagation()}>
+                    <div className="relative inline-block">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setStatusDropdownId(statusDropdownId === inv.id ? null : inv.id)
+                        }}
+                        className={`${st.badgeClass} cursor-pointer hover:opacity-80 transition-opacity`}
+                        title="Click to change status"
+                      >
+                        {st.label}
+                      </button>
+                      {statusDropdownId === inv.id && (
+                        <div
+                          className="absolute z-50 mt-1 left-1/2 -translate-x-1/2 bg-surface border border-border shadow-lg py-1"
+                          style={{ minWidth: '120px' }}
+                        >
+                          {(['draft', 'sent', 'paid', 'overdue'] as const).map(status => (
+                            <button
+                              key={status}
+                              onClick={async (e) => {
+                                e.stopPropagation()
+                                try {
+                                  const update: any = { status }
+                                  if (status === 'paid') update.paid_at = new Date().toISOString()
+                                  await invoicesApi.update(inv.id, update)
+                                  await refreshInvoices()
+                                  showToast(`Invoice marked as ${status}`, 'success')
+                                } catch (err: any) {
+                                  showToast(err?.message || 'Failed to update status', 'error')
+                                }
+                                setStatusDropdownId(null)
+                              }}
+                              className={`w-full text-left px-3 py-1.5 hover:bg-surface-2 transition-colors flex items-center gap-2 ${
+                                inv.status === status ? 'text-polar font-[600]' : 'text-steel'
+                              }`}
+                              style={{ fontSize: '12px' }}
+                            >
+                              <span className={`inline-block w-2 h-2 rounded-full ${
+                                status === 'paid' ? 'bg-ok' : status === 'sent' ? 'bg-warn' : status === 'overdue' ? 'bg-err' : 'bg-dim'
+                              }`} />
+                              {status.charAt(0).toUpperCase() + status.slice(1)}
+                              {inv.status === status && <span className="ml-auto text-dim">&#10003;</span>}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="mono text-dim" style={{ fontSize: '12px' }}>
+                      {inv.due_date ? formatDate(inv.due_date, 'MMM d, yyyy') : '---'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-dim truncate block" style={{ fontSize: '11px' }}>
+                      {displayMemo(inv.notes)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
+                    <div className="flex justify-end gap-2">
                     <button
                       onClick={() => handleDownloadPDF(inv)}
                       className="text-dim hover:text-polar transition-colors"
@@ -822,10 +890,13 @@ export default function Invoices() {
                     >
                       <Pencil size={13} />
                     </button>
-                  </div>
-                </div>
+                    </div>
+                  </td>
+                </tr>
               )
             })}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
