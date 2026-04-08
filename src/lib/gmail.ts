@@ -34,7 +34,7 @@ export function connectGmail(): void {
   // Store flag so we know this is a gmail auth on return
   sessionStorage.setItem(GMAIL_STATE_KEY, 'true')
 
-  const redirectUri = window.location.origin + window.location.pathname
+  const redirectUri = window.location.origin
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
     redirect_uri: redirectUri,
