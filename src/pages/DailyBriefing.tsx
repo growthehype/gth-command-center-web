@@ -5,6 +5,50 @@ import { getGreeting, formatCurrency, isOverdue, daysSince, relativeDate } from 
 import { useRelativeTime } from '@/hooks/useRelativeTime'
 import { Plus } from 'lucide-react'
 
+// --------------- DAILY QUOTES ---------------
+const DAILY_QUOTES: { text: string; author: string }[] = [
+  { text: 'Specific knowledge is found by pursuing your genuine curiosity rather than whatever is hot right now.', author: 'Naval Ravikant' },
+  { text: 'Do things that don\'t scale.', author: 'Paul Graham' },
+  { text: 'Your work is going to fill a large part of your life, and the only way to be truly satisfied is to do what you believe is great work.', author: 'Steve Jobs' },
+  { text: 'If you double the number of experiments you do per year, you\'re going to double your inventiveness.', author: 'Jeff Bezos' },
+  { text: 'Competition is for losers. If you want to create and capture lasting value, build a monopoly.', author: 'Peter Thiel' },
+  { text: 'Software is eating the world.', author: 'Marc Andreessen' },
+  { text: 'The best thing a human being can do is to help another human being know more.', author: 'Charlie Munger' },
+  { text: 'Risk comes from not knowing what you\'re doing.', author: 'Warren Buffett' },
+  { text: 'When something is important enough, you do it even if the odds are not in your favor.', author: 'Elon Musk' },
+  { text: 'An entrepreneur is someone who jumps off a cliff and builds a plane on the way down.', author: 'Reid Hoffman' },
+  { text: 'In a world of abundance, the only scarcity is human attention.', author: 'Seth Godin' },
+  { text: 'Skills are cheap. Passion is priceless.', author: 'Gary Vaynerchuk' },
+  { text: 'What gets measured gets managed. What gets managed gets improved.', author: 'Alex Hormozi' },
+  { text: 'Let him who would move the world first move himself.', author: 'Socrates' },
+  { text: 'The impediment to action advances action. What stands in the way becomes the way.', author: 'Marcus Aurelius' },
+  { text: 'We suffer more often in imagination than in reality.', author: 'Seneca' },
+  { text: 'Victorious warriors win first and then go to war, while defeated warriors go to war first and then seek to win.', author: 'Sun Tzu' },
+  { text: 'The best time to plant a tree was 20 years ago. The second best time is now.', author: 'Chinese Proverb' },
+  { text: 'Price is what you pay. Value is what you get.', author: 'Warren Buffett' },
+  { text: 'Leverage is a force multiplier for your judgment.', author: 'Naval Ravikant' },
+  { text: 'The most dangerous thing is to not evolve.', author: 'Jeff Bezos' },
+  { text: 'If you are not embarrassed by the first version of your product, you\'ve launched too late.', author: 'Reid Hoffman' },
+  { text: 'People think focus means saying yes to the thing you\'ve got to focus on. It means saying no to the hundred other good ideas.', author: 'Steve Jobs' },
+  { text: 'The big money is not in the buying or selling, but in the waiting.', author: 'Charlie Munger' },
+  { text: 'Make something people want.', author: 'Paul Graham' },
+  { text: 'Appear weak when you are strong, and strong when you are weak.', author: 'Sun Tzu' },
+  { text: 'It is not that we have a short time to live, but that we waste a good deal of it.', author: 'Seneca' },
+  { text: 'You have power over your mind, not outside events. Realize this, and you will find strength.', author: 'Marcus Aurelius' },
+  { text: 'The only way to win is to learn faster than anyone else.', author: 'Eric Ries' },
+  { text: 'The person who says he knows what he thinks but cannot express it usually does not know what he thinks.', author: 'Mortimer Adler' },
+  { text: 'Strong opinions, loosely held.', author: 'Paul Saffo' },
+  { text: 'Speed is the ultimate weapon in business. The best companies move fast and break through bottlenecks.', author: 'Alex Hormozi' },
+  { text: 'Every action you take is a vote for the type of person you wish to become.', author: 'James Clear' },
+  { text: 'Desire is a contract you make with yourself to be unhappy until you get what you want.', author: 'Naval Ravikant' },
+  { text: 'The hard thing about hard things is that there is no formula for dealing with them.', author: 'Ben Horowitz' },
+  { text: 'Your margin is my opportunity.', author: 'Jeff Bezos' },
+  { text: 'All of humanity\'s problems stem from man\'s inability to sit quietly in a room alone.', author: 'Blaise Pascal' },
+  { text: 'The best way to predict the future is to create it.', author: 'Peter Drucker' },
+  { text: 'Entrepreneurs are the only people who will work 80 hours a week to avoid working 40 hours a week.', author: 'Lori Greiner' },
+  { text: 'If opportunity doesn\'t knock, build a door.', author: 'Milton Berle' },
+]
+
 /* Inline component for live-updating relative timestamps */
 function RelativeTime({ date, className, style }: { date: string | null; className?: string; style?: React.CSSProperties }) {
   const timeAgo = useRelativeTime(date)
@@ -21,6 +65,15 @@ export default function DailyBriefing() {
   const now = new Date()
   const todayStr = format(now, 'yyyy-MM-dd')
   const fullDate = format(now, 'EEEE, MMMM d, yyyy')
+
+  // --------------- DAILY QUOTE ---------------
+  const dailyQuote = useMemo(() => {
+    const start = new Date(now.getFullYear(), 0, 0)
+    const diff = now.getTime() - start.getTime()
+    const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24))
+    const seed = now.getFullYear() * 1000 + dayOfYear
+    return DAILY_QUOTES[seed % DAILY_QUOTES.length]
+  }, [])
 
   // --------------- PRODUCTIVITY STREAK ---------------
 
@@ -192,6 +245,22 @@ export default function DailyBriefing() {
             <span role="img" aria-label="fire">&#128293;</span> Start your streak today!
           </span>
         )}
+      </div>
+
+      {/* ---- DAILY QUOTE ---- */}
+      <div style={{ marginTop: 28, marginBottom: 0 }}>
+        <p className="text-steel" style={{
+          fontSize: '14px',
+          fontStyle: 'italic',
+          lineHeight: 1.7,
+          maxWidth: 600,
+          opacity: 0.7,
+        }}>
+          &ldquo;{dailyQuote.text}&rdquo;
+        </p>
+        <p className="text-dim mono" style={{ fontSize: '11px', marginTop: 6 }}>
+          &mdash; {dailyQuote.author}
+        </p>
       </div>
 
       {/* ---- TODAY'S FOCUS ---- */}

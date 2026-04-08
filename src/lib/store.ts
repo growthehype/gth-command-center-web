@@ -108,6 +108,7 @@ interface AppStore {
   selectedInvoiceId: string | null
   commandPaletteOpen: boolean
   aiPanelOpen: boolean
+  pomodoroOpen: boolean
   sidebarOpen: boolean
   runningTimer: TimeEntry | null
   theme: 'light' | 'dark'
@@ -123,6 +124,7 @@ interface AppStore {
   setSelectedInvoiceId: (id: string | null) => void
   setCommandPaletteOpen: (open: boolean) => void
   setAiPanelOpen: (open: boolean) => void
+  setPomodoroOpen: (open: boolean) => void
   setSidebarOpen: (open: boolean) => void
 
   // Data loading
@@ -194,6 +196,7 @@ export const useAppStore = create<AppStore>((set) => ({
   selectedInvoiceId: null,
   commandPaletteOpen: false,
   aiPanelOpen: false,
+  pomodoroOpen: false,
   sidebarOpen: false,
   runningTimer: null,
   theme: (localStorage.getItem('gth_theme') as 'light' | 'dark') || 'light',
@@ -219,6 +222,7 @@ export const useAppStore = create<AppStore>((set) => ({
   setSelectedInvoiceId: (id) => set({ selectedInvoiceId: id }),
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   setAiPanelOpen: (open) => set({ aiPanelOpen: open }),
+  setPomodoroOpen: (open) => set({ pomodoroOpen: open }),
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
 
   loadAllData: async () => {

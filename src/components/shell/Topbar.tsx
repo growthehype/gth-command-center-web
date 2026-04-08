@@ -10,7 +10,7 @@ interface TopbarProps {
 }
 
 export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
-  const { setCommandPaletteOpen, aiPanelOpen, setAiPanelOpen, settings, runningTimer, sidebarOpen, setSidebarOpen, theme, setTheme } = useAppStore()
+  const { setCommandPaletteOpen, aiPanelOpen, setAiPanelOpen, pomodoroOpen, setPomodoroOpen, settings, runningTimer, sidebarOpen, setSidebarOpen, theme, setTheme } = useAppStore()
   const connectionStatus = useOnlineStatus()
   const displayName = settings.display_name || 'Omar Alladina'
   const initials = settings.avatar_initials || 'OA'
@@ -94,6 +94,20 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
           <span className="font-mono font-bold" style={{ fontSize: '12px' }}>{elapsed}</span>
         </div>
       )}
+
+      {/* Pomodoro toggle */}
+      <button
+        onClick={() => setPomodoroOpen(!pomodoroOpen)}
+        className="topbar-icon-btn flex items-center gap-1.5 px-2.5 py-1.5"
+        style={{
+          color: pomodoroOpen ? '#FFFFFF' : 'rgba(255,255,255,0.5)',
+          backgroundColor: pomodoroOpen ? 'rgba(255,255,255,0.15)' : 'transparent',
+        }}
+        title="Pomodoro Timer"
+      >
+        <Clock size={13} />
+        <span className="hidden md:inline" style={{ fontSize: '11px', fontWeight: 600 }}>Focus</span>
+      </button>
 
       {/* AI Panel toggle */}
       <button

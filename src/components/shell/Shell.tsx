@@ -11,7 +11,7 @@ import QuickAddModal from '@/components/ui/QuickAddModal'
 import WelcomeModal from '@/components/ui/WelcomeModal'
 import OnboardingWizard from '@/components/ui/OnboardingWizard'
 import { syncEmailSignatureCache } from '@/lib/email-sig-cache'
-import { Plus } from 'lucide-react'
+import PomodoroTimer from '@/components/ui/PomodoroTimer'
 import ErrorBoundary from '@/components/ui/ErrorBoundary'
 
 // Page imports
@@ -76,7 +76,7 @@ const pageMap: Record<string, React.ComponentType> = {
 }
 
 export default function Shell({ onLock }: ShellProps) {
-  const { currentPage, setCommandPaletteOpen, setCurrentPage, setAiPanelOpen, aiPanelOpen, sidebarOpen, setSidebarOpen, demoMode, exitDemoMode, settings, refreshSettings } = useAppStore()
+  const { currentPage, setCommandPaletteOpen, setCurrentPage, setAiPanelOpen, aiPanelOpen, pomodoroOpen, setPomodoroOpen, sidebarOpen, setSidebarOpen, demoMode, exitDemoMode, settings, refreshSettings } = useAppStore()
   const profile = useCompanyProfile()
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [quickAddOpen, setQuickAddOpen] = useState(false)
@@ -223,18 +223,10 @@ export default function Shell({ onLock }: ShellProps) {
             </div>
           </ErrorBoundary>
         </main>
-        {aiPanelOpen && <AiPanel />}
       </div>
 
-      {/* FAB */}
-      <button
-        onClick={() => setCommandPaletteOpen(true)}
-        className="fixed bottom-5 right-5 w-11 h-11 md:w-12 md:h-12 md:bottom-6 md:right-6 bg-polar text-obsidian flex items-center justify-center shadow-lg hover:opacity-90 transition-opacity z-50 rounded-full md:rounded-none"
-        title="Quick Add"
-        aria-label="Open command palette"
-      >
-        <Plus size={20} strokeWidth={2.5} />
-      </button>
+      {aiPanelOpen && <AiPanel />}
+      {pomodoroOpen && <PomodoroTimer onClose={() => setPomodoroOpen(false)} />}
 
       <CommandPalette />
       <QuickAddModal open={quickAddOpen} onClose={() => setQuickAddOpen(false)} />

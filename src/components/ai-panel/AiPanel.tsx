@@ -2,9 +2,10 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAppStore } from '@/lib/store'
 import { tasks as tasksApi, projects as projectsApi, invoices as invoicesApi, activity as activityApi, timeEntries as timeEntriesApi } from '@/lib/api'
 import { createGoogleEvent, isGoogleConnected } from '@/lib/google-calendar'
+import { formatCurrency } from '@/lib/utils'
 import { X, Sparkles, Send, Key, Trash2, CheckCircle, AlertCircle, Loader2, Mic, MicOff } from 'lucide-react'
 
-// ── Types ──
+// -- Types --
 
 interface ApiMessage {
   role: 'user' | 'assistant'
@@ -21,7 +22,7 @@ interface ChatMessage {
   isLoading?: boolean
 }
 
-// ── Tool definitions ──
+// -- Tool definitions --
 
 const tools = [
   {
@@ -156,7 +157,7 @@ const tools = [
   },
 ]
 
-// ── Tool executor ──
+// -- Tool executor --
 
 async function executeTool(name: string, input: any): Promise<string> {
   const store = useAppStore.getState()
@@ -282,22 +283,47 @@ async function executeTool(name: string, input: any): Promise<string> {
   }
 }
 
-// ── Claude API call ──
+// -- Claude API call --
 
 async function sendToClaudeAPI(messages: ApiMessage[], apiKey: string, model: string): Promise<any> {
   const store = useAppStore.getState()
 
-  const systemMsg = `You are an AI assistant embedded in the GTH Operations Command Center, a CRM for a digital marketing agency called Grow The Hype (GTH), owned by Omar Alladina. You can execute real actions in the CRM using the tools provided. Today's date is ${new Date().toISOString().split('T')[0]}.
+  const profile = store.settings
+  const companyName = profile.company_name || 'your company'
+  const userName = profile.display_name || profile.email_sig_name || 'there'
 
-Current CRM summary:
-- ${store.clients.filter(c => c.status === 'active').length} active clients
-- ${store.tasks.filter(t => !t.done).length} open tasks
+  const systemMsg = `You are the AI operations assistant for ${companyName}'s Command Center CRM. You are speaking with ${userName}. Today is ${new Date().toISOString().split('T')[0]}.
+
+You have FULL access to the CRM and can execute real actions using the tools provided. Be concise, action-oriented, and proactive.
+
+## CRM Capabilities You Can Help With:
+- **Clients**: View active clients, their MRR, services, health status, and contact info
+- **Tasks**: Create, complete, and analyze tasks with priorities and due dates
+- **Projects**: Create and track projects across stages (backlog > progress > review > done)
+- **Invoices**: Create invoices, check unpaid/overdue status, revenue analysis
+- **Calendar & Events**: Schedule Google Calendar events, view upcoming meetings
+- **Outreach/Leads**: View sales pipeline, lead stages, deal values, follow-up dates
+- **Time Tracking**: Start/stop timers linked to projects and clients
+- **Activity Log**: Log and review activity history
+- **Navigation**: Navigate to any page in the CRM
+
+## Current Snapshot:
+- ${store.clients.filter(c => c.status === 'active').length} active clients (${formatCurrency(store.clients.filter(c => c.status === 'active').reduce((s, c) => s + (c.mrr || 0), 0))} MRR)
+- ${store.tasks.filter(t => !t.done).length} open tasks (${store.tasks.filter(t => !t.done && t.due_date && new Date(t.due_date) < new Date()).length} overdue)
 - ${store.projects.filter(p => p.status !== 'done').length} active projects
-- ${store.invoices.filter(i => i.status !== 'paid').length} unpaid invoices
+- ${store.invoices.filter(i => i.status !== 'paid').length} unpaid invoices (${formatCurrency(store.invoices.filter(i => i.status !== 'paid').reduce((s, i) => s + (i.amount || 0), 0))} outstanding)
+- ${store.leads.filter(l => l.stage !== 'Closed Won' && l.stage !== 'Closed Lost').length} active leads (${formatCurrency(store.leads.reduce((s, l) => s + (l.deal_value || 0), 0))} pipeline)
+${store.runningTimer ? `- Timer running: ${store.runningTimer.notes || store.runningTimer.project_title || 'Untimed'} (started ${store.runningTimer.started_at})` : '- No timer running'}
 
-Active clients: ${store.clients.filter(c => c.status === 'active').map(c => `${c.name} (${c.service || 'N/A'}, $${c.mrr}/mo)`).join(', ') || 'None'}
+## Active Clients:
+${store.clients.filter(c => c.status === 'active').map(c => `- ${c.name}: ${c.service || 'N/A'}, $${c.mrr || 0}/mo`).join('\n') || 'None'}
 
-When the user asks you to do something, use the appropriate tool. Be concise and action-oriented. After executing a tool, confirm what was done.`
+## Style Guidelines:
+- Be direct and efficient -- no unnecessary pleasantries
+- Use bullet points for lists
+- When creating items, confirm with specifics (ID, name, amount)
+- If asked something vague, ask a clarifying question rather than guessing
+- Proactively suggest next actions when relevant`
 
   // Use server-side proxy when no user-provided key, or the key is set to 'proxy'
   const useProxy = !apiKey || apiKey === 'proxy'
@@ -329,7 +355,7 @@ When the user asks you to do something, use the appropriate tool. Be concise and
   return res.json()
 }
 
-// ── Helper: extract text from Claude response content ──
+// -- Helper: extract text from Claude response content --
 
 function extractTextFromContent(content: any): string {
   if (typeof content === 'string') return content
@@ -342,21 +368,21 @@ function extractTextFromContent(content: any): string {
   return ''
 }
 
-// ── Helper: get tool_use blocks from content ──
+// -- Helper: get tool_use blocks from content --
 
 function getToolUseBlocks(content: any): any[] {
   if (!Array.isArray(content)) return []
   return content.filter((b: any) => b.type === 'tool_use')
 }
 
-// ── Generate unique ID ──
+// -- Generate unique ID --
 
 function genId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
   return Date.now().toString(36) + Math.random().toString(36).slice(2)
 }
 
-// ── Friendly tool label ──
+// -- Friendly tool label --
 
 function toolLabel(name: string, result: string): string {
   try {
@@ -367,7 +393,7 @@ function toolLabel(name: string, result: string): string {
   return name.replace(/_/g, ' ')
 }
 
-// ── Component ──
+// -- Component --
 
 export default function AiPanel() {
   const { aiPanelOpen, setAiPanelOpen, settings } = useAppStore()
@@ -553,27 +579,33 @@ export default function AiPanel() {
   if (!aiPanelOpen) return null
 
   const suggestedPrompts = [
-    'Give me a business overview',
-    'What tasks are overdue?',
-    'Create a task: Follow up with clients',
-    'Schedule a team meeting tomorrow at 10am',
-    'Show me unpaid invoices',
-    'What clients need check-ins?',
-    'Start a timer for admin work',
-    'Help me plan next week',
+    'Give me today\'s business overview',
+    'Which clients need attention this week?',
+    'Show me all overdue tasks and invoices',
+    'What\'s my revenue this month vs last month?',
+    'Create a follow-up task for my most recent meeting',
+    'Start a timer for client work',
+    'Who are my top 3 clients by revenue?',
+    'What leads need follow-up today?',
   ]
 
   return (
-    <>
-      {/* Mobile backdrop */}
-      <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setAiPanelOpen(false)} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setAiPanelOpen(false) }}>
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
-      <div className="h-full border-l border-border bg-surface flex flex-col w-full md:w-[360px] fixed inset-y-0 right-0 z-50 md:relative md:z-auto" style={{ top: '44px' }}>
+      {/* Panel */}
+      <div className="relative bg-surface border border-border w-full max-w-[560px] h-[70vh] max-h-[680px] flex flex-col z-10 shadow-2xl rounded-lg overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <Sparkles size={14} className="text-polar" />
-            <span className="font-[700] text-polar" style={{ fontSize: '14px' }}>AI Assist</span>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border flex-shrink-0 bg-obsidian/50">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-polar/10 flex items-center justify-center">
+              <Sparkles size={13} className="text-polar" />
+            </div>
+            <div>
+              <span className="font-[700] text-polar block" style={{ fontSize: '14px' }}>AI Assistant</span>
+              <span className="text-dim" style={{ fontSize: '10px' }}>Command Center AI</span>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {chatMessages.length > 0 && (
@@ -715,14 +747,14 @@ export default function AiPanel() {
 
         {/* Input */}
         {hasApiKey && (
-          <div className="border-t border-border px-4 py-3 flex-shrink-0">
+          <div className="border-t border-border px-5 py-4 flex-shrink-0 bg-obsidian/30">
             {isListening && (
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 rounded-full bg-err animate-pulse" />
                 <span className="text-err" style={{ fontSize: '11px', fontWeight: 600 }}>Listening...</span>
               </div>
             )}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-cell border border-border rounded-lg px-3 py-2.5">
               <input
                 ref={inputRef}
                 type="text"
@@ -758,6 +790,6 @@ export default function AiPanel() {
           </div>
         )}
       </div>
-    </>
+    </div>
   )
 }
