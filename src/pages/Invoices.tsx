@@ -54,7 +54,7 @@ function formatCurrency(amount: number): string {
 }
 
 export default function Invoices() {
-  const { clients, invoices } = useAppStore()
+  const { clients, invoices, selectedInvoiceId, setSelectedInvoiceId } = useAppStore()
 
   const [files, setFiles] = useState<InvoiceFile[]>([])
   const [activeClient, setActiveClient] = useState<string>('all')
@@ -81,6 +81,22 @@ export default function Invoices() {
   }, [])
 
   useEffect(() => { loadFiles() }, [loadFiles])
+
+  /* ── Cross-page deep-link: scroll to and highlight invoice ── */
+  useEffect(() => {
+    if (selectedInvoiceId) {
+      const el = document.querySelector(`[data-invoice-id="${selectedInvoiceId}"]`) as HTMLElement | null
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el.style.transition = 'background-color 0.3s'
+        el.style.backgroundColor = 'rgba(255, 255, 255, 0.08)'
+        setTimeout(() => {
+          el.style.backgroundColor = ''
+        }, 1500)
+      }
+      setSelectedInvoiceId(null)
+    }
+  }, [selectedInvoiceId, setSelectedInvoiceId, invoices])
 
   /* ── Derived data ── */
   // Clients that have at least one invoice file
@@ -355,7 +371,7 @@ export default function Invoices() {
             {filteredInvoices.map(inv => {
               const st = getInvoiceStatus(inv)
               return (
-                <div key={inv.id} className="table-row grid grid-cols-12 gap-4 px-4 py-3 items-center min-w-[600px]">
+                <div key={inv.id} data-invoice-id={inv.id} className="table-row grid grid-cols-12 gap-4 px-4 py-3 items-center min-w-[600px]">
                   <span className="col-span-2 text-polar font-[600] mono" style={{ fontSize: '13px' }}>
                     {inv.num || '---'}
                   </span>

@@ -33,7 +33,7 @@ interface WeekGroup {
 }
 
 export default function Meetings() {
-  const { meetings, clients, contacts, refreshMeetings } = useAppStore()
+  const { meetings, clients, contacts, refreshMeetings, selectedMeetingId, setSelectedMeetingId } = useAppStore()
 
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({ ...EMPTY_FORM })
@@ -113,6 +113,16 @@ export default function Meetings() {
     setEditingId(meeting.id)
     setModalOpen(true)
   }
+
+  /* ── Cross-page deep-link: open meeting from another page ── */
+  useEffect(() => {
+    if (!selectedMeetingId) return
+    const target = meetings.find(m => m.id === selectedMeetingId)
+    if (target) {
+      openEdit(target)
+      setSelectedMeetingId(null)
+    }
+  }, [selectedMeetingId, meetings])
 
   const handleSave = async () => {
     if (!form.title.trim()) { showToast('Title is required', 'warn'); return }

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Plus, Trash2, Search, Shield, Eye, EyeOff, X, AlertTriangle, Clock, Copy, Check, KeyRound, Globe, Edit3 } from 'lucide-react'
 import { useAppStore, type Credential } from '@/lib/store'
 import { credentials as credentialsApi } from '@/lib/api'
@@ -65,7 +65,7 @@ const COMMON_PLATFORMS = [
 /* ── Component ── */
 
 export default function Credentials() {
-  const { credentials, clients, refreshCredentials, refreshActivity } = useAppStore()
+  const { credentials, clients, refreshCredentials, refreshActivity, selectedCredentialId, setSelectedCredentialId } = useAppStore()
 
   const [search, setSearch] = useState('')
   const [revealedCards, setRevealedCards] = useState<Set<string>>(new Set())
@@ -182,6 +182,16 @@ export default function Credentials() {
     setFormNotes(notesField?.value || '')
     setModalOpen(true)
   }
+
+  /* ── Cross-page deep-link: open credential from another page ── */
+  useEffect(() => {
+    if (!selectedCredentialId) return
+    const target = credentials.find(c => c.id === selectedCredentialId)
+    if (target) {
+      openEdit(target)
+      setSelectedCredentialId(null)
+    }
+  }, [selectedCredentialId, credentials, setSelectedCredentialId])
 
   /* ── Save credential (create or update) ── */
   const handleSave = useCallback(async () => {

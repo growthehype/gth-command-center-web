@@ -213,9 +213,10 @@ export default function Projects() {
 
   /* ── Auto-open project from external navigation ── */
   useEffect(() => {
-    if (selectedProjectId) {
-      const target = projects.find(p => p.id === selectedProjectId)
-      if (target) openDetail(target)
+    if (!selectedProjectId) return
+    const target = projects.find(p => p.id === selectedProjectId)
+    if (target) {
+      openDetail(target)
       setSelectedProjectId(null)
     }
   }, [selectedProjectId, projects, openDetail, setSelectedProjectId])

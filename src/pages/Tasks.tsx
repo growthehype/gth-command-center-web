@@ -50,7 +50,7 @@ const EMPTY_FORM = {
 }
 
 export default function Tasks() {
-  const { tasks, clients, runningTimer, refreshTasks, refreshActivity, refreshTimeEntries, refreshRunningTimer } = useAppStore()
+  const { tasks, clients, runningTimer, refreshTasks, refreshActivity, refreshTimeEntries, refreshRunningTimer, selectedTaskId, setSelectedTaskId } = useAppStore()
 
   const [filter, setFilter] = useState<Filter>('all')
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -261,6 +261,16 @@ export default function Tasks() {
     setEditingId(task.id)
     setModalOpen(true)
   }, [])
+
+  /* ── Cross-page deep-link: open task from another page ── */
+  useEffect(() => {
+    if (!selectedTaskId) return
+    const target = tasks.find(t => t.id === selectedTaskId)
+    if (target) {
+      openEdit(target)
+      setSelectedTaskId(null)
+    }
+  }, [selectedTaskId, tasks, openEdit, setSelectedTaskId])
 
   /* ── bulk selection helpers ── */
   const toggleSelect = useCallback((id: string) => {

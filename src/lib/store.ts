@@ -61,7 +61,7 @@ export interface TimeEntry {
 }
 
 export interface Credential {
-  id: string; platform: string; client_id: string | null; client_name?: string; fields: string | null; created_at: string
+  id: string; platform: string; client_id: string | null; client_name?: string | null; fields: string | null; created_at: string
 }
 
 export interface Sop {
@@ -102,6 +102,10 @@ interface AppStore {
   currentPage: string
   selectedClientId: string | null
   selectedProjectId: string | null
+  selectedTaskId: string | null
+  selectedMeetingId: string | null
+  selectedCredentialId: string | null
+  selectedInvoiceId: string | null
   commandPaletteOpen: boolean
   aiPanelOpen: boolean
   sidebarOpen: boolean
@@ -113,6 +117,10 @@ interface AppStore {
   setCurrentPage: (page: string) => void
   setSelectedClientId: (id: string | null) => void
   setSelectedProjectId: (id: string | null) => void
+  setSelectedTaskId: (id: string | null) => void
+  setSelectedMeetingId: (id: string | null) => void
+  setSelectedCredentialId: (id: string | null) => void
+  setSelectedInvoiceId: (id: string | null) => void
   setCommandPaletteOpen: (open: boolean) => void
   setAiPanelOpen: (open: boolean) => void
   setSidebarOpen: (open: boolean) => void
@@ -180,6 +188,10 @@ export const useAppStore = create<AppStore>((set) => ({
   currentPage: 'briefing',
   selectedClientId: null,
   selectedProjectId: null,
+  selectedTaskId: null,
+  selectedMeetingId: null,
+  selectedCredentialId: null,
+  selectedInvoiceId: null,
   commandPaletteOpen: false,
   aiPanelOpen: false,
   sidebarOpen: false,
@@ -194,6 +206,10 @@ export const useAppStore = create<AppStore>((set) => ({
   setCurrentPage: (page) => set({ currentPage: page }),
   setSelectedClientId: (id) => set({ selectedClientId: id }),
   setSelectedProjectId: (id) => set({ selectedProjectId: id }),
+  setSelectedTaskId: (id) => set({ selectedTaskId: id }),
+  setSelectedMeetingId: (id) => set({ selectedMeetingId: id }),
+  setSelectedCredentialId: (id) => set({ selectedCredentialId: id }),
+  setSelectedInvoiceId: (id) => set({ selectedInvoiceId: id }),
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   setAiPanelOpen: (open) => set({ aiPanelOpen: open }),
   setSidebarOpen: (open) => set({ sidebarOpen: open }),

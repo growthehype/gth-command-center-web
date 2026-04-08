@@ -653,6 +653,12 @@ export const clientFiles = {
     if (error) throw error
     return { success: true }
   },
+  async getFileUrl(id: string) {
+    const { data: doc } = await supabase.from('client_files').select('file_path').eq('id', id).single()
+    if (!doc?.file_path) return null
+    const { data } = await supabase.storage.from('files').createSignedUrl(doc.file_path, 3600)
+    return data?.signedUrl || null
+  },
 }
 
 // ============================================

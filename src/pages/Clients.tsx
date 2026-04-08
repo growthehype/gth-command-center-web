@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-import { Building2, Plus, Search, ChevronUp, ChevronDown, ExternalLink, Globe, Edit3, Trash2, Eye, RefreshCw, Download } from 'lucide-react'
+import { Building2, Plus, Search, ChevronUp, ChevronDown, ExternalLink, Globe, Edit3, Trash2, Eye, RefreshCw, Download, Upload, File, FileText, Image } from 'lucide-react'
 import { useAppStore, Client } from '@/lib/store'
-import { clients as clientsApi, contacts as contactsApi, shell } from '@/lib/api'
+import { clients as clientsApi, contacts as contactsApi, shell, clientFiles } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
 import Modal from '@/components/ui/Modal'
 import EmptyState from '@/components/ui/EmptyState'
@@ -10,6 +10,7 @@ import VoiceTextarea from '@/components/ui/VoiceTextarea'
 import { daysSince, clientHealth, formatCurrency, relativeDate, safeParseJSON } from '@/lib/utils'
 import ClientAvatar from '@/components/ui/ClientAvatar'
 import { exportToCSV } from '@/lib/export-csv'
+import FilePreview from '@/components/ui/FilePreview'
 
 /* ========================================
    CONSTANTS
@@ -766,7 +767,7 @@ function ClientDrawer({
         {tab === 'Credentials' && <CredentialsTab client={client} credentials={credentials} />}
         {tab === 'Links' && <LinksTab client={client} projects={projects} />}
         {tab === 'Meetings' && <MeetingsTab client={client} meetings={meetings} />}
-        {tab === 'Files' && <FilesTab client={client} invoices={invoices} />}
+        {tab === 'Files' && <FilesTab client={client} />}
         {tab === 'Notes' && (
           <NotesTab
             client={client}
@@ -993,6 +994,7 @@ function ProjectsTab({ client, projects }: { client: Client; projects: any[] }) 
    ======================================== */
 
 function TasksTab({ client, tasks }: { client: Client; tasks: any[] }) {
+  const { setSelectedTaskId, setCurrentPage } = useAppStore()
   const clientTasks = useMemo(() => tasks.filter(t => t.client_id === client.id), [tasks, client.id])
 
   if (clientTasks.length === 0) return <p className="text-dim" style={{ fontSize: '12px' }}>No tasks for this client.</p>
@@ -1000,7 +1002,12 @@ function TasksTab({ client, tasks }: { client: Client; tasks: any[] }) {
   return (
     <div className="space-y-1">
       {clientTasks.map(t => (
-        <div key={t.id} className="flex items-center gap-3 py-2 border-b border-border" style={{ fontSize: '12px' }}>
+        <div
+          key={t.id}
+          className="flex items-center gap-3 py-2 border-b border-border cursor-pointer hover:bg-white/5"
+          style={{ fontSize: '12px' }}
+          onClick={() => { setSelectedTaskId(t.id); setCurrentPage('tasks') }}
+        >
           <span className={`inline-block w-2 h-2 rounded-full ${t.done ? 'bg-ok' : t.priority === 'high' ? 'bg-err' : t.priority === 'medium' ? 'bg-warn' : 'bg-dim'}`} />
           <span className={`flex-1 ${t.done ? 'line-through text-dim' : 'text-polar'}`}>{t.text}</span>
           {t.due_date && <span className="text-dim mono">{relativeDate(t.due_date)}</span>}
@@ -1016,6 +1023,7 @@ function TasksTab({ client, tasks }: { client: Client; tasks: any[] }) {
    ======================================== */
 
 function InvoicesTab({ client, invoices }: { client: Client; invoices: any[] }) {
+  const { setSelectedInvoiceId, setCurrentPage } = useAppStore()
   const clientInvoices = useMemo(() => invoices.filter(inv => inv.client_id === client.id), [invoices, client.id])
 
   if (clientInvoices.length === 0) return <p className="text-dim" style={{ fontSize: '12px' }}>No invoices for this client.</p>
@@ -1040,7 +1048,11 @@ function InvoicesTab({ client, invoices }: { client: Client; invoices: any[] }) 
       </thead>
       <tbody>
         {clientInvoices.map(inv => (
-          <tr key={inv.id} className="table-row">
+          <tr
+            key={inv.id}
+            className="table-row cursor-pointer hover:bg-white/5"
+            onClick={() => { setSelectedInvoiceId(inv.id); setCurrentPage('invoices') }}
+          >
             <td className="py-2 px-2 mono font-[700]">{inv.num}</td>
             <td className="py-2 px-2 mono">{formatCurrency(inv.amount)}</td>
             <td className="py-2 px-2"><span className={statusBadge(inv.status)}>{inv.status}</span></td>
@@ -1101,6 +1113,7 @@ function TimeTab({ client, timeEntries }: { client: Client; timeEntries: any[] }
    ======================================== */
 
 function CredentialsTab({ client, credentials }: { client: Client; credentials: any[] }) {
+  const { setSelectedCredentialId, setCurrentPage } = useAppStore()
   const clientCreds = useMemo(
     () => credentials.filter(cr => cr.client_id === client.id && cr.platform !== 'google_calendar'),
     [credentials, client.id]
@@ -1113,7 +1126,11 @@ function CredentialsTab({ client, credentials }: { client: Client; credentials: 
       {clientCreds.map(cr => {
         const fields = safeParseJSON<Record<string, string>>(cr.fields, {})
         return (
-          <div key={cr.id} className="bg-surface border border-border p-3">
+          <div
+            key={cr.id}
+            className="bg-surface border border-border p-3 cursor-pointer hover:bg-white/5"
+            onClick={() => { setSelectedCredentialId(cr.id); setCurrentPage('credentials') }}
+          >
             <div className="label text-steel mb-2">{cr.platform}</div>
             <div className="space-y-1">
               {Object.entries(fields).map(([key, val]) => (
@@ -1138,6 +1155,10 @@ function CredentialsTab({ client, credentials }: { client: Client; credentials: 
    ======================================== */
 
 function LinksTab({ client, projects }: { client: Client; projects: any[] }) {
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null)
+  const [iframeLoading, setIframeLoading] = useState(false)
+  const [iframeError, setIframeError] = useState(false)
+
   const allLinks = useMemo(() => {
     const links: { label: string; url: string; source: string }[] = []
     // Client website
@@ -1152,17 +1173,63 @@ function LinksTab({ client, projects }: { client: Client; projects: any[] }) {
     return links
   }, [client, projects])
 
+  const togglePreview = (i: number) => {
+    if (previewIndex === i) {
+      setPreviewIndex(null)
+    } else {
+      setPreviewIndex(i)
+      setIframeLoading(true)
+      setIframeError(false)
+    }
+  }
+
   if (allLinks.length === 0) return <p className="text-dim" style={{ fontSize: '12px' }}>No links for this client.</p>
 
   return (
     <div className="space-y-2">
       {allLinks.map((link, i) => (
-        <div key={i} className="flex items-center gap-3 py-2 border-b border-border" style={{ fontSize: '12px' }}>
-          <Globe size={12} className="text-dim shrink-0" />
-          <button onClick={() => shell.openExternal(link.url)} className="text-polar hover:text-steel flex items-center gap-1 truncate cursor-pointer bg-transparent border-none p-0" style={{ fontSize: 'inherit' }}>
-            {link.url} <ExternalLink size={10} />
-          </button>
-          <span className="text-dim ml-auto shrink-0">{link.source}: {link.label}</span>
+        <div key={i}>
+          <div className="flex items-center gap-3 py-2 border-b border-border" style={{ fontSize: '12px' }}>
+            <Globe size={12} className="text-dim shrink-0" />
+            <button
+              onClick={() => togglePreview(i)}
+              className="text-polar hover:text-steel flex items-center gap-1 truncate cursor-pointer bg-transparent border-none p-0"
+              style={{ fontSize: 'inherit' }}
+              title="Toggle inline preview"
+            >
+              {link.url} <Eye size={10} />
+            </button>
+            <button
+              onClick={() => shell.openExternal(link.url)}
+              className="text-dim hover:text-polar bg-transparent border-none p-0 cursor-pointer shrink-0"
+              title="Open in browser"
+            >
+              <ExternalLink size={12} />
+            </button>
+            <span className="text-dim ml-auto shrink-0">{link.source}: {link.label}</span>
+          </div>
+          {previewIndex === i && (
+            <div className="border border-border rounded mt-2 mb-2 overflow-hidden" style={{ height: '400px', position: 'relative' }}>
+              {iframeLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-surface z-10">
+                  <span className="text-dim" style={{ fontSize: '12px' }}>Loading preview...</span>
+                </div>
+              )}
+              {iframeError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-surface z-10">
+                  <span className="text-dim" style={{ fontSize: '12px' }}>This site cannot be embedded. Use the external link button instead.</span>
+                </div>
+              )}
+              <iframe
+                src={link.url}
+                sandbox="allow-scripts allow-same-origin"
+                className="w-full h-full border-none"
+                onLoad={() => setIframeLoading(false)}
+                onError={() => { setIframeLoading(false); setIframeError(true) }}
+                title={`Preview: ${link.label}`}
+              />
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -1174,6 +1241,7 @@ function LinksTab({ client, projects }: { client: Client; projects: any[] }) {
    ======================================== */
 
 function MeetingsTab({ client, meetings }: { client: Client; meetings: any[] }) {
+  const { setSelectedMeetingId, setCurrentPage } = useAppStore()
   const clientMeetings = useMemo(() => meetings.filter(m => m.client_id === client.id), [meetings, client.id])
 
   if (clientMeetings.length === 0) return <p className="text-dim" style={{ fontSize: '12px' }}>No meetings for this client.</p>
@@ -1181,7 +1249,11 @@ function MeetingsTab({ client, meetings }: { client: Client; meetings: any[] }) 
   return (
     <div className="space-y-3">
       {clientMeetings.map(m => (
-        <div key={m.id} className="bg-surface border border-border p-3">
+        <div
+          key={m.id}
+          className="bg-surface border border-border p-3 cursor-pointer hover:bg-white/5"
+          onClick={() => { setSelectedMeetingId(m.id); setCurrentPage('meetings') }}
+        >
           <div className="flex items-center justify-between mb-1">
             <span className="font-[700] text-polar" style={{ fontSize: '13px' }}>{m.title}</span>
             <span className="mono text-dim" style={{ fontSize: '11px' }}>{relativeDate(m.date)}</span>
@@ -1207,29 +1279,173 @@ function MeetingsTab({ client, meetings }: { client: Client; meetings: any[] }) 
    TAB: FILES
    ======================================== */
 
-function FilesTab({ client, invoices }: { client: Client; invoices: any[] }) {
-  const files = useMemo(() => {
-    const list: { name: string; path: string; type: string }[] = []
-    // Client logo
-    if (client.logo_path) list.push({ name: 'Logo', path: client.logo_path, type: 'Image' })
-    // Invoice files
-    invoices.filter(inv => inv.client_id === client.id && inv.file_path).forEach(inv => {
-      list.push({ name: `Invoice ${inv.num}`, path: inv.file_path!, type: 'Invoice PDF' })
-    })
-    return list
-  }, [client, invoices])
+interface ClientFile {
+  id: string
+  client_id: string
+  category: string
+  name: string
+  size: number
+  file_path: string
+  uploaded_at: string
+}
 
-  if (files.length === 0) return <p className="text-dim" style={{ fontSize: '12px' }}>No files for this client.</p>
+function formatFileSize(bytes: number): string {
+  if (!bytes) return '\u2014'
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function clientFileIcon(name: string) {
+  const ext = name.split('.').pop()?.toLowerCase()
+  if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext || ''))
+    return <Image size={13} className="text-purple-400" />
+  if (ext === 'pdf')
+    return <FileText size={13} className="text-err" />
+  return <File size={13} className="text-dim" />
+}
+
+const ACCEPTED_FILE_TYPES = '.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.webp,.zip,.txt,.csv'
+
+function FilesTab({ client }: { client: Client }) {
+  const [files, setFiles] = useState<ClientFile[]>([])
+  const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState('')
+  const [previewName, setPreviewName] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const loadFiles = useCallback(async () => {
+    try {
+      const data = await clientFiles.getByClient(client.id)
+      setFiles(data || [])
+    } catch {
+      setFiles([])
+    }
+    setLoading(false)
+  }, [client.id])
+
+  useEffect(() => { loadFiles() }, [loadFiles])
+
+  const handleUpload = async (fileList: FileList | File[]) => {
+    if (uploading) return
+    setUploading(true)
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i]
+      try {
+        await clientFiles.upload(client.id, 'general', file.name, file)
+        showToast(`Uploaded ${file.name}`, 'success')
+      } catch (err: any) {
+        showToast(`Failed to upload ${file.name}`, 'error')
+      }
+    }
+    await loadFiles()
+    setUploading(false)
+  }
+
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      await handleUpload(e.target.files)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+    if (e.dataTransfer.files.length > 0) await handleUpload(e.dataTransfer.files)
+  }
+
+  const handlePreview = async (f: ClientFile) => {
+    try {
+      const url = await clientFiles.getFileUrl(f.id)
+      if (url) {
+        setPreviewUrl(url)
+        setPreviewName(f.name)
+        setPreviewOpen(true)
+      }
+    } catch {
+      showToast('Could not preview file', 'error')
+    }
+  }
+
+  const handleDelete = async (f: ClientFile) => {
+    if (!confirm(`Delete "${f.name}"? This cannot be undone.`)) return
+    try {
+      await clientFiles.delete(f.id)
+      showToast(`Deleted ${f.name}`, 'info')
+      await loadFiles()
+    } catch {
+      showToast('Delete failed', 'error')
+    }
+  }
+
+  if (loading) return <p className="text-dim" style={{ fontSize: '12px' }}>Loading files...</p>
 
   return (
-    <div className="space-y-2">
-      {files.map((f, i) => (
-        <div key={i} className="flex items-center gap-3 py-2 border-b border-border" style={{ fontSize: '12px' }}>
-          <span className="font-[600] text-polar">{f.name}</span>
-          <span className="badge badge-neutral">{f.type}</span>
-          <span className="text-dim mono ml-auto truncate" style={{ maxWidth: '300px' }}>{f.path}</span>
+    <div
+      onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={handleDrop}
+    >
+      {/* Upload area */}
+      <div
+        className={`border-2 border-dashed p-4 mb-4 flex flex-col items-center gap-2 cursor-pointer transition-all ${
+          dragOver ? 'border-polar bg-surface' : 'border-border hover:border-dim'
+        }`}
+        onClick={() => fileInputRef.current?.click()}
+      >
+        <Upload size={18} className="text-dim" />
+        <span className="text-dim" style={{ fontSize: '12px' }}>
+          {uploading ? 'Uploading...' : 'Click or drag files here to upload'}
+        </span>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept={ACCEPTED_FILE_TYPES}
+          onChange={handleInputChange}
+          className="hidden"
+        />
+      </div>
+
+      {/* File list */}
+      {files.length === 0 ? (
+        <p className="text-dim" style={{ fontSize: '12px' }}>No files for this client.</p>
+      ) : (
+        <div className="space-y-1">
+          {files.map(f => (
+            <div key={f.id} className="flex items-center gap-3 py-2 border-b border-border" style={{ fontSize: '12px' }}>
+              {clientFileIcon(f.name)}
+              <button
+                onClick={() => handlePreview(f)}
+                className="flex-1 text-left text-polar hover:text-steel truncate bg-transparent border-none p-0 cursor-pointer"
+                style={{ fontSize: 'inherit' }}
+              >
+                {f.name}
+              </button>
+              <span className="text-dim mono">{formatFileSize(f.size)}</span>
+              <span className="text-dim mono">{relativeDate(f.uploaded_at)}</span>
+              <button
+                onClick={() => handleDelete(f)}
+                className="text-dim hover:text-err transition-colors bg-transparent border-none p-0 cursor-pointer"
+                title="Delete"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
+
+      <FilePreview
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        url={previewUrl}
+        fileName={previewName}
+      />
     </div>
   )
 }
