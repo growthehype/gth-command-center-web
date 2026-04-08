@@ -27,10 +27,17 @@ interface InvoiceFile {
 interface InvoiceNotes {
   line_items: LineItem[]
   tax_rate: number
+  tax_label?: string
   payment_terms: string
+  payment_instructions?: string
   memo: string
   from_name: string
   from_email: string
+  from_phone?: string
+  from_address?: string
+  from_website?: string
+  client_phone?: string
+  client_address?: string
 }
 
 function parseInvoiceNotes(notes: string | null): InvoiceNotes | null {
@@ -108,14 +115,21 @@ export default function Invoices() {
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null)
   const [builderFromName, setBuilderFromName] = useState('Grow The Hype')
   const [builderFromEmail, setBuilderFromEmail] = useState('omar@growthehype.ca')
+  const [builderFromPhone, setBuilderFromPhone] = useState('')
+  const [builderFromAddress, setBuilderFromAddress] = useState('')
+  const [builderFromWebsite, setBuilderFromWebsite] = useState('growthehype.ca')
   const [builderClientId, setBuilderClientId] = useState<string>('')
   const [builderClientEmail, setBuilderClientEmail] = useState('')
+  const [builderClientPhone, setBuilderClientPhone] = useState('')
+  const [builderClientAddress, setBuilderClientAddress] = useState('')
   const [builderNum, setBuilderNum] = useState('')
   const [builderDate, setBuilderDate] = useState(todayStr())
   const [builderDueDate, setBuilderDueDate] = useState(defaultDueStr())
   const [builderLineItems, setBuilderLineItems] = useState<LineItem[]>([{ description: '', qty: 1, rate: 0 }])
   const [builderTaxRate, setBuilderTaxRate] = useState(5)
+  const [builderTaxLabel, setBuilderTaxLabel] = useState('GST')
   const [builderTerms, setBuilderTerms] = useState('Net 30')
+  const [builderPaymentInstructions, setBuilderPaymentInstructions] = useState('')
   const [builderMemo, setBuilderMemo] = useState('')
   const [builderSaving, setBuilderSaving] = useState(false)
 
@@ -292,14 +306,21 @@ export default function Invoices() {
     setEditingInvoiceId(null)
     setBuilderFromName('Grow The Hype')
     setBuilderFromEmail('omar@growthehype.ca')
+    setBuilderFromPhone('')
+    setBuilderFromAddress('')
+    setBuilderFromWebsite('growthehype.ca')
     setBuilderClientId('')
     setBuilderClientEmail('')
+    setBuilderClientPhone('')
+    setBuilderClientAddress('')
     setBuilderNum('')
     setBuilderDate(todayStr())
     setBuilderDueDate(defaultDueStr())
     setBuilderLineItems([{ description: '', qty: 1, rate: 0 }])
     setBuilderTaxRate(5)
+    setBuilderTaxLabel('GST')
     setBuilderTerms('Net 30')
+    setBuilderPaymentInstructions('')
     setBuilderMemo('')
   }
 
@@ -334,9 +355,16 @@ export default function Invoices() {
     if (parsed) {
       setBuilderFromName(parsed.from_name || 'Grow The Hype')
       setBuilderFromEmail(parsed.from_email || 'omar@growthehype.ca')
+      setBuilderFromPhone(parsed.from_phone || '')
+      setBuilderFromAddress(parsed.from_address || '')
+      setBuilderFromWebsite(parsed.from_website || 'growthehype.ca')
+      setBuilderClientPhone(parsed.client_phone || '')
+      setBuilderClientAddress(parsed.client_address || '')
       setBuilderLineItems(parsed.line_items.length > 0 ? parsed.line_items : [{ description: '', qty: 1, rate: 0 }])
       setBuilderTaxRate(parsed.tax_rate ?? 5)
+      setBuilderTaxLabel(parsed.tax_label || 'GST')
       setBuilderTerms(parsed.payment_terms || 'Net 30')
+      setBuilderPaymentInstructions(parsed.payment_instructions || '')
       setBuilderMemo(parsed.memo || '')
     } else {
       // Legacy invoice — prefill with single line item
@@ -360,10 +388,17 @@ export default function Invoices() {
     const notes: InvoiceNotes = {
       line_items: builderLineItems,
       tax_rate: builderTaxRate,
+      tax_label: builderTaxLabel,
       payment_terms: builderTerms,
+      payment_instructions: builderPaymentInstructions,
       memo: builderMemo,
       from_name: builderFromName,
       from_email: builderFromEmail,
+      from_phone: builderFromPhone,
+      from_address: builderFromAddress,
+      from_website: builderFromWebsite,
+      client_phone: builderClientPhone,
+      client_address: builderClientAddress,
     }
     return JSON.stringify(notes)
   }
@@ -374,11 +409,18 @@ export default function Invoices() {
     dueDate: builderDueDate,
     fromName: builderFromName,
     fromEmail: builderFromEmail,
+    fromPhone: builderFromPhone || undefined,
+    fromAddress: builderFromAddress || undefined,
+    fromWebsite: builderFromWebsite || undefined,
     clientName: getBuilderClientName(),
     clientEmail: builderClientEmail,
+    clientPhone: builderClientPhone || undefined,
+    clientAddress: builderClientAddress || undefined,
     lineItems: builderLineItems,
     taxRate: builderTaxRate,
+    taxLabel: builderTaxLabel || undefined,
     paymentTerms: builderTerms,
+    paymentInstructions: builderPaymentInstructions || undefined,
     memo: builderMemo,
   })
 
@@ -518,13 +560,21 @@ export default function Invoices() {
       invoiceNum: inv.num || '',
       date: inv.sent_date || inv.created_at?.split('T')[0] || '',
       dueDate: inv.due_date || '',
+      status: inv.status as InvoiceData['status'] || undefined,
       fromName: parsed?.from_name || 'Grow The Hype',
       fromEmail: parsed?.from_email || 'omar@growthehype.ca',
+      fromPhone: parsed?.from_phone || undefined,
+      fromAddress: parsed?.from_address || undefined,
+      fromWebsite: parsed?.from_website || 'growthehype.ca',
       clientName: inv.client_name || cl?.name || '',
       clientEmail: cl?.email || '',
+      clientPhone: parsed?.client_phone || undefined,
+      clientAddress: parsed?.client_address || undefined,
       lineItems: parsed?.line_items || [{ description: 'Services', qty: 1, rate: inv.amount || 0 }],
       taxRate: parsed?.tax_rate ?? 0,
+      taxLabel: parsed?.tax_label || undefined,
       paymentTerms: parsed?.payment_terms || '',
+      paymentInstructions: parsed?.payment_instructions || undefined,
       memo: parsed?.memo || '',
     }
     try {
@@ -878,12 +928,12 @@ export default function Invoices() {
       />
 
       {/* ── Invoice Builder Modal ── */}
-      <Modal open={builderOpen} onClose={() => setBuilderOpen(false)} title={editingInvoiceId ? 'Edit Invoice' : 'Create Invoice'} width="700px">
+      <Modal open={builderOpen} onClose={() => setBuilderOpen(false)} title={editingInvoiceId ? 'Edit Invoice' : 'Create Invoice'} width="740px">
         <div className="space-y-5">
           {/* From / To */}
           <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <span className="label" style={{ color: '#000', fontWeight: 800 }}>FROM</span>
+            <div className="space-y-2.5">
+              <span className="label" style={{ color: '#000', fontWeight: 800, fontSize: '10px', letterSpacing: '0.1em' }}>FROM</span>
               <input
                 value={builderFromName}
                 onChange={e => setBuilderFromName(e.target.value)}
@@ -898,9 +948,32 @@ export default function Invoices() {
                 className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors"
                 style={{ fontSize: '12px' }}
               />
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  value={builderFromPhone}
+                  onChange={e => setBuilderFromPhone(e.target.value)}
+                  placeholder="Phone (optional)"
+                  className="w-full bg-cell border border-border text-polar px-3 py-1.5 font-sans outline-none focus:border-dim transition-colors"
+                  style={{ fontSize: '11px' }}
+                />
+                <input
+                  value={builderFromWebsite}
+                  onChange={e => setBuilderFromWebsite(e.target.value)}
+                  placeholder="Website (optional)"
+                  className="w-full bg-cell border border-border text-polar px-3 py-1.5 font-sans outline-none focus:border-dim transition-colors"
+                  style={{ fontSize: '11px' }}
+                />
+              </div>
+              <input
+                value={builderFromAddress}
+                onChange={e => setBuilderFromAddress(e.target.value)}
+                placeholder="Address (optional)"
+                className="w-full bg-cell border border-border text-polar px-3 py-1.5 font-sans outline-none focus:border-dim transition-colors"
+                style={{ fontSize: '11px' }}
+              />
             </div>
-            <div className="space-y-3">
-              <span className="label" style={{ color: '#000', fontWeight: 800 }}>TO</span>
+            <div className="space-y-2.5">
+              <span className="label" style={{ color: '#000', fontWeight: 800, fontSize: '10px', letterSpacing: '0.1em' }}>BILL TO</span>
               <select
                 value={builderClientId}
                 onChange={e => {
@@ -924,6 +997,20 @@ export default function Invoices() {
                 placeholder="Client email"
                 className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors"
                 style={{ fontSize: '12px' }}
+              />
+              <input
+                value={builderClientPhone}
+                onChange={e => setBuilderClientPhone(e.target.value)}
+                placeholder="Client phone (optional)"
+                className="w-full bg-cell border border-border text-polar px-3 py-1.5 font-sans outline-none focus:border-dim transition-colors"
+                style={{ fontSize: '11px' }}
+              />
+              <input
+                value={builderClientAddress}
+                onChange={e => setBuilderClientAddress(e.target.value)}
+                placeholder="Client address (optional)"
+                className="w-full bg-cell border border-border text-polar px-3 py-1.5 font-sans outline-none focus:border-dim transition-colors"
+                style={{ fontSize: '11px' }}
               />
             </div>
           </div>
@@ -1045,7 +1132,16 @@ export default function Invoices() {
               </div>
               <div className="flex justify-between items-center gap-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-steel" style={{ fontSize: '12px' }}>Tax</span>
+                  <select
+                    value={builderTaxLabel}
+                    onChange={e => setBuilderTaxLabel(e.target.value)}
+                    className="bg-cell border border-border text-polar px-1.5 py-1 font-sans outline-none focus:border-dim transition-colors"
+                    style={{ fontSize: '11px', width: '60px' }}
+                  >
+                    {['GST', 'HST', 'PST', 'VAT', 'Tax'].map(t => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
                   <input
                     type="number"
                     min={0}
@@ -1113,14 +1209,25 @@ export default function Invoices() {
                   style={{ fontSize: '12px' }}
                 />
               )}
+              <div className="pt-1">
+                <span className="label text-dim" style={{ fontSize: '9px' }}>PAYMENT INSTRUCTIONS</span>
+                <input
+                  value={builderPaymentInstructions}
+                  onChange={e => setBuilderPaymentInstructions(e.target.value)}
+                  placeholder="e.g., E-Transfer to omar@growthehype.ca"
+                  className="w-full bg-cell border border-border text-polar px-3 py-1.5 font-sans outline-none focus:border-dim transition-colors mt-1"
+                  style={{ fontSize: '11px' }}
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <span className="label text-dim">NOTES / MEMO</span>
               <div className="flex flex-wrap gap-1.5">
                 {[
-                  { label: 'Thank you', value: 'Thank you for your business' },
-                  { label: 'Payment due', value: 'Payment is due within the specified terms' },
-                  { label: 'Include #', value: 'Please include invoice number with payment' },
+                  { label: 'Thank you', value: 'Thank you for choosing Grow The Hype. We appreciate your partnership.' },
+                  { label: 'Scope of work', value: 'This invoice covers all deliverables outlined in the signed scope of work.' },
+                  { label: 'Retainer', value: 'Monthly retainer for ongoing marketing and strategy services.' },
+                  { label: 'Include #', value: 'Please include invoice number with payment for your records.' },
                   { label: 'Custom', value: '__custom__' },
                 ].map(opt => (
                   <button
@@ -1146,12 +1253,28 @@ export default function Invoices() {
 
           {/* Action buttons */}
           <div className="flex items-center justify-between pt-2 border-t border-border">
-            <button
-              onClick={handlePreviewPDF}
-              className="btn-ghost flex items-center gap-2"
-            >
-              <Eye size={12} /> Preview PDF
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handlePreviewPDF}
+                className="btn-ghost flex items-center gap-2"
+              >
+                <Eye size={12} /> Preview PDF
+              </button>
+              <button
+                onClick={() => {
+                  try {
+                    const doc = generateInvoicePDF(buildInvoiceData())
+                    doc.save(`Invoice-${builderNum || 'draft'}.pdf`)
+                  } catch (err: any) {
+                    showToast('Failed to generate PDF', 'error')
+                    console.error(err)
+                  }
+                }}
+                className="btn-ghost flex items-center gap-2"
+              >
+                <Download size={12} /> Download PDF
+              </button>
+            </div>
             <div className="flex items-center gap-3">
               <button
                 onClick={handleSaveDraft}
