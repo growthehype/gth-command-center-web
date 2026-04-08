@@ -330,17 +330,18 @@ export default function GmailInbox() {
     }
   }, [connected, activeFolder]) // eslint-disable-line
 
-  // Re-check connection status periodically (picks up silent refreshes)
+  // Re-check connection when window regains focus (picks up OAuth callback)
   useEffect(() => {
     setConnected(isGmailConnected())
-    const interval = setInterval(() => {
+    const onFocus = () => {
       const nowConnected = isGmailConnected()
-      setConnected(prev => {
-        if (!prev && nowConnected) return true // reconnected after silent refresh
-        return prev
-      })
-    }, 5_000)
-    return () => clearInterval(interval)
+      setConnected(prev => (!prev && nowConnected) ? true : prev)
+    }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) onFocus() })
+    return () => {
+      window.removeEventListener('focus', onFocus)
+    }
   }, [])
 
   // Keyboard: Escape to deselect, C to compose, R to refresh

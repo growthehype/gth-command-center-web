@@ -133,16 +133,18 @@ export default function GoogleDrive() {
     if (connected && !isSearching && !activeFilter) loadFiles(currentFolder)
   }, [connected, currentFolder]) // eslint-disable-line
 
+  // Re-check connection when window regains focus (picks up OAuth callback)
   useEffect(() => {
     setConnected(isGmailConnected())
-    const interval = setInterval(() => {
+    const onFocus = () => {
       const nowConnected = isGmailConnected()
-      setConnected(prev => {
-        if (!prev && nowConnected) return true
-        return prev
-      })
-    }, 5_000)
-    return () => clearInterval(interval)
+      setConnected(prev => (!prev && nowConnected) ? true : prev)
+    }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) onFocus() })
+    return () => {
+      window.removeEventListener('focus', onFocus)
+    }
   }, [])
 
   const handleSearch = (e: React.FormEvent) => {

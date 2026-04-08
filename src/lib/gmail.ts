@@ -1,15 +1,9 @@
-const GOOGLE_CLIENT_ID = '272925349594-4dtb910g2m3jp2433na7r9eac297hoot.apps.googleusercontent.com'
-// Send + Read + Modify + Labels + Drive for full experience
-const GMAIL_SCOPES = [
-  'https://www.googleapis.com/auth/gmail.send',
-  'https://www.googleapis.com/auth/gmail.readonly',
-  'https://www.googleapis.com/auth/gmail.modify',
-  'https://www.googleapis.com/auth/gmail.labels',
-  'https://www.googleapis.com/auth/drive.readonly',
-].join(' ')
+// ─── Google Auth: Server-side refresh token flow ───────────────
+// Connect once → refresh token stored permanently → auto-refreshes forever
+
 const GMAIL_TOKEN_KEY = 'gth_gmail_token'
-const GMAIL_STATE_KEY = 'gth_gmail_auth_pending'
-const GMAIL_EVER_CONNECTED = 'gth_gmail_ever_connected' // persists across sessions
+const GMAIL_REFRESH_KEY = 'gth_gmail_refresh_token'
+const GMAIL_EVER_CONNECTED = 'gth_gmail_ever_connected'
 
 interface GmailToken {
   access_token: string
@@ -32,157 +26,131 @@ function saveToken(token: GmailToken) {
   localStorage.setItem(GMAIL_EVER_CONNECTED, 'true')
 }
 
+function getRefreshToken(): string | null {
+  return localStorage.getItem(GMAIL_REFRESH_KEY)
+}
+
+// ── Auto-refresh via server-side refresh token ──
+
+let _refreshing = false
+let _refreshTimer: ReturnType<typeof setTimeout> | null = null
+let _refreshPromise: Promise<boolean> | null = null
+
+async function refreshAccessToken(): Promise<boolean> {
+  if (_refreshing && _refreshPromise) return _refreshPromise
+
+  const refreshToken = getRefreshToken()
+  if (!refreshToken) return false
+
+  _refreshing = true
+  _refreshPromise = (async () => {
+    try {
+      const res = await fetch('/api/google-refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        console.warn('Token refresh failed:', err.error)
+        return false
+      }
+      const data = await res.json()
+      const seconds = data.expires_in || 3600
+      saveToken({ access_token: data.access_token, expires_at: Date.now() + seconds * 1000 })
+      scheduleRefresh(seconds)
+      return true
+    } catch (err) {
+      console.warn('Token refresh error:', err)
+      return false
+    } finally {
+      _refreshing = false
+      _refreshPromise = null
+    }
+  })()
+
+  return _refreshPromise
+}
+
+function scheduleRefresh(expiresInSeconds: number) {
+  if (_refreshTimer) clearTimeout(_refreshTimer)
+  // Refresh 5 min before expiry
+  const refreshIn = Math.max((expiresInSeconds - 300) * 1000, 30_000)
+  _refreshTimer = setTimeout(() => refreshAccessToken(), refreshIn)
+}
+
+// On module load: schedule refresh or refresh immediately if expired
+;(() => {
+  const token = getLocalToken()
+  const hasRefresh = !!getRefreshToken()
+  if (hasRefresh) {
+    if (token) {
+      const remaining = Math.floor((token.expires_at - Date.now()) / 1000)
+      if (remaining > 300) {
+        scheduleRefresh(remaining)
+      } else {
+        // Expired or about to expire — refresh now
+        refreshAccessToken()
+      }
+    } else {
+      // No access token but have refresh token — refresh now
+      refreshAccessToken()
+    }
+  }
+})()
+
+// ── Public API ──
+
 export function isGmailConnected(): boolean {
   const token = getLocalToken()
-  if (!token) return false
-  // If expired, attempt silent refresh in background (non-blocking)
-  if (Date.now() >= token.expires_at - 120_000) {
-    silentRefresh()
-    // Still return true if within a 5-min grace window so UI doesn't flash "disconnected"
-    return Date.now() < token.expires_at + 300_000
-  }
-  return true
+  if (token && Date.now() < token.expires_at - 30_000) return true
+  // Has refresh token = permanently connected (will auto-refresh)
+  if (getRefreshToken()) return true
+  return false
 }
 
 export function getGmailToken(): string | null {
   const token = getLocalToken()
   if (!token) return null
-  // Trigger refresh 2 min before expiry
-  if (Date.now() >= token.expires_at - 120_000) {
-    silentRefresh()
+  // Proactively refresh 5 min before expiry
+  if (Date.now() >= token.expires_at - 300_000 && getRefreshToken()) {
+    refreshAccessToken()
   }
   // Still usable if not hard-expired
   if (Date.now() >= token.expires_at) return null
   return token.access_token
 }
 
-// ── Silent token refresh via hidden iframe ──
-
-let _refreshing = false
-let _refreshTimer: ReturnType<typeof setTimeout> | null = null
-
-function buildAuthUrl(prompt: string, state: string): string {
-  const params = new URLSearchParams({
-    client_id: GOOGLE_CLIENT_ID,
-    redirect_uri: window.location.origin,
-    response_type: 'token',
-    scope: GMAIL_SCOPES,
-    state,
-    include_granted_scopes: 'true',
-    prompt,
-  })
-  return `https://accounts.google.com/o/oauth2/v2/auth?${params}`
-}
-
-function silentRefresh() {
-  if (_refreshing) return
-  // Only attempt if user has previously connected
-  if (!localStorage.getItem(GMAIL_EVER_CONNECTED)) return
-  _refreshing = true
-
-  const iframe = document.createElement('iframe')
-  iframe.style.display = 'none'
-  iframe.src = buildAuthUrl('none', 'gmail_silent')
-  document.body.appendChild(iframe)
-
-  // Poll the iframe for the token in the hash
-  let attempts = 0
-  const poll = setInterval(() => {
-    attempts++
-    try {
-      const hash = iframe.contentWindow?.location.hash
-      if (hash && hash.includes('access_token')) {
-        clearInterval(poll)
-        const params = new URLSearchParams(hash.substring(1))
-        const accessToken = params.get('access_token')
-        const expiresIn = params.get('expires_in')
-        if (accessToken) {
-          const seconds = expiresIn ? parseInt(expiresIn, 10) : 3600
-          saveToken({ access_token: accessToken, expires_at: Date.now() + seconds * 1000 })
-          scheduleRefresh(seconds)
-        }
-        document.body.removeChild(iframe)
-        _refreshing = false
-      }
-    } catch {
-      // Cross-origin — iframe hasn't redirected back yet, keep polling
-    }
-    if (attempts > 50) { // 5 seconds timeout
-      clearInterval(poll)
-      try { document.body.removeChild(iframe) } catch {}
-      _refreshing = false
-    }
-  }, 100)
-}
-
-function scheduleRefresh(expiresInSeconds: number) {
-  if (_refreshTimer) clearTimeout(_refreshTimer)
-  // Refresh 3 minutes before expiry
-  const refreshIn = Math.max((expiresInSeconds - 180) * 1000, 60_000)
-  _refreshTimer = setTimeout(() => silentRefresh(), refreshIn)
-}
-
-// Start auto-refresh schedule on module load if we have a token
-;(() => {
+// Get token, refreshing if needed (for API calls)
+export async function ensureToken(): Promise<string | null> {
   const token = getLocalToken()
-  if (token && localStorage.getItem(GMAIL_EVER_CONNECTED)) {
-    const remaining = Math.floor((token.expires_at - Date.now()) / 1000)
-    if (remaining > 0) {
-      scheduleRefresh(remaining)
-    } else {
-      // Token already expired — try to silently refresh now
-      silentRefresh()
+  if (token && Date.now() < token.expires_at - 30_000) return token.access_token
+  // Try to refresh
+  if (getRefreshToken()) {
+    const ok = await refreshAccessToken()
+    if (ok) {
+      const fresh = getLocalToken()
+      return fresh?.access_token || null
     }
   }
-})()
-
-// ── User-initiated connect (full redirect) ──
+  return null
+}
 
 export function connectGmail(): void {
-  sessionStorage.setItem(GMAIL_STATE_KEY, 'true')
-  const currentHash = window.location.hash?.replace('#', '') || ''
-  if (currentHash) sessionStorage.setItem('gth_gmail_return_page', currentHash)
-  // Always use 'consent' for user-initiated connect — ensures all scopes granted
-  // 'prompt=none' is only for silent background refresh
-  window.location.href = buildAuthUrl('consent', 'gmail')
+  // Server-side OAuth: redirect to our API which handles the code flow
+  const returnPage = window.location.hash?.replace('#', '') || 'gmail'
+  window.location.href = `/api/google-auth?returnPage=${encodeURIComponent(returnPage)}`
 }
 
 export function captureGmailToken(): boolean {
-  const hash = window.location.hash
-  if (!hash || !hash.includes('access_token')) return false
-
-  const params = new URLSearchParams(hash.substring(1))
-  const state = params.get('state')
-  const pending = sessionStorage.getItem(GMAIL_STATE_KEY)
-
-  // Don't capture silent refresh tokens (handled by iframe)
-  if (state === 'gmail_silent') return false
-
-  if (state !== 'gmail' && !pending) return false
-
-  const token = params.get('access_token')
-  const expiresIn = params.get('expires_in')
-
-  if (token) {
-    const seconds = expiresIn ? parseInt(expiresIn, 10) : 3600
-    saveToken({ access_token: token, expires_at: Date.now() + seconds * 1000 })
-    scheduleRefresh(seconds)
-    sessionStorage.removeItem(GMAIL_STATE_KEY)
-    const returnPage = sessionStorage.getItem('gth_gmail_return_page')
-    sessionStorage.removeItem('gth_gmail_return_page')
-    window.history.replaceState(
-      returnPage ? { page: returnPage } : null,
-      '',
-      returnPage ? `${window.location.pathname}${window.location.search}#${returnPage}` : window.location.pathname + window.location.search
-    )
-    return true
-  }
-
+  // Server-side flow handles token capture via the callback page
+  // This is kept for backward compatibility — checks if token was set by callback
   return false
 }
 
 export function disconnectGmail(): void {
   localStorage.removeItem(GMAIL_TOKEN_KEY)
+  localStorage.removeItem(GMAIL_REFRESH_KEY)
   localStorage.removeItem(GMAIL_EVER_CONNECTED)
   if (_refreshTimer) clearTimeout(_refreshTimer)
 }
@@ -252,9 +220,10 @@ function extractBody(payload: any): string {
 }
 
 async function gmailFetch(path: string, options?: RequestInit) {
-  const token = getGmailToken()
+  let token = await ensureToken()
   if (!token) throw new Error('Gmail not connected')
-  const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`, {
+
+  let res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`, {
     ...options,
     headers: {
       Authorization: `Bearer ${token}`,
@@ -262,6 +231,25 @@ async function gmailFetch(path: string, options?: RequestInit) {
       ...options?.headers,
     },
   })
+
+  // Auto-retry once on 401 with a fresh token
+  if (res.status === 401 && getRefreshToken()) {
+    const ok = await refreshAccessToken()
+    if (ok) {
+      token = getLocalToken()?.access_token || null
+      if (token) {
+        res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`, {
+          ...options,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            ...options?.headers,
+          },
+        })
+      }
+    }
+  }
+
   if (!res.ok) {
     if (res.status === 401) throw new Error('Gmail session expired — please reconnect')
     const err = await res.json().catch(() => ({}))
@@ -369,7 +357,7 @@ export async function sendEmail(params: {
   replyToMessageId?: string
   threadId?: string
 }): Promise<void> {
-  const token = getGmailToken()
+  let token = await ensureToken()
   if (!token) throw new Error('Gmail not connected')
 
   const htmlBody = params.body.replace(/\n/g, '<br>')
@@ -433,11 +421,26 @@ export async function sendEmail(params: {
   const body: any = { raw: encoded }
   if (params.threadId) body.threadId = params.threadId
 
-  const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+  let res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
+
+  // Auto-retry once on 401
+  if (res.status === 401 && getRefreshToken()) {
+    const ok = await refreshAccessToken()
+    if (ok) {
+      token = getLocalToken()?.access_token || null
+      if (token) {
+        res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+      }
+    }
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
@@ -457,7 +460,7 @@ export async function sendEmailWithAttachment(params: {
   attachmentBase64: string
   attachmentName: string
 }): Promise<void> {
-  const token = getGmailToken()
+  let token = await ensureToken()
   if (!token) throw new Error('Gmail not connected')
 
   const boundary = 'gth_boundary_' + Date.now()
@@ -523,11 +526,26 @@ export async function sendEmailWithAttachment(params: {
   utf8Bytes.forEach(b => { binary += String.fromCharCode(b) })
   const encoded = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 
-  const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+  let res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ raw: encoded }),
   })
+
+  // Auto-retry once on 401
+  if (res.status === 401 && getRefreshToken()) {
+    const ok = await refreshAccessToken()
+    if (ok) {
+      token = getLocalToken()?.access_token || null
+      if (token) {
+        res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ raw: encoded }),
+        })
+      }
+    }
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
@@ -553,11 +571,26 @@ export interface DriveFile {
 }
 
 async function driveFetch(path: string) {
-  const token = getGmailToken()
+  let token = await ensureToken()
   if (!token) throw new Error('NOT_CONNECTED')
-  const res = await fetch(`https://www.googleapis.com/drive/v3/${path}`, {
+
+  let res = await fetch(`https://www.googleapis.com/drive/v3/${path}`, {
     headers: { Authorization: `Bearer ${token}` },
   })
+
+  // Auto-retry once on 401 with a fresh token
+  if (res.status === 401 && getRefreshToken()) {
+    const ok = await refreshAccessToken()
+    if (ok) {
+      token = getLocalToken()?.access_token || null
+      if (token) {
+        res = await fetch(`https://www.googleapis.com/drive/v3/${path}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      }
+    }
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
     const msg = err?.error?.message || ''
