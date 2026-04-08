@@ -429,7 +429,7 @@ export default function AiPanel() {
     if (!userText || isLoading) return
     setInput('')
 
-    const apiKey = settings.ai_api_key
+    const apiKey = settings.ai_api_key || localStorage.getItem('gth_ai_api_key') || ''
     const model = settings.ai_model || 'claude-sonnet-4-20250514'
 
     // Add user message to chat display
