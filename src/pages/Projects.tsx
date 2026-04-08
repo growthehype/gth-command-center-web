@@ -430,11 +430,69 @@ export default function Projects() {
           {/* Links */}
           <div>
             <label className="label text-steel block mb-1.5">Links</label>
+            {/* Existing links as clickable chips */}
+            {(() => {
+              const urls = form.links.split(/[,\s]+/).filter(u => u.startsWith('http'))
+              if (urls.length === 0) return null
+              return (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {urls.map((url, i) => {
+                    let label = ''
+                    try { label = new URL(url).hostname.replace('www.', '') } catch { label = url.substring(0, 25) }
+                    return (
+                      <div key={i} className="inline-flex items-center gap-1 bg-surface border border-border pl-2.5 pr-1 py-1 group" style={{ borderRadius: '4px' }}>
+                        <button
+                          type="button"
+                          onClick={() => shell.openExternal(url)}
+                          className="inline-flex items-center gap-1.5 text-polar hover:text-steel transition-colors cursor-pointer bg-transparent border-none p-0"
+                          style={{ fontSize: '12px' }}
+                          title={url}
+                        >
+                          <ExternalLink size={11} />
+                          {label}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const remaining = urls.filter((_, j) => j !== i).join(', ')
+                            setForm(f => ({ ...f, links: remaining }))
+                          }}
+                          className="ml-1 text-dim hover:text-err transition-colors cursor-pointer bg-transparent border-none p-0 opacity-0 group-hover:opacity-100"
+                          title="Remove link"
+                          style={{ fontSize: '10px' }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })()}
             <input
               type="text"
-              value={form.links}
-              onChange={e => setForm(f => ({ ...f, links: e.target.value }))}
-              placeholder="Figma, drive, repo URLs..."
+              value={(() => {
+                const parts = form.links.split(/[,\s]+/)
+                const nonUrls = parts.filter(p => p && !p.startsWith('http'))
+                return nonUrls.join(' ')
+              })()}
+              onChange={e => {
+                const urls = form.links.split(/[,\s]+/).filter(u => u.startsWith('http'))
+                const newVal = e.target.value.trim()
+                setForm(f => ({ ...f, links: [...urls, newVal].filter(Boolean).join(', ') }))
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  const input = (e.target as HTMLInputElement).value.trim()
+                  if (input.startsWith('http')) {
+                    const urls = form.links.split(/[,\s]+/).filter(u => u.startsWith('http'))
+                    urls.push(input)
+                    setForm(f => ({ ...f, links: urls.join(', ') }))
+                  }
+                }
+              }}
+              placeholder={form.links.includes('http') ? 'Add another URL...' : 'Paste a URL and press Enter...'}
               className="w-full bg-surface border border-border px-3 py-2 text-polar placeholder:text-dim focus:outline-none focus:border-dim transition-colors"
               style={{ fontSize: '13px' }}
             />
