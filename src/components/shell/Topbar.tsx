@@ -1,8 +1,10 @@
 import { useAppStore } from '@/lib/store'
-import { Search, Timer, Sparkles, Clock, Menu, Moon, Sun, HelpCircle, WifiOff, Wifi } from 'lucide-react'
+import { Search, Timer, Sparkles, Clock, Menu, Moon, Sun, HelpCircle, WifiOff, Wifi, Square } from 'lucide-react'
+import { timeEntries as timeEntriesApi } from '@/lib/api'
+import { showToast } from '@/components/ui/Toast'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
 import { format } from 'date-fns'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 interface TopbarProps {
   onLock?: () => void
@@ -87,12 +89,31 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
         </div>
       )}
 
-      {/* Timer */}
+      {/* Timer — click to stop */}
       {runningTimer && elapsed && (
-        <div className="flex items-center gap-2 text-ok" title={`Timer running: ${elapsed}`}>
-          <Timer size={12} />
+        <button
+          onClick={async () => {
+            try {
+              await timeEntriesApi.stop(runningTimer.id, runningTimer.notes || '')
+              await useAppStore.getState().refreshTimeEntries()
+              await useAppStore.getState().refreshRunningTimer()
+              showToast('Timer stopped', 'success')
+            } catch { showToast('Failed to stop timer', 'error') }
+          }}
+          className="flex items-center gap-2 text-ok hover:text-white transition-colors group cursor-pointer"
+          title="Click to stop timer"
+        >
+          <div className="relative">
+            <Timer size={12} className="group-hover:hidden" />
+            <Square size={12} className="hidden group-hover:block text-err" fill="currentColor" />
+          </div>
           <span className="font-mono font-bold" style={{ fontSize: '12px' }}>{elapsed}</span>
-        </div>
+          {runningTimer.notes && (
+            <span className="hidden md:inline text-dim" style={{ fontSize: '10px', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {runningTimer.notes}
+            </span>
+          )}
+        </button>
       )}
 
       {/* Pomodoro toggle */}
