@@ -184,7 +184,10 @@ export async function sendEmailWithAttachment(params: {
   ].join('\r\n')
 
   // Gmail API requires URL-safe base64 encoding of the entire MIME message
-  const encoded = btoa(unescape(encodeURIComponent(mimeMessage)))
+  const utf8Bytes = new TextEncoder().encode(mimeMessage)
+  let binary = ''
+  utf8Bytes.forEach(b => { binary += String.fromCharCode(b) })
+  const encoded = btoa(binary)
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=+$/, '')
@@ -200,6 +203,10 @@ export async function sendEmailWithAttachment(params: {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err?.error?.message || `Gmail send failed (${res.status})`)
+    console.error('Gmail API error:', err)
+    const msg = res.status === 401 ? 'Gmail session expired — please reconnect'
+      : res.status === 403 ? 'Gmail permission denied — reconnect and grant send access'
+      : `Failed to send email (${res.status})`
+    throw new Error(msg)
   }
 }

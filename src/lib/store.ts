@@ -114,7 +114,7 @@ interface AppStore {
   setTheme: (theme: 'light' | 'dark') => void
 
   // Actions
-  setCurrentPage: (page: string) => void
+  setCurrentPage: (page: string, pushHistory?: boolean) => void
   setSelectedClientId: (id: string | null) => void
   setSelectedProjectId: (id: string | null) => void
   setSelectedTaskId: (id: string | null) => void
@@ -203,7 +203,14 @@ export const useAppStore = create<AppStore>((set) => ({
     set({ theme })
   },
 
-  setCurrentPage: (page) => set({ currentPage: page }),
+  setCurrentPage: (page, pushHistory = true) => {
+    const prev = useAppStore.getState().currentPage
+    if (page === prev) return
+    if (pushHistory) {
+      window.history.pushState({ page }, '', `#${page}`)
+    }
+    set({ currentPage: page })
+  },
   setSelectedClientId: (id) => set({ selectedClientId: id }),
   setSelectedProjectId: (id) => set({ selectedProjectId: id }),
   setSelectedTaskId: (id) => set({ selectedTaskId: id }),
@@ -250,22 +257,22 @@ export const useAppStore = create<AppStore>((set) => ({
     }
   },
 
-  refreshClients: async () => { set({ clients: await clientsApi.getAll() }) },
-  refreshTasks: async () => { set({ tasks: await tasksApi.getAll() }) },
-  refreshProjects: async () => { set({ projects: await projectsApi.getAll() }) },
-  refreshInvoices: async () => { set({ invoices: await invoicesApi.getAll() }) },
-  refreshLeads: async () => { set({ leads: await outreachApi.getAll() }) },
-  refreshEvents: async () => { set({ events: await eventsApi.getAll() }) },
-  refreshCampaigns: async () => { set({ campaigns: await campaignsApi.getAll() }) },
-  refreshContacts: async () => { set({ contacts: await contactsApi.getAll() }) },
-  refreshMeetings: async () => { set({ meetings: await meetingsApi.getAll() }) },
-  refreshServices: async () => { set({ services: await servicesApi.getAll() }) },
-  refreshTemplates: async () => { set({ templates: await templatesApi.getAll() }) },
-  refreshGoals: async () => { set({ goals: await goalsApi.getAll() }) },
-  refreshActivity: async () => { set({ activity: await activityApi.getAll(50, 0) }) },
-  refreshCredentials: async () => { set({ credentials: await credentialsApi.getAll() }) },
-  refreshSops: async () => { set({ sops: await sopsApi.getAll() }) },
-  refreshTimeEntries: async () => { set({ timeEntries: await timeEntriesApi.getAll() }) },
-  refreshSettings: async () => { set({ settings: await settingsApi.getAll() }) },
-  refreshRunningTimer: async () => { set({ runningTimer: await timeEntriesApi.getRunning() }) },
+  refreshClients: async () => { try { set({ clients: await clientsApi.getAll() }) } catch (e) { console.error('refreshClients:', e) } },
+  refreshTasks: async () => { try { set({ tasks: await tasksApi.getAll() }) } catch (e) { console.error('refreshTasks:', e) } },
+  refreshProjects: async () => { try { set({ projects: await projectsApi.getAll() }) } catch (e) { console.error('refreshProjects:', e) } },
+  refreshInvoices: async () => { try { set({ invoices: await invoicesApi.getAll() }) } catch (e) { console.error('refreshInvoices:', e) } },
+  refreshLeads: async () => { try { set({ leads: await outreachApi.getAll() }) } catch (e) { console.error('refreshLeads:', e) } },
+  refreshEvents: async () => { try { set({ events: await eventsApi.getAll() }) } catch (e) { console.error('refreshEvents:', e) } },
+  refreshCampaigns: async () => { try { set({ campaigns: await campaignsApi.getAll() }) } catch (e) { console.error('refreshCampaigns:', e) } },
+  refreshContacts: async () => { try { set({ contacts: await contactsApi.getAll() }) } catch (e) { console.error('refreshContacts:', e) } },
+  refreshMeetings: async () => { try { set({ meetings: await meetingsApi.getAll() }) } catch (e) { console.error('refreshMeetings:', e) } },
+  refreshServices: async () => { try { set({ services: await servicesApi.getAll() }) } catch (e) { console.error('refreshServices:', e) } },
+  refreshTemplates: async () => { try { set({ templates: await templatesApi.getAll() }) } catch (e) { console.error('refreshTemplates:', e) } },
+  refreshGoals: async () => { try { set({ goals: await goalsApi.getAll() }) } catch (e) { console.error('refreshGoals:', e) } },
+  refreshActivity: async () => { try { set({ activity: await activityApi.getAll(50, 0) }) } catch (e) { console.error('refreshActivity:', e) } },
+  refreshCredentials: async () => { try { set({ credentials: await credentialsApi.getAll() }) } catch (e) { console.error('refreshCredentials:', e) } },
+  refreshSops: async () => { try { set({ sops: await sopsApi.getAll() }) } catch (e) { console.error('refreshSops:', e) } },
+  refreshTimeEntries: async () => { try { set({ timeEntries: await timeEntriesApi.getAll() }) } catch (e) { console.error('refreshTimeEntries:', e) } },
+  refreshSettings: async () => { try { set({ settings: await settingsApi.getAll() }) } catch (e) { console.error('refreshSettings:', e) } },
+  refreshRunningTimer: async () => { try { set({ runningTimer: await timeEntriesApi.getRunning() }) } catch (e) { console.error('refreshRunningTimer:', e) } },
 }))

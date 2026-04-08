@@ -139,6 +139,25 @@ export default function Shell({ onLock }: ShellProps) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [onLock, setCommandPaletteOpen, setCurrentPage, setAiPanelOpen, aiPanelOpen])
 
+  // Browser back/forward button support
+  useEffect(() => {
+    // Push initial state so the first page is in history
+    if (!window.history.state?.page) {
+      window.history.replaceState({ page: currentPage }, '', `#${currentPage}`)
+    }
+
+    const handlePopState = (e: PopStateEvent) => {
+      const page = e.state?.page
+      if (page && pageMap[page]) {
+        // Use pushHistory=false to avoid pushing again during back navigation
+        setCurrentPage(page, false)
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   const PageComponent = pageMap[currentPage] || DailyBriefing
 
   return (

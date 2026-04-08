@@ -99,9 +99,16 @@ export function clientHealth(daysSinceActivity: number): { color: string; label:
 
 // Sanitize HTML for activity log (only allow <strong> tags)
 export function sanitizeActivityHtml(html: string): string {
-  return html
-    .replace(/<(?!\/?strong\b)[^>]*>/gi, '')
-    .replace(/&(?!amp;|lt;|gt;|quot;|#\d+;)/g, '&amp;')
+  // First escape all HTML entities, then selectively restore <strong> tags
+  const escaped = html
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+  // Restore only <strong> and </strong>
+  return escaped
+    .replace(/&lt;strong&gt;/gi, '<strong>')
+    .replace(/&lt;\/strong&gt;/gi, '</strong>')
 }
 
 // Fuzzy search

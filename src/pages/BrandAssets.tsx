@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Palette, Upload, FileText } from 'lucide-react'
+import { Upload, FileText } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import EmptyState from '@/components/ui/EmptyState'
@@ -97,15 +97,16 @@ export default function BrandAssets() {
               </div>
               <div className="card flex flex-col items-center gap-3 py-6">
                 <div className="flex items-center justify-center gap-3 border border-border" style={{ width: '160px', height: '160px', backgroundColor: '#000000' }}>
-                  <img src="./icon.png" alt="GTH" className="w-10 h-10" style={{ filter: 'brightness(0) invert(1)' }} />
-                  <span className="text-polar font-[900] uppercase" style={{ fontSize: '18px', letterSpacing: '0.08em' }}>GROW THE HYPE</span>
+                  <img src="./icon.png" alt="GTH" className="w-8 h-8" style={{ filter: 'brightness(0) invert(1)' }} />
+                  <span className="text-polar font-[900] uppercase" style={{ fontSize: '11px', letterSpacing: '0.08em', lineHeight: '1.2' }}>GROW<br/>THE HYPE</span>
                 </div>
                 <span className="label text-dim">WORDMARK</span>
               </div>
               <div className="card flex flex-col items-center gap-3 py-6">
-                <div className="flex items-center justify-center border border-border" style={{ width: '160px', height: '160px', backgroundColor: '#000000' }}>
-                  <span className="text-polar font-[900] uppercase text-center leading-tight" style={{ fontSize: '14px', letterSpacing: '0.12em' }}>
-                    GROW<br/>THE<br/>HYPE
+                <div className="flex flex-col items-center justify-center gap-2 border border-border" style={{ width: '160px', height: '160px', backgroundColor: '#000000' }}>
+                  <img src="./icon.png" alt="GTH" className="w-12 h-12" style={{ filter: 'brightness(0) invert(1)' }} />
+                  <span className="text-polar font-[900] uppercase text-center leading-tight" style={{ fontSize: '9px', letterSpacing: '0.14em' }}>
+                    GROW THE HYPE
                   </span>
                 </div>
                 <span className="label text-dim">STACKED</span>
