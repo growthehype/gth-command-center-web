@@ -56,7 +56,7 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
           className="font-sans font-[800] uppercase hidden md:inline"
           style={{ fontSize: '14px', letterSpacing: '0.12em', color: '#FFFFFF' }}
         >
-          Operations Command Center
+          {settings.company_name ? `${settings.company_name}` : 'Operations Command Center'}
         </span>
       </div>
 

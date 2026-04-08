@@ -1,12 +1,14 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import {
   ArrowLeft, Building2, Edit3, Mail, Phone, Globe, DollarSign,
   FolderKanban, CheckSquare, Users, Clock, FileText,
-  ChevronRight,
+  ChevronRight, Link2, Copy, Trash2,
 } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import ClientAvatar from '@/components/ui/ClientAvatar'
 import { formatCurrency, relativeDate, daysSince, clientHealth } from '@/lib/utils'
+import { portalTokens } from '@/lib/api'
+import { showToast } from '@/components/ui/Toast'
 
 /* ========================================
    CONSTANTS
@@ -142,6 +144,37 @@ export default function ClientDetail() {
     [clients, selectedClientId]
   )
 
+  // Portal sharing
+  const [portalUrl, setPortalUrl] = useState<string | null>(null)
+  const [portalLoading, setPortalLoading] = useState(false)
+
+  const generatePortalLink = useCallback(async () => {
+    if (!selectedClientId) return
+    setPortalLoading(true)
+    try {
+      const result = await portalTokens.generate(selectedClientId)
+      const url = `${window.location.origin}?portal=${result.token}`
+      setPortalUrl(url)
+      await navigator.clipboard.writeText(url)
+      showToast('Portal link copied to clipboard!', 'success')
+    } catch (err) {
+      console.error('Portal gen error:', err)
+      showToast('Failed to generate portal link', 'error')
+    }
+    setPortalLoading(false)
+  }, [selectedClientId])
+
+  const revokePortalLink = useCallback(async () => {
+    if (!selectedClientId) return
+    try {
+      await portalTokens.revoke(selectedClientId)
+      setPortalUrl(null)
+      showToast('Portal link revoked', 'success')
+    } catch {
+      showToast('Failed to revoke', 'error')
+    }
+  }, [selectedClientId])
+
   // Navigate back
   const goBack = () => {
     setSelectedClientId(null)
@@ -261,18 +294,35 @@ export default function ClientDetail() {
             </div>
           </div>
 
-          {/* Edit button */}
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => {
-                setCurrentPage('clients')
-                // Small delay so Clients page mounts before we try to interact
-              }}
-              className="btn-ghost flex items-center gap-2"
-              style={{ fontSize: '11px' }}
-            >
-              <Edit3 size={12} /> Edit Client
-            </button>
+          {/* Actions */}
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={generatePortalLink}
+                disabled={portalLoading}
+                className="btn-ghost flex items-center gap-2"
+                style={{ fontSize: '11px' }}
+                title="Generate a read-only portal link for this client"
+              >
+                <Link2 size={12} /> {portalLoading ? 'Generating...' : 'Share Portal'}
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentPage('clients')
+                }}
+                className="btn-ghost flex items-center gap-2"
+                style={{ fontSize: '11px' }}
+              >
+                <Edit3 size={12} /> Edit Client
+              </button>
+            </div>
+            {portalUrl && (
+              <div className="flex items-center gap-2 bg-surface border border-border px-2 py-1">
+                <span className="mono text-dim truncate" style={{ fontSize: '10px', maxWidth: '200px' }}>{portalUrl}</span>
+                <button onClick={() => { navigator.clipboard.writeText(portalUrl); showToast('Copied!', 'success') }} className="text-dim hover:text-polar transition-colors cursor-pointer"><Copy size={10} /></button>
+                <button onClick={revokePortalLink} className="text-dim hover:text-err transition-colors cursor-pointer" title="Revoke link"><Trash2 size={10} /></button>
+              </div>
+            )}
           </div>
         </div>
 

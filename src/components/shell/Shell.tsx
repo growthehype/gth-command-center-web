@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAppStore } from '@/lib/store'
+import { useCompanyProfile } from '@/hooks/useCompanyProfile'
 import Topbar from './Topbar'
 import Sidebar from './Sidebar'
 import ToastContainer from '@/components/ui/Toast'
@@ -8,6 +9,8 @@ import AiPanel from '@/components/ai-panel/AiPanel'
 import KeyboardShortcutsModal from '@/components/ui/KeyboardShortcutsModal'
 import QuickAddModal from '@/components/ui/QuickAddModal'
 import WelcomeModal from '@/components/ui/WelcomeModal'
+import OnboardingWizard from '@/components/ui/OnboardingWizard'
+import { syncEmailSignatureCache } from '@/lib/email-sig-cache'
 import { Plus } from 'lucide-react'
 import ErrorBoundary from '@/components/ui/ErrorBoundary'
 
@@ -36,6 +39,8 @@ import Notes from '@/pages/Notes'
 import ActivityPage from '@/pages/Activity'
 import SettingsPage from '@/pages/Settings'
 import ClientDetail from '@/pages/ClientDetail'
+import HelpPage from '@/pages/Help'
+import EmailTemplatesPage from '@/pages/EmailTemplates'
 
 interface ShellProps {
   onLock?: () => void
@@ -66,12 +71,37 @@ const pageMap: Record<string, React.ComponentType> = {
   activity: ActivityPage,
   settings: SettingsPage,
   'client-detail': ClientDetail,
+  help: HelpPage,
+  'email-templates': EmailTemplatesPage,
 }
 
 export default function Shell({ onLock }: ShellProps) {
-  const { currentPage, setCommandPaletteOpen, setCurrentPage, setAiPanelOpen, aiPanelOpen, sidebarOpen, setSidebarOpen, demoMode, exitDemoMode } = useAppStore()
+  const { currentPage, setCommandPaletteOpen, setCurrentPage, setAiPanelOpen, aiPanelOpen, sidebarOpen, setSidebarOpen, demoMode, exitDemoMode, settings, refreshSettings } = useAppStore()
+  const profile = useCompanyProfile()
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [quickAddOpen, setQuickAddOpen] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
+
+  // Sync email signature cache whenever settings change
+  useEffect(() => {
+    if (Object.keys(settings).length > 0) {
+      syncEmailSignatureCache()
+    }
+  }, [settings])
+
+  // Show onboarding if not completed and not in demo mode
+  useEffect(() => {
+    if (!demoMode && settings.onboarding_completed !== 'true' && Object.keys(settings).length > 0) {
+      // Only show if settings have loaded but onboarding not done
+      // Give a small delay so the app doesn't flash
+      const timer = setTimeout(() => {
+        if (useAppStore.getState().settings.onboarding_completed !== 'true') {
+          setShowOnboarding(true)
+        }
+      }, 800)
+      return () => clearTimeout(timer)
+    }
+  }, [demoMode, settings])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -210,6 +240,13 @@ export default function Shell({ onLock }: ShellProps) {
       <QuickAddModal open={quickAddOpen} onClose={() => setQuickAddOpen(false)} />
       <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <WelcomeModal />
+      <OnboardingWizard
+        open={showOnboarding}
+        onComplete={async () => {
+          setShowOnboarding(false)
+          await refreshSettings()
+        }}
+      />
       <ToastContainer />
     </div>
   )

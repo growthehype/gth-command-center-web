@@ -39,6 +39,7 @@ export interface InvoiceData {
   paymentInstructions?: string
   memo: string
   termsText?: string // Full legal terms block
+  companyTagline?: string
 }
 
 /* ── Helpers ── */
@@ -145,7 +146,7 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(7.5)
   doc.setTextColor(...steel)
-  doc.text('Grow The Hype  ·  Strategic Marketing & Creative Services', W - R, y + 8, { align: 'right' })
+  doc.text(data.companyTagline || data.fromName, W - R, y + 8, { align: 'right' })
 
   // Company details — right-aligned block
   let hY = y + 15
@@ -492,7 +493,7 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   doc.setFontSize(7.5)
   doc.setTextColor(...steel)
 
-  const footerLine1Parts: string[] = ['Thank you for choosing Grow The Hype.']
+  const footerLine1Parts: string[] = [`Thank you for choosing ${data.fromName}.`]
   if (data.paymentInstructions) {
     footerLine1Parts.push(data.paymentInstructions + '.')
   } else {

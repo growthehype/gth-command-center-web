@@ -8,6 +8,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import ContextMenu, { ContextMenuItem } from '@/components/ui/ContextMenu'
 import VoiceTextarea from '@/components/ui/VoiceTextarea'
 import { daysSince, clientHealth, formatCurrency, relativeDate, safeParseJSON } from '@/lib/utils'
+import PageHint from '@/components/ui/PageHint'
 import ClientAvatar from '@/components/ui/ClientAvatar'
 import { exportToCSV } from '@/lib/export-csv'
 import FilePreview from '@/components/ui/FilePreview'
@@ -279,6 +280,15 @@ export default function Clients() {
 
   return (
     <div className="space-y-6">
+      <PageHint
+        id="clients"
+        title="Manage your clients"
+        tips={[
+          'Click a client name to view their full detail page with projects, tasks, invoices, and files.',
+          'Right-click any row for quick actions (edit, delete, view detail).',
+          'Use the Share Portal button on a client detail page to generate a read-only link for your client.',
+        ]}
+      />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

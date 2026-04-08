@@ -7,8 +7,13 @@ import { isOverdue } from '@/lib/utils'
 import { useFaviconBadge } from '@/hooks/useFaviconBadge'
 import Login from '@/pages/Login'
 import Shell from '@/components/shell/Shell'
+import ClientPortal from '@/pages/ClientPortal'
+
+// If URL contains ?portal= parameter, render the client portal directly
+const isPortalView = new URLSearchParams(window.location.search).has('portal')
 
 export default function App() {
+  if (isPortalView) return <ClientPortal />
   const [loading, setLoading] = useState(true)
   const user = useAppStore((s) => s.user)
   const setUser = useAppStore((s) => s.setUser)

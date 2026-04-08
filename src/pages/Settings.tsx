@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Settings as SettingsIcon, Download, Upload, Database, Shield, Eye, EyeOff, HardDrive } from 'lucide-react'
+import { Settings as SettingsIcon, Download, Upload, Database, Shield, Eye, EyeOff, HardDrive, Building2 } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import { settings as settingsApi } from '@/lib/api'
+import { syncEmailSignatureCache } from '@/lib/email-sig-cache'
 
 const AUTO_LOCK_OPTIONS = [
   { value: '5', label: '5 minutes' },
@@ -60,6 +61,21 @@ export default function Settings() {
   const [notifInvoiceReminders, setNotifInvoiceReminders] = useState(() => localStorage.getItem('gth_notif_invoice_reminders') !== 'false')
   const [notifWeeklySummary, setNotifWeeklySummary] = useState(() => localStorage.getItem('gth_notif_weekly_summary') !== 'false')
 
+  // Company Profile
+  const [companyName, setCompanyName] = useState('')
+  const [companyEmail, setCompanyEmail] = useState('')
+  const [companyPhone, setCompanyPhone] = useState('')
+  const [companyAddress, setCompanyAddress] = useState('')
+  const [companyWebsite, setCompanyWebsite] = useState('')
+  const [companyTagline, setCompanyTagline] = useState('')
+  const [companyLogoUrl, setCompanyLogoUrl] = useState('')
+  const [gstNumberSetting, setGstNumberSetting] = useState('')
+  const [invoicePrefix, setInvoicePrefix] = useState('INV')
+  const [invoicePaymentInstructions, setInvoicePaymentInstructions] = useState('')
+  const [invoiceTermsText, setInvoiceTermsText] = useState('')
+  const [emailSigName, setEmailSigName] = useState('')
+  const [emailSigTitle, setEmailSigTitle] = useState('')
+
   // Reset confirm
   const [resetCount, setResetCount] = useState(0)
 
@@ -75,6 +91,20 @@ export default function Settings() {
     setAiEnabled(settings.ai_enabled === 'true')
     setAiKey(settings.ai_api_key || '')
     setAiModel(settings.ai_model || 'claude-opus-4-6')
+    // Company profile
+    setCompanyName(settings.company_name || '')
+    setCompanyEmail(settings.company_email || '')
+    setCompanyPhone(settings.company_phone || '')
+    setCompanyAddress(settings.company_address || '')
+    setCompanyWebsite(settings.company_website || '')
+    setCompanyTagline(settings.company_tagline || '')
+    setCompanyLogoUrl(settings.company_logo_url || '')
+    setGstNumberSetting(settings.gst_number || '')
+    setInvoicePrefix(settings.invoice_prefix || 'INV')
+    setInvoicePaymentInstructions(settings.invoice_payment_instructions || '')
+    setInvoiceTermsText(settings.invoice_terms_text || '')
+    setEmailSigName(settings.email_sig_name || '')
+    setEmailSigTitle(settings.email_sig_title || '')
   }, [settings])
 
   /* ── Save a single setting ── */
@@ -82,6 +112,10 @@ export default function Settings() {
     try {
       await settingsApi.set(key, value)
       await refreshSettings()
+      // Sync email sig cache for company profile keys
+      if (key.startsWith('company_') || key.startsWith('email_sig') || key === 'display_name') {
+        syncEmailSignatureCache()
+      }
     } catch {
       showToast('Failed to save setting', 'error')
     }
@@ -218,6 +252,90 @@ export default function Settings() {
             />
           </button>
         </div>
+      </Section>
+
+      {/* ── Company Profile ── */}
+      <Section title="Company Profile">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="label text-steel block mb-1.5">Company Name</label>
+            <input type="text" value={companyName} onChange={e => setCompanyName(e.target.value)} onBlur={() => saveSetting('company_name', companyName)} className={inputClass} style={{ fontSize: '13px' }} placeholder="Your Business Name" />
+          </div>
+          <div>
+            <label className="label text-steel block mb-1.5">Email</label>
+            <input type="email" value={companyEmail} onChange={e => setCompanyEmail(e.target.value)} onBlur={() => saveSetting('company_email', companyEmail)} className={inputClass} style={{ fontSize: '13px' }} placeholder="hello@company.com" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="label text-steel block mb-1.5">Phone</label>
+            <input type="tel" value={companyPhone} onChange={e => setCompanyPhone(e.target.value)} onBlur={() => saveSetting('company_phone', companyPhone)} className={inputClass} style={{ fontSize: '13px' }} placeholder="(555) 123-4567" />
+          </div>
+          <div>
+            <label className="label text-steel block mb-1.5">Website</label>
+            <input type="text" value={companyWebsite} onChange={e => setCompanyWebsite(e.target.value)} onBlur={() => saveSetting('company_website', companyWebsite)} className={inputClass} style={{ fontSize: '13px' }} placeholder="www.company.com" />
+          </div>
+        </div>
+        <div>
+          <label className="label text-steel block mb-1.5">Address</label>
+          <input type="text" value={companyAddress} onChange={e => setCompanyAddress(e.target.value)} onBlur={() => saveSetting('company_address', companyAddress)} className={inputClass} style={{ fontSize: '13px' }} placeholder="123 Main St, City, Province, Postal Code, Country" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="label text-steel block mb-1.5">Tagline</label>
+            <input type="text" value={companyTagline} onChange={e => setCompanyTagline(e.target.value)} onBlur={() => saveSetting('company_tagline', companyTagline)} className={inputClass} style={{ fontSize: '13px' }} placeholder="Strategic Marketing & Creative" />
+          </div>
+          <div>
+            <label className="label text-steel block mb-1.5">Logo URL (for email signature)</label>
+            <input type="text" value={companyLogoUrl} onChange={e => setCompanyLogoUrl(e.target.value)} onBlur={() => saveSetting('company_logo_url', companyLogoUrl)} className={inputClass} style={{ fontSize: '13px' }} placeholder="https://i.imgur.com/logo.png" />
+          </div>
+        </div>
+      </Section>
+
+      {/* ── Invoice & Tax Defaults ── */}
+      <Section title="Invoice Defaults">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="label text-steel block mb-1.5">Invoice Prefix</label>
+            <input type="text" value={invoicePrefix} onChange={e => setInvoicePrefix(e.target.value.toUpperCase())} onBlur={() => saveSetting('invoice_prefix', invoicePrefix)} className={inputClass} style={{ fontSize: '13px' }} placeholder="INV" maxLength={6} />
+            <span className="text-dim mt-1 block" style={{ fontSize: '10px' }}>e.g. {invoicePrefix || 'INV'}-001</span>
+          </div>
+          <div>
+            <label className="label text-steel block mb-1.5">Tax / GST Number</label>
+            <input type="text" value={gstNumberSetting} onChange={e => setGstNumberSetting(e.target.value)} onBlur={() => saveSetting('gst_number', gstNumberSetting)} className={inputClass} style={{ fontSize: '13px' }} placeholder="Optional" />
+          </div>
+          <div>
+            <label className="label text-steel block mb-1.5">Default Currency</label>
+            <select value={currency} onChange={e => { setCurrency(e.target.value); saveSetting('currency', e.target.value) }} className={selectClass} style={{ fontSize: '13px' }}>
+              {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+        <div>
+          <label className="label text-steel block mb-1.5">Payment Instructions</label>
+          <input type="text" value={invoicePaymentInstructions} onChange={e => setInvoicePaymentInstructions(e.target.value)} onBlur={() => saveSetting('invoice_payment_instructions', invoicePaymentInstructions)} className={inputClass} style={{ fontSize: '13px' }} placeholder="e.g. Payments can be made via e-transfer or credit card" />
+        </div>
+        <div>
+          <label className="label text-steel block mb-1.5">Terms & Conditions</label>
+          <textarea value={invoiceTermsText} onChange={e => setInvoiceTermsText(e.target.value)} onBlur={() => saveSetting('invoice_terms_text', invoiceTermsText)} className={inputClass} style={{ fontSize: '12px', minHeight: '80px' }} placeholder="Invoice legal terms..." />
+        </div>
+      </Section>
+
+      {/* ── Email Signature ── */}
+      <Section title="Email Signature">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="label text-steel block mb-1.5">Sender Name</label>
+            <input type="text" value={emailSigName} onChange={e => setEmailSigName(e.target.value)} onBlur={() => saveSetting('email_sig_name', emailSigName)} className={inputClass} style={{ fontSize: '13px' }} placeholder="Your Name" />
+          </div>
+          <div>
+            <label className="label text-steel block mb-1.5">Title</label>
+            <input type="text" value={emailSigTitle} onChange={e => setEmailSigTitle(e.target.value)} onBlur={() => saveSetting('email_sig_title', emailSigTitle)} className={inputClass} style={{ fontSize: '13px' }} placeholder="CEO / Founder / Director" />
+          </div>
+        </div>
+        <p className="text-dim" style={{ fontSize: '10px', lineHeight: '1.6' }}>
+          Your email signature uses your Company Profile info (email, phone, website, logo, tagline). Update those fields above to change your signature.
+        </p>
       </Section>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

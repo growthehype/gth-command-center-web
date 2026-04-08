@@ -151,10 +151,15 @@ export const invoices = {
   },
   async getNextNum() {
     const userId = await uid()
+    // Get invoice prefix from settings (default: INV)
+    const { data: prefixSetting } = await supabase.from('settings').select('value').eq('user_id', userId).eq('key', 'invoice_prefix').single()
+    const prefix = prefixSetting?.value || 'INV'
     const { data } = await supabase.from('invoices').select('num').eq('user_id', userId).order('num', { ascending: false }).limit(1)
-    if (!data || data.length === 0) return 'GTH-001'
-    const n = parseInt(data[0].num.replace('GTH-', '')) + 1
-    return `GTH-${String(n).padStart(3, '0')}`
+    if (!data || data.length === 0) return `${prefix}-001`
+    // Extract number from any prefix format
+    const numMatch = data[0].num.match(/(\d+)$/)
+    const n = numMatch ? parseInt(numMatch[1]) + 1 : 1
+    return `${prefix}-${String(n).padStart(3, '0')}`
   },
 }
 
@@ -753,6 +758,36 @@ export const taxStatus = {
 }
 
 // ============================================
+// CLIENT PORTAL TOKENS
+// ============================================
+export const portalTokens = {
+  async getByClient(clientId: string) {
+    const userId = await uid()
+    const { data, error } = await supabase.from('client_portal_tokens').select('*').eq('user_id', userId).eq('client_id', clientId).order('created_at', { ascending: false }).limit(1)
+    if (error) throw error
+    return data?.[0] || null
+  },
+  async generate(clientId: string, expiresInDays = 90) {
+    const userId = await uid()
+    const token = crypto.randomUUID()
+    const expiresAt = new Date(Date.now() + expiresInDays * 86400000).toISOString()
+    // Delete existing tokens for this client
+    await supabase.from('client_portal_tokens').delete().eq('user_id', userId).eq('client_id', clientId)
+    const { data, error } = await supabase.from('client_portal_tokens').insert({
+      user_id: userId, client_id: clientId, token, expires_at: expiresAt, created_at: new Date().toISOString(),
+    }).select().single()
+    if (error) throw error
+    return data
+  },
+  async revoke(clientId: string) {
+    const userId = await uid()
+    const { error } = await supabase.from('client_portal_tokens').delete().eq('user_id', userId).eq('client_id', clientId)
+    if (error) throw error
+    return { success: true }
+  },
+}
+
+// ============================================
 // SHELL (web equivalents)
 // ============================================
 export const shell = {
@@ -771,7 +806,7 @@ const api = {
   clients, tasks, projects, invoices, invoiceFiles, events, outreach,
   campaigns, credentials, sops, documents, contacts, meetings,
   services, templates, timeEntries, goals, clientLinks, clientFiles,
-  activity, notes, settings, taxStatus, shell,
+  activity, notes, settings, taxStatus, portalTokens, shell,
 }
 
 export default api

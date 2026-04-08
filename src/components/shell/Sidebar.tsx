@@ -3,7 +3,7 @@ import {
   Sparkles, LayoutDashboard, Calendar, Building2, Users, Kanban,
   CheckSquare, MessageSquare, Receipt, TrendingUp, LineChart,
   Send, Megaphone, Package, Mail, Target, KeyRound, Palette,
-  FileText, BookOpen, Pencil, Activity, Settings
+  FileText, BookOpen, Pencil, Activity, Settings, HelpCircle, Link2
 } from 'lucide-react'
 
 interface NavItem {
@@ -47,6 +47,7 @@ const navGroups: NavGroup[] = [
       { id: 'campaigns', label: 'Campaigns', icon: Megaphone },
       { id: 'services', label: 'Services', icon: Package },
       { id: 'templates', label: 'Templates', icon: Mail },
+      { id: 'email-templates', label: 'Email Templates', icon: Mail },
       { id: 'goals', label: 'Goals', icon: Target },
     ]
   },
@@ -65,6 +66,7 @@ const navGroups: NavGroup[] = [
       { id: 'notes', label: 'Notes', icon: Pencil },
       { id: 'activity', label: 'Activity', icon: Activity },
       { id: 'settings', label: 'Settings', icon: Settings },
+      { id: 'help', label: 'Help & Guide', icon: HelpCircle },
     ]
   },
 ]

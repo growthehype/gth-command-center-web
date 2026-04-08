@@ -11,6 +11,7 @@ import {
   sanitizeActivityHtml,
 } from '@/lib/utils'
 import ClientAvatar from '@/components/ui/ClientAvatar'
+import PageHint from '@/components/ui/PageHint'
 
 // Priority sort weight — lower = higher priority
 const PRIORITY_WEIGHT: Record<string, number> = {
@@ -319,6 +320,18 @@ export default function Dashboard() {
         <h1 className="section-header" style={{ marginBottom: 0, paddingBottom: 8 }}>Dashboard</h1>
         <span className="mono text-steel">{todayStr}</span>
       </div>
+
+      <PageHint
+        id="dashboard"
+        title="Welcome to your Dashboard"
+        tips={[
+          'Click any stat card to jump to that section.',
+          'Use Ctrl+K to search anything across the CRM.',
+          'Press Ctrl+J to open the AI assistant for help.',
+          'Navigate with keyboard: G then D (Dashboard), G then C (Clients), G then I (Invoices).',
+        ]}
+        shortcut="Ctrl+K to search"
+      />
 
       {/* ---- ROW 1: STAT CARDS ---- */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">

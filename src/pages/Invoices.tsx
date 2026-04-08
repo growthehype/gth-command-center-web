@@ -13,6 +13,7 @@ import Modal from '@/components/ui/Modal'
 import { generateInvoicePDF, type LineItem, type InvoiceData } from '@/lib/invoice-pdf'
 import { isGmailConnected, connectGmail, sendEmailWithAttachment } from '@/lib/gmail'
 import { format, addDays } from 'date-fns'
+import PageHint from '@/components/ui/PageHint'
 
 interface InvoiceFile {
   id: string
@@ -100,7 +101,7 @@ const todayStr = () => format(new Date(), 'yyyy-MM-dd')
 const defaultDueStr = () => format(addDays(new Date(), 30), 'yyyy-MM-dd')
 
 export default function Invoices() {
-  const { clients, invoices, selectedInvoiceId, setSelectedInvoiceId, refreshInvoices } = useAppStore()
+  const { clients, invoices, selectedInvoiceId, setSelectedInvoiceId, refreshInvoices, settings, services, templates: emailTemplates } = useAppStore()
 
   const [files, setFiles] = useState<InvoiceFile[]>([])
   const [activeClient, setActiveClient] = useState<string>('all')
@@ -117,11 +118,11 @@ export default function Invoices() {
   // Builder modal state
   const [builderOpen, setBuilderOpen] = useState(false)
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null)
-  const [builderFromName, setBuilderFromName] = useState('Grow The Hype Inc.')
-  const [builderFromEmail, setBuilderFromEmail] = useState('omar@growthehype.ca')
-  const [builderFromPhone, setBuilderFromPhone] = useState('7809664986')
-  const [builderFromAddress, setBuilderFromAddress] = useState('983 Lamb Crescent Northwest, Edmonton, Alberta T6R 2X8, Canada')
-  const [builderFromWebsite, setBuilderFromWebsite] = useState('www.growthehype.ca')
+  const [builderFromName, setBuilderFromName] = useState('')
+  const [builderFromEmail, setBuilderFromEmail] = useState('')
+  const [builderFromPhone, setBuilderFromPhone] = useState('')
+  const [builderFromAddress, setBuilderFromAddress] = useState('')
+  const [builderFromWebsite, setBuilderFromWebsite] = useState('')
   const [builderClientId, setBuilderClientId] = useState<string>('')
   const [builderClientEmail, setBuilderClientEmail] = useState('')
   const [builderClientPhone, setBuilderClientPhone] = useState('')
@@ -133,12 +134,13 @@ export default function Invoices() {
   const [builderLineItems, setBuilderLineItems] = useState<LineItem[]>([{ description: '', qty: 1, rate: 0 }])
   const [builderTaxRate, setBuilderTaxRate] = useState(5)
   const [builderTaxLabel, setBuilderTaxLabel] = useState('GST')
-  const [builderGstNumber, setBuilderGstNumber] = useState('720385129')
+  const [builderGstNumber, setBuilderGstNumber] = useState('')
   const [builderCurrency, setBuilderCurrency] = useState('CAD')
   const [builderTerms, setBuilderTerms] = useState('Net 30')
-  const [builderPaymentInstructions, setBuilderPaymentInstructions] = useState('Payments can be made via e-transfer or credit card')
-  const [builderTermsText, setBuilderTermsText] = useState('Work begins once the initial deposit is received.\nPayment is due within the terms stated above. Late payments are subject to a 5% monthly service charge.\nAll creative, strategy, and digital assets remain the property of Grow The Hype until this invoice is paid in full.\nBy submitting payment, the client confirms acceptance of the deliverables and scope outlined in the original project agreement.')
+  const [builderPaymentInstructions, setBuilderPaymentInstructions] = useState('')
+  const [builderTermsText, setBuilderTermsText] = useState('')
   const [builderMemo, setBuilderMemo] = useState('')
+  const [builderRecurring, setBuilderRecurring] = useState<string>('none')
   const [builderSaving, setBuilderSaving] = useState(false)
 
   // Email send modal state
@@ -314,11 +316,11 @@ export default function Invoices() {
   /* ── Builder helpers ── */
   const resetBuilder = () => {
     setEditingInvoiceId(null)
-    setBuilderFromName('Grow The Hype Inc.')
-    setBuilderFromEmail('omar@growthehype.ca')
-    setBuilderFromPhone('7809664986')
-    setBuilderFromAddress('983 Lamb Crescent Northwest, Edmonton, Alberta T6R 2X8, Canada')
-    setBuilderFromWebsite('www.growthehype.ca')
+    setBuilderFromName(settings.company_name || '')
+    setBuilderFromEmail(settings.company_email || '')
+    setBuilderFromPhone(settings.company_phone || '')
+    setBuilderFromAddress(settings.company_address || '')
+    setBuilderFromWebsite(settings.company_website || '')
     setBuilderClientId('')
     setBuilderClientEmail('')
     setBuilderClientPhone('')
@@ -330,12 +332,13 @@ export default function Invoices() {
     setBuilderLineItems([{ description: '', qty: 1, rate: 0 }])
     setBuilderTaxRate(5)
     setBuilderTaxLabel('GST')
-    setBuilderGstNumber('720385129')
-    setBuilderCurrency('CAD')
+    setBuilderGstNumber(settings.gst_number || '')
+    setBuilderCurrency(settings.currency || 'CAD')
     setBuilderTerms('Net 30')
-    setBuilderPaymentInstructions('Payments can be made via e-transfer or credit card')
-    setBuilderTermsText('Work begins once the initial deposit is received.\nPayment is due within the terms stated above. Late payments are subject to a 5% monthly service charge.\nAll creative, strategy, and digital assets remain the property of Grow The Hype until this invoice is paid in full.\nBy submitting payment, the client confirms acceptance of the deliverables and scope outlined in the original project agreement.')
+    setBuilderPaymentInstructions(settings.invoice_payment_instructions || '')
+    setBuilderTermsText(settings.invoice_terms_text || '')
     setBuilderMemo('')
+    setBuilderRecurring('none')
   }
 
   const openNewInvoice = async () => {
@@ -344,7 +347,7 @@ export default function Invoices() {
       const nextNum = await invoicesApi.getNextNum()
       setBuilderNum(nextNum)
     } catch {
-      setBuilderNum('GTH-001')
+      setBuilderNum(`${settings.invoice_prefix || 'INV'}-001`)
     }
     if (activeClient !== 'all') {
       setBuilderClientId(activeClient)
@@ -367,22 +370,22 @@ export default function Invoices() {
 
     const parsed = parseInvoiceNotes(inv.notes)
     if (parsed) {
-      setBuilderFromName(parsed.from_name || 'Grow The Hype Inc.')
-      setBuilderFromEmail(parsed.from_email || 'omar@growthehype.ca')
-      setBuilderFromPhone(parsed.from_phone || '7809664986')
-      setBuilderFromAddress(parsed.from_address || '983 Lamb Crescent Northwest, Edmonton, Alberta T6R 2X8, Canada')
-      setBuilderFromWebsite(parsed.from_website || 'www.growthehype.ca')
+      setBuilderFromName(parsed.from_name || settings.company_name || '')
+      setBuilderFromEmail(parsed.from_email || settings.company_email || '')
+      setBuilderFromPhone(parsed.from_phone || settings.company_phone || '')
+      setBuilderFromAddress(parsed.from_address || settings.company_address || '')
+      setBuilderFromWebsite(parsed.from_website || settings.company_website || '')
       setBuilderClientPhone(parsed.client_phone || '')
       setBuilderClientAddress(parsed.client_address || '')
       setBuilderClientContactName(parsed.client_contact_name || '')
       setBuilderLineItems(parsed.line_items.length > 0 ? parsed.line_items : [{ description: '', qty: 1, rate: 0 }])
       setBuilderTaxRate(parsed.tax_rate ?? 5)
       setBuilderTaxLabel(parsed.tax_label || 'GST')
-      setBuilderGstNumber(parsed.gst_number || '720385129')
-      setBuilderCurrency(parsed.currency || 'CAD')
+      setBuilderGstNumber(parsed.gst_number || settings.gst_number || '')
+      setBuilderCurrency(parsed.currency || settings.currency || 'CAD')
       setBuilderTerms(parsed.payment_terms || 'Net 30')
-      setBuilderPaymentInstructions(parsed.payment_instructions || 'Payments can be made via e-transfer or credit card')
-      setBuilderTermsText(parsed.terms_text || 'Work begins once the initial deposit is received.\nPayment is due within the terms stated above. Late payments are subject to a 5% monthly service charge.\nAll creative, strategy, and digital assets remain the property of Grow The Hype until this invoice is paid in full.\nBy submitting payment, the client confirms acceptance of the deliverables and scope outlined in the original project agreement.')
+      setBuilderPaymentInstructions(parsed.payment_instructions || settings.invoice_payment_instructions || '')
+      setBuilderTermsText(parsed.terms_text || settings.invoice_terms_text || '')
       setBuilderMemo(parsed.memo || '')
     } else {
       // Legacy invoice — prefill with single line item
@@ -448,6 +451,7 @@ export default function Invoices() {
     paymentInstructions: builderPaymentInstructions || undefined,
     termsText: builderTermsText || undefined,
     memo: builderMemo,
+    companyTagline: settings.company_tagline || undefined,
   })
 
   const handlePreviewPDF = () => {
@@ -636,6 +640,16 @@ export default function Invoices() {
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
     >
+      <PageHint
+        id="invoices"
+        title="Invoice Builder"
+        tips={[
+          'Click "+ New Invoice" to create a professional PDF invoice with your company branding.',
+          'Your company details, tax number, and payment terms auto-fill from Settings → Company Profile.',
+          'Connect Gmail to send invoices directly with your branded email signature.',
+          'Click any invoice status badge to change it (Draft → Sent → Paid).',
+        ]}
+      />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -1180,9 +1194,23 @@ export default function Invoices() {
             </div>
           </div>
 
-          {/* GST Number row */}
+          {/* Recurring & GST row */}
           <div className="grid grid-cols-4 gap-3">
-            <div className="space-y-1 col-span-2">
+            <div className="space-y-1">
+              <span className="label text-dim">RECURRING</span>
+              <select
+                value={builderRecurring}
+                onChange={e => setBuilderRecurring(e.target.value)}
+                className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors"
+                style={{ fontSize: '12px' }}
+              >
+                <option value="none">One-time</option>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="annually">Annually</option>
+              </select>
+            </div>
+            <div className="space-y-1">
               <span className="label text-dim">GST NUMBER</span>
               <input
                 value={builderGstNumber}
@@ -1201,29 +1229,20 @@ export default function Invoices() {
           <div className="space-y-2">
             <span className="label text-dim">LINE ITEMS</span>
             <datalist id="gth-services">
-              <option value="Website Design & Development" />
-              <option value="Social Media Management" />
-              <option value="Social Media Strategy" />
-              <option value="Brand Strategy & Identity" />
-              <option value="Content Creation & Production" />
-              <option value="SEO & Digital Marketing" />
-              <option value="Google Ads Management" />
-              <option value="Meta Ads Management" />
-              <option value="Email Marketing & Automation" />
-              <option value="Photography & Videography" />
-              <option value="Graphic Design" />
-              <option value="Monthly Retainer" />
-              <option value="Marketing Strategy & Consulting" />
-              <option value="Branding Package" />
-              <option value="Campaign Management" />
-              <option value="Copywriting" />
-              <option value="Landing Page Design" />
-              <option value="E-Commerce Setup" />
-              <option value="Analytics & Reporting" />
-              <option value="Creative Direction" />
-              <option value="Up To Date Marketing" />
-              <option value="Project Deposit" />
-              <option value="Rush Fee" />
+              {services.filter(s => s.active).map(s => (
+                <option key={s.id} value={s.name} />
+              ))}
+              {/* Fallback common items if no services defined */}
+              {services.filter(s => s.active).length === 0 && <>
+                <option value="Website Design & Development" />
+                <option value="Social Media Management" />
+                <option value="Brand Strategy & Identity" />
+                <option value="Content Creation & Production" />
+                <option value="SEO & Digital Marketing" />
+                <option value="Monthly Retainer" />
+                <option value="Consulting" />
+                <option value="Project Deposit" />
+              </>}
             </datalist>
             <div className="border border-border">
               {/* Header */}
@@ -1492,6 +1511,40 @@ export default function Invoices() {
             </div>
           ) : (
             <>
+              {/* Template picker */}
+              {emailTemplates.length > 0 && (
+                <div className="space-y-1">
+                  <span className="label text-dim">USE TEMPLATE</span>
+                  <select
+                    onChange={e => {
+                      const tmpl = emailTemplates.find(t => t.id === e.target.value)
+                      if (tmpl) {
+                        // Replace tokens
+                        const clientName = getBuilderClientName()
+                        const replace = (str: string) => str
+                          .replace(/\{client_name\}/gi, clientName)
+                          .replace(/\{contact_name\}/gi, builderClientContactName || clientName)
+                          .replace(/\{invoice_num\}/gi, builderNum)
+                          .replace(/\{amount\}/gi, `$${builderTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`)
+                          .replace(/\{due_date\}/gi, builderDueDate)
+                          .replace(/\{company_name\}/gi, builderFromName)
+                        if (tmpl.subject) setEmailSubject(replace(tmpl.subject))
+                        if (tmpl.body) setEmailBody(replace(tmpl.body))
+                        showToast(`Applied "${tmpl.name}" template`, 'success')
+                      }
+                      e.target.value = ''
+                    }}
+                    className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors cursor-pointer"
+                    style={{ fontSize: '12px' }}
+                    defaultValue=""
+                  >
+                    <option value="" disabled>Select a template...</option>
+                    {emailTemplates.map(t => (
+                      <option key={t.id} value={t.id}>{t.name} {t.category ? `(${t.category})` : ''}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="space-y-1">
                 <span className="label text-dim">TO</span>
                 <input
