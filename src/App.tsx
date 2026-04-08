@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAppStore } from '@/lib/store'
 import { captureTokenFromUrl, initGoogleToken } from '@/lib/google-calendar'
+import { captureGmailToken } from '@/lib/gmail'
 import { isOverdue } from '@/lib/utils'
 import { useFaviconBadge } from '@/hooks/useFaviconBadge'
 import Login from '@/pages/Login'
@@ -26,11 +27,15 @@ export default function App() {
   // Capture Google OAuth token from URL hash on mount (after redirect),
   // then hydrate from Supabase if needed
   useEffect(() => {
-    captureTokenFromUrl().then(() => {
-      if (useAppStore.getState().user) {
-        initGoogleToken()
-      }
-    })
+    // Capture Gmail token first (check state=gmail), then calendar token
+    const gmailCaptured = captureGmailToken()
+    if (!gmailCaptured) {
+      captureTokenFromUrl().then(() => {
+        if (useAppStore.getState().user) {
+          initGoogleToken()
+        }
+      })
+    }
   }, [])
 
   // Hydrate Google token from Supabase on login (cross-device persistence)
