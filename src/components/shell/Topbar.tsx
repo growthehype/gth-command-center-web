@@ -14,8 +14,8 @@ interface TopbarProps {
 export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
   const { setCommandPaletteOpen, aiPanelOpen, setAiPanelOpen, pomodoroOpen, setPomodoroOpen, pomodoroActive, pomodoroDisplay, pomodoroPhase, settings, runningTimer, sidebarOpen, setSidebarOpen, theme, setTheme, focusMode, setFocusMode } = useAppStore()
   const connectionStatus = useOnlineStatus()
-  const displayName = settings.display_name || 'Omar Alladina'
-  const initials = settings.avatar_initials || 'OA'
+  const displayName = settings.display_name || ''
+  const initials = settings.avatar_initials || (displayName ? displayName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase() : 'U')
   const [currentTime, setCurrentTime] = useState(new Date())
   const [elapsed, setElapsed] = useState('')
 

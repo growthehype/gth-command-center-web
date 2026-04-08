@@ -229,7 +229,7 @@ export const demoProjects: Project[] = [
 export const demoInvoices: Invoice[] = [
   {
     id: 'demo-inv-001',
-    num: 'GTH-042',
+    num: 'APX-042',
     client_id: CLIENT_IDS.pinnacle,
     client_name: 'Pinnacle Auto Group',
     amount: 4200,
@@ -243,7 +243,7 @@ export const demoInvoices: Invoice[] = [
   },
   {
     id: 'demo-inv-002',
-    num: 'GTH-041',
+    num: 'APX-041',
     client_id: CLIENT_IDS.aurora,
     client_name: 'Aurora Wellness Spa',
     amount: 2500,
@@ -257,7 +257,7 @@ export const demoInvoices: Invoice[] = [
   },
   {
     id: 'demo-inv-003',
-    num: 'GTH-040',
+    num: 'APX-040',
     client_id: CLIENT_IDS.velociti,
     client_name: 'Velociti Fitness',
     amount: 3500,
@@ -271,7 +271,7 @@ export const demoInvoices: Invoice[] = [
   },
   {
     id: 'demo-inv-004',
-    num: 'GTH-039',
+    num: 'APX-039',
     client_id: CLIENT_IDS.greenleaf,
     client_name: 'Greenleaf Landscaping',
     amount: 1800,
@@ -285,7 +285,7 @@ export const demoInvoices: Invoice[] = [
   },
   {
     id: 'demo-inv-005',
-    num: 'GTH-038',
+    num: 'APX-038',
     client_id: CLIENT_IDS.pinnacle,
     client_name: 'Pinnacle Auto Group',
     amount: 4200,
@@ -569,7 +569,7 @@ export const demoActivity: ActivityEntry[] = [
     type: 'create',
     entity: 'invoice',
     entity_id: 'demo-inv-001',
-    description: 'Created invoice GTH-042 for Pinnacle Auto Group — $4,200',
+    description: 'Created invoice APX-042 for Pinnacle Auto Group — $4,200',
     timestamp: '2026-04-01T08:00:00Z',
   },
   {
@@ -577,7 +577,7 @@ export const demoActivity: ActivityEntry[] = [
     type: 'payment',
     entity: 'invoice',
     entity_id: 'demo-inv-003',
-    description: 'Payment received: GTH-040 from Velociti Fitness — $3,500',
+    description: 'Payment received: APX-040 from Velociti Fitness — $3,500',
     timestamp: '2026-03-12T10:30:00Z',
   },
 ]
@@ -599,6 +599,12 @@ export const demoData = {
   credentials: [],
   sops: [],
   timeEntries: [],
-  settings: {},
+  settings: {
+    company_name: 'Apex Digital Agency',
+    display_name: 'Alex Morgan',
+    avatar_initials: 'AM',
+    currency: 'USD',
+    invoice_prefix: 'APX',
+  },
   runningTimer: null,
 }
