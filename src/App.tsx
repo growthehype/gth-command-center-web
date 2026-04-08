@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { useAppStore } from '@/lib/store'
 import { captureTokenFromUrl, initGoogleToken } from '@/lib/google-calendar'
 import { captureGmailToken } from '@/lib/gmail'
-import { setCurrentTenantId, tenants as tenantsApi } from '@/lib/api'
+import { setCurrentTenantId, initScope, tenants as tenantsApi } from '@/lib/api'
 import { isOverdue } from '@/lib/utils'
 import { useFaviconBadge } from '@/hooks/useFaviconBadge'
 import Login from '@/pages/Login'
@@ -108,9 +108,10 @@ export default function App() {
           }
           return loadAllData()
         })
-        .catch((err: any) => {
-          console.error('Failed to load data:', err)
-          // Fallback: try loading without tenant context (pre-migration)
+        .catch(async (err: any) => {
+          console.warn('Tenant load failed (pre-migration?) — falling back to user_id:', err?.message)
+          // Fallback: init scope with user_id and load data
+          await initScope()
           loadAllData().catch(() => {
             console.error('Failed to load data — check Supabase tables exist')
           })

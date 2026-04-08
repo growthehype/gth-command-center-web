@@ -8,19 +8,53 @@ async function uid(): Promise<string> {
 }
 
 // ---- Tenant Context ----
+// Supports both pre-migration (user_id) and post-migration (tenant_id) databases
 let _currentTenantId: string | null = null
+
+// Scope key + value for filtering queries
+// Post-migration: uses tenant_id → _currentTenantId
+// Pre-migration: falls back to user_id → cached uid
+let _scopeKey: string = 'user_id'
+let _scopeVal: string = ''
 
 export function setCurrentTenantId(id: string | null) {
   _currentTenantId = id
+  if (id) {
+    _scopeKey = 'tenant_id'
+    _scopeVal = id
+  }
 }
 
-export function getCurrentTenantId(): string {
-  if (!_currentTenantId) throw new Error('No tenant context — select a workspace first')
+export function getCurrentTenantId(): string | null {
   return _currentTenantId
 }
 
+// Called once after auth to set fallback scope
+export async function initScope() {
+  if (_currentTenantId) {
+    _scopeKey = 'tenant_id'
+    _scopeVal = _currentTenantId
+  } else {
+    _scopeKey = 'user_id'
+    _scopeVal = await uid()
+  }
+}
+
+// Returns [column, value] for .eq() filtering — always synchronous after init
+function scope(): [string, string] {
+  return [_scopeKey, _scopeVal]
+}
+
 function tid(): string {
-  return getCurrentTenantId()
+  return _scopeVal // works for both tenant_id and user_id fallback
+}
+
+// Build insert payload — always includes user_id, adds tenant_id if available
+async function insertPayload(d: any): Promise<any> {
+  const userId = await uid()
+  const payload: any = { ...d, user_id: userId }
+  if (_currentTenantId) payload.tenant_id = _currentTenantId
+  return payload
 }
 
 // ============================================
@@ -28,7 +62,7 @@ function tid(): string {
 // ============================================
 export const clients = {
   async getAll() {
-    const { data, error } = await supabase.from('clients').select('*').eq('tenant_id', tid()).order('name')
+    const { data, error } = await supabase.from('clients').select('*').eq(...scope()).order('name')
     if (error) throw error
     return data || []
   },
@@ -39,7 +73,7 @@ export const clients = {
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('clients').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('clients').insert({ ...d, user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), created_at: new Date().toISOString(), updated_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -60,13 +94,13 @@ export const clients = {
 // ============================================
 export const tasks = {
   async getAll() {
-    const { data, error } = await supabase.from('tasks').select('*, clients(name)').eq('tenant_id', tid()).order('created_at', { ascending: false })
+    const { data, error } = await supabase.from('tasks').select('*, clients(name)').eq(...scope()).order('created_at', { ascending: false })
     if (error) throw error
     return (data || []).map((t: any) => ({ ...t, client_name: t.clients?.name || null }))
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('tasks').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('tasks').insert({ ...d, user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -98,13 +132,13 @@ export const tasks = {
 // ============================================
 export const projects = {
   async getAll() {
-    const { data, error } = await supabase.from('projects').select('*, clients(name)').eq('tenant_id', tid()).order('created_at', { ascending: false })
+    const { data, error } = await supabase.from('projects').select('*, clients(name)').eq(...scope()).order('created_at', { ascending: false })
     if (error) throw error
     return (data || []).map((p: any) => ({ ...p, client_name: p.clients?.name || null }))
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('projects').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('projects').insert({ ...d, user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), created_at: new Date().toISOString(), updated_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -130,13 +164,13 @@ export const projects = {
 // ============================================
 export const invoices = {
   async getAll() {
-    const { data, error } = await supabase.from('invoices').select('*, clients(name)').eq('tenant_id', tid()).order('created_at', { ascending: false })
+    const { data, error } = await supabase.from('invoices').select('*, clients(name)').eq(...scope()).order('created_at', { ascending: false })
     if (error) throw error
     return (data || []).map((i: any) => ({ ...i, client_name: i.clients?.name || null }))
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('invoices').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('invoices').insert({ ...d, user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -180,12 +214,12 @@ export const invoices = {
 // ============================================
 export const invoiceFiles = {
   async getAll() {
-    const { data, error } = await supabase.from('invoice_files').select('*, clients(name)').eq('tenant_id', tid()).order('uploaded_at', { ascending: false })
+    const { data, error } = await supabase.from('invoice_files').select('*, clients(name)').eq(...scope()).order('uploaded_at', { ascending: false })
     if (error) throw error
     return (data || []).map((f: any) => ({ ...f, client_name: f.clients?.name || null }))
   },
   async getByClient(clientId: string) {
-    const { data, error } = await supabase.from('invoice_files').select('*, clients(name)').eq('tenant_id', tid()).eq('client_id', clientId).order('uploaded_at', { ascending: false })
+    const { data, error } = await supabase.from('invoice_files').select('*, clients(name)').eq(...scope()).eq('client_id', clientId).order('uploaded_at', { ascending: false })
     if (error) throw error
     return (data || []).map((f: any) => ({ ...f, client_name: f.clients?.name || null }))
   },
@@ -196,7 +230,7 @@ export const invoiceFiles = {
     const { error: uploadErr } = await supabase.storage.from('files').upload(filePath, file)
     if (uploadErr) throw uploadErr
     const { data, error } = await supabase.from('invoice_files').insert({
-      user_id: userId, tenant_id: tid(), client_id: clientId, name: fileName, size: file.size, file_path: filePath, uploaded_at: new Date().toISOString(),
+      user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), client_id: clientId, name: fileName, size: file.size, file_path: filePath, uploaded_at: new Date().toISOString(),
     }).select().single()
     if (error) throw error
     return data
@@ -228,18 +262,18 @@ export const invoiceFiles = {
 // ============================================
 export const events = {
   async getAll() {
-    const { data, error } = await supabase.from('events').select('*, clients(name)').eq('tenant_id', tid()).order('date')
+    const { data, error } = await supabase.from('events').select('*, clients(name)').eq(...scope()).order('date')
     if (error) throw error
     return (data || []).map((e: any) => ({ ...e, client_name: e.clients?.name || null }))
   },
   async getByDateRange(start: string, end: string) {
-    const { data, error } = await supabase.from('events').select('*, clients(name)').eq('tenant_id', tid()).gte('date', start).lte('date', end).order('date')
+    const { data, error } = await supabase.from('events').select('*, clients(name)').eq(...scope()).gte('date', start).lte('date', end).order('date')
     if (error) throw error
     return (data || []).map((e: any) => ({ ...e, client_name: e.clients?.name || null }))
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('events').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('events').insert({ ...d, user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -260,13 +294,13 @@ export const events = {
 // ============================================
 export const outreach = {
   async getAll() {
-    const { data, error } = await supabase.from('outreach_leads').select('*').eq('tenant_id', tid()).order('created_at', { ascending: false })
+    const { data, error } = await supabase.from('outreach_leads').select('*').eq(...scope()).order('created_at', { ascending: false })
     if (error) throw error
     return data || []
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('outreach_leads').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('outreach_leads').insert({ ...d, user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -287,13 +321,13 @@ export const outreach = {
 // ============================================
 export const campaigns = {
   async getAll() {
-    const { data, error } = await supabase.from('campaigns').select('*, clients(name)').eq('tenant_id', tid()).order('name')
+    const { data, error } = await supabase.from('campaigns').select('*, clients(name)').eq(...scope()).order('name')
     if (error) throw error
     return (data || []).map((c: any) => ({ ...c, client_name: c.clients?.name || null }))
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('campaigns').insert({ ...d, user_id: userId, tenant_id: tid(), updated_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('campaigns').insert({ ...d, user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), updated_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -314,13 +348,13 @@ export const campaigns = {
 // ============================================
 export const credentials = {
   async getAll() {
-    const { data, error } = await supabase.from('credentials').select('*').eq('tenant_id', tid()).order('platform')
+    const { data, error } = await supabase.from('credentials').select('*').eq(...scope()).order('platform')
     if (error) throw error
     return data || []
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('credentials').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('credentials').insert({ ...d, user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -341,13 +375,13 @@ export const credentials = {
 // ============================================
 export const sops = {
   async getAll() {
-    const { data, error } = await supabase.from('sops').select('*').eq('tenant_id', tid()).order('title')
+    const { data, error } = await supabase.from('sops').select('*').eq(...scope()).order('title')
     if (error) throw error
     return data || []
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('sops').insert({ ...d, user_id: userId, tenant_id: tid(), updated_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('sops').insert({ ...d, user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), updated_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -368,12 +402,12 @@ export const sops = {
 // ============================================
 export const documents = {
   async getAll() {
-    const { data, error } = await supabase.from('documents').select('*').eq('tenant_id', tid()).order('uploaded_at', { ascending: false })
+    const { data, error } = await supabase.from('documents').select('*').eq(...scope()).order('uploaded_at', { ascending: false })
     if (error) throw error
     return data || []
   },
   async getByCategory(category: string) {
-    const { data, error } = await supabase.from('documents').select('*').eq('tenant_id', tid()).eq('category', category).order('uploaded_at', { ascending: false })
+    const { data, error } = await supabase.from('documents').select('*').eq(...scope()).eq('category', category).order('uploaded_at', { ascending: false })
     if (error) throw error
     return data || []
   },
@@ -384,7 +418,7 @@ export const documents = {
     const { error: uploadErr } = await supabase.storage.from('files').upload(filePath, file)
     if (uploadErr) throw uploadErr
     const { data, error } = await supabase.from('documents').insert({
-      user_id: userId, tenant_id: tid(), category, name: fileName, size: file.size, file_path: filePath, uploaded_at: new Date().toISOString(),
+      user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), category, name: fileName, size: file.size, file_path: filePath, uploaded_at: new Date().toISOString(),
     }).select().single()
     if (error) throw error
     return data
@@ -416,13 +450,13 @@ export const documents = {
 // ============================================
 export const contacts = {
   async getAll() {
-    const { data, error } = await supabase.from('contacts').select('*, clients(name)').eq('tenant_id', tid()).order('name')
+    const { data, error } = await supabase.from('contacts').select('*, clients(name)').eq(...scope()).order('name')
     if (error) throw error
     return (data || []).map((c: any) => ({ ...c, client_name: c.clients?.name || null }))
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('contacts').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('contacts').insert({ ...d, user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -443,13 +477,13 @@ export const contacts = {
 // ============================================
 export const meetings = {
   async getAll() {
-    const { data, error } = await supabase.from('meeting_notes').select('*, clients(name), contacts(name)').eq('tenant_id', tid()).order('date', { ascending: false })
+    const { data, error } = await supabase.from('meeting_notes').select('*, clients(name), contacts(name)').eq(...scope()).order('date', { ascending: false })
     if (error) throw error
     return (data || []).map((m: any) => ({ ...m, client_name: m.clients?.name || null, contact_name: m.contacts?.name || null }))
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('meeting_notes').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('meeting_notes').insert({ ...d, user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -470,13 +504,13 @@ export const meetings = {
 // ============================================
 export const services = {
   async getAll() {
-    const { data, error } = await supabase.from('services').select('*').eq('tenant_id', tid()).order('name')
+    const { data, error } = await supabase.from('services').select('*').eq(...scope()).order('name')
     if (error) throw error
     return data || []
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('services').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('services').insert({ ...d, user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -497,13 +531,13 @@ export const services = {
 // ============================================
 export const templates = {
   async getAll() {
-    const { data, error } = await supabase.from('email_templates').select('*').eq('tenant_id', tid()).order('name')
+    const { data, error } = await supabase.from('email_templates').select('*').eq(...scope()).order('name')
     if (error) throw error
     return data || []
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('email_templates').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('email_templates').insert({ ...d, user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -530,23 +564,23 @@ export const templates = {
 // ============================================
 export const timeEntries = {
   async getAll() {
-    const { data, error } = await supabase.from('time_entries').select('*, projects(title), clients(name)').eq('tenant_id', tid()).order('started_at', { ascending: false })
+    const { data, error } = await supabase.from('time_entries').select('*, projects(title), clients(name)').eq(...scope()).order('started_at', { ascending: false })
     if (error) throw error
     return (data || []).map((t: any) => ({ ...t, project_title: t.projects?.title || null, client_name: t.clients?.name || null }))
   },
   async getByClient(clientId: string) {
-    const { data, error } = await supabase.from('time_entries').select('*, projects(title), clients(name)').eq('tenant_id', tid()).eq('client_id', clientId).order('started_at', { ascending: false })
+    const { data, error } = await supabase.from('time_entries').select('*, projects(title), clients(name)').eq(...scope()).eq('client_id', clientId).order('started_at', { ascending: false })
     if (error) throw error
     return (data || []).map((t: any) => ({ ...t, project_title: t.projects?.title || null, client_name: t.clients?.name || null }))
   },
   async getByProject(projectId: string) {
-    const { data, error } = await supabase.from('time_entries').select('*, projects(title), clients(name)').eq('tenant_id', tid()).eq('project_id', projectId).order('started_at', { ascending: false })
+    const { data, error } = await supabase.from('time_entries').select('*, projects(title), clients(name)').eq(...scope()).eq('project_id', projectId).order('started_at', { ascending: false })
     if (error) throw error
     return (data || []).map((t: any) => ({ ...t, project_title: t.projects?.title || null, client_name: t.clients?.name || null }))
   },
   async start(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('time_entries').insert({ ...d, user_id: userId, tenant_id: tid(), started_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('time_entries').insert({ ...d, user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), started_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -561,7 +595,7 @@ export const timeEntries = {
   },
   async getRunning() {
     const userId = await uid()
-    const { data, error } = await supabase.from('time_entries').select('*, projects(title), clients(name)').eq('user_id', userId).eq('tenant_id', tid()).is('ended_at', null).limit(1).single()
+    const { data, error } = await supabase.from('time_entries').select('*, projects(title), clients(name)').eq('user_id', userId).eq(...scope()).is('ended_at', null).limit(1).single()
     if (error && error.code !== 'PGRST116') throw error
     if (!data) return null
     return { ...data, project_title: data.projects?.title || null, client_name: data.clients?.name || null }
@@ -573,13 +607,13 @@ export const timeEntries = {
 // ============================================
 export const goals = {
   async getAll() {
-    const { data, error } = await supabase.from('goals').select('*').eq('tenant_id', tid()).order('status').order('target_date')
+    const { data, error } = await supabase.from('goals').select('*').eq(...scope()).order('status').order('target_date')
     if (error) throw error
     return data || []
   },
   async create(d: any) {
     const userId = await uid()
-    const { data, error } = await supabase.from('goals').insert({ ...d, user_id: userId, tenant_id: tid(), created_at: new Date().toISOString() }).select().single()
+    const { data, error } = await supabase.from('goals').insert({ ...d, user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
@@ -638,7 +672,7 @@ export const clientFiles = {
     const { error: uploadErr } = await supabase.storage.from('files').upload(filePath, file)
     if (uploadErr) throw uploadErr
     const { data, error } = await supabase.from('client_files').insert({
-      user_id: userId, tenant_id: tid(), client_id: clientId, category, name: fileName, size: file.size, file_path: filePath, uploaded_at: new Date().toISOString(),
+      user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), client_id: clientId, category, name: fileName, size: file.size, file_path: filePath, uploaded_at: new Date().toISOString(),
     }).select().single()
     if (error) throw error
     return data
@@ -665,18 +699,18 @@ export const clientFiles = {
 // ============================================
 export const activity = {
   async getAll(limit = 50, offset = 0) {
-    const { data, error } = await supabase.from('activity_log').select('*').eq('tenant_id', tid()).order('timestamp', { ascending: false }).range(offset, offset + limit - 1)
+    const { data, error } = await supabase.from('activity_log').select('*').eq(...scope()).order('timestamp', { ascending: false }).range(offset, offset + limit - 1)
     if (error) throw error
     return data || []
   },
   async getByEntity(entity: string, limit = 50) {
-    const { data, error } = await supabase.from('activity_log').select('*').eq('tenant_id', tid()).eq('entity', entity).order('timestamp', { ascending: false }).limit(limit)
+    const { data, error } = await supabase.from('activity_log').select('*').eq(...scope()).eq('entity', entity).order('timestamp', { ascending: false }).limit(limit)
     if (error) throw error
     return data || []
   },
   async log(type: string, entity: string, entityId: string | null, description: string) {
     const userId = await uid()
-    await supabase.from('activity_log').insert({ user_id: userId, tenant_id: tid(), type, entity, entity_id: entityId, description, timestamp: new Date().toISOString() })
+    await supabase.from('activity_log').insert({ user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), type, entity, entity_id: entityId, description, timestamp: new Date().toISOString() })
   },
 }
 
@@ -685,7 +719,7 @@ export const activity = {
 // ============================================
 export const notes = {
   async get() {
-    const { data } = await supabase.from('global_notes').select('content').eq('tenant_id', tid()).single()
+    const { data } = await supabase.from('global_notes').select('content').eq(...scope()).single()
     return data?.content || ''
   },
   async save(content: string) {
@@ -706,11 +740,11 @@ export const notes = {
 // ============================================
 export const settings = {
   async get(key: string) {
-    const { data } = await supabase.from('settings').select('value').eq('tenant_id', tid()).eq('key', key).single()
+    const { data } = await supabase.from('settings').select('value').eq(...scope()).eq('key', key).single()
     return data?.value
   },
   async getAll() {
-    const { data } = await supabase.from('settings').select('*').eq('tenant_id', tid())
+    const { data } = await supabase.from('settings').select('*').eq(...scope())
     return Object.fromEntries((data || []).map((r: any) => [r.key, r.value]))
   },
   async set(key: string, value: string) {
@@ -731,7 +765,7 @@ export const settings = {
 // ============================================
 export const taxStatus = {
   async getAll() {
-    const { data, error } = await supabase.from('tax_status').select('*').eq('tenant_id', tid()).order('year', { ascending: false })
+    const { data, error } = await supabase.from('tax_status').select('*').eq(...scope()).order('year', { ascending: false })
     if (error) throw error
     return data || []
   },
@@ -753,7 +787,7 @@ export const taxStatus = {
 // ============================================
 export const portalTokens = {
   async getByClient(clientId: string) {
-    const { data, error } = await supabase.from('client_portal_tokens').select('*').eq('tenant_id', tid()).eq('client_id', clientId).order('created_at', { ascending: false }).limit(1)
+    const { data, error } = await supabase.from('client_portal_tokens').select('*').eq(...scope()).eq('client_id', clientId).order('created_at', { ascending: false }).limit(1)
     if (error) throw error
     return data?.[0] || null
   },
@@ -771,7 +805,7 @@ export const portalTokens = {
     return data
   },
   async revoke(clientId: string) {
-    const { error } = await supabase.from('client_portal_tokens').delete().eq('tenant_id', tid()).eq('client_id', clientId)
+    const { error } = await supabase.from('client_portal_tokens').delete().eq(...scope()).eq('client_id', clientId)
     if (error) throw error
     return { success: true }
   },
@@ -817,7 +851,7 @@ export const team = {
     const { data, error } = await supabase
       .from('tenant_members')
       .select('*, users:user_id(email, raw_user_meta_data)')
-      .eq('tenant_id', tid())
+      .eq(...scope())
       .order('role')
     if (error) throw error
     return data || []
@@ -839,7 +873,7 @@ export const invitations = {
   async create(email: string, role: string) {
     const userId = await uid()
     const { data, error } = await supabase.from('tenant_invitations').insert({
-      tenant_id: tid(),
+      ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}),
       email,
       role,
       invited_by: userId,
@@ -851,7 +885,7 @@ export const invitations = {
     const { data, error } = await supabase
       .from('tenant_invitations')
       .select('*')
-      .eq('tenant_id', tid())
+      .eq(...scope())
       .is('accepted_at', null)
       .order('created_at', { ascending: false })
     if (error) throw error
@@ -907,7 +941,7 @@ export const integrations = {
     const { data, error } = await supabase
       .from('integrations')
       .select('*')
-      .eq('tenant_id', tid())
+      .eq(...scope())
       .order('provider')
     if (error) throw error
     return data || []
@@ -917,7 +951,7 @@ export const integrations = {
     const { data, error } = await supabase
       .from('integrations')
       .upsert({
-        tenant_id: tid(),
+        ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}),
         provider,
         config,
         status: 'active',
@@ -933,7 +967,7 @@ export const integrations = {
     const { error } = await supabase
       .from('integrations')
       .update({ status: 'inactive', access_token: null, refresh_token: null })
-      .eq('tenant_id', tid())
+      .eq(...scope())
       .eq('provider', provider)
     if (error) throw error
   },
@@ -941,7 +975,7 @@ export const integrations = {
     const { data, error } = await supabase
       .from('webhook_events')
       .select('*')
-      .eq('tenant_id', tid())
+      .eq(...scope())
       .order('created_at', { ascending: false })
       .limit(limit)
     if (error) throw error
