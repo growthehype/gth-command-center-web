@@ -75,10 +75,11 @@ export default function GoogleDrive() {
       }
       setNextPageToken(result.nextPageToken)
     } catch (err: any) {
-      if (err.message?.includes('expired') || err.message?.includes('not connected')) {
+      if (err.message?.includes('expired') || err.message?.includes('not connected') || err.message?.includes('denied') || err.message?.includes('403')) {
         setConnected(false)
+      } else {
+        showToast(err.message || 'Failed to load files', 'error')
       }
-      showToast(err.message || 'Failed to load files', 'error')
     } finally {
       setLoading(false)
     }
@@ -142,18 +143,23 @@ export default function GoogleDrive() {
   const regularFiles = files.filter(f => f.mimeType !== 'application/vnd.google-apps.folder')
 
   // ── Not connected ──
+  const hasOldToken = !!localStorage.getItem('gth_gmail_token')
   if (!connected) {
     return (
       <div className="max-w-lg mx-auto text-center py-20">
         <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
           <HardDrive size={28} className="text-emerald-400" />
         </div>
-        <h1 className="text-polar font-[800] mb-2" style={{ fontSize: '22px' }}>Connect Google Drive</h1>
-        <p className="text-dim mb-6" style={{ fontSize: '13px', maxWidth: 360, margin: '0 auto' }}>
-          Browse and access your Google Drive files directly from your CRM. Read-only access — we never modify your files.
+        <h1 className="text-polar font-[800] mb-2" style={{ fontSize: '22px' }}>
+          {hasOldToken ? 'Reconnect Google' : 'Connect Google Drive'}
+        </h1>
+        <p className="text-dim mb-6" style={{ fontSize: '13px', maxWidth: 380, margin: '0 auto' }}>
+          {hasOldToken
+            ? 'Your current Google connection doesn\'t include Drive access. Reconnect to grant Drive permissions — this won\'t affect your Gmail.'
+            : 'Browse and access your Google Drive files directly from your CRM. Read-only access — we never modify your files.'}
         </p>
         <button onClick={() => connectGmail()} className="btn-primary" style={{ fontSize: '13px', padding: '10px 28px' }}>
-          Connect with Google
+          {hasOldToken ? 'Reconnect with Google' : 'Connect with Google'}
         </button>
         <p className="text-dim mt-4" style={{ fontSize: '10.5px' }}>
           Uses the same Google connection as Gmail. Drive access is read-only.
