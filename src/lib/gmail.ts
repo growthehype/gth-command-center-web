@@ -460,15 +460,20 @@ export interface DriveFile {
 }
 
 async function driveFetch(path: string) {
-  const token = getGmailToken() // Same token — Drive scope included
-  if (!token) throw new Error('Google not connected — please connect Gmail first')
+  const token = getGmailToken()
+  if (!token) throw new Error('NOT_CONNECTED')
   const res = await fetch(`https://www.googleapis.com/drive/v3/${path}`, {
     headers: { Authorization: `Bearer ${token}` },
   })
   if (!res.ok) {
-    if (res.status === 401) throw new Error('Google session expired — please reconnect')
-    if (res.status === 403) throw new Error('Google Drive access denied — please reconnect Gmail to grant Drive access')
-    throw new Error(`Drive API error: ${res.status}`)
+    const err = await res.json().catch(() => ({}))
+    const msg = err?.error?.message || ''
+    if (res.status === 401) throw new Error('NOT_CONNECTED')
+    if (res.status === 403 && (msg.includes('not been used') || msg.includes('disabled') || msg.includes('accessNotConfigured'))) {
+      throw new Error('API_NOT_ENABLED')
+    }
+    if (res.status === 403) throw new Error('ACCESS_DENIED')
+    throw new Error(`Drive API error: ${res.status} — ${msg}`)
   }
   return res.json()
 }

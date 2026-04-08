@@ -58,6 +58,7 @@ export default function GoogleDrive() {
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([{ id: null, name: 'My Drive' }])
   const [nextPageToken, setNextPageToken] = useState<string | undefined>()
   const [view, setView] = useState<'grid' | 'list'>('list')
+  const [errorType, setErrorType] = useState<'none' | 'not_connected' | 'api_not_enabled' | 'access_denied'>('none')
 
   const loadFiles = useCallback(async (folderId?: string | null, query?: string, token?: string) => {
     setLoading(true)
@@ -74,11 +75,18 @@ export default function GoogleDrive() {
         setFiles(result.files)
       }
       setNextPageToken(result.nextPageToken)
+      setErrorType('none')
     } catch (err: any) {
-      if (err.message?.includes('expired') || err.message?.includes('not connected') || err.message?.includes('denied') || err.message?.includes('403')) {
+      const msg = err.message || ''
+      if (msg === 'NOT_CONNECTED') {
         setConnected(false)
+        setErrorType('not_connected')
+      } else if (msg === 'API_NOT_ENABLED') {
+        setErrorType('api_not_enabled')
+      } else if (msg === 'ACCESS_DENIED') {
+        setErrorType('access_denied')
       } else {
-        showToast(err.message || 'Failed to load files', 'error')
+        showToast(msg || 'Failed to load files', 'error')
       }
     } finally {
       setLoading(false)
@@ -142,24 +150,73 @@ export default function GoogleDrive() {
   const folders = files.filter(f => f.mimeType === 'application/vnd.google-apps.folder')
   const regularFiles = files.filter(f => f.mimeType !== 'application/vnd.google-apps.folder')
 
-  // ── Not connected ──
-  const hasOldToken = !!localStorage.getItem('gth_gmail_token')
+  // ── Error: Google Drive API not enabled ──
+  if (errorType === 'api_not_enabled') {
+    return (
+      <div className="max-w-lg mx-auto text-center py-20">
+        <div className="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center mx-auto mb-4">
+          <HardDrive size={28} className="text-amber-400" />
+        </div>
+        <h1 className="text-polar font-[800] mb-2" style={{ fontSize: '22px' }}>Enable Google Drive API</h1>
+        <p className="text-dim mb-6" style={{ fontSize: '13px', maxWidth: 420, margin: '0 auto', lineHeight: 1.6 }}>
+          Your Google account is connected, but the Google Drive API needs to be enabled in your Google Cloud Console. This is a one-time setup.
+        </p>
+        <div className="space-y-3">
+          <a
+            href="https://console.cloud.google.com/apis/library/drive.googleapis.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-primary inline-flex items-center gap-2"
+            style={{ fontSize: '13px', padding: '10px 28px' }}
+          >
+            <ExternalLink size={14} /> Enable Drive API in Google Cloud
+          </a>
+          <p className="text-dim" style={{ fontSize: '11px', lineHeight: 1.6 }}>
+            Click the link above → click "Enable" → come back here and click Retry.
+          </p>
+          <button
+            onClick={() => { setErrorType('none'); loadFiles(currentFolder) }}
+            className="btn-ghost"
+            style={{ fontSize: '12px', padding: '8px 20px' }}
+          >
+            <RefreshCw size={12} className="inline mr-1.5" /> Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Error: Access denied (scope not granted) ──
+  if (errorType === 'access_denied') {
+    return (
+      <div className="max-w-lg mx-auto text-center py-20">
+        <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+          <HardDrive size={28} className="text-red-400" />
+        </div>
+        <h1 className="text-polar font-[800] mb-2" style={{ fontSize: '22px' }}>Drive Access Denied</h1>
+        <p className="text-dim mb-6" style={{ fontSize: '13px', maxWidth: 420, margin: '0 auto', lineHeight: 1.6 }}>
+          Your Google connection doesn't include Drive access. When reconnecting, make sure to check the Google Drive checkbox on the permissions screen.
+        </p>
+        <button onClick={() => connectGmail()} className="btn-primary" style={{ fontSize: '13px', padding: '10px 28px' }}>
+          Reconnect with Google
+        </button>
+      </div>
+    )
+  }
+
+  // ── Not connected at all ──
   if (!connected) {
     return (
       <div className="max-w-lg mx-auto text-center py-20">
         <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
           <HardDrive size={28} className="text-emerald-400" />
         </div>
-        <h1 className="text-polar font-[800] mb-2" style={{ fontSize: '22px' }}>
-          {hasOldToken ? 'Reconnect Google' : 'Connect Google Drive'}
-        </h1>
+        <h1 className="text-polar font-[800] mb-2" style={{ fontSize: '22px' }}>Connect Google Drive</h1>
         <p className="text-dim mb-6" style={{ fontSize: '13px', maxWidth: 380, margin: '0 auto' }}>
-          {hasOldToken
-            ? 'Your current Google connection doesn\'t include Drive access. Reconnect to grant Drive permissions — this won\'t affect your Gmail.'
-            : 'Browse and access your Google Drive files directly from your CRM. Read-only access — we never modify your files.'}
+          Browse and access your Google Drive files directly from your CRM. Read-only access — we never modify your files.
         </p>
         <button onClick={() => connectGmail()} className="btn-primary" style={{ fontSize: '13px', padding: '10px 28px' }}>
-          {hasOldToken ? 'Reconnect with Google' : 'Connect with Google'}
+          Connect with Google
         </button>
         <p className="text-dim mt-4" style={{ fontSize: '10.5px' }}>
           Uses the same Google connection as Gmail. Drive access is read-only.
