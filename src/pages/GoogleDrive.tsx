@@ -133,7 +133,17 @@ export default function GoogleDrive() {
     if (connected && !isSearching && !activeFilter) loadFiles(currentFolder)
   }, [connected, currentFolder]) // eslint-disable-line
 
-  useEffect(() => { setConnected(isGmailConnected()) }, [])
+  useEffect(() => {
+    setConnected(isGmailConnected())
+    const interval = setInterval(() => {
+      const nowConnected = isGmailConnected()
+      setConnected(prev => {
+        if (!prev && nowConnected) return true
+        return prev
+      })
+    }, 5_000)
+    return () => clearInterval(interval)
+  }, [])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()

@@ -330,8 +330,17 @@ export default function GmailInbox() {
     }
   }, [connected, activeFolder]) // eslint-disable-line
 
+  // Re-check connection status periodically (picks up silent refreshes)
   useEffect(() => {
     setConnected(isGmailConnected())
+    const interval = setInterval(() => {
+      const nowConnected = isGmailConnected()
+      setConnected(prev => {
+        if (!prev && nowConnected) return true // reconnected after silent refresh
+        return prev
+      })
+    }, 5_000)
+    return () => clearInterval(interval)
   }, [])
 
   // Keyboard: Escape to deselect, C to compose, R to refresh

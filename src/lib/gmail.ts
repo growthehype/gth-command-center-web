@@ -1,5 +1,5 @@
 const GOOGLE_CLIENT_ID = '272925349594-4dtb910g2m3jp2433na7r9eac297hoot.apps.googleusercontent.com'
-// Send + Read + Modify + Labels for full inbox experience
+// Send + Read + Modify + Labels + Drive for full experience
 const GMAIL_SCOPES = [
   'https://www.googleapis.com/auth/gmail.send',
   'https://www.googleapis.com/auth/gmail.readonly',
@@ -9,6 +9,7 @@ const GMAIL_SCOPES = [
 ].join(' ')
 const GMAIL_TOKEN_KEY = 'gth_gmail_token'
 const GMAIL_STATE_KEY = 'gth_gmail_auth_pending'
+const GMAIL_EVER_CONNECTED = 'gth_gmail_ever_connected' // persists across sessions
 
 interface GmailToken {
   access_token: string
@@ -26,33 +27,124 @@ function getLocalToken(): GmailToken | null {
   }
 }
 
+function saveToken(token: GmailToken) {
+  localStorage.setItem(GMAIL_TOKEN_KEY, JSON.stringify(token))
+  localStorage.setItem(GMAIL_EVER_CONNECTED, 'true')
+}
+
 export function isGmailConnected(): boolean {
   const token = getLocalToken()
-  return !!token && Date.now() < token.expires_at - 60_000
+  if (!token) return false
+  // If expired, attempt silent refresh in background (non-blocking)
+  if (Date.now() >= token.expires_at - 120_000) {
+    silentRefresh()
+    // Still return true if within a 5-min grace window so UI doesn't flash "disconnected"
+    return Date.now() < token.expires_at + 300_000
+  }
+  return true
 }
 
 export function getGmailToken(): string | null {
   const token = getLocalToken()
-  if (!token || Date.now() >= token.expires_at - 60_000) return null
+  if (!token) return null
+  // Trigger refresh 2 min before expiry
+  if (Date.now() >= token.expires_at - 120_000) {
+    silentRefresh()
+  }
+  // Still usable if not hard-expired
+  if (Date.now() >= token.expires_at) return null
   return token.access_token
 }
 
-export function connectGmail(): void {
-  sessionStorage.setItem(GMAIL_STATE_KEY, 'true')
-  // Remember which page to return to after OAuth redirect
-  const currentHash = window.location.hash?.replace('#', '') || ''
-  if (currentHash) sessionStorage.setItem('gth_gmail_return_page', currentHash)
-  const redirectUri = window.location.origin
+// ── Silent token refresh via hidden iframe ──
+
+let _refreshing = false
+let _refreshTimer: ReturnType<typeof setTimeout> | null = null
+
+function buildAuthUrl(prompt: string, state: string): string {
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
-    redirect_uri: redirectUri,
+    redirect_uri: window.location.origin,
     response_type: 'token',
     scope: GMAIL_SCOPES,
-    state: 'gmail',
+    state,
     include_granted_scopes: 'true',
-    prompt: 'consent', // Force consent to get new scopes
+    prompt,
   })
-  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params}`
+}
+
+function silentRefresh() {
+  if (_refreshing) return
+  // Only attempt if user has previously connected
+  if (!localStorage.getItem(GMAIL_EVER_CONNECTED)) return
+  _refreshing = true
+
+  const iframe = document.createElement('iframe')
+  iframe.style.display = 'none'
+  iframe.src = buildAuthUrl('none', 'gmail_silent')
+  document.body.appendChild(iframe)
+
+  // Poll the iframe for the token in the hash
+  let attempts = 0
+  const poll = setInterval(() => {
+    attempts++
+    try {
+      const hash = iframe.contentWindow?.location.hash
+      if (hash && hash.includes('access_token')) {
+        clearInterval(poll)
+        const params = new URLSearchParams(hash.substring(1))
+        const accessToken = params.get('access_token')
+        const expiresIn = params.get('expires_in')
+        if (accessToken) {
+          const seconds = expiresIn ? parseInt(expiresIn, 10) : 3600
+          saveToken({ access_token: accessToken, expires_at: Date.now() + seconds * 1000 })
+          scheduleRefresh(seconds)
+        }
+        document.body.removeChild(iframe)
+        _refreshing = false
+      }
+    } catch {
+      // Cross-origin — iframe hasn't redirected back yet, keep polling
+    }
+    if (attempts > 50) { // 5 seconds timeout
+      clearInterval(poll)
+      try { document.body.removeChild(iframe) } catch {}
+      _refreshing = false
+    }
+  }, 100)
+}
+
+function scheduleRefresh(expiresInSeconds: number) {
+  if (_refreshTimer) clearTimeout(_refreshTimer)
+  // Refresh 3 minutes before expiry
+  const refreshIn = Math.max((expiresInSeconds - 180) * 1000, 60_000)
+  _refreshTimer = setTimeout(() => silentRefresh(), refreshIn)
+}
+
+// Start auto-refresh schedule on module load if we have a token
+;(() => {
+  const token = getLocalToken()
+  if (token && localStorage.getItem(GMAIL_EVER_CONNECTED)) {
+    const remaining = Math.floor((token.expires_at - Date.now()) / 1000)
+    if (remaining > 0) {
+      scheduleRefresh(remaining)
+    } else {
+      // Token already expired — try to silently refresh now
+      silentRefresh()
+    }
+  }
+})()
+
+// ── User-initiated connect (full redirect) ──
+
+export function connectGmail(): void {
+  sessionStorage.setItem(GMAIL_STATE_KEY, 'true')
+  const currentHash = window.location.hash?.replace('#', '') || ''
+  if (currentHash) sessionStorage.setItem('gth_gmail_return_page', currentHash)
+  // Always use 'consent' for user-initiated connect — ensures all scopes granted
+  // 'prompt=none' is only for silent background refresh
+  window.location.href = buildAuthUrl('consent', 'gmail')
 }
 
 export function captureGmailToken(): boolean {
@@ -63,6 +155,9 @@ export function captureGmailToken(): boolean {
   const state = params.get('state')
   const pending = sessionStorage.getItem(GMAIL_STATE_KEY)
 
+  // Don't capture silent refresh tokens (handled by iframe)
+  if (state === 'gmail_silent') return false
+
   if (state !== 'gmail' && !pending) return false
 
   const token = params.get('access_token')
@@ -70,13 +165,9 @@ export function captureGmailToken(): boolean {
 
   if (token) {
     const seconds = expiresIn ? parseInt(expiresIn, 10) : 3600
-    const stored: GmailToken = {
-      access_token: token,
-      expires_at: Date.now() + seconds * 1000,
-    }
-    localStorage.setItem(GMAIL_TOKEN_KEY, JSON.stringify(stored))
+    saveToken({ access_token: token, expires_at: Date.now() + seconds * 1000 })
+    scheduleRefresh(seconds)
     sessionStorage.removeItem(GMAIL_STATE_KEY)
-    // Restore the page the user was on before OAuth redirect
     const returnPage = sessionStorage.getItem('gth_gmail_return_page')
     sessionStorage.removeItem('gth_gmail_return_page')
     window.history.replaceState(
@@ -92,6 +183,8 @@ export function captureGmailToken(): boolean {
 
 export function disconnectGmail(): void {
   localStorage.removeItem(GMAIL_TOKEN_KEY)
+  localStorage.removeItem(GMAIL_EVER_CONNECTED)
+  if (_refreshTimer) clearTimeout(_refreshTimer)
 }
 
 // ─── Gmail API: Inbox / Messages ────────────────────────────────
