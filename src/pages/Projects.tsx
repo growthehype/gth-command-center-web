@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-import { Kanban, Plus, ChevronLeft, ChevronRight, Trash2, Edit3, ArrowRight, ArrowLeft } from 'lucide-react'
+import { Kanban, Plus, ChevronLeft, ChevronRight, Trash2, Edit3, ArrowRight, ArrowLeft, ExternalLink } from 'lucide-react'
 import { useAppStore, type Project } from '@/lib/store'
-import { projects as projectsApi } from '@/lib/api'
+import { projects as projectsApi, shell } from '@/lib/api'
 import Modal from '@/components/ui/Modal'
 import { showToast } from '@/components/ui/Toast'
 import EmptyState from '@/components/ui/EmptyState'
@@ -607,6 +607,32 @@ export default function Projects() {
                           {truncate(project.description, 120)}
                         </div>
                       )}
+
+                      {/* Links */}
+                      {project.links && (() => {
+                        const urls = project.links.split(/[,\s]+/).filter((u: string) => u.startsWith('http'))
+                        if (urls.length === 0) return null
+                        return (
+                          <div className="flex flex-wrap gap-1.5 mt-2" onClick={e => e.stopPropagation()}>
+                            {urls.map((url: string, i: number) => {
+                              let label = ''
+                              try { label = new URL(url).hostname.replace('www.', '') } catch { label = url.substring(0, 20) }
+                              return (
+                                <button
+                                  key={i}
+                                  onClick={() => shell.openExternal(url)}
+                                  className="inline-flex items-center gap-1 bg-surface border border-border px-2 py-0.5 text-steel hover:text-polar hover:border-dim transition-colors cursor-pointer"
+                                  style={{ fontSize: '10px', borderRadius: '3px' }}
+                                  title={url}
+                                >
+                                  <ExternalLink size={9} />
+                                  {label}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )
+                      })()}
 
                       {/* Footer: due date + priority + arrows */}
                       <div className="flex items-center justify-between mt-2.5">
