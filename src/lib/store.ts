@@ -109,6 +109,9 @@ interface AppStore {
   commandPaletteOpen: boolean
   aiPanelOpen: boolean
   pomodoroOpen: boolean
+  pomodoroActive: boolean
+  pomodoroDisplay: string  // e.g. "Focus 24:13" or "Break 04:50"
+  pomodoroPhase: 'work' | 'break'
   sidebarOpen: boolean
   runningTimer: TimeEntry | null
   theme: 'light' | 'dark'
@@ -125,6 +128,7 @@ interface AppStore {
   setCommandPaletteOpen: (open: boolean) => void
   setAiPanelOpen: (open: boolean) => void
   setPomodoroOpen: (open: boolean) => void
+  setPomodoroStatus: (active: boolean, display: string, phase: 'work' | 'break') => void
   setSidebarOpen: (open: boolean) => void
 
   // Data loading
@@ -197,6 +201,9 @@ export const useAppStore = create<AppStore>((set) => ({
   commandPaletteOpen: false,
   aiPanelOpen: false,
   pomodoroOpen: false,
+  pomodoroActive: false,
+  pomodoroDisplay: '',
+  pomodoroPhase: 'work' as const,
   sidebarOpen: false,
   runningTimer: null,
   theme: (localStorage.getItem('gth_theme') as 'light' | 'dark') || 'light',
@@ -223,6 +230,7 @@ export const useAppStore = create<AppStore>((set) => ({
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   setAiPanelOpen: (open) => set({ aiPanelOpen: open }),
   setPomodoroOpen: (open) => set({ pomodoroOpen: open }),
+  setPomodoroStatus: (active, display, phase) => set({ pomodoroActive: active, pomodoroDisplay: display, pomodoroPhase: phase }),
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
 
   loadAllData: async () => {

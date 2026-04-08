@@ -1,5 +1,5 @@
 import { useAppStore } from '@/lib/store'
-import { Search, Timer, Sparkles, Clock, Menu, Moon, Sun, HelpCircle, WifiOff, Wifi, Square } from 'lucide-react'
+import { Search, Timer, Sparkles, Clock, Menu, Moon, Sun, HelpCircle, WifiOff, Wifi, Square, Flame } from 'lucide-react'
 import { timeEntries as timeEntriesApi } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
@@ -12,7 +12,7 @@ interface TopbarProps {
 }
 
 export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
-  const { setCommandPaletteOpen, aiPanelOpen, setAiPanelOpen, pomodoroOpen, setPomodoroOpen, settings, runningTimer, sidebarOpen, setSidebarOpen, theme, setTheme } = useAppStore()
+  const { setCommandPaletteOpen, aiPanelOpen, setAiPanelOpen, pomodoroOpen, setPomodoroOpen, pomodoroActive, pomodoroDisplay, pomodoroPhase, settings, runningTimer, sidebarOpen, setSidebarOpen, theme, setTheme } = useAppStore()
   const connectionStatus = useOnlineStatus()
   const displayName = settings.display_name || 'Omar Alladina'
   const initials = settings.avatar_initials || 'OA'
@@ -89,8 +89,17 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
         </div>
       )}
 
-      {/* Timer — click to stop */}
-      {runningTimer && elapsed && (
+      {/* Timer display — Pomodoro takes priority over generic timer */}
+      {pomodoroActive ? (
+        <button
+          onClick={() => setPomodoroOpen(true)}
+          className={`flex items-center gap-2 cursor-pointer transition-colors ${pomodoroPhase === 'work' ? 'text-orange-400 hover:text-orange-300' : 'text-emerald-400 hover:text-emerald-300'}`}
+          title="Open Pomodoro Timer"
+        >
+          <Flame size={12} />
+          <span className="font-mono font-bold" style={{ fontSize: '12px' }}>{pomodoroDisplay}</span>
+        </button>
+      ) : runningTimer && elapsed ? (
         <button
           onClick={async () => {
             try {
@@ -114,7 +123,7 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
             </span>
           )}
         </button>
-      )}
+      ) : null}
 
       {/* Pomodoro toggle */}
       <button

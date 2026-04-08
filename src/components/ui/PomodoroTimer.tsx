@@ -115,7 +115,7 @@ function CircularProgress({
 // ---------------------------------------------------------------------------
 
 export default function PomodoroTimer({ onClose }: { onClose: () => void }) {
-  const { projects, clients, runningTimer, refreshTimeEntries, refreshRunningTimer } = useAppStore()
+  const { projects, clients, runningTimer, refreshTimeEntries, refreshRunningTimer, setPomodoroStatus } = useAppStore()
 
   // ---- Settings -----------------------------------------------------------
   const [settings, setSettings] = useState<PomodoroSettings>(() => {
@@ -311,6 +311,21 @@ export default function PomodoroTimer({ onClose }: { onClose: () => void }) {
       setSecondsLeft(settings.workMinutes * 60)
     }
   }
+
+  // ---- Broadcast state to store (so topbar can show it) ------------------
+  useEffect(() => {
+    if (status === 'running' || status === 'paused') {
+      const label = phase === 'work' ? 'Focus' : 'Break'
+      setPomodoroStatus(true, `${label} ${display}`, phase === 'work' ? 'work' : 'break')
+    } else {
+      setPomodoroStatus(false, '', 'work')
+    }
+  }, [status, phase, display, setPomodoroStatus])
+
+  // Clear pomodoro status on unmount (close)
+  useEffect(() => {
+    return () => { setPomodoroStatus(false, '', 'work') }
+  }, [setPomodoroStatus])
 
   // ---- Phase label --------------------------------------------------------
   const phaseLabel = phase === 'work' ? 'Focus' : phase === 'shortBreak' ? 'Short Break' : 'Long Break'
