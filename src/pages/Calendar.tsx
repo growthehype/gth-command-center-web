@@ -108,8 +108,8 @@ export default function Calendar() {
   const weekEnd = useMemo(() => endOfWeek(anchor, { weekStartsOn: 1 }), [anchor])
   const days = useMemo(() => eachDayOfInterval({ start: weekStart, end: weekEnd }), [weekStart, weekEnd])
 
-  // Google Calendar
-  const [googleConnected, setGoogleConnected] = useState(isGoogleConnected())
+  // Google Calendar — start as null (loading) to avoid flash of "Connect" button
+  const [googleConnected, setGoogleConnected] = useState<boolean | null>(null)
   const [events, setEvents] = useState<GoogleCalendarEvent[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -119,11 +119,10 @@ export default function Calendar() {
   const [form, setForm] = useState<EventForm>(blankForm())
   const [saving, setSaving] = useState(false)
 
-  // Check connection on mount — hydrate from Supabase, then try silent re-auth if expired
+  // Hydrate token from Supabase FIRST, then set connected state
   useEffect(() => {
     initGoogleToken().then((connected) => {
       setGoogleConnected(connected)
-      // If not connected, try silent re-auth (only from Calendar page, safe to redirect)
       if (!connected) {
         silentReconnectIfNeeded()
       }
@@ -266,7 +265,9 @@ export default function Calendar() {
 
         <div className="flex items-center gap-2">
           {/* Google Calendar controls */}
-          {googleConnected ? (
+          {googleConnected === null ? (
+            <span className="text-dim" style={{ fontSize: '11px' }}>Connecting...</span>
+          ) : googleConnected ? (
             <div className="flex items-center gap-2">
               <span className="flex items-center gap-1.5" style={{ fontSize: '11px' }}>
                 <div className="w-2 h-2 rounded-full" style={{ background: '#4285F4' }} />
@@ -323,8 +324,8 @@ export default function Calendar() {
         </div>
       </div>
 
-      {/* Not connected state */}
-      {!googleConnected && (
+      {/* Not connected state — only show after hydration (not during loading) */}
+      {googleConnected === false && (
         <div className="flex-1 flex flex-col items-center justify-center text-center py-20">
           <img
             src="https://www.gstatic.com/images/branding/product/1x/calendar_2020q4_48dp.png"
@@ -343,7 +344,7 @@ export default function Calendar() {
       )}
 
       {/* ---- Calendar grid (only when connected) ---- */}
-      {googleConnected && (
+      {googleConnected === true && (
         <div className="flex-1 overflow-x-auto -mx-3 px-3 md:mx-0 md:px-0">
           <div
             style={{

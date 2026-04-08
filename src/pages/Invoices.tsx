@@ -137,7 +137,7 @@ export default function Invoices() {
   const [builderCurrency, setBuilderCurrency] = useState('CAD')
   const [builderTerms, setBuilderTerms] = useState('Net 30')
   const [builderPaymentInstructions, setBuilderPaymentInstructions] = useState('Payments can be made via e-transfer or credit card')
-  const [builderTermsText, setBuilderTermsText] = useState('Work begins once the initial deposit is received.\nLate payments may incur a fee.\nAll creative, strategy, and digital assets remain the intellectual property of Grow The Hype until the invoice is paid in full.\nBy submitting payment, the client agrees to the scope, timelines, and deliverables outlined in their proposal or project agreement.')
+  const [builderTermsText, setBuilderTermsText] = useState('Work begins once the initial deposit is received.\nPayment is due within the terms stated above. Late payments are subject to a 5% monthly service charge.\nAll creative, strategy, and digital assets remain the property of Grow The Hype until this invoice is paid in full.\nBy submitting payment, the client confirms acceptance of the deliverables and scope outlined in the original project agreement.')
   const [builderMemo, setBuilderMemo] = useState('')
   const [builderSaving, setBuilderSaving] = useState(false)
 
@@ -332,7 +332,7 @@ export default function Invoices() {
     setBuilderCurrency('CAD')
     setBuilderTerms('Net 30')
     setBuilderPaymentInstructions('Payments can be made via e-transfer or credit card')
-    setBuilderTermsText('Work begins once the initial deposit is received.\nLate payments may incur a fee.\nAll creative, strategy, and digital assets remain the intellectual property of Grow The Hype until the invoice is paid in full.\nBy submitting payment, the client agrees to the scope, timelines, and deliverables outlined in their proposal or project agreement.')
+    setBuilderTermsText('Work begins once the initial deposit is received.\nPayment is due within the terms stated above. Late payments are subject to a 5% monthly service charge.\nAll creative, strategy, and digital assets remain the property of Grow The Hype until this invoice is paid in full.\nBy submitting payment, the client confirms acceptance of the deliverables and scope outlined in the original project agreement.')
     setBuilderMemo('')
   }
 
@@ -380,7 +380,7 @@ export default function Invoices() {
       setBuilderCurrency(parsed.currency || 'CAD')
       setBuilderTerms(parsed.payment_terms || 'Net 30')
       setBuilderPaymentInstructions(parsed.payment_instructions || 'Payments can be made via e-transfer or credit card')
-      setBuilderTermsText(parsed.terms_text || 'Work begins once the initial deposit is received.\nLate payments may incur a fee.\nAll creative, strategy, and digital assets remain the intellectual property of Grow The Hype until the invoice is paid in full.\nBy submitting payment, the client agrees to the scope, timelines, and deliverables outlined in their proposal or project agreement.')
+      setBuilderTermsText(parsed.terms_text || 'Work begins once the initial deposit is received.\nPayment is due within the terms stated above. Late payments are subject to a 5% monthly service charge.\nAll creative, strategy, and digital assets remain the property of Grow The Hype until this invoice is paid in full.\nBy submitting payment, the client confirms acceptance of the deliverables and scope outlined in the original project agreement.')
       setBuilderMemo(parsed.memo || '')
     } else {
       // Legacy invoice — prefill with single line item
