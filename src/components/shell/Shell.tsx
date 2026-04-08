@@ -44,6 +44,8 @@ import HelpPage from '@/pages/Help'
 import EmailTemplatesPage from '@/pages/EmailTemplates'
 import TeamManagement from '@/pages/TeamManagement'
 import IntegrationsPage from '@/pages/Integrations'
+import GmailInbox from '@/pages/GmailInbox'
+import GoogleDrive from '@/pages/GoogleDrive'
 
 interface ShellProps {
   onLock?: () => void
@@ -78,6 +80,8 @@ const pageMap: Record<string, React.ComponentType> = {
   'email-templates': EmailTemplatesPage,
   'team': TeamManagement,
   'integrations-settings': IntegrationsPage,
+  'gmail': GmailInbox,
+  'drive': GoogleDrive,
 }
 
 export default function Shell({ onLock }: ShellProps) {
