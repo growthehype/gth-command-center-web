@@ -101,6 +101,7 @@ interface AppStore {
   // UI state
   currentPage: string
   selectedClientId: string | null
+  selectedProjectId: string | null
   commandPaletteOpen: boolean
   aiPanelOpen: boolean
   sidebarOpen: boolean
@@ -111,6 +112,7 @@ interface AppStore {
   // Actions
   setCurrentPage: (page: string) => void
   setSelectedClientId: (id: string | null) => void
+  setSelectedProjectId: (id: string | null) => void
   setCommandPaletteOpen: (open: boolean) => void
   setAiPanelOpen: (open: boolean) => void
   setSidebarOpen: (open: boolean) => void
@@ -177,6 +179,7 @@ export const useAppStore = create<AppStore>((set) => ({
 
   currentPage: 'briefing',
   selectedClientId: null,
+  selectedProjectId: null,
   commandPaletteOpen: false,
   aiPanelOpen: false,
   sidebarOpen: false,
@@ -190,6 +193,7 @@ export const useAppStore = create<AppStore>((set) => ({
 
   setCurrentPage: (page) => set({ currentPage: page }),
   setSelectedClientId: (id) => set({ selectedClientId: id }),
+  setSelectedProjectId: (id) => set({ selectedProjectId: id }),
   setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
   setAiPanelOpen: (open) => set({ aiPanelOpen: open }),
   setSidebarOpen: (open) => set({ sidebarOpen: open }),

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { Kanban, Plus, ChevronLeft, ChevronRight, Trash2, Edit3, ArrowRight, ArrowLeft } from 'lucide-react'
 import { useAppStore, type Project } from '@/lib/store'
 import { projects as projectsApi } from '@/lib/api'
@@ -78,7 +78,7 @@ function sortByPriorityThenDue(a: Project, b: Project): number {
 /* ── Component ── */
 
 export default function Projects() {
-  const { projects, clients, tasks, refreshProjects, refreshActivity } = useAppStore()
+  const { projects, clients, tasks, refreshProjects, refreshActivity, selectedProjectId, setSelectedProjectId } = useAppStore()
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editProject, setEditProject] = useState<Project | null>(null)
@@ -210,6 +210,15 @@ export default function Projects() {
     })
     setModalOpen(true)
   }, [])
+
+  /* ── Auto-open project from external navigation ── */
+  useEffect(() => {
+    if (selectedProjectId) {
+      const target = projects.find(p => p.id === selectedProjectId)
+      if (target) openDetail(target)
+      setSelectedProjectId(null)
+    }
+  }, [selectedProjectId, projects, openDetail, setSelectedProjectId])
 
   /* ── Open new modal ── */
   const openNew = useCallback(() => {

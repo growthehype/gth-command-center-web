@@ -945,6 +945,7 @@ function ContactsTab({
    ======================================== */
 
 function ProjectsTab({ client, projects }: { client: Client; projects: any[] }) {
+  const { setCurrentPage, setSelectedProjectId } = useAppStore()
   const clientProjects = useMemo(() => projects.filter(p => p.client_id === client.id), [projects, client.id])
 
   if (clientProjects.length === 0) return <p className="text-dim" style={{ fontSize: '12px' }}>No projects for this client.</p>
@@ -954,6 +955,11 @@ function ProjectsTab({ client, projects }: { client: Client; projects: any[] }) 
     if (s === 'completed' || s === 'done') return 'badge badge-neutral'
     if (s === 'on_hold' || s === 'review' || s === 'backlog') return 'badge badge-warn'
     return 'badge badge-neutral'
+  }
+
+  const goToProject = (projectId: string) => {
+    setSelectedProjectId(projectId)
+    setCurrentPage('projects')
   }
 
   return (
@@ -969,8 +975,8 @@ function ProjectsTab({ client, projects }: { client: Client; projects: any[] }) 
       </thead>
       <tbody>
         {clientProjects.map(p => (
-          <tr key={p.id} className="table-row">
-            <td className="py-2 px-2 font-[600] text-polar">{p.title}</td>
+          <tr key={p.id} className="table-row cursor-pointer hover:bg-white/5" onClick={() => goToProject(p.id)}>
+            <td className="py-2 px-2 font-[600] text-polar hover:text-accent transition-colors">{p.title}</td>
             <td className="py-2 px-2"><span className={statusBadge(p.status)}>{p.status}</span></td>
             <td className="py-2 px-2 text-steel">{p.priority || '\u2014'}</td>
             <td className="py-2 px-2 mono">{p.hours || 0}h</td>
