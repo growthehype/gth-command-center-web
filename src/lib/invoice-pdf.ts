@@ -24,12 +24,6 @@ function fmtCurrency(n: number): string {
   return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-function hexToRgb(hex: string): [number, number, number] {
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  return [r, g, b]
-}
 
 export function generateInvoicePDF(data: InvoiceData): jsPDF {
   const doc = new jsPDF('p', 'mm', 'a4')
@@ -39,18 +33,21 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   const contentW = pageW - margin * 2
   let y = 0
 
-  // Brand colors
-  const darkBg: [number, number, number] = [26, 26, 26]         // #1a1a1a
-  const brandPurple = hexToRgb('#863bff')
+  // Brand colors — GTH monochrome palette
+  const obsidian: [number, number, number] = [0, 0, 0]           // #000000
+  const charcoal: [number, number, number] = [26, 26, 26]        // #1A1A1A
+  const steel: [number, number, number] = [136, 136, 136]        // #888888
+  const ash = '#E8E8E8'
+  const cream = '#F5F0EB'
   const white: [number, number, number] = [255, 255, 255]
-  const textDark = '#1a1a1a'
+  const textDark = '#000000'
   const textMid = '#555555'
-  const textLight = '#999999'
-  const rowAlt = '#f7f7f7'
+  const textLight = '#888888'
+  const rowAlt = '#F9F9F9'
 
   // ── Top bar ──
   const barH = 18
-  doc.setFillColor(...darkBg)
+  doc.setFillColor(...obsidian)
   doc.rect(0, 0, pageW, barH, 'F')
 
   doc.setFont('helvetica', 'bold')
@@ -96,7 +93,7 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   // FROM label
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(8)
-  doc.setTextColor(...brandPurple)
+  doc.setTextColor(...steel)
   doc.text('FROM', fromX, y)
 
   // TO label
@@ -133,7 +130,7 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   const rowH = 9
 
   // Table header
-  doc.setFillColor(...darkBg)
+  doc.setFillColor(...obsidian)
   doc.rect(margin, y, contentW, headerH, 'F')
 
   const headerTextY = y + headerH / 2 + 1
@@ -209,7 +206,7 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   }
 
   // Purple accent line above total
-  doc.setDrawColor(...brandPurple)
+  doc.setDrawColor(...obsidian)
   doc.setLineWidth(0.6)
   doc.line(totalsLabelX - 30, y, pageW - margin, y)
   y += 6
@@ -235,7 +232,7 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
 
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(7.5)
-    doc.setTextColor(...brandPurple)
+    doc.setTextColor(...steel)
     doc.text('PAYMENT TERMS', margin + 4, y + 5.5)
 
     doc.setFont('helvetica', 'normal')
@@ -250,7 +247,7 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   if (data.memo) {
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(7.5)
-    doc.setTextColor(...brandPurple)
+    doc.setTextColor(...steel)
     doc.text('NOTES', margin, y)
     y += 5
 
@@ -263,7 +260,7 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
   }
 
   // ── Bottom accent line ──
-  doc.setDrawColor(...brandPurple)
+  doc.setDrawColor(...obsidian)
   doc.setLineWidth(1)
   doc.line(margin, pageH - 14, pageW - margin, pageH - 14)
 

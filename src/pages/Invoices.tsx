@@ -883,7 +883,7 @@ export default function Invoices() {
           {/* From / To */}
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-3">
-              <span className="label" style={{ color: '#863bff' }}>FROM</span>
+              <span className="label" style={{ color: '#000', fontWeight: 800 }}>FROM</span>
               <input
                 value={builderFromName}
                 onChange={e => setBuilderFromName(e.target.value)}
@@ -900,7 +900,7 @@ export default function Invoices() {
               />
             </div>
             <div className="space-y-3">
-              <span className="label" style={{ color: '#863bff' }}>TO</span>
+              <span className="label" style={{ color: '#000', fontWeight: 800 }}>TO</span>
               <select
                 value={builderClientId}
                 onChange={e => {
@@ -1061,7 +1061,7 @@ export default function Invoices() {
                   ${builderTaxAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>
               </div>
-              <div className="pt-2 flex justify-between items-center" style={{ borderTop: '2px solid #863bff' }}>
+              <div className="pt-2 flex justify-between items-center" style={{ borderTop: '2px solid #000000' }}>
                 <span className="text-polar font-[700]" style={{ fontSize: '14px' }}>Total</span>
                 <span className="text-polar mono font-[700]" style={{ fontSize: '18px' }}>
                   ${builderTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -1094,9 +1094,9 @@ export default function Invoices() {
                       style={{
                         fontSize: '10px',
                         fontWeight: isActive ? 600 : 400,
-                        backgroundColor: isActive ? '#863bff' : 'transparent',
-                        color: isActive ? '#fff' : undefined,
-                        borderColor: isActive ? '#863bff' : undefined,
+                        backgroundColor: isActive ? '#000000' : 'transparent',
+                        color: isActive ? '#ffffff' : undefined,
+                        borderColor: isActive ? '#000000' : undefined,
                       }}
                     >
                       {term}
