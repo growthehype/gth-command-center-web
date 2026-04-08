@@ -28,8 +28,11 @@ interface InvoiceNotes {
   line_items: LineItem[]
   tax_rate: number
   tax_label?: string
+  gst_number?: string
+  currency?: string
   payment_terms: string
   payment_instructions?: string
+  terms_text?: string
   memo: string
   from_name: string
   from_email: string
@@ -38,6 +41,7 @@ interface InvoiceNotes {
   from_website?: string
   client_phone?: string
   client_address?: string
+  client_contact_name?: string
 }
 
 function parseInvoiceNotes(notes: string | null): InvoiceNotes | null {
@@ -115,21 +119,25 @@ export default function Invoices() {
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null)
   const [builderFromName, setBuilderFromName] = useState('Grow The Hype Inc.')
   const [builderFromEmail, setBuilderFromEmail] = useState('omar@growthehype.ca')
-  const [builderFromPhone, setBuilderFromPhone] = useState('')
-  const [builderFromAddress, setBuilderFromAddress] = useState('')
-  const [builderFromWebsite, setBuilderFromWebsite] = useState('growthehype.ca')
+  const [builderFromPhone, setBuilderFromPhone] = useState('7809664986')
+  const [builderFromAddress, setBuilderFromAddress] = useState('983 Lamb Crescent Northwest, Edmonton, Alberta T6R 2X8, Canada')
+  const [builderFromWebsite, setBuilderFromWebsite] = useState('www.growthehype.ca')
   const [builderClientId, setBuilderClientId] = useState<string>('')
   const [builderClientEmail, setBuilderClientEmail] = useState('')
   const [builderClientPhone, setBuilderClientPhone] = useState('')
   const [builderClientAddress, setBuilderClientAddress] = useState('')
+  const [builderClientContactName, setBuilderClientContactName] = useState('')
   const [builderNum, setBuilderNum] = useState('')
   const [builderDate, setBuilderDate] = useState(todayStr())
   const [builderDueDate, setBuilderDueDate] = useState(defaultDueStr())
   const [builderLineItems, setBuilderLineItems] = useState<LineItem[]>([{ description: '', qty: 1, rate: 0 }])
   const [builderTaxRate, setBuilderTaxRate] = useState(5)
   const [builderTaxLabel, setBuilderTaxLabel] = useState('GST')
+  const [builderGstNumber, setBuilderGstNumber] = useState('720385129')
+  const [builderCurrency, setBuilderCurrency] = useState('CAD')
   const [builderTerms, setBuilderTerms] = useState('Net 30')
-  const [builderPaymentInstructions, setBuilderPaymentInstructions] = useState('E-Transfer to omar@growthehype.ca')
+  const [builderPaymentInstructions, setBuilderPaymentInstructions] = useState('Payments can be made via e-transfer or credit card')
+  const [builderTermsText, setBuilderTermsText] = useState('Work begins once the initial deposit is received.\nLate payments may incur a fee.\nAll creative, strategy, and digital assets remain the intellectual property of Grow The Hype until the invoice is paid in full.\nBy submitting payment, the client agrees to the scope, timelines, and deliverables outlined in their proposal or project agreement.')
   const [builderMemo, setBuilderMemo] = useState('')
   const [builderSaving, setBuilderSaving] = useState(false)
 
@@ -306,21 +314,25 @@ export default function Invoices() {
     setEditingInvoiceId(null)
     setBuilderFromName('Grow The Hype Inc.')
     setBuilderFromEmail('omar@growthehype.ca')
-    setBuilderFromPhone('')
-    setBuilderFromAddress('')
-    setBuilderFromWebsite('growthehype.ca')
+    setBuilderFromPhone('7809664986')
+    setBuilderFromAddress('983 Lamb Crescent Northwest, Edmonton, Alberta T6R 2X8, Canada')
+    setBuilderFromWebsite('www.growthehype.ca')
     setBuilderClientId('')
     setBuilderClientEmail('')
     setBuilderClientPhone('')
     setBuilderClientAddress('')
+    setBuilderClientContactName('')
     setBuilderNum('')
     setBuilderDate(todayStr())
     setBuilderDueDate(defaultDueStr())
     setBuilderLineItems([{ description: '', qty: 1, rate: 0 }])
     setBuilderTaxRate(5)
     setBuilderTaxLabel('GST')
+    setBuilderGstNumber('720385129')
+    setBuilderCurrency('CAD')
     setBuilderTerms('Net 30')
-    setBuilderPaymentInstructions('E-Transfer to omar@growthehype.ca')
+    setBuilderPaymentInstructions('Payments can be made via e-transfer or credit card')
+    setBuilderTermsText('Work begins once the initial deposit is received.\nLate payments may incur a fee.\nAll creative, strategy, and digital assets remain the intellectual property of Grow The Hype until the invoice is paid in full.\nBy submitting payment, the client agrees to the scope, timelines, and deliverables outlined in their proposal or project agreement.')
     setBuilderMemo('')
   }
 
@@ -355,16 +367,20 @@ export default function Invoices() {
     if (parsed) {
       setBuilderFromName(parsed.from_name || 'Grow The Hype Inc.')
       setBuilderFromEmail(parsed.from_email || 'omar@growthehype.ca')
-      setBuilderFromPhone(parsed.from_phone || '')
-      setBuilderFromAddress(parsed.from_address || '')
-      setBuilderFromWebsite(parsed.from_website || 'growthehype.ca')
+      setBuilderFromPhone(parsed.from_phone || '7809664986')
+      setBuilderFromAddress(parsed.from_address || '983 Lamb Crescent Northwest, Edmonton, Alberta T6R 2X8, Canada')
+      setBuilderFromWebsite(parsed.from_website || 'www.growthehype.ca')
       setBuilderClientPhone(parsed.client_phone || '')
       setBuilderClientAddress(parsed.client_address || '')
+      setBuilderClientContactName(parsed.client_contact_name || '')
       setBuilderLineItems(parsed.line_items.length > 0 ? parsed.line_items : [{ description: '', qty: 1, rate: 0 }])
       setBuilderTaxRate(parsed.tax_rate ?? 5)
       setBuilderTaxLabel(parsed.tax_label || 'GST')
+      setBuilderGstNumber(parsed.gst_number || '720385129')
+      setBuilderCurrency(parsed.currency || 'CAD')
       setBuilderTerms(parsed.payment_terms || 'Net 30')
-      setBuilderPaymentInstructions(parsed.payment_instructions || 'E-Transfer to omar@growthehype.ca')
+      setBuilderPaymentInstructions(parsed.payment_instructions || 'Payments can be made via e-transfer or credit card')
+      setBuilderTermsText(parsed.terms_text || 'Work begins once the initial deposit is received.\nLate payments may incur a fee.\nAll creative, strategy, and digital assets remain the intellectual property of Grow The Hype until the invoice is paid in full.\nBy submitting payment, the client agrees to the scope, timelines, and deliverables outlined in their proposal or project agreement.')
       setBuilderMemo(parsed.memo || '')
     } else {
       // Legacy invoice — prefill with single line item
@@ -389,8 +405,11 @@ export default function Invoices() {
       line_items: builderLineItems,
       tax_rate: builderTaxRate,
       tax_label: builderTaxLabel,
+      gst_number: builderGstNumber,
+      currency: builderCurrency,
       payment_terms: builderTerms,
       payment_instructions: builderPaymentInstructions,
+      terms_text: builderTermsText,
       memo: builderMemo,
       from_name: builderFromName,
       from_email: builderFromEmail,
@@ -399,6 +418,7 @@ export default function Invoices() {
       from_website: builderFromWebsite,
       client_phone: builderClientPhone,
       client_address: builderClientAddress,
+      client_contact_name: builderClientContactName,
     }
     return JSON.stringify(notes)
   }
@@ -412,15 +432,19 @@ export default function Invoices() {
     fromPhone: builderFromPhone || undefined,
     fromAddress: builderFromAddress || undefined,
     fromWebsite: builderFromWebsite || undefined,
+    gstNumber: builderGstNumber || undefined,
     clientName: getBuilderClientName(),
     clientEmail: builderClientEmail,
     clientPhone: builderClientPhone || undefined,
     clientAddress: builderClientAddress || undefined,
+    clientContactName: builderClientContactName || undefined,
     lineItems: builderLineItems,
     taxRate: builderTaxRate,
     taxLabel: builderTaxLabel || undefined,
+    currency: builderCurrency || undefined,
     paymentTerms: builderTerms,
     paymentInstructions: builderPaymentInstructions || undefined,
+    termsText: builderTermsText || undefined,
     memo: builderMemo,
   })
 
@@ -563,18 +587,22 @@ export default function Invoices() {
       status: inv.status as InvoiceData['status'] || undefined,
       fromName: parsed?.from_name || 'Grow The Hype Inc.',
       fromEmail: parsed?.from_email || 'omar@growthehype.ca',
-      fromPhone: parsed?.from_phone || undefined,
-      fromAddress: parsed?.from_address || undefined,
-      fromWebsite: parsed?.from_website || 'growthehype.ca',
+      fromPhone: parsed?.from_phone || '7809664986',
+      fromAddress: parsed?.from_address || '983 Lamb Crescent Northwest, Edmonton, Alberta T6R 2X8, Canada',
+      fromWebsite: parsed?.from_website || 'www.growthehype.ca',
+      gstNumber: parsed?.gst_number || '720385129',
       clientName: inv.client_name || cl?.name || '',
       clientEmail: cl?.email || '',
       clientPhone: parsed?.client_phone || undefined,
       clientAddress: parsed?.client_address || undefined,
+      clientContactName: parsed?.client_contact_name || undefined,
       lineItems: parsed?.line_items || [{ description: 'Services', qty: 1, rate: inv.amount || 0 }],
       taxRate: parsed?.tax_rate ?? 0,
       taxLabel: parsed?.tax_label || 'GST',
+      currency: parsed?.currency || 'CAD',
       paymentTerms: parsed?.payment_terms || 'Net 30',
-      paymentInstructions: parsed?.payment_instructions || 'E-Transfer to omar@growthehype.ca',
+      paymentInstructions: parsed?.payment_instructions || 'Payments can be made via e-transfer or credit card',
+      termsText: parsed?.terms_text || undefined,
       memo: parsed?.memo || '',
     }
     try {
@@ -999,9 +1027,9 @@ export default function Invoices() {
                 style={{ fontSize: '12px' }}
               />
               <input
-                value={builderClientPhone}
-                onChange={e => setBuilderClientPhone(e.target.value)}
-                placeholder="Client phone (optional)"
+                value={builderClientContactName}
+                onChange={e => setBuilderClientContactName(e.target.value)}
+                placeholder="Contact name (optional)"
                 className="w-full bg-cell border border-border text-polar px-3 py-1.5 font-sans outline-none focus:border-dim transition-colors"
                 style={{ fontSize: '11px' }}
               />
@@ -1012,6 +1040,13 @@ export default function Invoices() {
                 className="w-full bg-cell border border-border text-polar px-3 py-1.5 font-sans outline-none focus:border-dim transition-colors"
                 style={{ fontSize: '11px' }}
               />
+              <input
+                value={builderClientPhone}
+                onChange={e => setBuilderClientPhone(e.target.value)}
+                placeholder="Client phone (optional)"
+                className="w-full bg-cell border border-border text-polar px-3 py-1.5 font-sans outline-none focus:border-dim transition-colors"
+                style={{ fontSize: '11px' }}
+              />
             </div>
           </div>
 
@@ -1019,18 +1054,15 @@ export default function Invoices() {
           <div className="border-t border-border" />
 
           {/* Invoice details row */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-4 gap-3">
             <div className="space-y-1">
               <span className="label text-dim">INVOICE #</span>
-              <div className="flex">
-                <span className="bg-surface border border-border border-r-0 text-dim px-2.5 py-2 mono flex items-center select-none" style={{ fontSize: '12px' }}>GTH-</span>
-                <input
-                  value={builderNum}
-                  onChange={e => setBuilderNum(e.target.value)}
-                  className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors mono"
-                  style={{ fontSize: '12px' }}
-                />
-              </div>
+              <input
+                value={builderNum}
+                onChange={e => setBuilderNum(e.target.value)}
+                className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors mono"
+                style={{ fontSize: '12px' }}
+              />
             </div>
             <div className="space-y-1">
               <span className="label text-dim">DATE</span>
@@ -1050,6 +1082,32 @@ export default function Invoices() {
                 onChange={e => setBuilderDueDate(e.target.value)}
                 className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors"
                 style={{ fontSize: '12px' }}
+              />
+            </div>
+            <div className="space-y-1">
+              <span className="label text-dim">CURRENCY</span>
+              <select
+                value={builderCurrency}
+                onChange={e => setBuilderCurrency(e.target.value)}
+                className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors"
+                style={{ fontSize: '12px' }}
+              >
+                <option value="CAD">CAD</option>
+                <option value="USD">USD</option>
+              </select>
+            </div>
+          </div>
+
+          {/* GST Number row */}
+          <div className="grid grid-cols-4 gap-3">
+            <div className="space-y-1 col-span-2">
+              <span className="label text-dim">GST NUMBER</span>
+              <input
+                value={builderGstNumber}
+                onChange={e => setBuilderGstNumber(e.target.value)}
+                placeholder="GST registration number"
+                className="w-full bg-cell border border-border text-polar px-3 py-1.5 font-sans outline-none focus:border-dim transition-colors mono"
+                style={{ fontSize: '11px' }}
               />
             </div>
           </div>
@@ -1250,6 +1308,20 @@ export default function Invoices() {
                 style={{ fontSize: '12px' }}
               />
             </div>
+          </div>
+
+          {/* Terms & Conditions */}
+          <div className="space-y-2">
+            <span className="label text-dim">TERMS & CONDITIONS</span>
+            <textarea
+              value={builderTermsText}
+              onChange={e => setBuilderTermsText(e.target.value)}
+              rows={5}
+              className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors resize-none"
+              style={{ fontSize: '11px', lineHeight: '1.6' }}
+              placeholder="Legal terms and conditions..."
+            />
+            <p className="text-dim" style={{ fontSize: '10px' }}>Each line becomes a separate paragraph on the PDF.</p>
           </div>
 
           {/* Action buttons */}
