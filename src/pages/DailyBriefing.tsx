@@ -4,6 +4,9 @@ import { useAppStore } from '@/lib/store'
 import { getGreeting, formatCurrency, isOverdue, daysSince, relativeDate } from '@/lib/utils'
 import { useRelativeTime } from '@/hooks/useRelativeTime'
 import { Plus } from 'lucide-react'
+import AchievementBadges from '@/components/ui/AchievementBadges'
+import WeeklyScorecard from '@/components/ui/WeeklyScorecard'
+import ActivityHeatmap from '@/components/ui/ActivityHeatmap'
 
 // --------------- DAILY QUOTES ---------------
 const DAILY_QUOTES: { text: string; author: string }[] = [
@@ -410,6 +413,11 @@ export default function DailyBriefing() {
         </div>
       </div>
 
+      {/* ---- WEEKLY SCORECARD ---- */}
+      <div style={{ marginTop: 36 }}>
+        <WeeklyScorecard />
+      </div>
+
       {/* ---- YESTERDAY'S WINS ---- */}
       {yesterdayWins.length > 0 && (
         <div style={{ marginTop: 36 }}>
@@ -448,6 +456,11 @@ export default function DailyBriefing() {
           </div>
         </div>
       )}
+
+      {/* ---- ACTIVITY HEATMAP ---- */}
+      <div style={{ marginTop: 36 }}>
+        <ActivityHeatmap />
+      </div>
 
       {/* ---- ONE THING THAT NEEDS YOU ---- */}
       {oneThingCard && (
@@ -550,6 +563,11 @@ export default function DailyBriefing() {
           </div>
         </div>
       )}
+
+      {/* ---- ACHIEVEMENTS ---- */}
+      <div style={{ marginTop: 36 }}>
+        <AchievementBadges streak={streak} />
+      </div>
 
       {/* ---- CTA BUTTON ---- */}
       <div style={{ marginTop: 48, textAlign: 'center' }}>

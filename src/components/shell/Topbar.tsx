@@ -1,5 +1,5 @@
 import { useAppStore } from '@/lib/store'
-import { Search, Timer, Sparkles, Clock, Menu, Moon, Sun, HelpCircle, WifiOff, Wifi, Square, Flame } from 'lucide-react'
+import { Search, Timer, Sparkles, Clock, Menu, Moon, Sun, HelpCircle, WifiOff, Wifi, Square, Flame, Eye, EyeOff } from 'lucide-react'
 import { timeEntries as timeEntriesApi } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus'
@@ -12,7 +12,7 @@ interface TopbarProps {
 }
 
 export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
-  const { setCommandPaletteOpen, aiPanelOpen, setAiPanelOpen, pomodoroOpen, setPomodoroOpen, pomodoroActive, pomodoroDisplay, pomodoroPhase, settings, runningTimer, sidebarOpen, setSidebarOpen, theme, setTheme } = useAppStore()
+  const { setCommandPaletteOpen, aiPanelOpen, setAiPanelOpen, pomodoroOpen, setPomodoroOpen, pomodoroActive, pomodoroDisplay, pomodoroPhase, settings, runningTimer, sidebarOpen, setSidebarOpen, theme, setTheme, focusMode, setFocusMode } = useAppStore()
   const connectionStatus = useOnlineStatus()
   const displayName = settings.display_name || 'Omar Alladina'
   const initials = settings.avatar_initials || 'OA'
@@ -151,6 +151,20 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
       >
         <Sparkles size={13} />
         <span style={{ fontSize: '11px', fontWeight: 600 }}>AI</span>
+      </button>
+
+      {/* Focus Mode toggle */}
+      <button
+        onClick={() => setFocusMode(!focusMode)}
+        className="topbar-icon-btn flex items-center justify-center w-8 h-8"
+        style={{
+          color: focusMode ? '#F59E0B' : 'rgba(255,255,255,0.5)',
+          backgroundColor: focusMode ? 'rgba(245,158,11,0.15)' : 'transparent',
+        }}
+        title={focusMode ? 'Exit Focus Mode' : 'Enter Focus Mode (hide sidebar)'}
+        aria-label="Toggle focus mode"
+      >
+        {focusMode ? <Eye size={13} /> : <EyeOff size={13} />}
       </button>
 
       {/* Theme toggle */}

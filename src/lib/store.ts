@@ -112,6 +112,8 @@ interface AppStore {
   pomodoroActive: boolean
   pomodoroDisplay: string  // e.g. "Focus 24:13" or "Break 04:50"
   pomodoroPhase: 'work' | 'break'
+  focusMode: boolean
+  setFocusMode: (on: boolean) => void
   sidebarOpen: boolean
   runningTimer: TimeEntry | null
   theme: 'light' | 'dark'
@@ -204,6 +206,8 @@ export const useAppStore = create<AppStore>((set) => ({
   pomodoroActive: false,
   pomodoroDisplay: '',
   pomodoroPhase: 'work' as const,
+  focusMode: false,
+  setFocusMode: (on) => set({ focusMode: on, sidebarOpen: false }),
   sidebarOpen: false,
   runningTimer: null,
   theme: (localStorage.getItem('gth_theme') as 'light' | 'dark') || 'light',

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Eye } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { useCompanyProfile } from '@/hooks/useCompanyProfile'
 import Topbar from './Topbar'
@@ -76,7 +77,7 @@ const pageMap: Record<string, React.ComponentType> = {
 }
 
 export default function Shell({ onLock }: ShellProps) {
-  const { currentPage, setCommandPaletteOpen, setCurrentPage, setAiPanelOpen, aiPanelOpen, pomodoroOpen, setPomodoroOpen, sidebarOpen, setSidebarOpen, demoMode, exitDemoMode, settings, refreshSettings } = useAppStore()
+  const { currentPage, setCommandPaletteOpen, setCurrentPage, setAiPanelOpen, aiPanelOpen, pomodoroOpen, setPomodoroOpen, sidebarOpen, setSidebarOpen, demoMode, exitDemoMode, settings, refreshSettings, focusMode, setFocusMode } = useAppStore()
   const profile = useCompanyProfile()
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [quickAddOpen, setQuickAddOpen] = useState(false)
@@ -114,6 +115,7 @@ export default function Shell({ onLock }: ShellProps) {
 
       // Ctrl/Cmd shortcuts work always
       if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'F' && e.shiftKey) { e.preventDefault(); setFocusMode(!focusMode); return }
         switch (e.key) {
           case 'k': e.preventDefault(); setCommandPaletteOpen(true); return
           case 'j': e.preventDefault(); setAiPanelOpen(!aiPanelOpen); return
@@ -167,7 +169,7 @@ export default function Shell({ onLock }: ShellProps) {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onLock, setCommandPaletteOpen, setCurrentPage, setAiPanelOpen, aiPanelOpen])
+  }, [onLock, setCommandPaletteOpen, setCurrentPage, setAiPanelOpen, aiPanelOpen, focusMode, setFocusMode])
 
   // Browser back/forward button support
   useEffect(() => {
@@ -194,18 +196,22 @@ export default function Shell({ onLock }: ShellProps) {
     <div className="h-screen w-screen flex flex-col bg-obsidian overflow-hidden">
       <Topbar onLock={onLock} onHelpClick={() => setShortcutsOpen(true)} />
       <div className="flex flex-1 overflow-hidden relative">
-        {/* Mobile sidebar overlay */}
-        {sidebarOpen && (
-          <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
+        {!focusMode && (
+          <>
+            {/* Mobile sidebar overlay */}
+            {sidebarOpen && (
+              <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
+            )}
+            {/* Sidebar - hidden on mobile unless open */}
+            <div className={`
+              fixed inset-y-0 left-0 z-50 w-56 transform transition-transform duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] md:relative md:translate-x-0 md:w-48 md:z-auto
+              ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+            `} style={{ top: 'var(--topbar-h, 44px)' }}>
+              <Sidebar onNavigate={() => setSidebarOpen(false)} />
+            </div>
+          </>
         )}
-        {/* Sidebar - hidden on mobile unless open */}
-        <div className={`
-          fixed inset-y-0 left-0 z-50 w-56 transform transition-transform duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] md:relative md:translate-x-0 md:w-48 md:z-auto
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        `} style={{ top: 'var(--topbar-h, 44px)' }}>
-          <Sidebar onNavigate={() => setSidebarOpen(false)} />
-        </div>
-        <main className="shell-main flex-1 overflow-y-auto p-3 md:p-6">
+        <main className={`shell-main flex-1 overflow-y-auto p-3 md:p-6 ${focusMode ? 'focus-vignette' : ''}`}>
           {demoMode && (
             <div className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-amber-500/15 border border-amber-500/30 px-4 py-2 text-sm text-amber-300">
               <span className="font-semibold tracking-wide">DEMO MODE — Sample data shown</span>
@@ -224,6 +230,19 @@ export default function Shell({ onLock }: ShellProps) {
           </ErrorBoundary>
         </main>
       </div>
+
+      {focusMode && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40">
+          <button
+            onClick={() => setFocusMode(false)}
+            className="flex items-center gap-2 px-4 py-2 bg-surface/90 border border-border rounded-full text-dim hover:text-polar transition-colors backdrop-blur-sm shadow-lg"
+            style={{ fontSize: '11px', fontWeight: 600 }}
+          >
+            <Eye size={12} />
+            Exit Focus Mode
+          </button>
+        </div>
+      )}
 
       {aiPanelOpen && <AiPanel />}
       {pomodoroOpen && <PomodoroTimer onClose={() => setPomodoroOpen(false)} />}
