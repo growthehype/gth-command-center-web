@@ -17,10 +17,17 @@ import {
   format,
   startOfWeek,
   endOfWeek,
+  startOfMonth,
+  endOfMonth,
   addWeeks,
   subWeeks,
+  addMonths,
+  subMonths,
+  addDays,
   eachDayOfInterval,
   isToday,
+  isSameMonth,
+  isSameDay,
 } from 'date-fns'
 import {
   ChevronLeft,
@@ -38,6 +45,8 @@ import {
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8) // 8..20
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
+type CalendarView = 'week' | 'month' | 'agenda'
+
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */
 /* ------------------------------------------------------------------ */
@@ -53,6 +62,29 @@ function ampm(h: number): string {
 
 function pad2(n: number): string {
   return String(n).padStart(2, '0')
+}
+
+function formatTimeRange(startTime: string | undefined, endTime: string | undefined, allDay: boolean): string {
+  if (allDay) return 'All day'
+  const s = startTime?.slice(0, 5) ?? ''
+  const e = endTime?.slice(0, 5) ?? ''
+  if (!s) return ''
+  const formatT = (t: string) => {
+    const [hStr, m] = t.split(':')
+    const h = parseInt(hStr, 10)
+    const suffix = h < 12 ? 'AM' : 'PM'
+    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
+    return `${h12}:${m} ${suffix}`
+  }
+  return `${formatT(s)} - ${formatT(e)}`
+}
+
+function agendaDateLabel(date: Date): string {
+  const today = new Date()
+  if (isSameDay(date, today)) return 'Today'
+  const tomorrow = addDays(today, 1)
+  if (isSameDay(date, tomorrow)) return 'Tomorrow'
+  return format(date, 'EEEE, MMM d')
 }
 
 /* ------------------------------------------------------------------ */
@@ -102,11 +134,42 @@ function eventColor(title: string) {
 export default function Calendar() {
   const { clients } = useAppStore()
 
+  // View mode
+  const [view, setView] = useState<CalendarView>('week')
+
   // Week navigation
   const [anchor, setAnchor] = useState(new Date())
   const weekStart = useMemo(() => startOfWeek(anchor, { weekStartsOn: 1 }), [anchor])
   const weekEnd = useMemo(() => endOfWeek(anchor, { weekStartsOn: 1 }), [anchor])
   const days = useMemo(() => eachDayOfInterval({ start: weekStart, end: weekEnd }), [weekStart, weekEnd])
+
+  // Month view dates
+  const monthStart = useMemo(() => startOfMonth(anchor), [anchor])
+  const monthEnd = useMemo(() => endOfMonth(anchor), [anchor])
+  const monthGridStart = useMemo(() => startOfWeek(monthStart, { weekStartsOn: 1 }), [monthStart])
+  const monthGridEnd = useMemo(() => endOfWeek(monthEnd, { weekStartsOn: 1 }), [monthEnd])
+  const monthDays = useMemo(() => eachDayOfInterval({ start: monthGridStart, end: monthGridEnd }), [monthGridStart, monthGridEnd])
+
+  // Agenda view dates (next 14 days from today)
+  const agendaStart = useMemo(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return today
+  }, [])
+  const agendaEnd = useMemo(() => addDays(agendaStart, 13), [agendaStart])
+
+  // Compute fetch range based on view
+  const fetchStart = useMemo(() => {
+    if (view === 'month') return monthGridStart
+    if (view === 'agenda') return agendaStart
+    return weekStart
+  }, [view, weekStart, monthGridStart, agendaStart])
+
+  const fetchEnd = useMemo(() => {
+    if (view === 'month') return monthGridEnd
+    if (view === 'agenda') return agendaEnd
+    return weekEnd
+  }, [view, weekEnd, monthGridEnd, agendaEnd])
 
   // Google Calendar — start as null (loading) to avoid flash of "Connect" button
   const [googleConnected, setGoogleConnected] = useState<boolean | null>(null)
@@ -129,11 +192,11 @@ export default function Calendar() {
     })
   }, [])
 
-  // Load Google events when connected or week changes
+  // Load Google events when connected or date range changes
   const loadEvents = useCallback(() => {
     if (!googleConnected) return
     setLoading(true)
-    fetchGoogleEvents(weekStart.toISOString(), weekEnd.toISOString())
+    fetchGoogleEvents(fetchStart.toISOString(), fetchEnd.toISOString())
       .then((evts) => {
         setEvents(evts)
         setLoading(false)
@@ -143,13 +206,13 @@ export default function Calendar() {
         if (!isGoogleConnected()) setGoogleConnected(false)
         setLoading(false)
       })
-  }, [googleConnected, weekStart, weekEnd])
+  }, [googleConnected, fetchStart, fetchEnd])
 
   useEffect(() => {
     loadEvents()
   }, [loadEvents])
 
-  // Map events by day-hour key
+  // Map events by day-hour key (for week view)
   const eventMap = useMemo(() => {
     const map: Record<string, GoogleCalendarEvent[]> = {}
     events.forEach((ev) => {
@@ -161,9 +224,29 @@ export default function Calendar() {
     return map
   }, [events])
 
+  // Map events by date key (for month + agenda views)
+  const eventsByDate = useMemo(() => {
+    const map: Record<string, GoogleCalendarEvent[]> = {}
+    events.forEach((ev) => {
+      if (!map[ev.date]) map[ev.date] = []
+      map[ev.date].push(ev)
+    })
+    // Sort each day's events by start time
+    Object.values(map).forEach((arr) =>
+      arr.sort((a, b) => (a.startTime ?? '').localeCompare(b.startTime ?? ''))
+    )
+    return map
+  }, [events])
+
   /* ---- Navigation ---- */
-  const goPrev = () => setAnchor((a) => subWeeks(a, 1))
-  const goNext = () => setAnchor((a) => addWeeks(a, 1))
+  const goPrev = () => {
+    if (view === 'month') setAnchor((a) => subMonths(a, 1))
+    else setAnchor((a) => subWeeks(a, 1))
+  }
+  const goNext = () => {
+    if (view === 'month') setAnchor((a) => addMonths(a, 1))
+    else setAnchor((a) => addWeeks(a, 1))
+  }
   const goToday = () => setAnchor(new Date())
 
   /* ---- Google connect/disconnect ---- */
@@ -245,6 +328,19 @@ export default function Calendar() {
   const set = (key: keyof EventForm, val: string) =>
     setForm((f) => ({ ...f, [key]: val }))
 
+  /* ---- Switch to week view for a specific day ---- */
+  const goToWeekDay = (day: Date) => {
+    setAnchor(day)
+    setView('week')
+  }
+
+  /* ---- Date range label ---- */
+  const dateRangeLabel = useMemo(() => {
+    if (view === 'month') return format(anchor, 'MMMM yyyy')
+    if (view === 'agenda') return 'Next 14 Days'
+    return `${format(weekStart, 'MMM d')} — ${format(weekEnd, 'MMM d, yyyy')}`
+  }, [view, anchor, weekStart, weekEnd])
+
   /* ---------------------------------------------------------------- */
   /*  Render                                                          */
   /* ---------------------------------------------------------------- */
@@ -256,7 +352,7 @@ export default function Calendar() {
         <div className="flex items-center gap-4">
           <h1>Calendar</h1>
           <span className="text-steel font-mono" style={{ fontSize: '13px' }}>
-            {format(weekStart, 'MMM d')} — {format(weekEnd, 'MMM d, yyyy')}
+            {dateRangeLabel}
           </span>
           {loading && (
             <span className="text-dim" style={{ fontSize: '11px' }}>Syncing...</span>
@@ -295,16 +391,20 @@ export default function Calendar() {
             </button>
           )}
 
-          {/* Nav */}
-          <button className="btn-ghost px-2 py-2" onClick={goPrev}>
-            <ChevronLeft size={14} />
-          </button>
-          <button className="btn-ghost" onClick={goToday}>
-            Today
-          </button>
-          <button className="btn-ghost px-2 py-2" onClick={goNext}>
-            <ChevronRight size={14} />
-          </button>
+          {/* Nav (hide prev/next/today on agenda view) */}
+          {view !== 'agenda' && (
+            <>
+              <button className="btn-ghost px-2 py-2" onClick={goPrev}>
+                <ChevronLeft size={14} />
+              </button>
+              <button className="btn-ghost" onClick={goToday}>
+                Today
+              </button>
+              <button className="btn-ghost px-2 py-2" onClick={goNext}>
+                <ChevronRight size={14} />
+              </button>
+            </>
+          )}
 
           {/* New event */}
           <button
@@ -323,6 +423,34 @@ export default function Calendar() {
           </button>
         </div>
       </div>
+
+      {/* ---- View toggle tabs ---- */}
+      {googleConnected === true && (
+        <div className="flex items-center gap-1 mb-4">
+          {(['week', 'month', 'agenda'] as CalendarView[]).map((v) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                padding: '6px 14px',
+                background: view === v ? 'var(--color-polar)' : 'transparent',
+                color: view === v ? 'var(--color-obsidian)' : 'var(--color-steel)',
+                border: '1px solid',
+                borderColor: view === v ? 'var(--color-polar)' : 'var(--color-border)',
+                cursor: 'pointer',
+                transition: 'all 150ms',
+              }}
+              className={view !== v ? 'hover:border-dim hover:text-polar' : ''}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Not connected state — only show after hydration (not during loading) */}
       {googleConnected === false && (
@@ -343,8 +471,8 @@ export default function Calendar() {
         </div>
       )}
 
-      {/* ---- Calendar grid (only when connected) ---- */}
-      {googleConnected === true && (
+      {/* ---- WEEK VIEW (existing, unchanged) ---- */}
+      {googleConnected === true && view === 'week' && (
         <div className="flex-1 overflow-x-auto -mx-3 px-3 md:mx-0 md:px-0">
           <div
             style={{
@@ -465,6 +593,323 @@ export default function Calendar() {
               </>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* ---- MONTH VIEW ---- */}
+      {googleConnected === true && view === 'month' && (
+        <div className="flex-1 overflow-x-auto -mx-3 px-3 md:mx-0 md:px-0">
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, 1fr)',
+              gap: '1px',
+              background: 'var(--color-border)',
+              minWidth: '700px',
+            }}
+          >
+            {/* ---- Day-of-week headers ---- */}
+            {DAY_LABELS.map((label) => (
+              <div
+                key={label}
+                style={{
+                  background: 'var(--color-surface)',
+                  padding: '8px',
+                  textAlign: 'center',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  color: 'var(--color-steel)',
+                }}
+              >
+                {label}
+              </div>
+            ))}
+
+            {/* ---- Day cells ---- */}
+            {monthDays.map((day, i) => {
+              const dateStr = format(day, 'yyyy-MM-dd')
+              const dayEvents = eventsByDate[dateStr] ?? []
+              const inMonth = isSameMonth(day, anchor)
+              const today = isToday(day)
+              const maxPreview = 3
+              const overflow = dayEvents.length - maxPreview
+
+              return (
+                <div
+                  key={i}
+                  onClick={() => goToWeekDay(day)}
+                  style={{
+                    background: today
+                      ? 'var(--color-surface-2)'
+                      : 'var(--color-cell)',
+                    minHeight: '90px',
+                    padding: '4px 6px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}
+                  className="hover:bg-ghost transition-colors duration-100"
+                >
+                  {/* Day number */}
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      fontWeight: today ? 800 : 500,
+                      fontFamily: "'Space Mono', monospace",
+                      color: !inMonth
+                        ? 'var(--color-dim)'
+                        : today
+                          ? 'var(--color-polar)'
+                          : 'var(--color-steel)',
+                      marginBottom: '3px',
+                    }}
+                  >
+                    {today ? (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '22px',
+                          height: '22px',
+                          background: 'var(--color-polar)',
+                          color: 'var(--color-obsidian)',
+                          fontWeight: 800,
+                        }}
+                      >
+                        {format(day, 'd')}
+                      </span>
+                    ) : (
+                      format(day, 'd')
+                    )}
+                  </div>
+
+                  {/* Event previews */}
+                  <div style={{ flex: 1, overflow: 'hidden' }}>
+                    {dayEvents.slice(0, maxPreview).map((ev) => {
+                      const color = eventColor(ev.title)
+                      return (
+                        <div
+                          key={ev.id}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setViewEvent(ev)
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '10px',
+                            fontWeight: 600,
+                            lineHeight: 1.4,
+                            marginBottom: '1px',
+                            overflow: 'hidden',
+                            whiteSpace: 'nowrap',
+                            textOverflow: 'ellipsis',
+                            padding: '1px 3px',
+                            cursor: 'pointer',
+                          }}
+                          title={`${ev.title} (${ev.startTime} - ${ev.endTime})`}
+                        >
+                          <div
+                            style={{
+                              width: '5px',
+                              height: '5px',
+                              borderRadius: '50%',
+                              background: color.border,
+                              flexShrink: 0,
+                            }}
+                          />
+                          <span
+                            style={{
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              color: inMonth ? 'var(--color-polar)' : 'var(--color-dim)',
+                            }}
+                          >
+                            {ev.title}
+                          </span>
+                        </div>
+                      )
+                    })}
+                    {overflow > 0 && (
+                      <div
+                        style={{
+                          fontSize: '9px',
+                          fontWeight: 700,
+                          color: 'var(--color-steel)',
+                          padding: '1px 3px',
+                        }}
+                      >
+                        +{overflow} more
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ---- AGENDA VIEW ---- */}
+      {googleConnected === true && view === 'agenda' && (
+        <div className="flex-1 overflow-y-auto -mx-3 px-3 md:mx-0 md:px-0">
+          {(() => {
+            const agendaDays: { date: Date; dateStr: string; events: GoogleCalendarEvent[] }[] = []
+            for (let i = 0; i < 14; i++) {
+              const day = addDays(agendaStart, i)
+              const dateStr = format(day, 'yyyy-MM-dd')
+              const dayEvents = eventsByDate[dateStr]
+              if (dayEvents && dayEvents.length > 0) {
+                agendaDays.push({ date: day, dateStr, events: dayEvents })
+              }
+            }
+
+            if (agendaDays.length === 0) {
+              return (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <p className="text-dim" style={{ fontSize: '13px' }}>
+                    No events in the next 14 days.
+                  </p>
+                </div>
+              )
+            }
+
+            return (
+              <div style={{ maxWidth: '680px' }}>
+                {agendaDays.map(({ date, dateStr, events: dayEvents }) => (
+                  <div key={dateStr} style={{ marginBottom: '20px' }}>
+                    {/* Date header */}
+                    <div
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase',
+                        color: isToday(date) ? 'var(--color-polar)' : 'var(--color-steel)',
+                        padding: '6px 0',
+                        borderBottom: '1px solid var(--color-border)',
+                        marginBottom: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      {isToday(date) && (
+                        <div
+                          style={{
+                            width: '6px',
+                            height: '6px',
+                            borderRadius: '50%',
+                            background: '#4285F4',
+                          }}
+                        />
+                      )}
+                      {agendaDateLabel(date)}
+                      <span
+                        className="font-mono"
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 500,
+                          color: 'var(--color-dim)',
+                          letterSpacing: '0.02em',
+                          textTransform: 'none',
+                        }}
+                      >
+                        {format(date, 'MMM d')}
+                      </span>
+                    </div>
+
+                    {/* Events for this day */}
+                    {dayEvents.map((ev) => {
+                      const color = eventColor(ev.title)
+                      // Try to extract client name from title (format: "Title — ClientName")
+                      const dashIdx = ev.title.indexOf(' — ')
+                      const displayTitle = dashIdx > -1 ? ev.title.slice(0, dashIdx) : ev.title
+                      const clientName = dashIdx > -1 ? ev.title.slice(dashIdx + 3) : null
+
+                      return (
+                        <div
+                          key={ev.id}
+                          onClick={() => setViewEvent(ev)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '12px',
+                            padding: '8px 6px',
+                            cursor: 'pointer',
+                            borderLeft: `3px solid ${color.border}`,
+                            background: color.bg,
+                            marginBottom: '2px',
+                            transition: 'opacity 150ms',
+                          }}
+                          className="hover:opacity-80"
+                        >
+                          {/* Time */}
+                          <div
+                            className="font-mono"
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              color: color.border,
+                              minWidth: '110px',
+                              flexShrink: 0,
+                              paddingTop: '1px',
+                            }}
+                          >
+                            {formatTimeRange(ev.startTime, ev.endTime, ev.allDay)}
+                          </div>
+
+                          {/* Details */}
+                          <div style={{ flex: 1, overflow: 'hidden' }}>
+                            <div
+                              style={{
+                                fontSize: '13px',
+                                fontWeight: 600,
+                                color: 'var(--color-polar)',
+                                overflow: 'hidden',
+                                whiteSpace: 'nowrap',
+                                textOverflow: 'ellipsis',
+                              }}
+                            >
+                              {displayTitle}
+                            </div>
+                            {clientName && (
+                              <div
+                                style={{
+                                  fontSize: '11px',
+                                  color: 'var(--color-steel)',
+                                  marginTop: '1px',
+                                  overflow: 'hidden',
+                                  whiteSpace: 'nowrap',
+                                  textOverflow: 'ellipsis',
+                                }}
+                              >
+                                {clientName}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Type badge */}
+                          {ev.allDay && (
+                            <span
+                              className="badge badge-neutral"
+                              style={{ fontSize: '9px', flexShrink: 0 }}
+                            >
+                              ALL DAY
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
         </div>
       )}
 

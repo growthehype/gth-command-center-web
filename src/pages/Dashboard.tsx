@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { format, parseISO, addDays, isWithinInterval, startOfDay } from 'date-fns'
+import { format, parseISO, addDays, isWithinInterval, startOfDay, subMonths, startOfMonth, endOfMonth } from 'date-fns'
 import { useAppStore } from '@/lib/store'
 import {
   formatCurrency,
@@ -20,6 +20,251 @@ const PRIORITY_WEIGHT: Record<string, number> = {
   medium: 2,
   low: 3,
   none: 4,
+}
+
+// ===================== SPARKLINE COMPONENT =====================
+
+function Sparkline({
+  data,
+  width = 80,
+  height = 40,
+  color = '#22C55E',
+  fillOpacity = 0.15,
+}: {
+  data: number[]
+  width?: number
+  height?: number
+  color?: string
+  fillOpacity?: number
+}) {
+  if (data.length < 2) return null
+  const max = Math.max(...data, 1)
+  const min = Math.min(...data, 0)
+  const range = max - min || 1
+  const padding = 2
+
+  const points = data.map((v, i) => {
+    const x = padding + (i / (data.length - 1)) * (width - padding * 2)
+    const y = height - padding - ((v - min) / range) * (height - padding * 2)
+    return `${x},${y}`
+  })
+
+  const polylineStr = points.join(' ')
+  // Create fill path: same line but close to bottom
+  const firstX = padding
+  const lastX = padding + ((data.length - 1) / (data.length - 1)) * (width - padding * 2)
+  const fillPath = `M${firstX},${height - padding} L${points.map(p => p).join(' L')} L${lastX},${height - padding} Z`
+
+  return (
+    <svg width={width} height={height} style={{ display: 'block', overflow: 'visible' }}>
+      <path d={fillPath} fill={color} opacity={fillOpacity} />
+      <polyline
+        points={polylineStr}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* Dot on last point */}
+      {data.length > 0 && (() => {
+        const lastPt = points[points.length - 1].split(',')
+        return (
+          <circle cx={lastPt[0]} cy={lastPt[1]} r="2.5" fill={color} />
+        )
+      })()}
+    </svg>
+  )
+}
+
+// ===================== PERIOD COMPARISON BADGE =====================
+
+function PeriodBadge({ current, previous, label = 'vs last month' }: { current: number; previous: number; label?: string }) {
+  if (previous === 0 && current === 0) return null
+  const pctChange = previous === 0 ? (current > 0 ? 100 : 0) : Math.round(((current - previous) / previous) * 100)
+  if (pctChange === 0) return null
+  const isUp = pctChange > 0
+  return (
+    <span
+      className={isUp ? 'text-ok' : 'text-err'}
+      style={{ fontSize: '10px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+    >
+      {isUp ? '\u2191' : '\u2193'}{Math.abs(pctChange)}%
+      <span className="text-dim" style={{ fontWeight: 400 }}>{label}</span>
+    </span>
+  )
+}
+
+// ===================== REVENUE TREND CHART (SVG) =====================
+
+function RevenueTrendChart({
+  months,
+}: {
+  months: { label: string; value: number; isCurrent: boolean }[]
+}) {
+  const chartW = 100 // percentage-based, we use viewBox
+  const chartH = 200
+  const padTop = 20
+  const padBottom = 30
+  const padLeft = 60
+  const padRight = 16
+  const innerW = chartW
+  const barAreaH = chartH - padTop - padBottom
+
+  const maxVal = Math.max(...months.map((m) => m.value), 1)
+  // Round up to nice number for y-axis
+  const yMax = Math.ceil(maxVal / 1000) * 1000 || 1000
+  const yTicks = 4
+  const barCount = months.length
+  const gap = 12
+  const totalGaps = (barCount + 1) * gap
+  const viewBoxW = padLeft + padRight + totalGaps + barCount * 48
+
+  return (
+    <svg
+      viewBox={`0 0 ${viewBoxW} ${chartH}`}
+      width="100%"
+      height={chartH}
+      style={{ display: 'block' }}
+      preserveAspectRatio="xMidYMid meet"
+    >
+      {/* Y-axis labels and grid lines */}
+      {Array.from({ length: yTicks + 1 }).map((_, i) => {
+        const val = (yMax / yTicks) * i
+        const y = padTop + barAreaH - (val / yMax) * barAreaH
+        return (
+          <g key={i}>
+            <line
+              x1={padLeft}
+              x2={viewBoxW - padRight}
+              y1={y}
+              y2={y}
+              stroke="rgba(136,136,136,0.15)"
+              strokeWidth="0.5"
+            />
+            <text
+              x={padLeft - 8}
+              y={y + 3}
+              fill="#888"
+              fontSize="9"
+              fontFamily="'Space Mono', monospace"
+              textAnchor="end"
+            >
+              ${(val / 1000).toFixed(val >= 1000 ? 0 : 1)}k
+            </text>
+          </g>
+        )
+      })}
+
+      {/* Bars */}
+      {months.map((m, i) => {
+        const barW = 48
+        const x = padLeft + gap + i * (barW + gap)
+        const barH = (m.value / yMax) * barAreaH
+        const y = padTop + barAreaH - barH
+        const baseColor = m.isCurrent ? '#2563EB' : 'rgba(136,136,136,0.35)'
+        const hoverColor = m.isCurrent ? '#3B82F6' : 'rgba(136,136,136,0.5)'
+
+        return (
+          <g key={i}>
+            <rect
+              x={x}
+              y={y}
+              width={barW}
+              height={Math.max(barH, 1)}
+              fill={baseColor}
+              style={{ transition: 'all 0.3s ease' }}
+            >
+              <animate attributeName="fill" from={baseColor} to={hoverColor} dur="0.2s" begin="mouseover" fill="freeze" />
+              <animate attributeName="fill" from={hoverColor} to={baseColor} dur="0.2s" begin="mouseout" fill="freeze" />
+            </rect>
+            {/* Value on top */}
+            {m.value > 0 && (
+              <text
+                x={x + barW / 2}
+                y={y - 5}
+                fill={m.isCurrent ? '#FFF' : '#888'}
+                fontSize="9"
+                fontFamily="'Space Mono', monospace"
+                textAnchor="middle"
+                fontWeight={m.isCurrent ? 700 : 400}
+              >
+                ${(m.value / 1000).toFixed(1)}k
+              </text>
+            )}
+            {/* X-axis label */}
+            <text
+              x={x + barW / 2}
+              y={chartH - 6}
+              fill={m.isCurrent ? '#FFF' : '#888'}
+              fontSize="9"
+              fontFamily="'Space Mono', monospace"
+              textAnchor="middle"
+              fontWeight={m.isCurrent ? 700 : 400}
+            >
+              {m.label}
+            </text>
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
+
+// ===================== CASH FLOW PROGRESS BAR =====================
+
+function CashFlowBar({ collected, total }: { collected: number; total: number }) {
+  const pct = total > 0 ? Math.min((collected / total) * 100, 100) : 0
+  return (
+    <div className="w-full" style={{ height: '8px', backgroundColor: 'rgba(136,136,136,0.15)' }}>
+      <div
+        style={{
+          height: '100%',
+          width: `${pct}%`,
+          background: pct >= 80 ? '#22C55E' : pct >= 50 ? '#F59E0B' : '#FF3333',
+          transition: 'width 0.5s ease',
+        }}
+      />
+    </div>
+  )
+}
+
+// ===================== CLIENT HEALTH DOT BAR =====================
+
+function ClientHealthBar({ distribution }: { distribution: { label: string; count: number; color: string }[] }) {
+  const total = distribution.reduce((s, d) => s + d.count, 0)
+  if (total === 0) return <p className="text-dim" style={{ fontSize: '12px' }}>No active clients.</p>
+
+  return (
+    <div>
+      {/* Stacked horizontal bar */}
+      <div className="flex" style={{ height: '12px', overflow: 'hidden' }}>
+        {distribution.map((d) =>
+          d.count > 0 ? (
+            <div
+              key={d.label}
+              style={{
+                width: `${(d.count / total) * 100}%`,
+                backgroundColor: d.color,
+                minWidth: d.count > 0 ? '4px' : '0',
+                transition: 'width 0.5s ease',
+              }}
+            />
+          ) : null,
+        )}
+      </div>
+      {/* Legend row */}
+      <div className="flex items-center gap-4 mt-2 flex-wrap">
+        {distribution.map((d) => (
+          <div key={d.label} className="flex items-center gap-1.5">
+            <div style={{ width: '8px', height: '8px', backgroundColor: d.color }} />
+            <span className="text-dim" style={{ fontSize: '11px' }}>{d.label}</span>
+            <span className="mono text-steel" style={{ fontSize: '11px' }}>{d.count}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export default function Dashboard() {
@@ -85,6 +330,137 @@ export default function Dashboard() {
       ),
     [clients],
   )
+
+  // ===================== PERIOD COMPARISONS =====================
+
+  const currentMonthStart = startOfMonth(now)
+  const currentMonthEnd = endOfMonth(now)
+  const prevMonthStart = startOfMonth(subMonths(now, 1))
+  const prevMonthEnd = endOfMonth(subMonths(now, 1))
+
+  const isInRange = (dateStr: string | null, start: Date, end: Date): boolean => {
+    if (!dateStr) return false
+    try {
+      const d = parseISO(dateStr)
+      return isWithinInterval(d, { start, end })
+    } catch {
+      return false
+    }
+  }
+
+  // Invoice comparisons (current month vs previous month)
+  const currentMonthInvoices = useMemo(
+    () => invoices.filter((i) => isInRange(i.created_at, currentMonthStart, currentMonthEnd)),
+    [invoices, currentMonthStart, currentMonthEnd],
+  )
+  const prevMonthInvoices = useMemo(
+    () => invoices.filter((i) => isInRange(i.created_at, prevMonthStart, prevMonthEnd)),
+    [invoices, prevMonthStart, prevMonthEnd],
+  )
+
+  const currentMonthInvoiceTotal = currentMonthInvoices.reduce((s, i) => s + (i.amount || 0), 0)
+  const prevMonthInvoiceTotal = prevMonthInvoices.reduce((s, i) => s + (i.amount || 0), 0)
+
+  // Task comparisons
+  const currentMonthTasksCompleted = useMemo(
+    () => tasks.filter((t) => isInRange(t.completed_at, currentMonthStart, currentMonthEnd)).length,
+    [tasks, currentMonthStart, currentMonthEnd],
+  )
+  const prevMonthTasksCompleted = useMemo(
+    () => tasks.filter((t) => isInRange(t.completed_at, prevMonthStart, prevMonthEnd)).length,
+    [tasks, prevMonthStart, prevMonthEnd],
+  )
+
+  // ===================== SPARKLINE DATA =====================
+
+  // MRR sparkline: last 6 months of total invoiced revenue
+  const mrrSparklineData = useMemo(() => {
+    const data: number[] = []
+    for (let i = 5; i >= 0; i--) {
+      const mStart = startOfMonth(subMonths(now, i))
+      const mEnd = endOfMonth(subMonths(now, i))
+      const total = invoices
+        .filter((inv) => isInRange(inv.created_at, mStart, mEnd))
+        .reduce((s, inv) => s + (inv.amount || 0), 0)
+      data.push(total)
+    }
+    // If all zeroes, use current MRR as the last point to show something
+    if (data.every((d) => d === 0) && mrr > 0) {
+      data[data.length - 1] = mrr
+    }
+    return data
+  }, [invoices, mrr])
+
+  // Task completion sparkline: last 7 days
+  const taskSparklineData = useMemo(() => {
+    const data: number[] = []
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date()
+      d.setDate(d.getDate() - i)
+      const dateStr = format(d, 'yyyy-MM-dd')
+      data.push(tasks.filter((t) => t.completed_at && t.completed_at.startsWith(dateStr)).length)
+    }
+    return data
+  }, [tasks])
+
+  // ===================== REVENUE TREND (LAST 6 MONTHS) =====================
+
+  const revenueTrendMonths = useMemo(() => {
+    const result: { label: string; value: number; isCurrent: boolean }[] = []
+    for (let i = 5; i >= 0; i--) {
+      const mDate = subMonths(now, i)
+      const mStart = startOfMonth(mDate)
+      const mEnd = endOfMonth(mDate)
+      const total = invoices
+        .filter((inv) => isInRange(inv.created_at, mStart, mEnd))
+        .reduce((s, inv) => s + (inv.amount || 0), 0)
+      result.push({
+        label: format(mDate, 'MMM'),
+        value: total,
+        isCurrent: i === 0,
+      })
+    }
+    return result
+  }, [invoices])
+
+  // ===================== CASH FLOW =====================
+
+  const cashFlow = useMemo(() => {
+    const thisMonthInvoices = invoices.filter((i) => isInRange(i.created_at, currentMonthStart, currentMonthEnd))
+    const invoicedTotal = thisMonthInvoices.reduce((s, i) => s + (i.amount || 0), 0)
+    const collectedTotal = thisMonthInvoices
+      .filter((i) => i.status === 'paid')
+      .reduce((s, i) => s + (i.amount || 0), 0)
+    const outstanding = invoicedTotal - collectedTotal
+    const collectionRate = invoicedTotal > 0 ? Math.round((collectedTotal / invoicedTotal) * 100) : 0
+    return { invoicedTotal, collectedTotal, outstanding, collectionRate }
+  }, [invoices, currentMonthStart, currentMonthEnd])
+
+  // ===================== CLIENT HEALTH DISTRIBUTION =====================
+
+  const clientHealthDistribution = useMemo(() => {
+    const activeClients = clients.filter((c) => c.status === 'active')
+    let healthy = 0
+    let needsCheckin = 0
+    let stale = 0
+    let atRisk = 0
+
+    activeClients.forEach((c) => {
+      const days = daysSince(c.last_activity)
+      const h = clientHealth(days)
+      if (h.label === 'Healthy') healthy++
+      else if (h.label === 'Needs check-in') needsCheckin++
+      else if (h.label === 'Stale') stale++
+      else atRisk++
+    })
+
+    return [
+      { label: 'Healthy', count: healthy, color: '#22C55E' },
+      { label: 'Needs Check-in', count: needsCheckin, color: '#F59E0B' },
+      { label: 'Stale', count: stale, color: '#FF3333' },
+      { label: 'At Risk', count: atRisk, color: '#CC0000' },
+    ]
+  }, [clients])
 
   // ===================== REVENUE BY CLIENT =====================
 
@@ -341,11 +717,20 @@ export default function Dashboard() {
           onClick={() => setCurrentPage('clients')}
         >
           <div className="stat-card-accent stat-card-accent--green" />
-          <div className="stat-value">
-            {formatCurrency(mrr)}
-            {trendArrow(revenueByClient.length)}
+          <div className="flex items-end justify-between gap-2">
+            <div>
+              <div className="stat-value">
+                {formatCurrency(mrr)}
+              </div>
+              <div className="stat-label">MRR</div>
+              <div style={{ marginTop: '2px' }}>
+                <PeriodBadge current={currentMonthInvoiceTotal} previous={prevMonthInvoiceTotal} />
+              </div>
+            </div>
+            <div style={{ opacity: 0.8, flexShrink: 0 }}>
+              <Sparkline data={mrrSparklineData} width={64} height={36} color="#22C55E" />
+            </div>
           </div>
-          <div className="stat-label">MRR</div>
         </button>
 
         {/* Invoices */}
@@ -354,8 +739,15 @@ export default function Dashboard() {
           onClick={() => setCurrentPage('invoices')}
         >
           <div className="stat-card-accent stat-card-accent--cyan" />
-          <div className="stat-value">{invoiceCount}</div>
-          <div className="stat-label">Invoices</div>
+          <div className="flex items-end justify-between gap-2">
+            <div>
+              <div className="stat-value">{invoiceCount}</div>
+              <div className="stat-label">Invoices</div>
+              <div style={{ marginTop: '2px' }}>
+                <PeriodBadge current={currentMonthInvoices.length} previous={prevMonthInvoices.length} />
+              </div>
+            </div>
+          </div>
         </button>
 
         {/* Pipeline Value */}
@@ -377,15 +769,25 @@ export default function Dashboard() {
           onClick={() => setCurrentPage('tasks')}
         >
           <div className="stat-card-accent stat-card-accent--blue" />
-          <div className="stat-value">
-            {openTasks.length}
-            {overdueTaskCount > 0 && (
-              <span className="text-err" style={{ fontSize: '15px', fontWeight: 700, marginLeft: '6px' }}>
-                {overdueTaskCount} overdue
-              </span>
-            )}
+          <div className="flex items-end justify-between gap-2">
+            <div>
+              <div className="stat-value">
+                {openTasks.length}
+                {overdueTaskCount > 0 && (
+                  <span className="text-err" style={{ fontSize: '15px', fontWeight: 700, marginLeft: '6px' }}>
+                    {overdueTaskCount} overdue
+                  </span>
+                )}
+              </div>
+              <div className="stat-label">Open Tasks</div>
+              <div style={{ marginTop: '2px' }}>
+                <PeriodBadge current={currentMonthTasksCompleted} previous={prevMonthTasksCompleted} label="completed vs last mo" />
+              </div>
+            </div>
+            <div style={{ opacity: 0.8, flexShrink: 0 }}>
+              <Sparkline data={taskSparklineData} width={64} height={36} color="#2563EB" />
+            </div>
           </div>
-          <div className="stat-label">Open Tasks</div>
         </button>
 
         {/* Active Projects */}
@@ -419,7 +821,74 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* ---- ROW 2: Revenue by Client + Task Activity ---- */}
+      {/* ---- ROW 2: Revenue Trend + Cash Flow + Client Health ---- */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Revenue Trend — Last 6 Months */}
+        <div className="card lg:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="section-header" style={{ marginBottom: 0 }}>Revenue Trend &mdash; Last 6 Months</h3>
+            <span className="text-dim" style={{ fontSize: '11px' }}>
+              Total: {formatCurrency(revenueTrendMonths.reduce((s, m) => s + m.value, 0))}
+            </span>
+          </div>
+          <RevenueTrendChart months={revenueTrendMonths} />
+        </div>
+
+        {/* Cash Flow + Client Health stacked */}
+        <div className="flex flex-col gap-4">
+          {/* Cash Flow Indicator */}
+          <div className="card">
+            <h3 className="section-header" style={{ marginBottom: 8 }}>Cash Flow &mdash; {format(now, 'MMM yyyy')}</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-dim" style={{ fontSize: '12px' }}>Invoiced</span>
+                <span className="mono text-polar" style={{ fontSize: '13px', fontWeight: 600 }}>
+                  {formatCurrency(cashFlow.invoicedTotal)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-dim" style={{ fontSize: '12px' }}>Collected</span>
+                <span className="mono text-ok" style={{ fontSize: '13px', fontWeight: 600 }}>
+                  {formatCurrency(cashFlow.collectedTotal)}
+                </span>
+              </div>
+              <CashFlowBar collected={cashFlow.collectedTotal} total={cashFlow.invoicedTotal} />
+              <div className="flex items-center justify-between">
+                <span className="text-dim" style={{ fontSize: '12px' }}>Outstanding</span>
+                <span className="mono text-warn" style={{ fontSize: '13px', fontWeight: 600 }}>
+                  {formatCurrency(cashFlow.outstanding)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-dim" style={{ fontSize: '12px' }}>Collection Rate</span>
+                <span
+                  className="mono"
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    color: cashFlow.collectionRate >= 80 ? '#22C55E' : cashFlow.collectionRate >= 50 ? '#F59E0B' : '#FF3333',
+                  }}
+                >
+                  {cashFlow.collectionRate}%
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Client Health Overview */}
+          <div className="card">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="section-header" style={{ marginBottom: 0 }}>Client Health</h3>
+              <span className="text-dim" style={{ fontSize: '11px' }}>
+                {clients.filter((c) => c.status === 'active').length} active
+              </span>
+            </div>
+            <ClientHealthBar distribution={clientHealthDistribution} />
+          </div>
+        </div>
+      </div>
+
+      {/* ---- ROW 3: Revenue by Client + Task Activity ---- */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Revenue by Client */}
         <div className="card">
@@ -505,7 +974,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ---- ROW 3: Upcoming + Open Tasks + Right Sidebar ---- */}
+      {/* ---- ROW 4: Upcoming + Open Tasks + Right Sidebar ---- */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* ---- LEFT: Upcoming 7 Days with Week Glance ---- */}
         <div className="card col-span-1 flex flex-col" style={{ minHeight: '320px' }}>
@@ -763,7 +1232,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ---- ROW 4: Project Pipeline (Full Width) ---- */}
+      {/* ---- ROW 5: Project Pipeline (Full Width) ---- */}
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <h3 className="section-header" style={{ marginBottom: 0 }}>Project Pipeline</h3>
