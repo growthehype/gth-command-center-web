@@ -38,17 +38,12 @@ export default function App() {
     }
   }, [])
 
-  // Hydrate Google token from Supabase on login, and silently re-auth if expired
+  // Hydrate Google token from Supabase on login (cross-device persistence)
+  // Do NOT trigger silentReconnectIfNeeded here — that causes unwanted redirects
+  // Silent re-auth is only safe on the Calendar page itself
   useEffect(() => {
     if (user) {
-      initGoogleToken().then((connected) => {
-        if (!connected) {
-          // Token expired — try silent re-auth (Google will skip consent if already granted)
-          import('@/lib/google-calendar').then(({ silentReconnectIfNeeded }) => {
-            silentReconnectIfNeeded()
-          })
-        }
-      })
+      initGoogleToken()
     }
   }, [user])
 

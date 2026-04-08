@@ -149,14 +149,7 @@ export default function Invoices() {
   const [emailSending, setEmailSending] = useState(false)
   const [pendingSendInvoiceId, setPendingSendInvoiceId] = useState<string | null>(null)
   const [statusDropdownId, setStatusDropdownId] = useState<string | null>(null)
-
-  // Close status dropdown on outside click
-  useEffect(() => {
-    if (!statusDropdownId) return
-    const handler = () => setStatusDropdownId(null)
-    document.addEventListener('click', handler)
-    return () => document.removeEventListener('click', handler)
-  }, [statusDropdownId])
+  const [statusDropdownPos, setStatusDropdownPos] = useState<{ top: number; left: number } | null>(null)
 
   /* ── Load files ── */
   const loadFiles = useCallback(async () => {
@@ -807,53 +800,23 @@ export default function Invoices() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center" onClick={e => e.stopPropagation()}>
-                    <div className="relative inline-block">
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          setStatusDropdownId(statusDropdownId === inv.id ? null : inv.id)
+                          if (statusDropdownId === inv.id) {
+                            setStatusDropdownId(null)
+                            setStatusDropdownPos(null)
+                          } else {
+                            const rect = (e.target as HTMLElement).getBoundingClientRect()
+                            setStatusDropdownPos({ top: rect.bottom + 4, left: rect.left + rect.width / 2 - 70 })
+                            setStatusDropdownId(inv.id)
+                          }
                         }}
                         className={`${st.badgeClass} cursor-pointer hover:opacity-80 transition-opacity`}
                         title="Click to change status"
                       >
                         {st.label}
                       </button>
-                      {statusDropdownId === inv.id && (
-                        <div
-                          className="absolute z-50 mt-1 left-1/2 -translate-x-1/2 bg-surface border border-border shadow-lg py-1"
-                          style={{ minWidth: '120px' }}
-                        >
-                          {(['draft', 'sent', 'paid', 'overdue'] as const).map(status => (
-                            <button
-                              key={status}
-                              onClick={async (e) => {
-                                e.stopPropagation()
-                                try {
-                                  const update: any = { status }
-                                  if (status === 'paid') update.paid_at = new Date().toISOString()
-                                  await invoicesApi.update(inv.id, update)
-                                  await refreshInvoices()
-                                  showToast(`Invoice marked as ${status}`, 'success')
-                                } catch (err: any) {
-                                  showToast(err?.message || 'Failed to update status', 'error')
-                                }
-                                setStatusDropdownId(null)
-                              }}
-                              className={`w-full text-left px-3 py-1.5 hover:bg-surface-2 transition-colors flex items-center gap-2 ${
-                                inv.status === status ? 'text-polar font-[600]' : 'text-steel'
-                              }`}
-                              style={{ fontSize: '12px' }}
-                            >
-                              <span className={`inline-block w-2 h-2 rounded-full ${
-                                status === 'paid' ? 'bg-ok' : status === 'sent' ? 'bg-warn' : status === 'overdue' ? 'bg-err' : 'bg-dim'
-                              }`} />
-                              {status.charAt(0).toUpperCase() + status.slice(1)}
-                              {inv.status === status && <span className="ml-auto text-dim">&#10003;</span>}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <span className="mono text-dim" style={{ fontSize: '12px' }}>
@@ -899,6 +862,54 @@ export default function Invoices() {
             </table>
           </div>
         </div>
+      )}
+
+      {/* ── Status change popup (fixed position, no clipping) ── */}
+      {statusDropdownId && statusDropdownPos && (
+        <>
+          <div className="fixed inset-0 z-[99]" onClick={() => { setStatusDropdownId(null); setStatusDropdownPos(null) }} />
+          <div
+            className="fixed z-[100] bg-surface border border-border shadow-xl py-2"
+            style={{ top: statusDropdownPos.top, left: statusDropdownPos.left, minWidth: '150px', borderRadius: '6px' }}
+          >
+            <div className="px-3 pb-1.5 mb-1 border-b border-border">
+              <span className="label text-dim" style={{ fontSize: '9px' }}>CHANGE STATUS</span>
+            </div>
+            {(['draft', 'sent', 'paid', 'overdue'] as const).map(status => {
+              const inv = invoices.find(i => i.id === statusDropdownId)
+              const isActive = inv?.status === status
+              return (
+                <button
+                  key={status}
+                  onClick={async (e) => {
+                    e.stopPropagation()
+                    try {
+                      const update: any = { status }
+                      if (status === 'paid') update.paid_at = new Date().toISOString()
+                      await invoicesApi.update(statusDropdownId!, update)
+                      await refreshInvoices()
+                      showToast(`Invoice marked as ${status}`, 'success')
+                    } catch (err: any) {
+                      showToast(err?.message || 'Failed to update status', 'error')
+                    }
+                    setStatusDropdownId(null)
+                    setStatusDropdownPos(null)
+                  }}
+                  className={`w-full text-left px-3 py-2 transition-colors flex items-center gap-2.5 ${
+                    isActive ? 'text-polar font-[600] bg-border/30' : 'text-steel hover:bg-border/20'
+                  }`}
+                  style={{ fontSize: '12px' }}
+                >
+                  <span className={`inline-block w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                    status === 'paid' ? 'bg-ok' : status === 'sent' ? 'bg-warn' : status === 'overdue' ? 'bg-err' : 'bg-dim'
+                  }`} />
+                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                  {isActive && <span className="ml-auto text-dim">✓</span>}
+                </button>
+              )
+            })}
+          </div>
+        </>
       )}
 
       {/* ── Uploaded Files ── */}
