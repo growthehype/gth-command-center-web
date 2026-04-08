@@ -30,6 +30,19 @@ function levenshteinContacts(a: string, b: string): number {
   return dp[m][n]
 }
 
+const avatarColor = (name: string) => {
+  const colors = ['#5E81AC', '#A3BE8C', '#B48EAD', '#EBCB8B', '#BF616A', '#88C0D0', '#D08770']
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  return colors[Math.abs(hash) % colors.length]
+}
+
+const getInitials = (name: string) => {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  return (name[0] || '?').toUpperCase()
+}
+
 export default function Contacts() {
   const { contacts, clients, refreshContacts } = useAppStore()
 
@@ -348,7 +361,25 @@ export default function Contacts() {
                       )}
                     </button>
                   </td>
-                  <td className="px-4 py-3 text-polar font-semibold">{c.name}</td>
+                  <td className="px-4 py-3 text-polar font-semibold">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-flex items-center justify-center flex-shrink-0 font-[700]"
+                        style={{
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '50%',
+                          backgroundColor: `${avatarColor(c.name || '?')}20`,
+                          color: avatarColor(c.name || '?'),
+                          fontSize: '9px',
+                          letterSpacing: '0.02em',
+                        }}
+                      >
+                        {getInitials(c.name || '?')}
+                      </span>
+                      {c.name}
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-steel">{c.role || '-'}</td>
                   <td className="px-4 py-3 text-steel">
                     {c.client_name ? (

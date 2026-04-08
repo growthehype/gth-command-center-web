@@ -245,13 +245,14 @@ export default function Meetings() {
                 {/* Week Header */}
                 <button
                   onClick={() => toggleWeek(group.key)}
-                  className="w-full flex items-center gap-2 px-4 py-3 border-b border-border hover:bg-border/30 transition-colors text-left"
+                  className="w-full flex items-center gap-2 px-4 py-3 border-b border-border hover:bg-border/30 transition-colors text-left bg-cell/30"
+                  style={{ borderLeft: '3px solid #5E81AC' }}
                 >
                   {collapsed
                     ? <ChevronRight size={13} className="text-dim" />
                     : <ChevronDown size={13} className="text-dim" />
                   }
-                  <span className="label">{group.label}</span>
+                  <span className="label" style={{ fontSize: '12px', fontWeight: 800 }}>{group.label}</span>
                   <span className="text-dim ml-auto" style={{ fontSize: '12px' }}>{group.meetings.length} meeting{group.meetings.length !== 1 ? 's' : ''}</span>
                 </button>
 

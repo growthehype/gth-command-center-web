@@ -821,8 +821,14 @@ function OverviewTab({
         label="Website"
         value={
           client.website ? (
-            <button onClick={() => shell.openExternal(client.website!)} className="text-polar hover:text-steel flex items-center gap-1 cursor-pointer bg-transparent border-none p-0" style={{ fontSize: 'inherit' }}>
-              {client.website} <ExternalLink size={10} />
+            <button
+              onClick={() => shell.openExternal(client.website!)}
+              className="inline-flex items-center gap-1 bg-surface border border-border px-2 py-0.5 text-steel hover:text-polar hover:border-dim transition-colors cursor-pointer"
+              style={{ fontSize: '10px', borderRadius: '3px' }}
+              title={client.website}
+            >
+              <ExternalLink size={9} />
+              {(() => { try { return new URL(client.website!).hostname.replace('www.', '') } catch { return client.website } })()}
             </button>
           ) : null
         }
@@ -1197,14 +1203,16 @@ function LinksTab({ client, projects }: { client: Client; projects: any[] }) {
               style={{ fontSize: 'inherit' }}
               title="Toggle inline preview"
             >
-              {link.url} <Eye size={10} />
+              <Eye size={10} />
             </button>
             <button
               onClick={() => shell.openExternal(link.url)}
-              className="text-dim hover:text-polar bg-transparent border-none p-0 cursor-pointer shrink-0"
-              title="Open in browser"
+              className="inline-flex items-center gap-1 bg-surface border border-border px-2 py-0.5 text-steel hover:text-polar hover:border-dim transition-colors cursor-pointer"
+              style={{ fontSize: '10px', borderRadius: '3px' }}
+              title={link.url}
             >
-              <ExternalLink size={12} />
+              <ExternalLink size={9} />
+              {(() => { try { return new URL(link.url).hostname.replace('www.', '') } catch { return link.url } })()}
             </button>
             <span className="text-dim ml-auto shrink-0">{link.source}: {link.label}</span>
           </div>

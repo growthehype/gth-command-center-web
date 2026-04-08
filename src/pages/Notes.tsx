@@ -298,10 +298,15 @@ export default function Notes() {
               {activeNotes.length > 0 && (
                 <div className="space-y-2">
                   <span className="label text-dim">ACTIVE</span>
-                  {activeNotes.map(note => (
+                  {activeNotes.map((note, i) => {
+                    const accentColors = ['#5E81AC', '#A3BE8C', '#B48EAD', '#EBCB8B', '#88C0D0', '#D08770', '#BF616A']
+                    const accentColor = accentColors[i % accentColors.length]
+                    const wordCount = note.content.trim() ? note.content.trim().split(/\s+/).length : 0
+                    return (
                     <div
                       key={note.id}
-                      className="card cursor-pointer flex items-start justify-between gap-4"
+                      className="card cursor-pointer flex items-start justify-between gap-4 hover:border-dim transition-all duration-200"
+                      style={{ borderLeft: `3px solid ${accentColor}` }}
                       onClick={() => selectNote(note)}
                     >
                       <div className="flex-1 min-w-0">
@@ -309,9 +314,14 @@ export default function Notes() {
                         <p className="text-dim mt-1 truncate" style={{ fontSize: '13px' }}>
                           {note.content.slice(0, 100) || 'Empty note'}
                         </p>
-                        <span className="mono text-dim mt-1 block" style={{ fontSize: '12px' }}>
-                          {new Date(note.updated_at).toLocaleDateString()}
-                        </span>
+                        <div className="flex items-center gap-3 mt-1">
+                          <span className="mono text-dim" style={{ fontSize: '12px' }}>
+                            {new Date(note.updated_at).toLocaleDateString()}
+                          </span>
+                          <span className="mono text-dim" style={{ fontSize: '11px' }}>
+                            {wordCount} word{wordCount !== 1 ? 's' : ''}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <button
@@ -330,7 +340,8 @@ export default function Notes() {
                         </button>
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
 
@@ -341,7 +352,7 @@ export default function Notes() {
                   {doneNotes.map(note => (
                     <div
                       key={note.id}
-                      className="card opacity-50 cursor-pointer flex items-start justify-between gap-4"
+                      className="card opacity-50 cursor-pointer flex items-start justify-between gap-4 hover:border-dim transition-all duration-200"
                       onClick={() => selectNote(note)}
                     >
                       <div className="flex-1 min-w-0">

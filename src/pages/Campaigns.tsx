@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Megaphone, Plus, Trash2 } from 'lucide-react'
+import { Megaphone, Plus, Trash2, Search } from 'lucide-react'
 import { useAppStore, Campaign } from '@/lib/store'
 import { campaigns as campaignsApi } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
@@ -31,6 +31,7 @@ export default function Campaigns() {
   const [form, setForm] = useState({ ...EMPTY_FORM })
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [search, setSearch] = useState('')
 
   // Stats
   const stats = useMemo(() => {
@@ -45,6 +46,16 @@ export default function Campaigns() {
       .reduce((sum, c) => sum + (c.conversions || 0), 0)
     return { activeCampaigns, totalSpend, totalConversions }
   }, [campaigns])
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return campaigns
+    const q = search.toLowerCase()
+    return campaigns.filter(c =>
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.platform || '').toLowerCase().includes(q) ||
+      (c.client_name || '').toLowerCase().includes(q)
+    )
+  }, [campaigns, search])
 
   const cycleStatus = async (campaign: Campaign, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -130,22 +141,36 @@ export default function Campaigns() {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-        <div className="stat-card">
+        <div className="stat-card hover:translate-y-[-1px] transition-all duration-200" style={{ borderLeft: '4px solid #A3BE8C' }}>
           <p className="label">Active Campaigns</p>
           <p className="text-polar font-[800]" style={{ fontSize: '20px' }}>{stats.activeCampaigns}</p>
         </div>
-        <div className="stat-card">
+        <div className="stat-card hover:translate-y-[-1px] transition-all duration-200" style={{ borderLeft: '4px solid #5E81AC' }}>
           <p className="label">Total Spend MTD</p>
           <p className="text-polar font-[800]" style={{ fontSize: '20px' }}>{formatCurrency(stats.totalSpend)}</p>
         </div>
-        <div className="stat-card">
+        <div className="stat-card hover:translate-y-[-1px] transition-all duration-200" style={{ borderLeft: '4px solid #B48EAD' }}>
           <p className="label">Conversions MTD</p>
           <p className="text-polar font-[800]" style={{ fontSize: '20px' }}>{stats.totalConversions}</p>
         </div>
       </div>
 
+      {/* Search */}
+      <div className="mb-4">
+        <div className="relative w-full md:max-w-[320px]">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-dim" />
+          <input
+            className="bg-cell border border-border text-polar pl-8 pr-3 py-1.5 font-sans outline-none focus:border-dim transition-colors w-full"
+            placeholder="Search campaigns..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ fontSize: '12px' }}
+          />
+        </div>
+      </div>
+
       {/* Table */}
-      {campaigns.length === 0 ? (
+      {filtered.length === 0 && !search ? (
         <EmptyState
           icon={Megaphone}
           title="No campaigns yet"
@@ -153,6 +178,8 @@ export default function Campaigns() {
           actionLabel="+ New Campaign"
           onAction={openCreate}
         />
+      ) : filtered.length === 0 ? (
+        <p className="text-dim text-center py-8" style={{ fontSize: '13px' }}>No campaigns match your search.</p>
       ) : (
         <div className="card overflow-hidden">
           <table className="w-full" style={{ fontSize: '13px' }}>
@@ -168,7 +195,7 @@ export default function Campaigns() {
               </tr>
             </thead>
             <tbody>
-              {campaigns.map(c => (
+              {filtered.map(c => (
                 <tr
                   key={c.id}
                   className="table-row cursor-pointer"

@@ -188,13 +188,16 @@ export default function Outreach() {
 
       {/* Pipeline Stage Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
-        {STAGES.map(stage => (
-          <div key={stage} className="stat-card">
-            <p className="label">{stage}</p>
-            <p className="text-polar font-[800]" style={{ fontSize: '20px' }}>{pipeline[stage].count}</p>
-            <p className="mono text-dim" style={{ fontSize: '12px' }}>{formatCurrency(pipeline[stage].value)}</p>
-          </div>
-        ))}
+        {STAGES.map((stage, i) => {
+          const colors = ['#5E81AC', '#EBCB8B', '#88C0D0', '#A3BE8C', '#A3BE8C']
+          return (
+            <div key={stage} className="stat-card hover:translate-y-[-1px] transition-all duration-200" style={{ borderLeft: `4px solid ${colors[i]}` }}>
+              <p className="label">{stage}</p>
+              <p className="text-polar font-[800]" style={{ fontSize: '20px' }}>{pipeline[stage].count}</p>
+              <p className="mono text-dim" style={{ fontSize: '12px' }}>{formatCurrency(pipeline[stage].value)}</p>
+            </div>
+          )
+        })}
       </div>
 
       {/* Table */}

@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { Plus, Trash2, Search, Shield, Eye, EyeOff, X, AlertTriangle, Clock, Copy, Check, KeyRound, Globe, Edit3 } from 'lucide-react'
+import { Plus, Trash2, Search, Shield, Eye, EyeOff, X, AlertTriangle, Clock, Copy, Check, KeyRound, Globe, Edit3, ExternalLink } from 'lucide-react'
 import { useAppStore, type Credential } from '@/lib/store'
-import { credentials as credentialsApi } from '@/lib/api'
+import { credentials as credentialsApi, shell } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
 import { safeParseJSON, fuzzyMatch } from '@/lib/utils'
 import Modal from '@/components/ui/Modal'
@@ -453,16 +453,15 @@ export default function Credentials() {
                 {/* Login URL */}
                 {urlField && (
                   <div className="px-4 pb-3">
-                    <a
-                      href={urlField.value.startsWith('http') ? urlField.value : `https://${urlField.value}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-dim hover:text-polar transition-colors"
-                      style={{ fontSize: '11px' }}
+                    <button
+                      onClick={() => shell.openExternal(urlField.value.startsWith('http') ? urlField.value : `https://${urlField.value}`)}
+                      className="inline-flex items-center gap-1 bg-surface border border-border px-2 py-0.5 text-steel hover:text-polar hover:border-dim transition-colors cursor-pointer"
+                      style={{ fontSize: '10px', borderRadius: '3px' }}
+                      title={urlField.value}
                     >
-                      <Globe size={10} />
-                      <span className="truncate" style={{ maxWidth: '200px' }}>{urlField.value}</span>
-                    </a>
+                      <ExternalLink size={9} />
+                      {(() => { try { return new URL(urlField.value.startsWith('http') ? urlField.value : `https://${urlField.value}`).hostname.replace('www.', '') } catch { return urlField.value } })()}
+                    </button>
                   </div>
                 )}
 

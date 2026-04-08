@@ -197,6 +197,19 @@ export default function SOPs() {
 
           <div className="space-y-1">
             <label className="label text-dim">DOCUMENT URL</label>
+            {form.url && (
+              <div className="mb-1.5">
+                <button
+                  onClick={() => shell.openExternal(form.url)}
+                  className="inline-flex items-center gap-1 bg-surface border border-border px-2 py-0.5 text-steel hover:text-polar hover:border-dim transition-colors cursor-pointer"
+                  style={{ fontSize: '10px', borderRadius: '3px' }}
+                  title={form.url}
+                >
+                  <ExternalLink size={9} />
+                  {(() => { try { return new URL(form.url).hostname.replace('www.', '') } catch { return form.url } })()}
+                </button>
+              </div>
+            )}
             <input
               value={form.url}
               onChange={e => set('url', e.target.value)}

@@ -120,7 +120,7 @@ export default function Goals() {
     const days = daysRemaining(g.target_date)
 
     return (
-      <div onClick={() => openEdit(g)} className="card cursor-pointer">
+      <div onClick={() => openEdit(g)} className="card cursor-pointer hover:translate-y-[-1px] hover:shadow-lg transition-all duration-200">
         <div className="flex items-start justify-between mb-3">
           <h3 className="text-polar font-[700]" style={{ fontSize: '14px' }}>{g.title}</h3>
           <span className={STATUS_BADGE[g.status] || 'badge badge-neutral'}>{g.status}</span>
@@ -155,9 +155,9 @@ export default function Goals() {
               </span>
             )}
           </div>
-          <div className="w-full h-1.5 bg-border">
+          <div className="w-full h-1.5 bg-border" style={{ borderRadius: '2px', overflow: 'hidden' }}>
             <div
-              className="h-full transition-all duration-300"
+              className="h-full transition-all duration-500 ease-out"
               style={{
                 width: `${pct}%`,
                 backgroundColor: pct >= 100 ? '#22C55E' : pct >= 60 ? '#00C2FF' : '#F59E0B',
