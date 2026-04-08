@@ -29,7 +29,7 @@ export interface InvoiceData {
   // Line items & totals
   lineItems: LineItem[]
   taxRate: number
-  taxLabel?: string // GST, HST, PST, VAT, Tax
+  taxLabel?: string
 
   // Footer
   paymentTerms: string
@@ -39,417 +39,461 @@ export interface InvoiceData {
 
 /* ── Helpers ── */
 
-function fmtCurrency(n: number): string {
+function fmt(n: number): string {
   return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-function drawRoundedRect(
-  doc: jsPDF,
-  x: number, y: number, w: number, h: number, r: number,
-  style: 'F' | 'S' | 'FD' = 'F',
-) {
-  doc.roundedRect(x, y, w, h, r, r, style)
+function formatInvoiceDate(dateStr: string): string {
+  if (!dateStr) return '—'
+  try {
+    const d = new Date(dateStr + 'T00:00:00')
+    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+  } catch {
+    return dateStr
+  }
 }
 
-/* ────────────────────────────────────────────────────────────────
-   Generate a premium, branded invoice PDF
-   ──────────────────────────────────────────────────────────────── */
+/* ────────────────────────────────────────────────────────────────────────
+   PREMIUM INVOICE PDF — World-class branded document
+   ──────────────────────────────────────────────────────────────────────── */
 
 export function generateInvoicePDF(data: InvoiceData): jsPDF {
   const doc = new jsPDF('p', 'mm', 'a4')
-  const pageW = doc.internal.pageSize.getWidth()   // 210
-  const pageH = doc.internal.pageSize.getHeight()   // 297
-  const ml = 22          // left margin
-  const mr = 22          // right margin
-  const contentW = pageW - ml - mr
+  const W = doc.internal.pageSize.getWidth()    // 210
+  const H = doc.internal.pageSize.getHeight()    // 297
+  const L = 24   // left margin
+  const R = 24   // right margin
+  const CW = W - L - R  // content width
   let y = 0
 
-  // ── Brand palette ──
-  const obsidian: [number, number, number] = [0, 0, 0]
-  const charcoal: [number, number, number] = [26, 26, 26]
+  // ── Palette ──
+  const black: [number, number, number] = [0, 0, 0]
+  const dark: [number, number, number] = [17, 17, 17]
+  const charcoal: [number, number, number] = [38, 38, 38]
+  const mid: [number, number, number] = [85, 85, 85]
   const steel: [number, number, number] = [136, 136, 136]
+  const light: [number, number, number] = [180, 180, 180]
   const ash: [number, number, number] = [232, 232, 232]
   const cream: [number, number, number] = [245, 240, 235]
+  const offwhite: [number, number, number] = [251, 249, 247]
   const white: [number, number, number] = [255, 255, 255]
-  const creamHex = '#F5F0EB'
-  const textDark = '#111111'
-  const textMid = '#555555'
-  const textLight = '#999999'
-  const rowAlt: [number, number, number] = [250, 248, 246]
 
-  // Status badge colors
-  const statusColors: Record<string, { bg: [number, number, number]; text: [number, number, number] }> = {
-    draft: { bg: [232, 232, 232], text: [100, 100, 100] },
-    sent: { bg: [255, 243, 205], text: [133, 100, 4] },
-    paid: { bg: [212, 237, 218], text: [21, 87, 36] },
-    overdue: { bg: [248, 215, 218], text: [114, 28, 36] },
+  const statusMap: Record<string, { bg: [number, number, number]; fg: [number, number, number]; label: string }> = {
+    draft:   { bg: [240, 240, 240], fg: [100, 100, 100], label: 'DRAFT' },
+    sent:    { bg: [255, 243, 205], fg: [133, 100, 4],   label: 'SENT' },
+    paid:    { bg: [212, 237, 218], fg: [21, 87, 36],    label: 'PAID' },
+    overdue: { bg: [248, 215, 218], fg: [154, 28, 36],   label: 'OVERDUE' },
   }
 
-  // ════════════════════════════════════════════════════════════════
-  //  HEADER — Logo + Wordmark | INVOICE label
-  // ════════════════════════════════════════════════════════════════
+  // ── Helper: thin horizontal rule ──
+  const hr = (yPos: number, color: [number, number, number] = ash, weight = 0.3) => {
+    doc.setDrawColor(...color)
+    doc.setLineWidth(weight)
+    doc.line(L, yPos, W - R, yPos)
+  }
 
-  y = 20
+  // ── Helper: check page overflow ──
+  const ensureSpace = (needed: number) => {
+    if (y + needed > H - 30) {
+      doc.addPage()
+      y = 24
+    }
+  }
 
-  // Logo (shield icon)
+  // ══════════════════════════════════════════════════════════════════
+  //  TOP STRIP — Full-width black bar (3mm)
+  // ══════════════════════════════════════════════════════════════════
+
+  doc.setFillColor(...black)
+  doc.rect(0, 0, W, 3, 'F')
+
+  // ══════════════════════════════════════════════════════════════════
+  //  HEADER — Logo lockup left, Invoice # right
+  // ══════════════════════════════════════════════════════════════════
+
+  y = 16
+
+  // Logo
   try {
-    doc.addImage(GTH_LOGO_BASE64, 'PNG', ml, y - 4, 14, 14)
-  } catch {
-    // If logo fails, skip gracefully
-  }
+    doc.addImage(GTH_LOGO_BASE64, 'PNG', L, y - 5, 16, 16)
+  } catch { /* graceful skip */ }
 
-  // Wordmark next to logo
+  // Wordmark
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(16)
-  doc.setTextColor(...obsidian)
-  doc.text('GROW THE HYPE', ml + 17, y + 6)
+  doc.setFontSize(11)
+  doc.setTextColor(...black)
+  doc.text('GROW THE HYPE', L + 19.5, y + 1)
 
-  // INVOICE title — large, right-aligned, light weight
+  // "Inc." on a second line, lighter
   doc.setFont('helvetica', 'normal')
-  doc.setFontSize(32)
-  doc.setTextColor(200, 200, 200)
-  doc.text('INVOICE', pageW - mr, y + 7, { align: 'right' })
+  doc.setFontSize(7.5)
+  doc.setTextColor(...steel)
+  doc.text('Inc.', L + 19.5, y + 5.5)
 
-  y += 18
-
-  // Thin accent line
-  doc.setDrawColor(...obsidian)
-  doc.setLineWidth(0.7)
-  doc.line(ml, y, pageW - mr, y)
-
-  y += 12
-
-  // ════════════════════════════════════════════════════════════════
-  //  INVOICE META — Number, Date, Due Date, Status
-  // ════════════════════════════════════════════════════════════════
-
-  const metaCol1 = ml
-  const metaCol2 = ml + 45
-  const metaCol3 = ml + 90
-  const metaCol4 = ml + 135
-
-  // Labels
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(7)
-  doc.setTextColor(textLight)
-  doc.text('INVOICE NO.', metaCol1, y)
-  doc.text('DATE', metaCol2, y)
-  doc.text('DUE DATE', metaCol3, y)
-  if (data.status) doc.text('STATUS', metaCol4, y)
-
-  y += 5.5
-
-  // Values
+  // Right side — INVOICE label + number
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(10.5)
-  doc.setTextColor(textDark)
-  doc.text(data.invoiceNum || '—', metaCol1, y)
-  doc.setFont('helvetica', 'normal')
-  doc.text(data.date || '—', metaCol2, y)
-  doc.text(data.dueDate || '—', metaCol3, y)
+  doc.setFontSize(28)
+  doc.setTextColor(...black)
+  doc.text('INVOICE', W - R, y - 2, { align: 'right' })
 
-  // Status badge
-  if (data.status) {
-    const st = statusColors[data.status] || statusColors.draft
-    const statusLabel = data.status.toUpperCase()
-    doc.setFontSize(7.5)
-    const badgeW = doc.getTextWidth(statusLabel) + 8
-    doc.setFillColor(...st.bg)
-    drawRoundedRect(doc, metaCol4 - 1, y - 4, badgeW, 6.5, 1.5, 'F')
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(...st.text)
-    doc.text(statusLabel, metaCol4 + 3, y)
-  }
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(10)
+  doc.setTextColor(...steel)
+  doc.text(data.invoiceNum || '', W - R, y + 5, { align: 'right' })
 
   y += 16
 
-  // ════════════════════════════════════════════════════════════════
-  //  FROM / BILL TO
-  // ════════════════════════════════════════════════════════════════
+  // Thick accent line
+  doc.setDrawColor(...black)
+  doc.setLineWidth(1.2)
+  doc.line(L, y, W - R, y)
 
-  const fromX = ml
-  const toX = ml + contentW * 0.55
+  y += 10
 
-  // Cream background box for the FROM/TO section
-  doc.setFillColor(...cream)
-  const fromToBoxH = 38
-  drawRoundedRect(doc, ml - 2, y - 3, contentW + 4, fromToBoxH, 2, 'F')
+  // ══════════════════════════════════════════════════════════════════
+  //  META ROW — Date | Due Date | Status
+  // ══════════════════════════════════════════════════════════════════
 
-  // FROM
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(7)
+  const col2 = L + 55
+  const col3 = L + 110
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(6.5)
   doc.setTextColor(...steel)
-  doc.text('FROM', fromX, y + 1)
+  doc.text('ISSUE DATE', L, y)
+  doc.text('DUE DATE', col2, y)
+  if (data.status) doc.text('STATUS', col3, y)
 
-  // TO
-  doc.text('BILL TO', toX, y + 1)
+  y += 5
 
-  y += 8
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(10)
+  doc.setTextColor(...dark)
+  doc.text(formatInvoiceDate(data.date), L, y)
+  doc.text(formatInvoiceDate(data.dueDate), col2, y)
 
-  // From details
+  // Status pill
+  if (data.status && statusMap[data.status]) {
+    const s = statusMap[data.status]
+    doc.setFontSize(7)
+    const tw = doc.getTextWidth(s.label)
+    const pillW = tw + 10
+    const pillH = 5.5
+    const pillX = col3
+    const pillY = y - 4
+    doc.setFillColor(...s.bg)
+    doc.roundedRect(pillX, pillY, pillW, pillH, 2.5, 2.5, 'F')
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(...s.fg)
+    doc.text(s.label, pillX + pillW / 2, y - 0.5, { align: 'center' })
+  }
+
+  y += 12
+
+  hr(y, ash)
+
+  y += 12
+
+  // ══════════════════════════════════════════════════════════════════
+  //  FROM / BILL TO — Two columns
+  // ══════════════════════════════════════════════════════════════════
+
+  const leftCol = L
+  const rightCol = L + CW * 0.55
+  const savedY = y
+
+  // ── FROM column ──
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(6.5)
+  doc.setTextColor(...steel)
+  doc.text('FROM', leftCol, y)
+  y += 6
+
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(11)
-  doc.setTextColor(textDark)
-  doc.text(data.fromName, fromX, y)
+  doc.setTextColor(...black)
+  doc.text(data.fromName, leftCol, y)
+  y += 5
 
-  // To details
-  doc.text(data.clientName || '—', toX, y)
-
-  y += 5.5
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8.5)
-  doc.setTextColor(textMid)
+  doc.setTextColor(...mid)
 
-  // From contact details
-  if (data.fromEmail) { doc.text(data.fromEmail, fromX, y); y += 4.2 }
-  let fromY = y
-  if (data.fromPhone) { doc.text(data.fromPhone, fromX, fromY); fromY += 4.2 }
-  if (data.fromAddress) {
-    const addrLines = doc.splitTextToSize(data.fromAddress, contentW * 0.45)
-    doc.text(addrLines, fromX, fromY)
-    fromY += addrLines.length * 4.2
-  }
-  if (data.fromWebsite) { doc.text(data.fromWebsite, fromX, fromY) }
+  const fromLines: string[] = []
+  if (data.fromEmail) fromLines.push(data.fromEmail)
+  if (data.fromPhone) fromLines.push(data.fromPhone)
+  if (data.fromWebsite) fromLines.push(data.fromWebsite)
+  if (data.fromAddress) fromLines.push(data.fromAddress)
+  fromLines.forEach(line => {
+    doc.text(line, leftCol, y)
+    y += 4.5
+  })
 
-  // To contact details — restart y from after email
-  let toY = y
-  doc.setTextColor(textMid)
-  if (data.clientEmail) { doc.text(data.clientEmail, toX, toY); toY += 4.2 }
-  if (data.clientPhone) { doc.text(data.clientPhone, toX, toY); toY += 4.2 }
-  if (data.clientAddress) {
-    const addrLines = doc.splitTextToSize(data.clientAddress, contentW * 0.40)
-    doc.text(addrLines, toX, toY)
-  }
+  const fromEndY = y
 
-  y = (y - 5.5 - 8 + 3) + fromToBoxH + 10  // jump below the cream box
+  // ── BILL TO column ──
+  let rY = savedY
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(6.5)
+  doc.setTextColor(...steel)
+  doc.text('BILL TO', rightCol, rY)
+  rY += 6
 
-  // ════════════════════════════════════════════════════════════════
-  //  LINE ITEMS TABLE
-  // ════════════════════════════════════════════════════════════════
-
-  const colDesc = ml + 4
-  const colQty = ml + contentW * 0.58
-  const colRate = ml + contentW * 0.74
-  const colAmt = pageW - mr - 4
-  const headerH = 10
-  const rowH = 11
-
-  // Check if we need page break before table
-  const estimatedTableH = headerH + (data.lineItems.length * rowH) + 60
-  if (y + estimatedTableH > pageH - 40) {
-    doc.addPage()
-    y = 25
-  }
-
-  // Table header — cream background
-  doc.setFillColor(...cream)
-  drawRoundedRect(doc, ml, y, contentW, headerH, 1.5, 'F')
-
-  const headerTextY = y + headerH / 2 + 1
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(7.5)
-  doc.setTextColor(...charcoal)
-  doc.text('DESCRIPTION', colDesc, headerTextY)
-  doc.text('QTY', colQty, headerTextY, { align: 'right' })
-  doc.text('RATE', colRate + 10, headerTextY, { align: 'right' })
-  doc.text('AMOUNT', colAmt, headerTextY, { align: 'right' })
+  doc.setFontSize(11)
+  doc.setTextColor(...black)
+  doc.text(data.clientName || '—', rightCol, rY)
+  rY += 5
 
-  y += headerH
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8.5)
+  doc.setTextColor(...mid)
 
-  // Table rows
+  const toLines: string[] = []
+  if (data.clientEmail) toLines.push(data.clientEmail)
+  if (data.clientPhone) toLines.push(data.clientPhone)
+  if (data.clientAddress) toLines.push(data.clientAddress)
+  toLines.forEach(line => {
+    doc.text(line, rightCol, rY)
+    rY += 4.5
+  })
+
+  y = Math.max(fromEndY, rY) + 10
+
+  // ══════════════════════════════════════════════════════════════════
+  //  LINE ITEMS TABLE
+  // ══════════════════════════════════════════════════════════════════
+
+  const tL = L             // table left
+  const tR = W - R         // table right
+  const tW = tR - tL       // table width
+  const cDesc = tL + 5
+  const cQty = tL + tW * 0.60
+  const cRate = tL + tW * 0.77
+  const cAmt = tR - 5
+  const headH = 11
+  const rowHt = 12
+
+  ensureSpace(headH + (data.lineItems.length * rowHt) + 50)
+
+  // ── Table header ──
+  doc.setFillColor(...black)
+  doc.rect(tL, y, tW, headH, 'F')
+
+  const hTY = y + headH / 2 + 1.2
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(7)
+  doc.setTextColor(...white)
+  doc.text('DESCRIPTION', cDesc, hTY)
+  doc.text('QTY', cQty, hTY, { align: 'center' })
+  doc.text('RATE', cRate, hTY, { align: 'right' })
+  doc.text('AMOUNT', cAmt, hTY, { align: 'right' })
+
+  y += headH
+
+  // ── Table rows ──
   let subtotal = 0
+
   data.lineItems.forEach((item, i) => {
     const amount = item.qty * item.rate
     subtotal += amount
 
-    // Check page overflow for each row
-    if (y + rowH > pageH - 40) {
+    // Page break check
+    if (y + rowHt > H - 40) {
       doc.addPage()
-      y = 25
-      // Reprint header on new page
-      doc.setFillColor(...cream)
-      drawRoundedRect(doc, ml, y, contentW, headerH, 1.5, 'F')
-      const hty = y + headerH / 2 + 1
+      y = 24
+      // Re-draw header
+      doc.setFillColor(...black)
+      doc.rect(tL, y, tW, headH, 'F')
+      const rHY = y + headH / 2 + 1.2
       doc.setFont('helvetica', 'bold')
-      doc.setFontSize(7.5)
-      doc.setTextColor(...charcoal)
-      doc.text('DESCRIPTION', colDesc, hty)
-      doc.text('QTY', colQty, hty, { align: 'right' })
-      doc.text('RATE', colRate + 10, hty, { align: 'right' })
-      doc.text('AMOUNT', colAmt, hty, { align: 'right' })
-      y += headerH
+      doc.setFontSize(7)
+      doc.setTextColor(...white)
+      doc.text('DESCRIPTION', cDesc, rHY)
+      doc.text('QTY', cQty, rHY, { align: 'center' })
+      doc.text('RATE', cRate, rHY, { align: 'right' })
+      doc.text('AMOUNT', cAmt, rHY, { align: 'right' })
+      y += headH
     }
 
-    // Alternating row background
+    // Alternating stripe
     if (i % 2 === 0) {
-      doc.setFillColor(...rowAlt)
-      doc.rect(ml, y, contentW, rowH, 'F')
+      doc.setFillColor(...offwhite)
+      doc.rect(tL, y, tW, rowHt, 'F')
     }
 
-    const rowTextY = y + rowH / 2 + 1.2
+    // Subtle row border
+    doc.setDrawColor(240, 240, 240)
+    doc.setLineWidth(0.15)
+    doc.line(tL, y + rowHt, tR, y + rowHt)
 
-    // Description
+    const rTY = y + rowHt / 2 + 1.5
+
+    // Description — largest text in row
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(9.5)
-    doc.setTextColor(textDark)
-    doc.text(item.description || '', colDesc, rowTextY)
+    doc.setTextColor(...dark)
+    doc.text(item.description || '', cDesc, rTY)
 
     // Qty
-    doc.setTextColor(textMid)
+    doc.setFont('helvetica', 'normal')
     doc.setFontSize(9)
-    doc.text(String(item.qty), colQty, rowTextY, { align: 'right' })
+    doc.setTextColor(...mid)
+    doc.text(String(item.qty), cQty, rTY, { align: 'center' })
 
     // Rate
-    doc.text(fmtCurrency(item.rate), colRate + 10, rowTextY, { align: 'right' })
+    doc.text(fmt(item.rate), cRate, rTY, { align: 'right' })
 
-    // Amount
+    // Amount — bold
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(9.5)
-    doc.setTextColor(textDark)
-    doc.text(fmtCurrency(amount), colAmt, rowTextY, { align: 'right' })
+    doc.setTextColor(...dark)
+    doc.text(fmt(amount), cAmt, rTY, { align: 'right' })
 
-    y += rowH
+    y += rowHt
   })
 
-  // Bottom border
-  doc.setDrawColor(...ash)
-  doc.setLineWidth(0.5)
-  doc.line(ml, y, pageW - mr, y)
+  // Table bottom border
+  doc.setDrawColor(...black)
+  doc.setLineWidth(0.6)
+  doc.line(tL, y, tR, y)
 
-  y += 12
+  y += 10
 
-  // ════════════════════════════════════════════════════════════════
-  //  TOTALS
-  // ════════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════════
+  //  TOTALS — Right-aligned block
+  // ══════════════════════════════════════════════════════════════════
 
-  const totalsLabelX = colRate + 10
-  const totalsValX = colAmt
   const taxLabel = data.taxLabel || 'Tax'
-  const taxAmount = subtotal * (data.taxRate / 100)
-  const total = subtotal + taxAmount
+  const taxAmt = subtotal * (data.taxRate / 100)
+  const total = subtotal + taxAmt
+
+  const tLabelX = cRate
+  const tValX = cAmt
 
   // Subtotal
   doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9.5)
-  doc.setTextColor(textLight)
-  doc.text('Subtotal', totalsLabelX, y, { align: 'right' })
-  doc.setTextColor(textDark)
-  doc.text(fmtCurrency(subtotal), totalsValX, y, { align: 'right' })
-  y += 7.5
+  doc.setFontSize(9)
+  doc.setTextColor(...steel)
+  doc.text('Subtotal', tLabelX, y, { align: 'right' })
+  doc.setTextColor(...dark)
+  doc.text(fmt(subtotal), tValX, y, { align: 'right' })
+  y += 7
 
   // Tax
   if (data.taxRate > 0) {
-    doc.setTextColor(textLight)
-    doc.text(`${taxLabel} (${data.taxRate}%)`, totalsLabelX, y, { align: 'right' })
-    doc.setTextColor(textDark)
-    doc.text(fmtCurrency(taxAmount), totalsValX, y, { align: 'right' })
-    y += 7.5
-  }
-
-  // Divider above total
-  doc.setDrawColor(...obsidian)
-  doc.setLineWidth(0.8)
-  doc.line(totalsLabelX - 35, y, pageW - mr, y)
-  y += 7
-
-  // TOTAL — large
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(14)
-  doc.setTextColor(...obsidian)
-  doc.text('Total Due', totalsLabelX, y, { align: 'right' })
-  doc.text(fmtCurrency(total), totalsValX, y, { align: 'right' })
-
-  y += 20
-
-  // ════════════════════════════════════════════════════════════════
-  //  PAYMENT TERMS & INSTRUCTIONS
-  // ════════════════════════════════════════════════════════════════
-
-  // Check page overflow
-  if (y + 30 > pageH - 35) {
-    doc.addPage()
-    y = 25
-  }
-
-  if (data.paymentTerms || data.paymentInstructions) {
-    // Cream box
-    const payBoxStartY = y
-    let payBoxH = 14
-    if (data.paymentInstructions) payBoxH += 8
-
-    doc.setFillColor(...cream)
-    drawRoundedRect(doc, ml, y, contentW * 0.55, payBoxH, 2, 'F')
-
-    y += 5.5
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(7)
     doc.setTextColor(...steel)
-    doc.text('PAYMENT TERMS', ml + 5, y)
-    y += 5
+    doc.text(`${taxLabel} (${data.taxRate}%)`, tLabelX, y, { align: 'right' })
+    doc.setTextColor(...dark)
+    doc.text(fmt(taxAmt), tValX, y, { align: 'right' })
+    y += 7
+  }
+
+  y += 2
+
+  // Total box — cream background
+  const totalBoxW = tW * 0.42
+  const totalBoxH = 14
+  const totalBoxX = tR - totalBoxW
+  doc.setFillColor(...cream)
+  doc.roundedRect(totalBoxX, y - 1, totalBoxW, totalBoxH, 2, 2, 'F')
+
+  // Black left accent on total box
+  doc.setFillColor(...black)
+  doc.rect(totalBoxX, y - 1, 2.5, totalBoxH, 'F')
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(10)
+  doc.setTextColor(...black)
+  doc.text('AMOUNT DUE', totalBoxX + 8, y + 5.5)
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(16)
+  doc.setTextColor(...black)
+  doc.text(fmt(total), tR - 5, y + 6.5, { align: 'right' })
+
+  y += totalBoxH + 16
+
+  // ══════════════════════════════════════════════════════════════════
+  //  PAYMENT & NOTES — Two columns
+  // ══════════════════════════════════════════════════════════════════
+
+  ensureSpace(35)
+
+  const payNoteY = y
+  const payColW = CW * 0.48
+  const noteColX = L + CW * 0.54
+
+  // ── Payment Terms (left) ──
+  if (data.paymentTerms || data.paymentInstructions) {
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(6.5)
+    doc.setTextColor(...steel)
+    doc.text('PAYMENT TERMS', L, y)
+    y += 5.5
 
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(9.5)
-    doc.setTextColor(textDark)
-    doc.text(data.paymentTerms, ml + 5, y)
+    doc.setTextColor(...dark)
+    doc.text(data.paymentTerms || '', L, y)
+    y += 6
 
     if (data.paymentInstructions) {
-      y += 6
+      doc.setFont('helvetica', 'normal')
       doc.setFontSize(8.5)
-      doc.setTextColor(textMid)
-      const instrLines = doc.splitTextToSize(data.paymentInstructions, contentW * 0.50)
-      doc.text(instrLines, ml + 5, y)
+      doc.setTextColor(...mid)
+      const instrLines = doc.splitTextToSize(data.paymentInstructions, payColW)
+      doc.text(instrLines, L, y)
+      y += instrLines.length * 4.2
     }
-
-    y = payBoxStartY + payBoxH + 10
   }
 
-  // ════════════════════════════════════════════════════════════════
-  //  MEMO / NOTES
-  // ════════════════════════════════════════════════════════════════
-
+  // ── Notes/Memo (right) ──
   if (data.memo) {
+    let nY = payNoteY
     doc.setFont('helvetica', 'bold')
-    doc.setFontSize(7)
+    doc.setFontSize(6.5)
     doc.setTextColor(...steel)
-    doc.text('NOTES', ml, y)
-    y += 5
+    doc.text('NOTES', noteColX, nY)
+    nY += 5.5
 
     doc.setFont('helvetica', 'normal')
-    doc.setFontSize(9)
-    doc.setTextColor(textMid)
-    const memoLines = doc.splitTextToSize(data.memo, contentW * 0.65)
-    doc.text(memoLines, ml, y)
-    y += memoLines.length * 4.5 + 8
+    doc.setFontSize(8.5)
+    doc.setTextColor(...mid)
+    const memoLines = doc.splitTextToSize(data.memo, CW * 0.42)
+    doc.text(memoLines, noteColX, nY)
+    const memoEndY = nY + memoLines.length * 4.2
+    y = Math.max(y, memoEndY)
   }
 
-  // ════════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════════
   //  FOOTER
-  // ════════════════════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════════════════════
 
-  const footerY = pageH - 20
+  // Bottom strip — mirrors top
+  doc.setFillColor(...black)
+  doc.rect(0, H - 3, W, 3, 'F')
 
-  // Accent line
-  doc.setDrawColor(...obsidian)
-  doc.setLineWidth(0.8)
-  doc.line(ml, footerY, pageW - mr, footerY)
+  const fY = H - 14
 
-  // Contact info line
-  const footerParts: string[] = []
-  footerParts.push('Grow The Hype')
-  if (data.fromEmail) footerParts.push(data.fromEmail)
-  if (data.fromWebsite) footerParts.push(data.fromWebsite)
-  else footerParts.push('growthehype.ca')
+  // Fine rule
+  hr(fY, ash, 0.3)
+
+  // Footer contact line
+  const parts: string[] = ['Grow The Hype Inc.']
+  if (data.fromEmail) parts.push(data.fromEmail)
+  parts.push(data.fromWebsite || 'growthehype.ca')
 
   doc.setFont('helvetica', 'normal')
-  doc.setFontSize(7.5)
-  doc.setTextColor(...steel)
-  doc.text(footerParts.join('  ·  '), pageW / 2, footerY + 5.5, { align: 'center' })
+  doc.setFontSize(7)
+  doc.setTextColor(...light)
+  doc.text(parts.join('   ·   '), W / 2, fY + 5, { align: 'center' })
 
-  // Thank you line
+  // Thank you
   doc.setFont('helvetica', 'italic')
-  doc.setFontSize(8)
-  doc.setTextColor(170, 170, 170)
-  doc.text('Thank you for your business.', pageW / 2, footerY + 10.5, { align: 'center' })
+  doc.setFontSize(7.5)
+  doc.setTextColor(190, 190, 190)
+  doc.text('Thank you for your business.', W / 2, fY + 9.5, { align: 'center' })
 
   return doc
 }

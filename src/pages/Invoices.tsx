@@ -113,7 +113,7 @@ export default function Invoices() {
   // Builder modal state
   const [builderOpen, setBuilderOpen] = useState(false)
   const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null)
-  const [builderFromName, setBuilderFromName] = useState('Grow The Hype')
+  const [builderFromName, setBuilderFromName] = useState('Grow The Hype Inc.')
   const [builderFromEmail, setBuilderFromEmail] = useState('omar@growthehype.ca')
   const [builderFromPhone, setBuilderFromPhone] = useState('')
   const [builderFromAddress, setBuilderFromAddress] = useState('')
@@ -129,7 +129,7 @@ export default function Invoices() {
   const [builderTaxRate, setBuilderTaxRate] = useState(5)
   const [builderTaxLabel, setBuilderTaxLabel] = useState('GST')
   const [builderTerms, setBuilderTerms] = useState('Net 30')
-  const [builderPaymentInstructions, setBuilderPaymentInstructions] = useState('')
+  const [builderPaymentInstructions, setBuilderPaymentInstructions] = useState('E-Transfer to omar@growthehype.ca')
   const [builderMemo, setBuilderMemo] = useState('')
   const [builderSaving, setBuilderSaving] = useState(false)
 
@@ -304,7 +304,7 @@ export default function Invoices() {
   /* ── Builder helpers ── */
   const resetBuilder = () => {
     setEditingInvoiceId(null)
-    setBuilderFromName('Grow The Hype')
+    setBuilderFromName('Grow The Hype Inc.')
     setBuilderFromEmail('omar@growthehype.ca')
     setBuilderFromPhone('')
     setBuilderFromAddress('')
@@ -320,7 +320,7 @@ export default function Invoices() {
     setBuilderTaxRate(5)
     setBuilderTaxLabel('GST')
     setBuilderTerms('Net 30')
-    setBuilderPaymentInstructions('')
+    setBuilderPaymentInstructions('E-Transfer to omar@growthehype.ca')
     setBuilderMemo('')
   }
 
@@ -353,7 +353,7 @@ export default function Invoices() {
 
     const parsed = parseInvoiceNotes(inv.notes)
     if (parsed) {
-      setBuilderFromName(parsed.from_name || 'Grow The Hype')
+      setBuilderFromName(parsed.from_name || 'Grow The Hype Inc.')
       setBuilderFromEmail(parsed.from_email || 'omar@growthehype.ca')
       setBuilderFromPhone(parsed.from_phone || '')
       setBuilderFromAddress(parsed.from_address || '')
@@ -364,7 +364,7 @@ export default function Invoices() {
       setBuilderTaxRate(parsed.tax_rate ?? 5)
       setBuilderTaxLabel(parsed.tax_label || 'GST')
       setBuilderTerms(parsed.payment_terms || 'Net 30')
-      setBuilderPaymentInstructions(parsed.payment_instructions || '')
+      setBuilderPaymentInstructions(parsed.payment_instructions || 'E-Transfer to omar@growthehype.ca')
       setBuilderMemo(parsed.memo || '')
     } else {
       // Legacy invoice — prefill with single line item
@@ -561,7 +561,7 @@ export default function Invoices() {
       date: inv.sent_date || inv.created_at?.split('T')[0] || '',
       dueDate: inv.due_date || '',
       status: inv.status as InvoiceData['status'] || undefined,
-      fromName: parsed?.from_name || 'Grow The Hype',
+      fromName: parsed?.from_name || 'Grow The Hype Inc.',
       fromEmail: parsed?.from_email || 'omar@growthehype.ca',
       fromPhone: parsed?.from_phone || undefined,
       fromAddress: parsed?.from_address || undefined,
@@ -572,9 +572,9 @@ export default function Invoices() {
       clientAddress: parsed?.client_address || undefined,
       lineItems: parsed?.line_items || [{ description: 'Services', qty: 1, rate: inv.amount || 0 }],
       taxRate: parsed?.tax_rate ?? 0,
-      taxLabel: parsed?.tax_label || undefined,
-      paymentTerms: parsed?.payment_terms || '',
-      paymentInstructions: parsed?.payment_instructions || undefined,
+      taxLabel: parsed?.tax_label || 'GST',
+      paymentTerms: parsed?.payment_terms || 'Net 30',
+      paymentInstructions: parsed?.payment_instructions || 'E-Transfer to omar@growthehype.ca',
       memo: parsed?.memo || '',
     }
     try {
@@ -1224,10 +1224,11 @@ export default function Invoices() {
               <span className="label text-dim">NOTES / MEMO</span>
               <div className="flex flex-wrap gap-1.5">
                 {[
-                  { label: 'Thank you', value: 'Thank you for choosing Grow The Hype. We appreciate your partnership.' },
-                  { label: 'Scope of work', value: 'This invoice covers all deliverables outlined in the signed scope of work.' },
-                  { label: 'Retainer', value: 'Monthly retainer for ongoing marketing and strategy services.' },
-                  { label: 'Include #', value: 'Please include invoice number with payment for your records.' },
+                  { label: 'Partnership', value: 'We appreciate the continued partnership. Looking forward to driving results together this month.' },
+                  { label: 'Deliverables', value: 'This invoice reflects completed deliverables per the agreed scope of work. All assets and files have been shared to your team.' },
+                  { label: 'Retainer', value: 'Monthly retainer covering strategy, creative direction, content production, and campaign management. Detailed activity report available upon request.' },
+                  { label: 'Project', value: 'Final payment for the completed project. All deliverables have been reviewed, approved, and handed off. Thank you for trusting Grow The Hype with this initiative.' },
+                  { label: 'Milestone', value: 'Payment for completed project milestone. Remaining deliverables are on track per the agreed timeline.' },
                   { label: 'Custom', value: '__custom__' },
                 ].map(opt => (
                   <button
