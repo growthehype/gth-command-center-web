@@ -377,7 +377,7 @@ export default function ClientDetail() {
         ) : (
           <div className="space-y-0">
             {clientProjects.slice(0, 5).map(p => (
-              <div key={p.id} className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
+              <div key={p.id} onClick={() => navigateTo('projects')} className="flex items-center justify-between py-2.5 border-b border-border last:border-0 cursor-pointer hover:bg-[var(--surface-2,rgba(255,255,255,0.04))] transition-colors rounded px-1 -mx-1">
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="text-polar font-medium truncate" style={{ fontSize: '12px' }}>{p.title}</span>
                   <span className={PROJECT_STATUS_BADGE[p.status] || 'badge badge-neutral'} style={{ fontSize: '9px' }}>
@@ -406,7 +406,7 @@ export default function ClientDetail() {
         ) : (
           <div className="space-y-0">
             {clientTasks.slice(0, 5).map(t => (
-              <div key={t.id} className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
+              <div key={t.id} onClick={() => navigateTo('tasks')} className="flex items-center justify-between py-2.5 border-b border-border last:border-0 cursor-pointer hover:bg-[var(--surface-2,rgba(255,255,255,0.04))] transition-colors rounded px-1 -mx-1">
                 <div className="flex items-center gap-3 min-w-0">
                   <span
                     className="inline-block w-3.5 h-3.5 rounded border shrink-0 flex items-center justify-center"
@@ -452,7 +452,7 @@ export default function ClientDetail() {
         ) : (
           <div className="space-y-0">
             {clientInvoices.slice(0, 5).map(inv => (
-              <div key={inv.id} className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
+              <div key={inv.id} onClick={() => navigateTo('invoices')} className="flex items-center justify-between py-2.5 border-b border-border last:border-0 cursor-pointer hover:bg-[var(--surface-2,rgba(255,255,255,0.04))] transition-colors rounded px-1 -mx-1">
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="text-polar mono font-medium" style={{ fontSize: '12px' }}>{inv.num}</span>
                   <span className={INV_STATUS_BADGE[inv.status] || 'badge badge-neutral'} style={{ fontSize: '9px' }}>
