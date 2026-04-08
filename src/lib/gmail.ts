@@ -39,6 +39,9 @@ export function getGmailToken(): string | null {
 
 export function connectGmail(): void {
   sessionStorage.setItem(GMAIL_STATE_KEY, 'true')
+  // Remember which page to return to after OAuth redirect
+  const currentHash = window.location.hash?.replace('#', '') || ''
+  if (currentHash) sessionStorage.setItem('gth_gmail_return_page', currentHash)
   const redirectUri = window.location.origin
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
@@ -73,7 +76,14 @@ export function captureGmailToken(): boolean {
     }
     localStorage.setItem(GMAIL_TOKEN_KEY, JSON.stringify(stored))
     sessionStorage.removeItem(GMAIL_STATE_KEY)
-    window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    // Restore the page the user was on before OAuth redirect
+    const returnPage = sessionStorage.getItem('gth_gmail_return_page')
+    sessionStorage.removeItem('gth_gmail_return_page')
+    window.history.replaceState(
+      returnPage ? { page: returnPage } : null,
+      '',
+      returnPage ? `${window.location.pathname}${window.location.search}#${returnPage}` : window.location.pathname + window.location.search
+    )
     return true
   }
 

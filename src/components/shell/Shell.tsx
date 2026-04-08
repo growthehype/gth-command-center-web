@@ -179,10 +179,14 @@ export default function Shell({ onLock }: ShellProps) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [onLock, setCommandPaletteOpen, setCurrentPage, setAiPanelOpen, aiPanelOpen, focusMode, setFocusMode])
 
-  // Browser back/forward button support
+  // Browser back/forward button support + restore page from URL hash
   useEffect(() => {
-    // Push initial state so the first page is in history
-    if (!window.history.state?.page) {
+    // On mount, check if URL hash contains a valid page (e.g. after OAuth redirect)
+    const hashPage = window.location.hash?.replace('#', '')
+    if (hashPage && pageMap[hashPage] && hashPage !== currentPage) {
+      setCurrentPage(hashPage, false)
+      window.history.replaceState({ page: hashPage }, '', `#${hashPage}`)
+    } else if (!window.history.state?.page) {
       window.history.replaceState({ page: currentPage }, '', `#${currentPage}`)
     }
 
