@@ -1,5 +1,15 @@
-// ─── Google Auth: Server-side refresh token flow ───────────────
-// Connect once → refresh token stored permanently → auto-refreshes forever
+// ─── Google Auth: Hybrid flow ──────────────────────────────────
+// Implicit flow works immediately (no server config needed).
+// If server-side refresh tokens are available, uses those for permanent auth.
+
+const GOOGLE_CLIENT_ID = '272925349594-4dtb910g2m3jp2433na7r9eac297hoot.apps.googleusercontent.com'
+const SCOPES = [
+  'https://www.googleapis.com/auth/gmail.send',
+  'https://www.googleapis.com/auth/gmail.readonly',
+  'https://www.googleapis.com/auth/gmail.modify',
+  'https://www.googleapis.com/auth/gmail.labels',
+  'https://www.googleapis.com/auth/drive.readonly',
+].join(' ')
 
 const GMAIL_TOKEN_KEY = 'gth_gmail_token'
 const GMAIL_REFRESH_KEY = 'gth_gmail_refresh_token'
@@ -30,7 +40,7 @@ function getRefreshToken(): string | null {
   return localStorage.getItem(GMAIL_REFRESH_KEY)
 }
 
-// ── Auto-refresh via server-side refresh token ──
+// ── Server-side refresh (when available) ──
 
 let _refreshing = false
 let _refreshTimer: ReturnType<typeof setTimeout> | null = null
@@ -50,18 +60,13 @@ async function refreshAccessToken(): Promise<boolean> {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ refresh_token: refreshToken }),
       })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        console.warn('Token refresh failed:', err.error)
-        return false
-      }
+      if (!res.ok) return false
       const data = await res.json()
       const seconds = data.expires_in || 3600
       saveToken({ access_token: data.access_token, expires_at: Date.now() + seconds * 1000 })
       scheduleRefresh(seconds)
       return true
-    } catch (err) {
-      console.warn('Token refresh error:', err)
+    } catch {
       return false
     } finally {
       _refreshing = false
@@ -74,26 +79,20 @@ async function refreshAccessToken(): Promise<boolean> {
 
 function scheduleRefresh(expiresInSeconds: number) {
   if (_refreshTimer) clearTimeout(_refreshTimer)
-  // Refresh 5 min before expiry
   const refreshIn = Math.max((expiresInSeconds - 300) * 1000, 30_000)
   _refreshTimer = setTimeout(() => refreshAccessToken(), refreshIn)
 }
 
-// On module load: schedule refresh or refresh immediately if expired
+// On module load: if we have a refresh token, try to use it
 ;(() => {
   const token = getLocalToken()
   const hasRefresh = !!getRefreshToken()
   if (hasRefresh) {
     if (token) {
       const remaining = Math.floor((token.expires_at - Date.now()) / 1000)
-      if (remaining > 300) {
-        scheduleRefresh(remaining)
-      } else {
-        // Expired or about to expire — refresh now
-        refreshAccessToken()
-      }
+      if (remaining > 300) scheduleRefresh(remaining)
+      else refreshAccessToken()
     } else {
-      // No access token but have refresh token — refresh now
       refreshAccessToken()
     }
   }
@@ -104,7 +103,6 @@ function scheduleRefresh(expiresInSeconds: number) {
 export function isGmailConnected(): boolean {
   const token = getLocalToken()
   if (token && Date.now() < token.expires_at - 30_000) return true
-  // Has refresh token = permanently connected (will auto-refresh)
   if (getRefreshToken()) return true
   return false
 }
@@ -112,40 +110,65 @@ export function isGmailConnected(): boolean {
 export function getGmailToken(): string | null {
   const token = getLocalToken()
   if (!token) return null
-  // Proactively refresh 5 min before expiry
   if (Date.now() >= token.expires_at - 300_000 && getRefreshToken()) {
     refreshAccessToken()
   }
-  // Still usable if not hard-expired
   if (Date.now() >= token.expires_at) return null
   return token.access_token
 }
 
-// Get token, refreshing if needed (for API calls)
 export async function ensureToken(): Promise<string | null> {
   const token = getLocalToken()
   if (token && Date.now() < token.expires_at - 30_000) return token.access_token
-  // Try to refresh
   if (getRefreshToken()) {
     const ok = await refreshAccessToken()
-    if (ok) {
-      const fresh = getLocalToken()
-      return fresh?.access_token || null
-    }
+    if (ok) return getLocalToken()?.access_token || null
   }
+  // Fallback: return token even if close to expiry (implicit flow)
+  if (token && Date.now() < token.expires_at) return token.access_token
   return null
 }
 
 export function connectGmail(): void {
-  // Server-side OAuth: redirect to our API which handles the code flow
-  const returnPage = window.location.hash?.replace('#', '') || 'gmail'
-  window.location.href = `/api/google-auth?returnPage=${encodeURIComponent(returnPage)}`
+  // Implicit OAuth flow — works immediately, no server config needed
+  const redirectUri = window.location.origin
+  const state = window.location.hash?.replace('#', '') || 'gmail'
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: 'token',
+    scope: SCOPES,
+    state,
+    include_granted_scopes: 'true',
+    prompt: 'consent',
+  })
+  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`
 }
 
 export function captureGmailToken(): boolean {
-  // Server-side flow handles token capture via the callback page
-  // This is kept for backward compatibility — checks if token was set by callback
-  return false
+  // Parse implicit flow token from URL hash: #access_token=...&expires_in=...&state=...
+  const hash = window.location.hash
+  if (!hash || !hash.includes('access_token=')) return false
+
+  try {
+    const params = new URLSearchParams(hash.substring(1))
+    const accessToken = params.get('access_token')
+    const expiresIn = parseInt(params.get('expires_in') || '3600', 10)
+    const state = params.get('state') || 'gmail'
+
+    if (!accessToken) return false
+
+    saveToken({
+      access_token: accessToken,
+      expires_at: Date.now() + expiresIn * 1000,
+    })
+
+    // Clean up URL and navigate to the return page
+    window.location.hash = state
+    return true
+  } catch {
+    return false
+  }
 }
 
 export function disconnectGmail(): void {
