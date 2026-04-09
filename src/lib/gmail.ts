@@ -130,9 +130,19 @@ export async function ensureToken(): Promise<string | null> {
 }
 
 export function connectGmail(): void {
-  // Server-side OAuth flow for permanent refresh tokens
-  const returnPage = window.location.hash?.replace('#', '') || 'gmail'
-  window.location.href = `/api/google-auth?returnPage=${encodeURIComponent(returnPage)}`
+  // Implicit OAuth flow — works immediately, no server config needed
+  const redirectUri = window.location.origin
+  const state = window.location.hash?.replace('#', '') || 'gmail'
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: 'token',
+    scope: SCOPES,
+    state,
+    include_granted_scopes: 'true',
+    prompt: 'consent',
+  })
+  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`
 }
 
 export function captureGmailToken(): boolean {
