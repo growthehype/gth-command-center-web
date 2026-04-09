@@ -53,10 +53,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const expiresAt = Date.now() + (tokens.expires_in || 3600) * 1000
 
     // Serve a small HTML page that saves tokens to localStorage and redirects
+    const appHome = `${baseUrl}/#${returnPage.replace(/'/g, "\\'")}`
     res.setHeader('Content-Type', 'text/html')
     res.send(`<!DOCTYPE html>
-<html><head><title>Connecting...</title></head>
+<html><head><title>Connecting...</title>
+<style>
+  body { font-family: -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #0f0f0f; color: #fff; }
+  .card { text-align: center; padding: 2rem; }
+  .spinner { width: 40px; height: 40px; border: 3px solid #333; border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .success { color: #22c55e; font-size: 1.1rem; }
+  .error { color: #ef4444; font-size: 1rem; margin-top: 1rem; }
+  a { color: #6366f1; }
+</style>
+</head>
 <body>
+<div class="card">
+  <div class="spinner" id="spinner"></div>
+  <div id="status">Connecting your Google account...</div>
+</div>
 <script>
   try {
     var tokenData = {
@@ -72,9 +87,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       localStorage.setItem('gth_gmail_refresh_token', tokenData.refresh_token);
     }
     localStorage.setItem('gth_gmail_ever_connected', 'true');
-    window.location.href = '/#${returnPage.replace(/'/g, "\\'")}';
+
+    // Verify it saved
+    var saved = localStorage.getItem('gth_gmail_token');
+    if (!saved) throw new Error('localStorage save failed');
+
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('status').innerHTML = '<div class="success">Connected successfully! Redirecting...</div>';
+    setTimeout(function() { window.location.href = '${appHome}'; }, 1000);
   } catch(e) {
-    document.body.textContent = 'Error: ' + e.message;
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('status').innerHTML = '<div class="error">Error: ' + e.message + '</div><br><a href="${appHome}">Go back to app</a>';
   }
 </script>
 <noscript>JavaScript required. Please enable JavaScript and try again.</noscript>

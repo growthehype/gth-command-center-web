@@ -330,17 +330,23 @@ export default function GmailInbox() {
     }
   }, [connected, activeFolder]) // eslint-disable-line
 
-  // Re-check connection when window regains focus (picks up OAuth callback)
+  // Re-check connection on mount (catches OAuth callback redirect) and on focus
   useEffect(() => {
-    setConnected(isGmailConnected())
-    const onFocus = () => {
+    const check = () => {
       const nowConnected = isGmailConnected()
-      setConnected(prev => (!prev && nowConnected) ? true : prev)
+      setConnected(prev => (prev !== nowConnected) ? nowConnected : prev)
     }
+    check()
+    // Delayed re-check in case localStorage was just written by callback page
+    const t = setTimeout(check, 500)
+    const onFocus = () => check()
     window.addEventListener('focus', onFocus)
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) onFocus() })
+    window.addEventListener('storage', check)
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) check() })
     return () => {
+      clearTimeout(t)
       window.removeEventListener('focus', onFocus)
+      window.removeEventListener('storage', check)
     }
   }, [])
 
