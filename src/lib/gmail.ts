@@ -130,23 +130,14 @@ export async function ensureToken(): Promise<string | null> {
 }
 
 export function connectGmail(): void {
-  // Implicit OAuth flow — works immediately, no server config needed
-  const redirectUri = window.location.origin
-  const state = window.location.hash?.replace('#', '') || 'gmail'
-  const params = new URLSearchParams({
-    client_id: GOOGLE_CLIENT_ID,
-    redirect_uri: redirectUri,
-    response_type: 'token',
-    scope: SCOPES,
-    state,
-    include_granted_scopes: 'true',
-    prompt: 'consent',
-  })
-  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`
+  // Server-side OAuth flow for permanent refresh tokens
+  const returnPage = window.location.hash?.replace('#', '') || 'gmail'
+  window.location.href = `/api/google-auth?returnPage=${encodeURIComponent(returnPage)}`
 }
 
 export function captureGmailToken(): boolean {
-  // Parse implicit flow token from URL hash: #access_token=...&expires_in=...&state=...
+  // Server-side flow handles token capture via the callback page
+  // Also support implicit flow fallback: #access_token=...&expires_in=...&state=...
   const hash = window.location.hash
   if (!hash || !hash.includes('access_token=')) return false
 
@@ -163,7 +154,6 @@ export function captureGmailToken(): boolean {
       expires_at: Date.now() + expiresIn * 1000,
     })
 
-    // Clean up URL and navigate to the return page
     window.location.hash = state
     return true
   } catch {
