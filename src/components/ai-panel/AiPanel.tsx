@@ -548,32 +548,62 @@ export default function AiPanel() {
       return
     }
 
-    // Start listening
+    // Start listening — continuous mode with silence detection
     const recognition = new SpeechRecognition()
-    recognition.continuous = false
-    recognition.interimResults = false
+    recognition.continuous = true
+    recognition.interimResults = true
     recognition.lang = 'en-US'
 
+    let finalTranscript = ''
+    let silenceTimer: ReturnType<typeof setTimeout> | null = null
+    const SILENCE_TIMEOUT = 4000 // 4 seconds of silence before sending
+
+    const resetSilenceTimer = () => {
+      if (silenceTimer) clearTimeout(silenceTimer)
+      silenceTimer = setTimeout(() => {
+        // Silence detected — stop and send what we have
+        recognition.stop()
+      }, SILENCE_TIMEOUT)
+    }
+
     recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript
-      if (transcript.trim()) {
-        // Send the transcribed text directly
-        handleSend(transcript.trim())
+      let interim = ''
+      finalTranscript = ''
+      for (let i = 0; i < event.results.length; i++) {
+        const result = event.results[i]
+        if (result.isFinal) {
+          finalTranscript += result[0].transcript
+        } else {
+          interim += result[0].transcript
+        }
       }
-      setIsListening(false)
+      // Show interim text in input as user speaks
+      if (interim || finalTranscript) {
+        setInput((finalTranscript + ' ' + interim).trim())
+      }
+      // Reset silence timer on any speech activity
+      resetSilenceTimer()
     }
 
     recognition.onerror = () => {
+      if (silenceTimer) clearTimeout(silenceTimer)
       setIsListening(false)
     }
 
     recognition.onend = () => {
+      if (silenceTimer) clearTimeout(silenceTimer)
       setIsListening(false)
+      // Send the accumulated transcript
+      const text = finalTranscript.trim()
+      if (text) {
+        handleSend(text)
+      }
     }
 
     recognitionRef.current = recognition
     recognition.start()
     setIsListening(true)
+    resetSilenceTimer() // Start initial silence timer
   }, [isListening, handleSend])
 
   if (!aiPanelOpen) return null

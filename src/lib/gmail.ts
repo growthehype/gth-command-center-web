@@ -170,6 +170,14 @@ export function disconnectGmail(): void {
 
 // ─── Gmail API: Inbox / Messages ────────────────────────────────
 
+export interface GmailAttachment {
+  id: string
+  filename: string
+  mimeType: string
+  size: number
+  partId: string
+}
+
 export interface GmailMessage {
   id: string
   threadId: string
@@ -181,6 +189,7 @@ export interface GmailMessage {
   date: string
   body: string
   isUnread: boolean
+  attachments: GmailAttachment[]
 }
 
 export interface GmailLabel {
@@ -212,24 +221,51 @@ function decodeBase64Url(str: string): string {
 
 function extractBody(payload: any): string {
   // Simple text/html body
-  if (payload.body?.data) {
+  if (payload.mimeType === 'text/html' && payload.body?.data) {
+    return decodeBase64Url(payload.body.data)
+  }
+  if (payload.mimeType === 'text/plain' && payload.body?.data && !payload.parts) {
     return decodeBase64Url(payload.body.data)
   }
   // Multipart — look for text/html first, then text/plain
   if (payload.parts) {
-    const htmlPart = payload.parts.find((p: any) => p.mimeType === 'text/html')
-    if (htmlPart?.body?.data) return decodeBase64Url(htmlPart.body.data)
-    const textPart = payload.parts.find((p: any) => p.mimeType === 'text/plain')
-    if (textPart?.body?.data) return decodeBase64Url(textPart.body.data)
-    // Nested multipart
+    // Check nested multipart first (e.g. multipart/alternative inside multipart/mixed)
     for (const part of payload.parts) {
-      if (part.parts) {
+      if (part.mimeType?.startsWith('multipart/') && part.parts) {
         const nested = extractBody(part)
         if (nested) return nested
       }
     }
+    const htmlPart = payload.parts.find((p: any) => p.mimeType === 'text/html')
+    if (htmlPart?.body?.data) return decodeBase64Url(htmlPart.body.data)
+    const textPart = payload.parts.find((p: any) => p.mimeType === 'text/plain')
+    if (textPart?.body?.data) return decodeBase64Url(textPart.body.data)
   }
+  // Fallback: raw body data
+  if (payload.body?.data) return decodeBase64Url(payload.body.data)
   return ''
+}
+
+function extractAttachments(payload: any): GmailAttachment[] {
+  const attachments: GmailAttachment[] = []
+
+  function walk(parts: any[]) {
+    for (const part of parts) {
+      if (part.filename && part.body?.attachmentId) {
+        attachments.push({
+          id: part.body.attachmentId,
+          filename: part.filename,
+          mimeType: part.mimeType || 'application/octet-stream',
+          size: part.body.size || 0,
+          partId: part.partId || '',
+        })
+      }
+      if (part.parts) walk(part.parts)
+    }
+  }
+
+  if (payload.parts) walk(payload.parts)
+  return attachments
 }
 
 async function gmailFetch(path: string, options?: RequestInit) {
@@ -302,6 +338,7 @@ export async function listMessages(params: {
     date: parseHeader(msg.payload?.headers, 'Date'),
     body: '',
     isUnread: (msg.labelIds || []).includes('UNREAD'),
+    attachments: [],
   }))
 
   return {
@@ -324,7 +361,14 @@ export async function getMessage(id: string): Promise<GmailMessage> {
     date: parseHeader(msg.payload?.headers, 'Date'),
     body: extractBody(msg.payload),
     isUnread: (msg.labelIds || []).includes('UNREAD'),
+    attachments: extractAttachments(msg.payload),
   }
+}
+
+export async function getAttachment(messageId: string, attachmentId: string): Promise<string> {
+  const data = await gmailFetch(`messages/${messageId}/attachments/${attachmentId}`)
+  // Returns base64url-encoded data — convert to standard base64
+  return (data.data || '').replace(/-/g, '+').replace(/_/g, '/')
 }
 
 export async function markAsRead(id: string): Promise<void> {

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { Mail, Search, RefreshCw, Archive, Trash2, MailOpen, Eye, Send, ArrowLeft, ChevronLeft, ChevronRight, Inbox, Star, Clock, AlertCircle, X, Paperclip, Reply, Forward, MoreHorizontal, CheckCheck, LogOut } from 'lucide-react'
-import { isGmailConnected, connectGmail, disconnectGmail, listMessages, getMessage, markAsRead, markAsUnread, archiveMessage, trashMessage, sendEmail, type GmailMessage } from '@/lib/gmail'
+import { Mail, Search, RefreshCw, Archive, Trash2, MailOpen, Eye, Send, ArrowLeft, ChevronLeft, ChevronRight, Inbox, Star, Clock, AlertCircle, X, Paperclip, Reply, Forward, MoreHorizontal, CheckCheck, LogOut, Download, FileText, Image as ImageIcon } from 'lucide-react'
+import { isGmailConnected, connectGmail, disconnectGmail, listMessages, getMessage, getAttachment, markAsRead, markAsUnread, archiveMessage, trashMessage, sendEmail, type GmailMessage, type GmailAttachment } from '@/lib/gmail'
 import { showToast } from '@/components/ui/Toast'
 import { formatDistanceToNow, format, isToday, isYesterday, isThisYear } from 'date-fns'
 import DOMPurify from 'dompurify'
@@ -258,10 +258,53 @@ function MessageDetail({ message, onBack, onRefresh }: {
             <div
               className="email-body"
               style={{ fontSize: '13.5px', lineHeight: '1.7', color: 'var(--color-steel)' }}
-              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(full.body, { ADD_ATTR: ['target'] }) }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(full.body, {
+                ADD_TAGS: ['img', 'style'],
+                ADD_ATTR: ['target', 'src', 'alt', 'width', 'height', 'style', 'class'],
+                ALLOW_DATA_ATTR: true,
+              }) }}
             />
           ) : (
             <p className="text-steel" style={{ fontSize: '13.5px', lineHeight: '1.7' }}>{msg.snippet}</p>
+          )}
+
+          {/* Attachments */}
+          {full?.attachments && full.attachments.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="text-dim mb-2" style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                <Paperclip size={12} className="inline mr-1" /> {full.attachments.length} Attachment{full.attachments.length > 1 ? 's' : ''}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {full.attachments.map((att: GmailAttachment) => (
+                  <button
+                    key={att.id}
+                    onClick={async () => {
+                      try {
+                        const base64 = await getAttachment(msg.id, att.id)
+                        const byteChars = atob(base64)
+                        const byteArray = new Uint8Array(byteChars.length)
+                        for (let i = 0; i < byteChars.length; i++) byteArray[i] = byteChars.charCodeAt(i)
+                        const blob = new Blob([byteArray], { type: att.mimeType })
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = att.filename
+                        a.click()
+                        URL.revokeObjectURL(url)
+                      } catch { showToast('Failed to download attachment', 'error') }
+                    }}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-surface-2 hover:bg-surface-3 transition-colors"
+                    style={{ fontSize: '12px' }}
+                  >
+                    {att.mimeType.startsWith('image/') ? <ImageIcon size={14} className="text-purple-400" /> :
+                     att.mimeType === 'application/pdf' ? <FileText size={14} className="text-red-400" /> :
+                     <Paperclip size={14} className="text-dim" />}
+                    <span className="text-steel max-w-[180px] truncate">{att.filename}</span>
+                    <Download size={12} className="text-dim" />
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* Quick reply bar */}
