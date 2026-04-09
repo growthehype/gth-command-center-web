@@ -46,6 +46,7 @@ import TeamManagement from '@/pages/TeamManagement'
 import IntegrationsPage from '@/pages/Integrations'
 import GmailInbox from '@/pages/GmailInbox'
 import GoogleDrive from '@/pages/GoogleDrive'
+import Agents from '@/pages/Agents'
 
 interface ShellProps {
   onLock?: () => void
@@ -82,6 +83,7 @@ const pageMap: Record<string, React.ComponentType> = {
   'integrations-settings': IntegrationsPage,
   'gmail': GmailInbox,
   'drive': GoogleDrive,
+  'agents': Agents,
 }
 
 export default function Shell({ onLock }: ShellProps) {

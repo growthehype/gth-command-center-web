@@ -4,7 +4,7 @@ import {
   CheckSquare, MessageSquare, Receipt, TrendingUp, LineChart,
   Send, Megaphone, Package, Mail, Target, KeyRound, Palette,
   FileText, BookOpen, Pencil, Activity, Settings, HelpCircle, Link2,
-  Inbox, HardDrive
+  Inbox, HardDrive, Bot
 } from 'lucide-react'
 
 interface NavItem {
@@ -33,6 +33,7 @@ const navGroups: NavGroup[] = [
       { id: 'meetings', label: 'Meetings', icon: MessageSquare },
       { id: 'gmail', label: 'Gmail', icon: Inbox },
       { id: 'drive', label: 'Google Drive', icon: HardDrive },
+      { id: 'agents', label: 'AI Agents', icon: Bot },
     ]
   },
   {
