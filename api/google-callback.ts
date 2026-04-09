@@ -3,6 +3,27 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 
 const GOOGLE_CLIENT_ID = '272925349594-4dtb910g2m3jp2433na7r9eac297hoot.apps.googleusercontent.com'
 
+function errorPage(res: VercelResponse, title: string, detail: string, homeUrl: string) {
+  res.setHeader('Content-Type', 'text/html')
+  return res.send(`<!DOCTYPE html>
+<html><head><title>Connection Error</title>
+<style>
+  body { font-family: -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #0f0f0f; color: #fff; }
+  .card { text-align: center; padding: 2rem; max-width: 500px; }
+  .title { color: #ef4444; font-size: 1.3rem; margin-bottom: 0.5rem; }
+  .detail { color: #999; font-size: 0.9rem; margin-bottom: 1.5rem; word-break: break-all; }
+  a { color: #6366f1; text-decoration: none; padding: 0.6rem 1.5rem; border: 1px solid #6366f1; border-radius: 8px; display: inline-block; }
+  a:hover { background: #6366f1; color: #fff; }
+</style>
+</head><body>
+<div class="card">
+  <div class="title">${title}</div>
+  <div class="detail">${detail}</div>
+  <a href="${homeUrl}/#gmail">Back to App</a>
+</div>
+</body></html>`)
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const code = req.query.code as string
   const state = (req.query.state as string) || ''
@@ -14,15 +35,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const baseUrl = process.env.APP_URL || origin
 
   if (error) {
-    return res.redirect(`${baseUrl}/#gmail?error=${encodeURIComponent(error)}`)
+    return errorPage(res, 'Google denied access', error, baseUrl)
   }
   if (!code) {
-    return res.redirect(`${baseUrl}/#gmail?error=no_code`)
+    return errorPage(res, 'No authorization code', 'Google did not return a code. Please try again.', baseUrl)
   }
 
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET
   if (!clientSecret) {
-    return res.redirect(`${baseUrl}/#gmail?error=server_missing_secret`)
+    return errorPage(res, 'Server configuration error', 'GOOGLE_CLIENT_SECRET is not set in Vercel environment variables.', baseUrl)
   }
 
   const redirectUri = `${baseUrl}/api/google-callback`
@@ -44,16 +65,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const tokens = await tokenRes.json()
 
     if (!tokenRes.ok || !tokens.access_token) {
-      return res.redirect(`${baseUrl}/#gmail?error=${encodeURIComponent(tokens.error || 'token_exchange_failed')}`)
+      return errorPage(
+        res,
+        'Token exchange failed',
+        `Google returned: ${tokens.error || 'unknown'} — ${tokens.error_description || 'no description'}. redirect_uri used: ${redirectUri}`,
+        baseUrl,
+      )
     }
 
-    // Build a response that the frontend will read
-    // Pass tokens via a temporary page that stores them and redirects
+    // Success — serve page that saves tokens to localStorage and redirects
     const returnPage = state || 'gmail'
     const expiresAt = Date.now() + (tokens.expires_in || 3600) * 1000
-
-    // Serve a small HTML page that saves tokens to localStorage and redirects
     const appHome = `${baseUrl}/#${returnPage.replace(/'/g, "\\'")}`
+
     res.setHeader('Content-Type', 'text/html')
     res.send(`<!DOCTYPE html>
 <html><head><title>Connecting...</title>
@@ -94,15 +118,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     document.getElementById('spinner').style.display = 'none';
     document.getElementById('status').innerHTML = '<div class="success">Connected successfully! Redirecting...</div>';
-    setTimeout(function() { window.location.href = '${appHome}'; }, 1000);
+    setTimeout(function() { window.location.href = '${appHome}'; }, 1500);
   } catch(e) {
     document.getElementById('spinner').style.display = 'none';
-    document.getElementById('status').innerHTML = '<div class="error">Error: ' + e.message + '</div><br><a href="${appHome}">Go back to app</a>';
+    document.getElementById('status').innerHTML = '<div class="error">Error: ' + e.message + '</div><br><br><a href="${appHome}">Go back to app</a>';
   }
 </script>
 <noscript>JavaScript required. Please enable JavaScript and try again.</noscript>
 </body></html>`)
   } catch (err: any) {
-    return res.redirect(`${baseUrl}/#gmail?error=${encodeURIComponent(err.message || 'unknown')}`)
+    return errorPage(res, 'Unexpected error', err.message || 'Unknown error during token exchange', baseUrl)
   }
 }
