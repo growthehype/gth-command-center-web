@@ -385,39 +385,7 @@ export async function sendEmail(params: {
 
   const htmlBody = params.body.replace(/\n/g, '<br>')
 
-  // Dynamic email signature
-  const sig = (() => {
-    try {
-      const s = JSON.parse(localStorage.getItem('gth_email_sig_cache') || '{}')
-      return {
-        name: s.name || '', title: s.title || '', email: s.email || '',
-        phone: s.phone || '', website: s.website || '', logoUrl: s.logoUrl || '',
-        tagline: s.tagline || '', companyName: s.companyName || '',
-      }
-    } catch { return { name: '', title: '', email: '', phone: '', website: '', logoUrl: '', tagline: '', companyName: '' } }
-  })()
-
-  const websiteClean = sig.website.replace(/^https?:\/\//, '').replace(/\/$/, '')
-  const websiteFull = sig.website.startsWith('http') ? sig.website : `https://${sig.website}`
-
-  const gthSignature = sig.name ? `
-<br><br>
-<table cellpadding="0" cellspacing="0" border="0" style="width:460px;max-width:460px;font-family:'Montserrat',Helvetica,Arial,sans-serif;border-collapse:collapse;border:none;">
-  <tr><td colspan="3" style="padding:0 0 28px 0;"><table cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;"><tr><td style="width:40px;height:2px;background-color:#111111;font-size:1px;line-height:1px;">&nbsp;</td><td style="height:2px;font-size:1px;line-height:1px;">&nbsp;</td></tr></table></td></tr>
-  <tr>
-    ${sig.logoUrl ? `<td style="width:74px;vertical-align:top;padding:0;"><a href="${websiteFull}" target="_blank" style="text-decoration:none;border:none;"><img src="${sig.logoUrl}" alt="${sig.companyName}" width="60" height="68" style="display:block;width:60px;height:auto;border:0;outline:none;" /></a></td><td style="width:24px;vertical-align:top;padding:2px 0 0 0;"><table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;border-collapse:collapse;"><tr><td style="width:1px;height:78px;background-color:#D0D0D0;font-size:1px;line-height:1px;">&nbsp;</td></tr></table></td>` : ''}
-    <td style="vertical-align:top;padding:0;">
-      <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr><td style="font-family:'Montserrat',Helvetica,Arial,sans-serif;font-size:17px;font-weight:700;color:#111111;letter-spacing:0.3px;line-height:1.15;padding:0 0 2px 0;">${sig.name}</td></tr></table>
-      ${sig.title ? `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr><td style="font-family:'Montserrat',Helvetica,Arial,sans-serif;font-size:11px;font-weight:500;color:#888888;letter-spacing:2.5px;text-transform:uppercase;line-height:1.3;padding:0 0 14px 0;">${sig.title}</td></tr></table>` : ''}
-      <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
-        ${sig.email ? `<tr><td style="font-family:'Montserrat',Helvetica,Arial,sans-serif;font-size:12px;color:#555555;line-height:1.3;padding:0 0 5px 0;"><a href="mailto:${sig.email}" style="color:#555555;text-decoration:none;">${sig.email}</a></td></tr>` : ''}
-        ${sig.phone ? `<tr><td style="font-family:'Montserrat',Helvetica,Arial,sans-serif;font-size:12px;color:#555555;line-height:1.3;padding:0 0 5px 0;"><a href="tel:${sig.phone.replace(/\D/g, '')}" style="color:#555555;text-decoration:none;">${sig.phone}</a></td></tr>` : ''}
-        ${sig.website ? `<tr><td style="font-family:'Montserrat',Helvetica,Arial,sans-serif;font-size:12px;font-weight:600;color:#111111;line-height:1.3;padding:0;"><a href="${websiteFull}" target="_blank" style="color:#111111;text-decoration:none;">${websiteClean}</a></td></tr>` : ''}
-      </table>
-    </td>
-  </tr>
-  ${sig.tagline ? `<tr><td colspan="3" style="padding:20px 0 0 0;"><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr><td style="font-family:'Montserrat',Helvetica,Arial,sans-serif;font-size:9px;font-weight:500;color:#BBBBBB;letter-spacing:3px;text-transform:uppercase;line-height:1.3;">${sig.tagline}</td></tr></table></td></tr>` : ''}
-</table>` : ''
+  const gthSignature = GTH_EMAIL_SIGNATURE
 
   const headers = [
     `To: ${params.to}`,
@@ -489,38 +457,7 @@ export async function sendEmailWithAttachment(params: {
   const boundary = 'gth_boundary_' + Date.now()
   const htmlBody = params.body.replace(/\n/g, '<br>')
 
-  const sig = (() => {
-    try {
-      const s = JSON.parse(localStorage.getItem('gth_email_sig_cache') || '{}')
-      return {
-        name: s.name || '', title: s.title || '', email: s.email || '',
-        phone: s.phone || '', website: s.website || '', logoUrl: s.logoUrl || '',
-        tagline: s.tagline || '', companyName: s.companyName || '',
-      }
-    } catch { return { name: '', title: '', email: '', phone: '', website: '', logoUrl: '', tagline: '', companyName: '' } }
-  })()
-
-  const websiteClean = sig.website.replace(/^https?:\/\//, '').replace(/\/$/, '')
-  const websiteFull = sig.website.startsWith('http') ? sig.website : `https://${sig.website}`
-
-  const gthSignature = sig.name ? `
-<br><br>
-<table cellpadding="0" cellspacing="0" border="0" style="width:460px;max-width:460px;font-family:'Montserrat',Helvetica,Arial,sans-serif;border-collapse:collapse;border:none;">
-  <tr><td colspan="3" style="padding:0 0 28px 0;"><table cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;"><tr><td style="width:40px;height:2px;background-color:#111111;font-size:1px;line-height:1px;">&nbsp;</td><td style="height:2px;font-size:1px;line-height:1px;">&nbsp;</td></tr></table></td></tr>
-  <tr>
-    ${sig.logoUrl ? `<td style="width:74px;vertical-align:top;padding:0 0 0 0;"><a href="${websiteFull}" target="_blank" style="text-decoration:none;border:none;"><img src="${sig.logoUrl}" alt="${sig.companyName}" width="60" height="68" style="display:block;width:60px;height:auto;border:0;outline:none;" /></a></td><td style="width:24px;vertical-align:top;padding:2px 0 0 0;"><table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;border-collapse:collapse;"><tr><td style="width:1px;height:78px;background-color:#D0D0D0;font-size:1px;line-height:1px;">&nbsp;</td></tr></table></td>` : ''}
-    <td style="vertical-align:top;padding:0;">
-      <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr><td style="font-family:'Montserrat',Helvetica,Arial,sans-serif;font-size:17px;font-weight:700;color:#111111;letter-spacing:0.3px;line-height:1.15;padding:0 0 2px 0;">${sig.name}</td></tr></table>
-      ${sig.title ? `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr><td style="font-family:'Montserrat',Helvetica,Arial,sans-serif;font-size:11px;font-weight:500;color:#888888;letter-spacing:2.5px;text-transform:uppercase;line-height:1.3;padding:0 0 14px 0;">${sig.title}</td></tr></table>` : ''}
-      <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
-        ${sig.email ? `<tr><td style="font-family:'Montserrat',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400;color:#555555;line-height:1.3;padding:0 0 5px 0;"><a href="mailto:${sig.email}" style="color:#555555;text-decoration:none;">${sig.email}</a></td></tr>` : ''}
-        ${sig.phone ? `<tr><td style="font-family:'Montserrat',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400;color:#555555;line-height:1.3;padding:0 0 5px 0;"><a href="tel:${sig.phone.replace(/\D/g, '')}" style="color:#555555;text-decoration:none;">${sig.phone}</a></td></tr>` : ''}
-        ${sig.website ? `<tr><td style="font-family:'Montserrat',Helvetica,Arial,sans-serif;font-size:12px;font-weight:600;color:#111111;line-height:1.3;padding:0;"><a href="${websiteFull}" target="_blank" style="color:#111111;text-decoration:none;">${websiteClean}</a></td></tr>` : ''}
-      </table>
-    </td>
-  </tr>
-  ${sig.tagline ? `<tr><td colspan="3" style="padding:20px 0 0 0;"><table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;"><tr><td style="font-family:'Montserrat',Helvetica,Arial,sans-serif;font-size:9px;font-weight:500;color:#BBBBBB;letter-spacing:3px;text-transform:uppercase;line-height:1.3;">${sig.tagline}</td></tr></table></td></tr>` : ''}
-</table>` : ''
+  const gthSignature = GTH_EMAIL_SIGNATURE
 
   const mimeMessage = [
     `Content-Type: multipart/mixed; boundary="${boundary}"`,
@@ -663,3 +600,72 @@ export async function searchDriveFiles(query: string): Promise<DriveFile[]> {
   const { files } = await listDriveFiles({ query, pageSize: 20 })
   return files
 }
+
+// ─── GTH Email Signature (exact copy from gth-signature-HOSTED-FINAL.html) ──
+
+const GTH_EMAIL_SIGNATURE = `
+<br><br>
+<table cellpadding="0" cellspacing="0" border="0" style="width:460px;max-width:460px;font-family:'Montserrat',Helvetica,Arial,sans-serif;border-collapse:collapse;border:none;">
+  <tr>
+    <td colspan="3" style="padding:0 0 28px 0;">
+      <table cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;">
+        <tr>
+          <td style="width:40px;height:2px;background-color:#111111;font-size:1px;line-height:1px;">&nbsp;</td>
+          <td style="height:2px;font-size:1px;line-height:1px;">&nbsp;</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <tr>
+    <td style="width:74px;vertical-align:top;padding:0 0 0 0;">
+      <a href="https://growthehype.ca" target="_blank" style="text-decoration:none;border:none;">
+        <img src="https://i.imgur.com/69I8Ojh.png" alt="Grow The Hype" width="60" height="68" style="display:block;width:60px;height:auto;border:0;outline:none;" />
+      </a>
+    </td>
+    <td style="width:24px;vertical-align:top;padding:2px 0 0 0;">
+      <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;border-collapse:collapse;">
+        <tr>
+          <td style="width:1px;height:78px;background-color:#D0D0D0;font-size:1px;line-height:1px;">&nbsp;</td>
+        </tr>
+      </table>
+    </td>
+    <td style="vertical-align:top;padding:0;">
+      <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+        <tr>
+          <td style="font-family:'Montserrat',Helvetica,Arial,sans-serif;font-size:17px;font-weight:700;color:#111111;letter-spacing:0.3px;line-height:1.15;padding:0 0 2px 0;">Omar Alladina</td>
+        </tr>
+      </table>
+      <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+        <tr>
+          <td style="font-family:'Montserrat',Helvetica,Arial,sans-serif;font-size:11px;font-weight:500;color:#888888;letter-spacing:2.5px;text-transform:uppercase;line-height:1.3;padding:0 0 14px 0;">Chief Marketing Strategist</td>
+        </tr>
+      </table>
+      <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+        <tr>
+          <td style="font-family:'Montserrat',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400;color:#555555;line-height:1.3;padding:0 0 5px 0;">
+            <a href="mailto:omar@growthehype.ca" style="color:#555555;text-decoration:none;">omar@growthehype.ca</a>
+          </td>
+        </tr>
+        <tr>
+          <td style="font-family:'Montserrat',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400;color:#555555;line-height:1.3;padding:0 0 5px 0;">
+            <a href="tel:+17809664986" style="color:#555555;text-decoration:none;">(780) 966-4986</a>
+          </td>
+        </tr>
+        <tr>
+          <td style="font-family:'Montserrat',Helvetica,Arial,sans-serif;font-size:12px;font-weight:600;color:#111111;line-height:1.3;padding:0;">
+            <a href="https://growthehype.ca" target="_blank" style="color:#111111;text-decoration:none;">growthehype.ca</a>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="3" style="padding:20px 0 0 0;">
+      <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+        <tr>
+          <td style="font-family:'Montserrat',Helvetica,Arial,sans-serif;font-size:9px;font-weight:500;color:#BBBBBB;letter-spacing:3px;text-transform:uppercase;line-height:1.3;">Strategy&nbsp;&nbsp;&middot;&nbsp;&nbsp;Design&nbsp;&nbsp;&middot;&nbsp;&nbsp;Growth</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>`
