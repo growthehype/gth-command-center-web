@@ -13,10 +13,10 @@ const SCOPES = [
 export default function handler(req: VercelRequest, res: VercelResponse) {
   const host = req.headers.host || ''
   const protocol = host.includes('localhost') ? 'http' : 'https'
-  const baseUrl = `${protocol}://${host}`
+  const origin = process.env.APP_URL || `${protocol}://${host}`
   const returnPage = (req.query.returnPage as string) || ''
 
-  const redirectUri = `${baseUrl}/api/google-callback`
+  const redirectUri = `${origin}/api/google-callback`
 
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,

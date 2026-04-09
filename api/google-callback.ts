@@ -11,19 +11,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const protocol = host.includes('localhost') ? 'http' : 'https'
   const origin = `${protocol}://${host}`
 
+  const baseUrl = process.env.APP_URL || origin
+
   if (error) {
-    return res.redirect(`${origin}#gmail?error=${encodeURIComponent(error)}`)
+    return res.redirect(`${baseUrl}/#gmail?error=${encodeURIComponent(error)}`)
   }
   if (!code) {
-    return res.redirect(`${origin}#gmail?error=no_code`)
+    return res.redirect(`${baseUrl}/#gmail?error=no_code`)
   }
 
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET
   if (!clientSecret) {
-    return res.redirect(`${origin}#gmail?error=server_missing_secret`)
+    return res.redirect(`${baseUrl}/#gmail?error=server_missing_secret`)
   }
 
-  const redirectUri = `${origin}/api/google-callback`
+  const redirectUri = `${baseUrl}/api/google-callback`
 
   try {
     // Exchange code for tokens
@@ -42,7 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const tokens = await tokenRes.json()
 
     if (!tokenRes.ok || !tokens.access_token) {
-      return res.redirect(`${origin}#gmail?error=${encodeURIComponent(tokens.error || 'token_exchange_failed')}`)
+      return res.redirect(`${baseUrl}/#gmail?error=${encodeURIComponent(tokens.error || 'token_exchange_failed')}`)
     }
 
     // Build a response that the frontend will read
@@ -78,6 +80,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 <noscript>JavaScript required. Please enable JavaScript and try again.</noscript>
 </body></html>`)
   } catch (err: any) {
-    return res.redirect(`${origin}#gmail?error=${encodeURIComponent(err.message || 'unknown')}`)
+    return res.redirect(`${baseUrl}/#gmail?error=${encodeURIComponent(err.message || 'unknown')}`)
   }
 }
