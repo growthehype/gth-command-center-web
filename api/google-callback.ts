@@ -39,7 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return errorPage(res, 'No authorization code', 'Google did not return a code. Please try again.', baseUrl)
   }
 
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET
+  const clientSecret = (process.env.GOOGLE_CLIENT_SECRET || '').trim().replace(/\\n/g, '')
   if (!clientSecret) {
     return errorPage(res, 'Server configuration error', 'GOOGLE_CLIENT_SECRET is not set in Vercel environment variables.', baseUrl)
   }
