@@ -1,6 +1,12 @@
 // Vercel Cron — runs every 15 min to tick enabled AI agents
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { getAdminClient, createAgentRun, updateAgentRun } from '../_lib/supabase-admin'
+import { runAgentTick, type AgentAction } from '../_lib/orchestrator'
+import { scrapeLeads } from '../_lib/scraper'
+import { qualifyLeads } from '../_lib/qualifier'
+import { generateOutreach } from '../_lib/email-generator'
+import { sendScheduledEmails } from '../_lib/sender'
+import { classifyInbox } from '../_lib/inbox-classifier'
 
 /* ------------------------------------------------------------------ */
 /*  Cron-to-ms lookup (simple subset used by agent schedules)         */
@@ -15,6 +21,54 @@ function cronToMs(cron: string): number {
   }
   // Fallback: treat as 15 min
   return 15 * 60 * 1000
+}
+
+// ─── Action Executor ───────────────────────────────────────────
+
+async function executeAction(
+  action: AgentAction,
+  userId: string,
+  runId: string,
+  config: any,
+): Promise<any> {
+  // Keep batch sizes small to stay within Vercel 10s timeout on Hobby
+  switch (action.type) {
+    case 'classify_inbox':
+      return classifyInbox({ userId, agentRunId: runId })
+
+    case 'scrape_leads':
+      return scrapeLeads({
+        userId,
+        agentRunId: runId,
+        query: action.params?.query || config?.config?.target_niche || config?.target_niche || 'local businesses',
+        location: action.params?.location || config?.config?.target_location || config?.target_location || 'Edmonton, AB',
+        agentName: config?.agent_name || null,
+        agentType: config?.agent_type || null,
+        agentConfigId: config?.id || null,
+      })
+
+    case 'qualify_leads':
+      return qualifyLeads({
+        userId,
+        agentRunId: runId,
+        agentType: config?.agent_type || 'lead_gen',
+        batchSize: 3, // small batch for timeout safety
+      })
+
+    case 'generate_emails':
+      return generateOutreach({
+        userId,
+        agentRunId: runId,
+        agentType: config?.agent_type || 'lead_gen',
+        batchSize: 3,
+      })
+
+    case 'send_emails':
+      return sendScheduledEmails({ userId, agentRunId: runId })
+
+    default:
+      return { skipped: true, reason: `Unknown action: ${action.type}` }
+  }
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -59,21 +113,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         continue
       }
 
-      // 2. Create agent_runs record (status: running)
-      const runId = await createAgentRun({
-        user_id: cfg.user_id,
-        agent_type: cfg.agent_type,
-        status: 'running',
-        trigger: 'scheduled',
-        metadata: { config_id: cfg.id },
-      })
+      // 2. Run orchestrator to get actions
+      const tick = await runAgentTick(cfg.user_id, cfg.agent_type, cfg)
 
-      // 3. Phase 1: Log what WOULD happen (orchestrator placeholder)
-      const summary = `[Phase 1 dry-run] Agent "${cfg.agent_type}" for user ${cfg.user_id} would execute. Config: ${JSON.stringify(cfg.config ?? {})}`
-      console.log(summary)
+      if (tick.skipped) {
+        results.push({
+          agentType: cfg.agent_type,
+          userId: cfg.user_id,
+          action: `skipped — ${tick.reason}`,
+        })
+        continue
+      }
+
+      const runId = tick.runId!
+      const actionResults: Record<string, any> = {}
+
+      // 3. Execute each action (with try/catch per action)
+      for (const action of tick.actions) {
+        try {
+          const result = await executeAction(action, cfg.user_id, runId, cfg)
+          actionResults[action.type] = result
+        } catch (actionErr: any) {
+          console.error(`Action ${action.type} failed for user ${cfg.user_id}:`, actionErr)
+          actionResults[action.type] = { error: actionErr.message || String(actionErr) }
+        }
+      }
 
       // 4. Mark run as completed
-      await updateAgentRun(runId, { status: 'completed', summary })
+      const summary = Object.entries(actionResults)
+        .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
+        .join('; ')
+
+      await updateAgentRun(runId, {
+        status: 'completed',
+        summary: summary.slice(0, 2000),
+        metadata: actionResults,
+      })
 
       // 5. Update last_run_at on the config
       await sb
@@ -84,7 +159,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       results.push({
         agentType: cfg.agent_type,
         userId: cfg.user_id,
-        action: 'success (dry-run)',
+        action: `executed ${tick.actions.length} actions`,
       })
     }
 

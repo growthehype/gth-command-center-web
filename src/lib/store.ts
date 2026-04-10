@@ -21,7 +21,23 @@ export interface Invoice {
 }
 
 export interface OutreachLead {
-  id: string; name: string; industry: string | null; stage: string; last_contact: string | null; next_follow_up: string | null; deal_value: number; notes: string | null; created_at: string; converted_client_id: string | null
+  id: string; name: string; industry: string | null; stage: string; last_contact: string | null; next_follow_up: string | null; deal_value: number; notes: string | null; created_at: string; converted_client_id: string | null;
+  // ----- Fields populated by AI agents (Sarah, Selina, client agents) -----
+  email?: string | null;
+  phone?: string | null;
+  website?: string | null;
+  address?: string | null;
+  rating?: number | null;
+  google_maps_url?: string | null;
+  google_place_id?: string | null;
+  business_status?: string | null;
+  source?: string | null;
+  agent_name?: string | null;
+  agent_type?: string | null;
+  agent_config_id?: string | null;
+  agent_run_id?: string | null;
+  qualification_score?: number | null;
+  qualification_reason?: string | null;
 }
 
 export interface CalendarEvent {

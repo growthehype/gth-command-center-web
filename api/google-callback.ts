@@ -112,6 +112,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     localStorage.setItem('gth_gmail_ever_connected', 'true');
 
+    // Persist refresh token server-side for agent use
+    if (tokenData.refresh_token && tokenData.access_token) {
+      fetch('/api/agent/link-gmail', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          refreshToken: tokenData.refresh_token,
+          accessToken: tokenData.access_token
+        })
+      }).catch(function() {}); // fire and forget
+    }
+
     // Verify it saved
     var saved = localStorage.getItem('gth_gmail_token');
     if (!saved) throw new Error('localStorage save failed');

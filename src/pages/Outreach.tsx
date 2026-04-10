@@ -1,13 +1,15 @@
-import { useState, useMemo, useCallback, DragEvent } from 'react'
-import { Target, Plus, Trash2, ChevronUp, ChevronDown, Search, AlertTriangle, Clock, List, Columns3 } from 'lucide-react'
+import { useState, useMemo, useCallback, useEffect, DragEvent } from 'react'
+import { Target, Plus, Trash2, ChevronUp, ChevronDown, Search, AlertTriangle, Clock, List, Columns3, Download, Bot } from 'lucide-react'
 import { useAppStore, OutreachLead } from '@/lib/store'
 import { outreach } from '@/lib/api'
+import { supabase } from '@/lib/supabase'
 import { showToast } from '@/components/ui/Toast'
 import Modal from '@/components/ui/Modal'
 import EmptyState from '@/components/ui/EmptyState'
 import VoiceTextarea from '@/components/ui/VoiceTextarea'
 import { formatCurrency, relativeDate, friendlyDate, isOverdue } from '@/lib/utils'
 import { isToday, parseISO, differenceInCalendarDays } from 'date-fns'
+import { downloadLeadsCsv } from '@/lib/lead-export'
 
 const STAGES = ['New Lead', 'Contacted', 'Responded', 'Meeting Set', 'Closed Won', 'Closed Lost'] as const
 type Stage = (typeof STAGES)[number]
@@ -30,14 +32,117 @@ const STAGE_COLORS: Record<string, string> = {
   'Closed Lost': '#BF616A',
 }
 
+// Expanded industry list — matches the categories the agent scraper writes
+// so the Edit modal's industry field can actually pre-select scraped values.
+// Also used as <datalist> suggestions so the user can still type free text.
 const INDUSTRIES = [
-  'Automotive', 'Healthcare', 'Real Estate', 'Restaurant', 'Retail',
-  'Legal', 'Finance', 'Construction', 'Technology', 'Other',
+  'Dental', 'Medical', 'Veterinary', 'Pharmacy',
+  'Contractor', 'Real Estate', 'Construction',
+  'Auto Dealer', 'Auto Repair', 'Auto Service', 'Auto Parts',
+  'Restaurant', 'Cafe', 'Bakery', 'Bar',
+  'Salon', 'Spa', 'Fitness',
+  'Legal', 'Accounting', 'Insurance', 'Bank',
+  'Retail', 'Florist', 'Pet', 'Travel', 'Service',
+  'Technology', 'Other',
 ]
+
+// Google Places returns junk place types like:
+//   "general_contractor, service, point_of_interest, establishment"
+// These map raw primary types to friendly *category* labels (so dentist,
+// dental_clinic, orthodontist all show as the SAME "Dental" — no more
+// duplicate categories for the same kind of business).
+const GOOGLE_TYPE_NOISE = new Set([
+  'establishment', 'point_of_interest', 'service', 'store',
+  'premise', 'subpremise', 'food', 'finance', 'health',
+])
+const GOOGLE_TYPE_LABELS: Record<string, string> = {
+  // Dental — all collapse to a single category
+  dentist: 'Dental', dental_clinic: 'Dental', orthodontist: 'Dental',
+  endodontist: 'Dental', periodontist: 'Dental', oral_surgeon: 'Dental',
+
+  // Contractors — collapsed
+  general_contractor: 'Contractor', contractor: 'Contractor',
+  roofing_contractor: 'Contractor', plumber: 'Contractor', electrician: 'Contractor',
+  painter: 'Contractor', carpenter: 'Contractor', locksmith: 'Contractor',
+  flooring_contractor: 'Contractor', hvac_contractor: 'Contractor',
+  landscaper: 'Contractor', landscaping: 'Contractor',
+  home_builder: 'Contractor', construction_company: 'Contractor',
+  moving_company: 'Contractor',
+
+  // Auto
+  car_dealer: 'Auto Dealer', car_repair: 'Auto Repair',
+  car_wash: 'Auto Service', auto_parts_store: 'Auto Parts',
+
+  // Food
+  restaurant: 'Restaurant', cafe: 'Cafe', bakery: 'Bakery', bar: 'Bar',
+  meal_takeaway: 'Restaurant', meal_delivery: 'Restaurant',
+  fast_food_restaurant: 'Restaurant', coffee_shop: 'Cafe',
+
+  // Medical / health
+  doctor: 'Medical', hospital: 'Medical', physiotherapist: 'Medical',
+  chiropractor: 'Medical', optometrist: 'Medical', pharmacy: 'Pharmacy',
+  veterinary_care: 'Veterinary',
+
+  // Beauty
+  hair_care: 'Salon', beauty_salon: 'Salon', barber_shop: 'Salon',
+  nail_salon: 'Salon', spa: 'Spa', gym: 'Fitness',
+
+  // Professional services
+  real_estate_agency: 'Real Estate', insurance_agency: 'Insurance',
+  lawyer: 'Legal', accounting: 'Accounting', bank: 'Bank',
+
+  // Retail
+  clothing_store: 'Retail', furniture_store: 'Retail',
+  hardware_store: 'Retail', jewelry_store: 'Retail',
+  shoe_store: 'Retail', book_store: 'Retail',
+  electronics_store: 'Retail', home_goods_store: 'Retail',
+
+  pet_store: 'Pet', florist: 'Florist', travel_agency: 'Travel',
+}
+
+function cleanIndustry(raw: string | null | undefined): string {
+  if (!raw) return '—'
+  // If it already matches a curated label exactly, trust it (covers
+  // values written by the new scraper like "Dental", "Contractor")
+  if (Object.values(GOOGLE_TYPE_LABELS).includes(raw)) return raw
+  // Single clean word with no comma/underscore — also trust
+  if (!raw.includes(',') && !raw.includes('_')) return raw
+  // Split a comma list and pick the first meaningful one
+  const types = raw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+  for (const t of types) {
+    if (GOOGLE_TYPE_NOISE.has(t)) continue
+    if (GOOGLE_TYPE_LABELS[t]) return GOOGLE_TYPE_LABELS[t]
+    // Fallback: title-case the snake_case type
+    return t.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+  }
+  return 'Other'
+}
+
+// Lead heat / temperature based on the AI qualification_score (0-100)
+function scoreColor(score: number | null | undefined): { bg: string; text: string; label: string } {
+  if (score == null) return { bg: 'bg-cell', text: 'text-dim', label: '—' }
+  if (score >= 80) return { bg: 'bg-ok/20', text: 'text-ok', label: 'HOT' }
+  if (score >= 60) return { bg: 'bg-warn/20', text: 'text-warn', label: 'WARM' }
+  if (score >= 40) return { bg: 'bg-polar/15', text: 'text-polar', label: 'COOL' }
+  return { bg: 'bg-cell', text: 'text-steel', label: 'COLD' }
+}
 
 const EMPTY_FORM = {
   name: '', industry: '', stage: 'New Lead' as string, deal_value: 0,
   notes: '', next_follow_up: '',
+  // Contact + location
+  phone: '', email: '', website: '', address: '',
+  // Agent assignment
+  agent_config_id: '' as string,
+  // AI lead temperature
+  qualification_score: null as number | null,
+  qualification_reason: '' as string,
+}
+
+interface AgentConfigOption {
+  id: string
+  agent_name: string | null
+  agent_type: string | null
 }
 
 type ViewMode = 'table' | 'pipeline'
@@ -55,12 +160,75 @@ export default function Outreach() {
   const [viewMode, setViewMode] = useState<ViewMode>('table')
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null)
   const [dragOverStage, setDragOverStage] = useState<string | null>(null)
+  // 'all' | 'manual' | '<exact agent_name string>'
+  const [agentFilter, setAgentFilter] = useState<string>('all')
 
-  // Pipeline counts
+  // All agent configs the user owns — populates the Add Lead "Agent" picker
+  const [agentConfigs, setAgentConfigs] = useState<AgentConfigOption[]>([])
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data, error } = await supabase
+          .from('agent_configs')
+          .select('id, agent_name, agent_type')
+          .eq('user_id', user.id)
+          .order('agent_name', { ascending: true })
+        if (error) throw error
+        if (!cancelled) setAgentConfigs(data || [])
+      } catch (err) {
+        console.error('Failed to load agent configs for picker:', err)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  // Distinct agent names that appear on the current leads (for the filter dropdown)
+  // — also tracks lead counts per agent so the dropdown can show "Frank (21)"
+  const agentOptions = useMemo(() => {
+    const counts = new Map<string, number>()
+    let manualCount = 0
+    leads.forEach(l => {
+      const n = (l.agent_name || '').trim()
+      if (n) counts.set(n, (counts.get(n) || 0) + 1)
+      else manualCount++
+    })
+    const names = Array.from(counts.keys()).sort((a, b) => a.localeCompare(b))
+    return {
+      names,
+      counts,
+      manualCount,
+      hasManual: manualCount > 0,
+    }
+  }, [leads])
+
+  // Apply the agent filter on top of the leads source used everywhere else
+  const visibleLeads = useMemo(() => {
+    if (agentFilter === 'all') return leads
+    if (agentFilter === 'manual') return leads.filter(l => !l.agent_name)
+    return leads.filter(l => (l.agent_name || '') === agentFilter)
+  }, [leads, agentFilter])
+
+  const handleExportCsv = useCallback(() => {
+    if (visibleLeads.length === 0) {
+      showToast('No leads to export', 'warn')
+      return
+    }
+    const baseName =
+      agentFilter === 'all' ? 'all-leads'
+      : agentFilter === 'manual' ? 'manual-leads'
+      : agentFilter
+    const filename = downloadLeadsCsv(visibleLeads, baseName)
+    showToast(`Exported ${visibleLeads.length} leads → ${filename}`, 'success')
+  }, [visibleLeads, agentFilter])
+
+  // Pipeline counts (filtered by agent)
   const pipeline = useMemo(() => {
     const result: Record<string, { count: number; value: number }> = {}
     STAGES.forEach(s => { result[s] = { count: 0, value: 0 } })
-    leads.forEach(l => {
+    visibleLeads.forEach(l => {
       const s = l.stage || 'New Lead'
       if (result[s]) {
         result[s].count++
@@ -68,19 +236,19 @@ export default function Outreach() {
       }
     })
     return result
-  }, [leads])
+  }, [visibleLeads])
 
   // Total pipeline value for the summary bar
   const totalPipelineValue = useMemo(() => {
     return STAGES.reduce((sum, s) => sum + pipeline[s].value, 0)
   }, [pipeline])
 
-  // Leads grouped by stage for kanban
+  // Leads grouped by stage for kanban (filtered by agent + search)
   const leadsByStage = useMemo(() => {
     const result: Record<string, OutreachLead[]> = {}
     STAGES.forEach(s => { result[s] = [] })
     const q = search.trim().toLowerCase()
-    leads.forEach(l => {
+    visibleLeads.forEach(l => {
       const s = (l.stage || 'New Lead') as string
       if (!result[s]) result[s] = []
       if (q) {
@@ -93,11 +261,11 @@ export default function Outreach() {
       result[s].push(l)
     })
     return result
-  }, [leads, search])
+  }, [visibleLeads, search])
 
-  // Filter + Sort
+  // Filter + Sort (filtered by agent + search)
   const sorted = useMemo(() => {
-    let list = [...leads]
+    let list = [...visibleLeads]
     if (search.trim()) {
       const q = search.toLowerCase()
       list = list.filter(l =>
@@ -114,7 +282,7 @@ export default function Outreach() {
       return sortDir === 'asc' ? cmp : -cmp
     })
     return list
-  }, [leads, search, sortKey, sortDir])
+  }, [visibleLeads, search, sortKey, sortDir])
 
   const handleSort = (key: typeof sortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -148,11 +316,18 @@ export default function Outreach() {
   const openEdit = (lead: OutreachLead) => {
     setForm({
       name: lead.name || '',
-      industry: lead.industry || '',
+      industry: cleanIndustry(lead.industry) === '—' ? '' : cleanIndustry(lead.industry),
       stage: lead.stage || 'New Lead',
       deal_value: lead.deal_value || 0,
       notes: lead.notes || '',
       next_follow_up: lead.next_follow_up || '',
+      phone: (lead as any).phone || '',
+      email: (lead as any).email || '',
+      website: (lead as any).website || '',
+      address: (lead as any).address || '',
+      agent_config_id: (lead as any).agent_config_id || '',
+      qualification_score: (lead as any).qualification_score ?? null,
+      qualification_reason: (lead as any).qualification_reason || '',
     })
     setEditingId(lead.id)
     setModalOpen(true)
@@ -163,13 +338,30 @@ export default function Outreach() {
     if (saving) return
     setSaving(true)
     try {
-      const data = {
+      // Resolve the selected agent (if any) so we can stamp agent_name + agent_type
+      const selectedAgent = form.agent_config_id
+        ? agentConfigs.find(a => a.id === form.agent_config_id)
+        : null
+
+      const data: Record<string, any> = {
         name: form.name.trim(),
         industry: form.industry || null,
         stage: form.stage,
         deal_value: Number(form.deal_value) || 0,
         notes: form.notes || null,
         next_follow_up: form.next_follow_up || null,
+        phone: form.phone.trim() || null,
+        email: form.email.trim() || null,
+        website: form.website.trim() || null,
+        address: form.address.trim() || null,
+        agent_config_id: selectedAgent?.id || null,
+        agent_name: selectedAgent?.agent_name || null,
+        agent_type: selectedAgent?.agent_type || null,
+        source: selectedAgent ? 'manual_assigned' : 'manual',
+        qualification_score:
+          form.qualification_score === null || form.qualification_score === undefined || (form.qualification_score as any) === ''
+            ? null
+            : Math.max(0, Math.min(100, Number(form.qualification_score))),
       }
       if (editingId) {
         await outreach.update(editingId, data)
@@ -267,15 +459,49 @@ export default function Outreach() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
           <div className="flex items-center gap-3">
             <h1>Outreach Pipeline</h1>
             <Target size={14} className="text-dim" />
           </div>
-          <p className="text-dim mt-1" style={{ fontSize: '13px' }}>{leads.length} leads in pipeline</p>
+          <p className="text-dim mt-1" style={{ fontSize: '13px' }}>
+            {visibleLeads.length} of {leads.length} leads
+            {agentFilter !== 'all' && (
+              <span className="ml-1 text-amber-400">
+                · {agentFilter === 'manual' ? 'Manual entries' : agentFilter}
+              </span>
+            )}
+          </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Agent Filter — always visible so users learn it exists */}
+          <div className="relative flex items-center">
+            <Bot size={13} className={`absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${agentFilter !== 'all' ? 'text-polar' : 'text-dim'}`} />
+            <select
+              value={agentFilter}
+              onChange={e => setAgentFilter(e.target.value)}
+              className={`bg-cell border pl-8 pr-7 py-1.5 font-sans outline-none focus:border-dim transition-colors appearance-none ${agentFilter !== 'all' ? 'border-polar text-polar' : 'border-border text-polar'}`}
+              style={{ fontSize: '12px', minWidth: '200px' }}
+              title="Filter leads by which agent created them"
+            >
+              <option value="all">All Leads ({leads.length})</option>
+              {agentOptions.hasManual && (
+                <option value="manual">Manual entries ({agentOptions.manualCount})</option>
+              )}
+              {agentOptions.names.length > 0 && (
+                <optgroup label="Agents">
+                  {agentOptions.names.map(name => (
+                    <option key={name} value={name}>
+                      {name} ({agentOptions.counts.get(name) || 0})
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
+            <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-dim pointer-events-none" />
+          </div>
+
           {/* View Toggle */}
           <div className="flex border border-border overflow-hidden">
             <button
@@ -313,6 +539,15 @@ export default function Outreach() {
               style={{ fontSize: '12px' }}
             />
           </div>
+          <button
+            onClick={handleExportCsv}
+            disabled={visibleLeads.length === 0}
+            className="btn-ghost flex items-center gap-2"
+            title={agentFilter === 'all' ? 'Export all leads to CSV' : `Export ${agentFilter} leads to CSV`}
+            style={{ opacity: visibleLeads.length === 0 ? 0.4 : 1 }}
+          >
+            <Download size={14} /> Export CSV
+          </button>
           <button onClick={openCreate} className="btn-primary flex items-center gap-2">
             <Plus size={14} /> Add Lead
           </button>
@@ -389,22 +624,24 @@ export default function Outreach() {
             />
           ) : (
             <div className="card overflow-hidden overflow-x-auto">
-              <table className="w-full min-w-[700px]" style={{ fontSize: '13px' }}>
+              <table className="w-full min-w-[1200px]" style={{ fontSize: '13px' }}>
                 <thead>
                   <tr className="border-b border-border text-left">
                     <th className="label px-4 py-3 cursor-pointer" onClick={() => handleSort('name')}>
                       Business <SortIcon col="name" />
                     </th>
+                    <th className="label px-4 py-3">Agent</th>
+                    <th className="label px-4 py-3" title="AI lead temperature score (0-100)">Score</th>
                     <th className="label px-4 py-3">Industry</th>
+                    <th className="label px-4 py-3">Phone</th>
+                    <th className="label px-4 py-3">Email</th>
+                    <th className="label px-4 py-3">Website</th>
                     <th className="label px-4 py-3 cursor-pointer" onClick={() => handleSort('stage')}>
                       Stage <SortIcon col="stage" />
                     </th>
                     <th className="label px-4 py-3 cursor-pointer text-right" onClick={() => handleSort('deal_value')}>
                       Deal Value <SortIcon col="deal_value" />
                     </th>
-                    <th className="label px-4 py-3">Last Contact</th>
-                    <th className="label px-4 py-3">Next Follow-Up</th>
-                    <th className="label px-4 py-3">Notes</th>
                     <th className="label px-4 py-3 w-10"></th>
                   </tr>
                 </thead>
@@ -415,8 +652,81 @@ export default function Outreach() {
                       className="table-row cursor-pointer"
                       onClick={() => openEdit(lead)}
                     >
-                      <td className="px-4 py-3 text-polar font-semibold">{lead.name}</td>
-                      <td className="px-4 py-3 text-steel">{lead.industry || '-'}</td>
+                      <td className="px-4 py-3 text-polar font-semibold">
+                        <div className="flex flex-col">
+                          <span>{lead.name}</span>
+                          {lead.address && (
+                            <span className="text-dim font-normal" style={{ fontSize: '11px' }}>
+                              {lead.address}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        {lead.agent_name ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-polar/10 text-polar" style={{ fontSize: '11px' }}>
+                            <Bot size={10} />
+                            {lead.agent_name}
+                          </span>
+                        ) : (
+                          <span className="text-dim" style={{ fontSize: '11px' }}>Manual</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {(() => {
+                          const c = scoreColor(lead.qualification_score)
+                          return (
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded ${c.bg} ${c.text}`}
+                              style={{ fontSize: '11px', fontWeight: 700, lineHeight: 1.4 }}
+                              title={lead.qualification_score != null ? `AI score: ${lead.qualification_score}/100` : 'Not yet scored — run agent to qualify'}
+                            >
+                              {lead.qualification_score != null ? (
+                                <>
+                                  <span className="mono">{lead.qualification_score}</span>
+                                  <span style={{ fontSize: '9px' }}>{c.label}</span>
+                                </>
+                              ) : (
+                                <span className="text-dim">—</span>
+                              )}
+                            </span>
+                          )
+                        })()}
+                      </td>
+                      <td className="px-4 py-3 text-steel">{cleanIndustry(lead.industry)}</td>
+                      <td className="px-4 py-3 mono text-steel" onClick={(e) => e.stopPropagation()}>
+                        {lead.phone ? (
+                          <a href={`tel:${lead.phone}`} className="hover:text-polar transition-colors">
+                            {lead.phone}
+                          </a>
+                        ) : (
+                          <span className="text-dim">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-steel" onClick={(e) => e.stopPropagation()}>
+                        {lead.email ? (
+                          <a href={`mailto:${lead.email}`} className="hover:text-polar transition-colors truncate block" style={{ maxWidth: '180px' }}>
+                            {lead.email}
+                          </a>
+                        ) : (
+                          <span className="text-dim" style={{ fontSize: '11px' }}>—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-steel" onClick={(e) => e.stopPropagation()}>
+                        {lead.website ? (
+                          <a
+                            href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:text-polar transition-colors truncate block"
+                            style={{ maxWidth: '180px' }}
+                          >
+                            {lead.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                          </a>
+                        ) : (
+                          <span className="text-dim">-</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
                         <button
                           onClick={(e) => cycleStage(lead, e)}
@@ -426,42 +736,6 @@ export default function Outreach() {
                         </button>
                       </td>
                       <td className="px-4 py-3 text-right mono text-steel">{formatCurrency(lead.deal_value)}</td>
-                      <td className="px-4 py-3 text-dim">{relativeDate(lead.last_contact)}</td>
-                      <td className="px-4 py-3">
-                        {(() => {
-                          if (!lead.next_follow_up) return <span className="text-dim">-</span>
-                          const overdue = isOverdue(lead.next_follow_up)
-                          let today = false
-                          let dueSoon = false
-                          try {
-                            today = isToday(parseISO(lead.next_follow_up))
-                            if (!overdue && !today) {
-                              const diff = differenceInCalendarDays(parseISO(lead.next_follow_up), new Date())
-                              dueSoon = diff >= 0 && diff <= 2
-                            }
-                          } catch { /* skip */ }
-                          return (
-                            <span className={`mono flex items-center gap-1.5 ${overdue ? 'text-err' : (today || dueSoon) ? 'text-warn' : 'text-dim'}`}>
-                              {friendlyDate(lead.next_follow_up)}
-                              {overdue && (
-                                <span className="inline-flex items-center gap-0.5 rounded-full bg-err/15 text-err px-1.5 py-0.5" style={{ fontSize: '9px', fontWeight: 700, lineHeight: 1 }}>
-                                  <AlertTriangle size={8} />
-                                  OVERDUE
-                                </span>
-                              )}
-                              {today && (
-                                <span className="inline-flex items-center gap-0.5 rounded-full bg-warn/15 text-warn px-1.5 py-0.5" style={{ fontSize: '9px', fontWeight: 700, lineHeight: 1 }}>
-                                  <Clock size={8} />
-                                  TODAY
-                                </span>
-                              )}
-                            </span>
-                          )
-                        })()}
-                      </td>
-                      <td className="px-4 py-3 text-dim" style={{ maxWidth: '160px' }}>
-                        <span className="truncate block">{lead.notes || '-'}</span>
-                      </td>
                       <td className="px-4 py-3">
                         <button
                           onClick={(e) => handleDelete(lead, e)}
@@ -565,15 +839,26 @@ export default function Outreach() {
                           </p>
                         </div>
 
-                        {/* Industry badge */}
-                        {lead.industry && (
-                          <span
-                            className="inline-block mt-1.5 text-dim border border-border px-1.5 py-0.5"
-                            style={{ fontSize: '10px' }}
-                          >
-                            {lead.industry}
-                          </span>
-                        )}
+                        {/* Industry + Agent badges */}
+                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                          {lead.industry && (
+                            <span
+                              className="inline-block text-dim border border-border px-1.5 py-0.5"
+                              style={{ fontSize: '10px' }}
+                            >
+                              {cleanIndustry(lead.industry)}
+                            </span>
+                          )}
+                          {lead.agent_name && (
+                            <span
+                              className="inline-flex items-center gap-1 text-polar bg-polar/10 px-1.5 py-0.5 rounded"
+                              style={{ fontSize: '10px' }}
+                            >
+                              <Bot size={9} />
+                              {lead.agent_name}
+                            </span>
+                          )}
+                        </div>
 
                         {/* Meta row */}
                         <div className="flex items-center justify-between mt-2 gap-2">
@@ -626,45 +911,152 @@ export default function Outreach() {
               placeholder="Business name"
             />
           </div>
+
+          {/* Agent assignment — needed so the lead shows up under that agent's CSV export */}
           <div>
-            <p className="label mb-1">Industry</p>
+            <p className="label mb-1">Assign to Agent</p>
             <select
               className="input w-full"
-              value={form.industry}
-              onChange={e => setForm(f => ({ ...f, industry: e.target.value }))}
+              value={form.agent_config_id}
+              onChange={e => setForm(f => ({ ...f, agent_config_id: e.target.value }))}
             >
-              <option value="">Select industry</option>
-              {INDUSTRIES.map(i => <option key={i} value={i}>{i}</option>)}
+              <option value="">— None (manual lead) —</option>
+              {agentConfigs.map(a => (
+                <option key={a.id} value={a.id}>
+                  {a.agent_name || `(unnamed ${a.agent_type || 'agent'})`}
+                </option>
+              ))}
             </select>
           </div>
-          <div>
-            <p className="label mb-1">Stage</p>
-            <select
-              className="input w-full"
-              value={form.stage}
-              onChange={e => setForm(f => ({ ...f, stage: e.target.value }))}
-            >
-              {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="label mb-1">Phone</p>
+              <input
+                className="input w-full"
+                value={form.phone}
+                onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+                placeholder="780-555-0101"
+              />
+            </div>
+            <div>
+              <p className="label mb-1">Email</p>
+              <input
+                className="input w-full"
+                type="email"
+                value={form.email}
+                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                placeholder="contact@example.com"
+              />
+            </div>
           </div>
+
           <div>
-            <p className="label mb-1">Deal Value ($)</p>
+            <p className="label mb-1">Website</p>
             <input
-              type="number"
               className="input w-full"
-              value={form.deal_value}
-              onChange={e => setForm(f => ({ ...f, deal_value: Number(e.target.value) }))}
+              value={form.website}
+              onChange={e => setForm(f => ({ ...f, website: e.target.value }))}
+              placeholder="https://example.com"
             />
           </div>
+
           <div>
-            <p className="label mb-1">Next Follow-Up</p>
+            <p className="label mb-1">Address</p>
             <input
-              type="date"
               className="input w-full"
-              value={form.next_follow_up}
-              onChange={e => setForm(f => ({ ...f, next_follow_up: e.target.value }))}
+              value={form.address}
+              onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
+              placeholder="123 Main St, Edmonton, AB"
             />
           </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="label mb-1">Industry</p>
+              <input
+                className="input w-full"
+                list="industry-suggestions"
+                value={form.industry}
+                onChange={e => setForm(f => ({ ...f, industry: e.target.value }))}
+                placeholder="Dental, Contractor, Cafe..."
+              />
+              <datalist id="industry-suggestions">
+                {INDUSTRIES.map(i => <option key={i} value={i} />)}
+              </datalist>
+            </div>
+            <div>
+              <p className="label mb-1">Stage</p>
+              <select
+                className="input w-full"
+                value={form.stage}
+                onChange={e => setForm(f => ({ ...f, stage: e.target.value }))}
+              >
+                {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* AI Lead Temperature — read-only badge with manual override */}
+          <div>
+            <p className="label mb-1">AI Lead Score</p>
+            <div className="flex items-center gap-3">
+              {(() => {
+                const c = scoreColor(form.qualification_score)
+                return (
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded ${c.bg} ${c.text}`}>
+                    {form.qualification_score != null ? (
+                      <>
+                        <span className="mono font-semibold">{form.qualification_score}</span>
+                        <span style={{ fontSize: '10px' }}>{c.label}</span>
+                      </>
+                    ) : (
+                      <span className="text-dim">Not yet scored</span>
+                    )}
+                  </span>
+                )
+              })()}
+              <input
+                type="number"
+                min={0}
+                max={100}
+                className="input"
+                style={{ width: '90px' }}
+                value={form.qualification_score ?? ''}
+                onChange={e => {
+                  const v = e.target.value
+                  setForm(f => ({ ...f, qualification_score: v === '' ? null : Number(v) }))
+                }}
+                placeholder="0-100"
+              />
+              <span className="text-dim text-xs">override</span>
+            </div>
+            {form.qualification_reason && (
+              <p className="text-dim text-xs mt-1.5 italic">{form.qualification_reason}</p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="label mb-1">Deal Value ($)</p>
+              <input
+                type="number"
+                className="input w-full"
+                value={form.deal_value}
+                onChange={e => setForm(f => ({ ...f, deal_value: Number(e.target.value) }))}
+              />
+            </div>
+            <div>
+              <p className="label mb-1">Next Follow-Up</p>
+              <input
+                type="date"
+                className="input w-full"
+                value={form.next_follow_up}
+                onChange={e => setForm(f => ({ ...f, next_follow_up: e.target.value }))}
+              />
+            </div>
+          </div>
+
           <div>
             <p className="label mb-1">Notes</p>
             <VoiceTextarea

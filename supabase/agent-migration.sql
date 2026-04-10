@@ -25,7 +25,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- agent_configs — stores config per agent per tenant
 CREATE TABLE IF NOT EXISTS agent_configs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id UUID,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   agent_type TEXT NOT NULL CHECK (agent_type IN ('lead_gen', 'sales')),
   enabled BOOLEAN NOT NULL DEFAULT FALSE,
@@ -43,7 +43,7 @@ COMMENT ON COLUMN agent_configs.config IS 'JSONB: target_industries, target_loca
 -- agent_runs — immutable log of every execution
 CREATE TABLE IF NOT EXISTS agent_runs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id UUID,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   agent_type TEXT NOT NULL CHECK (agent_type IN ('lead_gen', 'sales')),
   triggered_by TEXT NOT NULL CHECK (triggered_by IN ('cron', 'manual')),
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS agent_runs (
 -- scrape_jobs — individual scraping operations
 CREATE TABLE IF NOT EXISTS scrape_jobs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id UUID,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   agent_run_id UUID REFERENCES agent_runs(id) ON DELETE SET NULL,
   source TEXT NOT NULL CHECK (source IN ('google_maps', 'yelp', 'bbb', 'website', 'manual')),
@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS scrape_jobs (
 -- outreach_sequences — multi-step email sequences per lead
 CREATE TABLE IF NOT EXISTS outreach_sequences (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id UUID,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   lead_id UUID REFERENCES outreach_leads(id) ON DELETE CASCADE,
   agent_type TEXT NOT NULL CHECK (agent_type IN ('lead_gen', 'sales')),
@@ -91,7 +91,7 @@ CREATE TABLE IF NOT EXISTS outreach_sequences (
 -- outreach_steps — individual steps within a sequence
 CREATE TABLE IF NOT EXISTS outreach_steps (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id UUID,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   sequence_id UUID REFERENCES outreach_sequences(id) ON DELETE CASCADE,
   step_number INTEGER NOT NULL,
@@ -110,7 +110,7 @@ CREATE TABLE IF NOT EXISTS outreach_steps (
 -- agent_inbox_classifications — classified incoming emails
 CREATE TABLE IF NOT EXISTS agent_inbox_classifications (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id UUID,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   gmail_message_id TEXT UNIQUE,
   gmail_thread_id TEXT,

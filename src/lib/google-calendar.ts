@@ -1,295 +1,166 @@
-import { supabase } from './supabase'
+// ── Google Calendar — uses shared server-side refresh token flow ──
+// Same auth as Gmail: access token + refresh token stored in localStorage.
+// The refresh token is obtained via /api/google-auth (authorization code flow)
+// and refreshed via /api/google-refresh — so the user stays connected permanently.
 
-const TOKEN_KEY = 'gth_google_token'
-const GCAL_CLIENT_ID = '272925349594-4dtb910g2m3jp2433na7r9eac297hoot.apps.googleusercontent.com'
-const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events'
-const REDIRECT_URI = window.location.origin
-const CREDENTIAL_PLATFORM = 'google_calendar'
-
-// ── Token shape stored in both localStorage and Supabase ──
+const GMAIL_TOKEN_KEY = 'gth_gmail_token'
+const GMAIL_REFRESH_KEY = 'gth_gmail_refresh_token'
+const GMAIL_EVER_CONNECTED = 'gth_gmail_ever_connected'
 
 interface StoredToken {
   access_token: string
-  expires_at: number // unix ms
+  expires_at: number
 }
 
-// ── Helpers ──
-
-async function currentUserId(): Promise<string | null> {
-  const { data } = await supabase.auth.getUser()
-  return data.user?.id ?? null
-}
-
-function isExpired(token: StoredToken): boolean {
-  // Treat as expired 60 s early to avoid mid-request failures
-  return Date.now() >= token.expires_at - 60_000
-}
-
-// ── Local cache (fast, device-specific) ──
+// ── Token helpers (shared with gmail.ts via localStorage keys) ──
 
 function getLocalToken(): StoredToken | null {
   try {
-    const raw = localStorage.getItem(TOKEN_KEY)
+    const raw = localStorage.getItem(GMAIL_TOKEN_KEY)
     if (!raw) return null
     return JSON.parse(raw) as StoredToken
   } catch {
-    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(GMAIL_TOKEN_KEY)
     return null
   }
 }
 
-function setLocalToken(token: StoredToken) {
-  localStorage.setItem(TOKEN_KEY, JSON.stringify(token))
+function saveToken(token: StoredToken) {
+  localStorage.setItem(GMAIL_TOKEN_KEY, JSON.stringify(token))
+  localStorage.setItem(GMAIL_EVER_CONNECTED, 'true')
 }
 
-function clearLocalToken() {
-  localStorage.removeItem(TOKEN_KEY)
+function getRefreshToken(): string | null {
+  return localStorage.getItem(GMAIL_REFRESH_KEY)
 }
 
-// ── Supabase persistence (cross-device source of truth) ──
+// ── Refresh logic ──
 
-async function getSupabaseToken(): Promise<StoredToken | null> {
-  const userId = await currentUserId()
-  if (!userId) return null
-
-  const { data } = await supabase
-    .from('credentials')
-    .select('id, fields')
-    .eq('user_id', userId)
-    .eq('platform', CREDENTIAL_PLATFORM)
-    .is('client_id', null)
-    .limit(1)
-    .maybeSingle()
-
-  if (!data?.fields) return null
+async function refreshAccessToken(): Promise<boolean> {
+  const refreshToken = getRefreshToken()
+  if (!refreshToken) return false
 
   try {
-    const parsed = typeof data.fields === 'string' ? JSON.parse(data.fields) : data.fields
-    if (parsed.access_token && parsed.expires_at) {
-      return parsed as StoredToken
-    }
-  } catch { /* bad data, ignore */ }
-  return null
-}
-
-async function saveSupabaseToken(token: StoredToken) {
-  const userId = await currentUserId()
-  if (!userId) return
-
-  const fields = JSON.stringify(token)
-
-  // Upsert: update existing row or insert new one
-  const { data: existing } = await supabase
-    .from('credentials')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('platform', CREDENTIAL_PLATFORM)
-    .is('client_id', null)
-    .limit(1)
-    .maybeSingle()
-
-  if (existing) {
-    await supabase
-      .from('credentials')
-      .update({ fields })
-      .eq('id', existing.id)
-  } else {
-    await supabase
-      .from('credentials')
-      .insert({
-        user_id: userId,
-        platform: CREDENTIAL_PLATFORM,
-        client_id: null,
-        fields,
-        created_at: new Date().toISOString(),
-      })
-  }
-}
-
-async function clearSupabaseToken() {
-  const userId = await currentUserId()
-  if (!userId) return
-
-  await supabase
-    .from('credentials')
-    .delete()
-    .eq('user_id', userId)
-    .eq('platform', CREDENTIAL_PLATFORM)
-    .is('client_id', null)
-}
-
-// ── Public token API ──
-
-/**
- * Get a valid access token. Checks localStorage first, then Supabase.
- * Returns null if no token or token is expired.
- */
-export async function getStoredToken(): Promise<string | null> {
-  // 1. Fast path: check localStorage cache
-  const local = getLocalToken()
-  if (local && !isExpired(local)) {
-    return local.access_token
-  }
-
-  // 2. Slow path: check Supabase (cross-device)
-  const remote = await getSupabaseToken()
-  if (remote && !isExpired(remote)) {
-    // Cache locally for next time
-    setLocalToken(remote)
-    return remote.access_token
-  }
-
-  // 3. No valid token anywhere — clear stale data
-  clearLocalToken()
-  return null
-}
-
-/**
- * Synchronous check — uses localStorage only.
- * For UI that needs an instant answer (e.g. showing Connect button).
- * Call initGoogleToken() on app load to hydrate localStorage from Supabase.
- */
-export function isGoogleConnected(): boolean {
-  const local = getLocalToken()
-  return !!local && !isExpired(local)
-}
-
-/**
- * Store a new token in both localStorage and Supabase.
- */
-export async function storeToken(accessToken: string, expiresInSeconds: number) {
-  const token: StoredToken = {
-    access_token: accessToken,
-    expires_at: Date.now() + expiresInSeconds * 1000,
-  }
-  setLocalToken(token)
-  await saveSupabaseToken(token)
-}
-
-/**
- * Clear token from all stores.
- */
-export async function clearTokens() {
-  clearLocalToken()
-  await clearSupabaseToken()
-}
-
-/**
- * On app load, hydrate localStorage from Supabase so isGoogleConnected()
- * works synchronously even on a new device.
- */
-export async function initGoogleToken(): Promise<boolean> {
-  // If localStorage already has a valid token, we're good
-  const local = getLocalToken()
-  if (local && !isExpired(local)) return true
-
-  // Try Supabase
-  const remote = await getSupabaseToken()
-  if (remote && !isExpired(remote)) {
-    setLocalToken(remote)
+    const res = await fetch('/api/google-refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    })
+    if (!res.ok) return false
+    const data = await res.json()
+    const seconds = data.expires_in || 3600
+    saveToken({ access_token: data.access_token, expires_at: Date.now() + seconds * 1000 })
     return true
-  }
-
-  // Nothing valid — clear stale data
-  clearLocalToken()
-  return false
-}
-
-/**
- * If user was previously connected but token expired, silently re-auth.
- * Only call this from Calendar page — never from global app init,
- * because the redirect can break page load in some browsers.
- */
-export async function silentReconnectIfNeeded(): Promise<boolean> {
-  // Already connected? Nothing to do.
-  if (isGoogleConnected()) return true
-
-  // Check if user had a token before (in localStorage or Supabase)
-  const local = getLocalToken()
-  const remote = await getSupabaseToken()
-  const hadToken = !!local || !!remote
-
-  if (!hadToken) return false
-
-  // Attempt silent re-auth (once per session to avoid loops)
-  const silentKey = 'gth_gcal_silent_reauth'
-  const lastAttempt = sessionStorage.getItem(silentKey)
-  if (!lastAttempt) {
-    sessionStorage.setItem(silentKey, Date.now().toString())
-    connectGoogleCalendar(true)
-    return false // Will redirect
-  }
-
-  // Already tried this session — don't loop
-  sessionStorage.removeItem(silentKey)
-  return false
-}
-
-// ── Connect via Google OAuth implicit flow ──
-
-export function connectGoogleCalendar(silent = false) {
-  const params = new URLSearchParams({
-    client_id: GCAL_CLIENT_ID,
-    redirect_uri: REDIRECT_URI,
-    response_type: 'token',
-    scope: CALENDAR_SCOPE,
-    include_granted_scopes: 'true',
-  })
-  // For silent re-auth after token expiry (user already granted access before)
-  if (silent) {
-    params.set('prompt', 'none')
-  }
-  // No 'prompt' parameter by default — Google will silently reuse existing grants
-  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`
-}
-
-// ── Parse token from URL hash after redirect ──
-
-export async function captureTokenFromUrl(): Promise<boolean> {
-  const hash = window.location.hash
-  if (!hash) return false
-
-  const params = new URLSearchParams(hash.substring(1))
-
-  // Handle error from silent re-auth (e.g. user revoked access)
-  const error = params.get('error')
-  if (error) {
-    // Silent re-auth failed — clear the attempt flag and clean URL
-    sessionStorage.removeItem('gth_gcal_silent_reauth')
-    window.history.replaceState(null, '', window.location.pathname)
-    if (error === 'interaction_required' || error === 'access_denied') {
-      // User needs to manually reconnect — clear old tokens
-      clearLocalToken()
-      await clearSupabaseToken()
-    }
+  } catch {
     return false
   }
+}
 
-  if (!hash.includes('access_token')) return false
+async function ensureToken(): Promise<string | null> {
+  const token = getLocalToken()
+  if (token && Date.now() < token.expires_at - 30_000) return token.access_token
 
-  const token = params.get('access_token')
-  const expiresIn = params.get('expires_in')
+  // Try refresh
+  if (getRefreshToken()) {
+    const ok = await refreshAccessToken()
+    if (ok) return getLocalToken()?.access_token || null
+  }
 
-  if (token) {
-    const seconds = expiresIn ? parseInt(expiresIn, 10) : 3600
-    await storeToken(token, seconds)
-    // Clear silent re-auth flag on success
-    sessionStorage.removeItem('gth_gcal_silent_reauth')
-    // Clean the URL
+  // Fallback: return token even if close to expiry
+  if (token && Date.now() < token.expires_at) return token.access_token
+  return null
+}
+
+// ── Public connection API ──
+
+export function isGoogleConnected(): boolean {
+  const token = getLocalToken()
+  if (token && Date.now() < token.expires_at - 30_000) return true
+  if (getRefreshToken()) return true // has refresh token = permanently connected
+  return false
+}
+
+export async function initGoogleToken(): Promise<boolean> {
+  // If we have a valid access token, we're good
+  const token = getLocalToken()
+  if (token && Date.now() < token.expires_at - 30_000) return true
+
+  // If we have a refresh token, try to get a new access token
+  if (getRefreshToken()) {
+    const ok = await refreshAccessToken()
+    return ok
+  }
+
+  return false
+}
+
+export async function silentReconnectIfNeeded(): Promise<boolean> {
+  // With refresh tokens, we just refresh — no redirect needed
+  if (isGoogleConnected()) return true
+
+  if (getRefreshToken()) {
+    return await refreshAccessToken()
+  }
+
+  return false
+}
+
+export function connectGoogleCalendar(_silent = false) {
+  // Use the server-side OAuth flow (same as Gmail) — includes calendar scopes
+  const returnPage = 'calendar'
+  window.location.href = `/api/google-auth?returnPage=${encodeURIComponent(returnPage)}`
+}
+
+export async function captureTokenFromUrl(): Promise<boolean> {
+  // Server-side flow handles token capture via the callback page (saves to localStorage)
+  // Also support legacy implicit flow fallback: #access_token=...
+  const hash = window.location.hash
+  if (!hash || !hash.includes('access_token=')) return false
+
+  try {
+    const params = new URLSearchParams(hash.substring(1))
+    const accessToken = params.get('access_token')
+    const expiresIn = parseInt(params.get('expires_in') || '3600', 10)
+
+    if (!accessToken) return false
+
+    saveToken({
+      access_token: accessToken,
+      expires_at: Date.now() + expiresIn * 1000,
+    })
+
     window.history.replaceState(null, '', window.location.pathname)
     return true
+  } catch {
+    return false
   }
-  return false
 }
 
 export async function disconnectGoogle() {
-  await clearTokens()
+  // Only clear the calendar credential marker — don't wipe Gmail tokens
+  // since they're shared. User can disconnect Gmail separately.
+  // For now, this is a no-op since Calendar piggybacks on Gmail's auth.
+  // The "Disconnect" button in Calendar UI should just clear the local UI state.
 }
 
-// ── Helper: make an authenticated Google API request with 401 handling ──
+export async function clearTokens() {
+  // Full disconnect (also disconnects Gmail since tokens are shared)
+  localStorage.removeItem(GMAIL_TOKEN_KEY)
+  localStorage.removeItem(GMAIL_REFRESH_KEY)
+  localStorage.removeItem(GMAIL_EVER_CONNECTED)
+}
+
+export async function storeToken(accessToken: string, expiresInSeconds: number) {
+  saveToken({
+    access_token: accessToken,
+    expires_at: Date.now() + expiresInSeconds * 1000,
+  })
+}
+
+// ── Helper: make an authenticated Google API request ──
 
 async function googleFetch(url: string, init?: RequestInit): Promise<Response | null> {
-  const token = await getStoredToken()
+  const token = await ensureToken()
   if (!token) return null
 
   const headers: Record<string, string> = {
@@ -300,8 +171,20 @@ async function googleFetch(url: string, init?: RequestInit): Promise<Response | 
   const res = await fetch(url, { ...init, headers })
 
   if (res.status === 401) {
-    // Token rejected — clear everywhere and signal reconnect needed
-    await clearTokens()
+    // Try one refresh then retry
+    const ok = await refreshAccessToken()
+    if (ok) {
+      const newToken = getLocalToken()
+      if (newToken) {
+        const retryHeaders: Record<string, string> = {
+          Authorization: `Bearer ${newToken.access_token}`,
+          ...(init?.headers as Record<string, string> || {}),
+        }
+        const retry = await fetch(url, { ...init, headers: retryHeaders })
+        if (retry.status === 401) return null
+        return retry
+      }
+    }
     return null
   }
 
@@ -329,9 +212,9 @@ export interface GoogleCalendarEvent {
 
 export async function createGoogleEvent(params: {
   title: string
-  date: string      // yyyy-MM-dd
-  startTime: string  // HH:mm
-  endTime: string    // HH:mm
+  date: string
+  startTime: string
+  endTime: string
   description?: string
 }): Promise<boolean> {
   try {

@@ -4,8 +4,15 @@ import { checkRateLimit, DEFAULT_LIMITS } from './rate-limiter'
 
 // ─── Types ──────────────────────────────────────────────────────
 
+export type ActionType =
+  | 'classify_inbox'
+  | 'scrape_leads'
+  | 'qualify_leads'
+  | 'generate_emails'
+  | 'send_emails'
+
 export interface AgentAction {
-  type: 'scrape_leads' | 'qualify_leads' | 'send_cold_emails' | 'check_inbox' | 'classify_replies' | 'send_followups' | 'send_sales_emails'
+  type: ActionType
   priority: number // 1 = highest
   params?: Record<string, any>
 }
@@ -20,10 +27,23 @@ interface TickResult {
 // ─── Working Hours ──────────────────────────────────────────────
 
 export function isWithinWorkingHours(config?: any): boolean {
-  // Default: 9 AM - 6 PM MST (UTC-7)
-  const startHour = config?.working_hours_start ?? 9
-  const endHour = config?.working_hours_end ?? 18
-  const timezone = config?.timezone ?? 'America/Edmonton'
+  // Look in either the top-level config row or its nested `config` JSONB
+  const inner = config?.config || {}
+
+  // working_hours_start/end may be a number (9) or a string ("09:00")
+  function parseHour(v: any, fallback: number): number {
+    if (v == null) return fallback
+    if (typeof v === 'number') return v
+    if (typeof v === 'string') {
+      const h = parseInt(v.split(':')[0], 10)
+      return isNaN(h) ? fallback : h
+    }
+    return fallback
+  }
+
+  const startHour = parseHour(inner.working_hours_start ?? config?.working_hours_start, 9)
+  const endHour = parseHour(inner.working_hours_end ?? config?.working_hours_end, 18)
+  const timezone = inner.timezone ?? config?.timezone ?? 'America/Edmonton'
 
   const now = new Date()
   // Get current hour in the configured timezone
@@ -40,10 +60,13 @@ export function isWithinWorkingHours(config?: any): boolean {
     timeZone: timezone,
   })
   const dayOfWeek = dayFormatter.format(now)
-  const skipWeekends = config?.skip_weekends !== false // default true
+  const skipWeekends = (inner.skip_weekends ?? config?.skip_weekends) !== false // default true
   if (skipWeekends && (dayOfWeek === 'Sat' || dayOfWeek === 'Sun')) {
     return false
   }
+
+  // Manual triggers should ALWAYS be allowed regardless of clock
+  if (config?.__manualTrigger === true) return true
 
   return currentHour >= startHour && currentHour < endHour
 }
@@ -56,62 +79,63 @@ export function getNextActions(
   lastRun: any,
 ): AgentAction[] {
   switch (agentType) {
-    case 'outbound_lead_gen':
-      return getOutboundActions(config, lastRun)
-    case 'inbound_reply_handler':
-      return getInboundActions(config, lastRun)
-    case 'sales_crm':
+    case 'lead_gen':
+    case 'client':
+      return getLeadGenActions(config, lastRun)
+    case 'sales':
       return getSalesActions(config, lastRun)
     default:
       return []
   }
 }
 
-function getOutboundActions(config: any, lastRun: any): AgentAction[] {
+function getLeadGenActions(config: any, lastRun: any): AgentAction[] {
   const actions: AgentAction[] = []
+  const inner = config?.config || {}
 
-  // Always check inbox first for replies
-  actions.push({ type: 'check_inbox', priority: 1 })
-  actions.push({ type: 'classify_replies', priority: 2 })
+  // 1. Always check inbox first for replies
+  actions.push({ type: 'classify_inbox', priority: 1 })
 
-  // If we haven't scraped recently, scrape new leads
+  // 2. Scrape new leads if enough time has passed
   const hoursSinceLastScrape = lastRun?.last_scrape
     ? (Date.now() - new Date(lastRun.last_scrape).getTime()) / (1000 * 60 * 60)
     : Infinity
 
-  const scrapeIntervalHours = config?.scrape_interval_hours ?? 24
-  if (hoursSinceLastScrape >= scrapeIntervalHours) {
-    actions.push({ type: 'scrape_leads', priority: 3, params: { niche: config?.target_niche, location: config?.target_location } })
+  // Manual triggers ignore the cooldown
+  const isManual = config?.__manualTrigger === true
+  const scrapeIntervalHours = inner.scrape_interval_hours ?? config?.scrape_interval_hours ?? 24
+  if (isManual || hoursSinceLastScrape >= scrapeIntervalHours) {
+    actions.push({
+      type: 'scrape_leads',
+      priority: 2,
+      params: {
+        query:
+          inner.target_industries ||
+          inner.target_niche ||
+          inner.target_audience ||
+          config?.target_niche,
+        location: inner.target_location || config?.target_location,
+      },
+    })
   }
 
-  // Qualify unscored leads
-  actions.push({ type: 'qualify_leads', priority: 4 })
+  // 3. Qualify unscored leads
+  actions.push({ type: 'qualify_leads', priority: 3 })
 
-  // Send cold emails to qualified leads
-  const maxEmailsPerDay = config?.max_emails_per_day ?? 30
-  actions.push({ type: 'send_cold_emails', priority: 5, params: { max: maxEmailsPerDay } })
+  // 4. Generate email drafts for qualified leads
+  actions.push({ type: 'generate_emails', priority: 4 })
 
-  // Follow-ups for non-responders
-  actions.push({ type: 'send_followups', priority: 6 })
+  // 5. Send scheduled/approved emails
+  actions.push({ type: 'send_emails', priority: 5 })
 
-  // Sort by priority
   return actions.sort((a, b) => a.priority - b.priority)
-}
-
-function getInboundActions(_config: any, _lastRun: any): AgentAction[] {
-  return [
-    { type: 'check_inbox', priority: 1 },
-    { type: 'classify_replies', priority: 2 },
-    { type: 'send_followups', priority: 3 },
-  ]
 }
 
 function getSalesActions(config: any, _lastRun: any): AgentAction[] {
   const actions: AgentAction[] = [
-    { type: 'check_inbox', priority: 1 },
-    { type: 'classify_replies', priority: 2 },
-    { type: 'send_sales_emails', priority: 3, params: { max: config?.max_emails_per_day ?? 20 } },
-    { type: 'send_followups', priority: 4 },
+    { type: 'classify_inbox', priority: 1 },
+    { type: 'generate_emails', priority: 2 },
+    { type: 'send_emails', priority: 3 },
   ]
   return actions
 }
@@ -146,11 +170,13 @@ export async function runAgentTick(
   const runId = await createAgentRun({
     user_id: userId,
     agent_type: agentType,
+    agent_config_id: agentConfig.id || null,
     status: 'running',
-    trigger: 'scheduled',
+    trigger: agentConfig.__manualTrigger ? 'manual' : 'cron',
     metadata: {
       email_budget_remaining: emailLimit.remaining,
       claude_budget_remaining: claudeLimit.remaining,
+      agent_name: agentConfig.agent_name || null,
     },
   })
 
@@ -158,9 +184,9 @@ export async function runAgentTick(
   const lastRunMeta = agentConfig.last_run_metadata || null
   const actions = getNextActions(agentType, agentConfig, lastRunMeta)
 
-  // Filter out email actions if rate-limited
+  // Filter out email send actions if rate-limited
   const filteredActions = actions.filter(a => {
-    if ((a.type === 'send_cold_emails' || a.type === 'send_followups' || a.type === 'send_sales_emails') && !emailLimit.allowed) {
+    if (a.type === 'send_emails' && !emailLimit.allowed) {
       return false
     }
     return true
