@@ -12,10 +12,10 @@ const SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',
 ].join(' ')
 
+const PRODUCTION_URL = 'https://gth-command-center-web-ljda.vercel.app'
+
 export default function handler(req: VercelRequest, res: VercelResponse) {
-  const host = req.headers.host || ''
-  const protocol = host.includes('localhost') ? 'http' : 'https'
-  const origin = process.env.APP_URL || `${protocol}://${host}`
+  const origin = process.env.APP_URL || PRODUCTION_URL
   const returnPage = (req.query.returnPage as string) || ''
 
   const redirectUri = `${origin}/api/google-callback`

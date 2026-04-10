@@ -25,14 +25,12 @@ function errorPage(res: VercelResponse, title: string, detail: string, homeUrl: 
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const PRODUCTION_URL = 'https://gth-command-center-web-ljda.vercel.app'
   const code = req.query.code as string
   const state = (req.query.state as string) || ''
   const error = req.query.error as string
-  const host = req.headers.host || ''
-  const protocol = host.includes('localhost') ? 'http' : 'https'
-  const origin = `${protocol}://${host}`
 
-  const baseUrl = process.env.APP_URL || origin
+  const baseUrl = process.env.APP_URL || PRODUCTION_URL
 
   if (error) {
     return errorPage(res, 'Google denied access', error, baseUrl)
