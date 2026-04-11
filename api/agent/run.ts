@@ -38,6 +38,7 @@ async function executeAction(
         agentName: config?.agent_name || null,
         agentType: config?.agent_type || null,
         agentConfigId: config?.id || null,
+        agentConfig: config,
       })
 
     case 'qualify_leads':
@@ -45,9 +46,8 @@ async function executeAction(
         userId,
         agentRunId: runId,
         agentType: config?.agent_type || 'lead_gen',
-        // Bumped from 5 → 25 so a single Run Now scores a full Google Places
-        // batch (typically 20 results) instead of needing 4-5 manual runs.
         batchSize: 25,
+        agentConfig: config,
       })
 
     case 'generate_emails':
@@ -55,8 +55,8 @@ async function executeAction(
         userId,
         agentRunId: runId,
         agentType: config?.agent_type || 'lead_gen',
-        // Match qualifier batch size so all newly-qualified leads get drafts
         batchSize: 25,
+        agentConfig: config,
       })
 
     case 'send_emails':

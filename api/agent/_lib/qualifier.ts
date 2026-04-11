@@ -10,6 +10,7 @@ interface QualifyParams {
   agentRunId: string
   agentType: string
   batchSize?: number
+  agentConfig?: any
 }
 
 interface QualifyResult {
@@ -22,8 +23,44 @@ interface QualifyResult {
 
 // ─── Main Export ────────────────────────────────────────────────
 
+// Build a context-aware system prompt from the agent config so the AI
+// actually knows what the CLIENT sells, who the ideal customer is, and
+// what to skip.
+function buildQualifierPrompt(cfg?: any): string {
+  const c = cfg?.config || {}
+  const parts: string[] = []
+
+  parts.push('You are a lead qualification specialist.')
+
+  if (c.client_business) {
+    parts.push(`\nYou are qualifying leads for this client's business: ${c.client_business}`)
+  }
+
+  if (c.ideal_customer_profile) {
+    parts.push(`\nIDEAL CUSTOMER PROFILE:\n${c.ideal_customer_profile}`)
+    parts.push('Score leads HIGHER (75-100) when they closely match this profile.')
+  }
+
+  if (c.qualifying_signals) {
+    parts.push(`\nQUALIFYING SIGNALS (score higher when present):\n${c.qualifying_signals}`)
+  }
+
+  if (c.disqualifying_signals) {
+    parts.push(`\nDISQUALIFYING SIGNALS (score 0-25 or recommend skip):\n${c.disqualifying_signals}`)
+  }
+
+  if (c.target_industries) {
+    parts.push(`\nTARGET INDUSTRIES: ${c.target_industries}`)
+    parts.push('Leads in these industries should score higher. Leads in unrelated industries should score lower unless they clearly fit the ideal customer profile.')
+  }
+
+  parts.push('\nScore leads 0-100. Be specific and decisive in your reasoning. A score of 80+ means "reach out immediately". Under 30 means "skip".')
+
+  return parts.join('\n')
+}
+
 export async function qualifyLeads(params: QualifyParams): Promise<QualifyResult> {
-  const { userId, agentRunId, agentType, batchSize = 10 } = params
+  const { userId, agentRunId, agentType, batchSize = 10, agentConfig } = params
   const sb = getAdminClient()
 
   try {
@@ -108,10 +145,9 @@ export async function qualifyLeads(params: QualifyParams): Promise<QualifyResult
     }
 
     // 2. Qualify ALL leads via Claude in PARALLEL
-    //    Previous serial loop: 20 leads × ~2s = 40s, blew Vercel timeout.
-    //    Parallel: all 20 finish in ~3s (bounded by slowest Claude response).
     const attempted = leads.length
     const errors: string[] = []
+    const systemPrompt = buildQualifierPrompt(agentConfig)
 
     const results = await Promise.all(
       leads.map(async (lead) => {
@@ -127,7 +163,7 @@ export async function qualifyLeads(params: QualifyParams): Promise<QualifyResult
           ].join('\n')
 
           const response = await askClaude({
-            systemPrompt: LEAD_QUALIFIER_PROMPT,
+            systemPrompt,
             messages: [{
               role: 'user',
               content: `Please qualify this lead and use the score_lead tool to provide your assessment:\n\n${leadInfo}`,

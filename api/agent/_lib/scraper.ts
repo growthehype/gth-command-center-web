@@ -12,6 +12,7 @@ interface ScrapeParams {
   agentName?: string | null
   agentType?: string | null
   agentConfigId?: string | null
+  agentConfig?: any
 }
 
 interface ScrapeResult {
@@ -470,6 +471,16 @@ export async function scrapeLeads(params: ScrapeParams): Promise<ScrapeResult> {
     // 3. Filter and prepare new leads
     const newLeads: any[] = []
 
+    // Build exclusion / filtering rules from agent config
+    const cfgInner = params.agentConfig?.config || {}
+    const excludedNames = new Set(
+      (cfgInner.excluded_businesses || '')
+        .split(',')
+        .map((s: string) => s.trim().toLowerCase())
+        .filter(Boolean)
+    )
+    const minRating = Number(cfgInner.min_rating) || 0
+
     // First pass: dedupe + assemble base records (without email yet)
     for (const place of places) {
       const name = place.displayName?.text || ''
@@ -477,6 +488,20 @@ export async function scrapeLeads(params: ScrapeParams): Promise<ScrapeResult> {
       const dedupeKey = `${name.toLowerCase()}|${website.toLowerCase()}`
 
       if (existingSet.has(dedupeKey)) continue
+
+      // Skip excluded businesses (case-insensitive substring match)
+      const nameLower = name.toLowerCase()
+      if (excludedNames.size > 0) {
+        let excluded = false
+        for (const ex of excludedNames) {
+          if (nameLower.includes(ex)) { excluded = true; break }
+        }
+        if (excluded) continue
+      }
+
+      // Skip businesses below minimum rating
+      if (minRating > 0 && place.rating && place.rating < minRating) continue
+
       existingSet.add(dedupeKey)
 
       newLeads.push({

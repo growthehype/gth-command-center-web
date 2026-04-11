@@ -17,6 +17,7 @@ interface GenerateParams {
   agentType: string
   minScore?: number
   batchSize?: number
+  agentConfig?: any
 }
 
 interface GenerateResult {
@@ -39,12 +40,30 @@ const SEQUENCE_STEPS = [
 
 // ─── Generate Emails for a Single Lead ──────────────────────────
 
+function buildEmailPrompt(agentType: string, cfg?: any): string {
+  const isSales = agentType === 'sales' || agentType === 'sales_crm'
+  if (isSales) return SALES_EMAIL_WRITER_PROMPT
+
+  const c = cfg?.config || {}
+  if (!c.client_business) return COLD_EMAIL_WRITER_PROMPT
+
+  const parts: string[] = [
+    `You are a cold email specialist writing on behalf of: ${c.client_business}`,
+    'Write short, personalized, non-spammy cold emails. Reference the prospect\'s specific business and explain how the client\'s services could help them.',
+    'Keep it under 150 words. No generic templates.',
+  ]
+  if (c.outreach_tone) parts.push(`Tone: ${c.outreach_tone}`)
+  if (c.ideal_customer_profile) parts.push(`The ideal customer is: ${c.ideal_customer_profile}`)
+  return parts.join('\n')
+}
+
 async function generateEmailsForLead(
   lead: any,
   agentType: string,
+  agentConfig?: any,
 ): Promise<EmailDraft[]> {
   const isSales = agentType === 'sales' || agentType === 'sales_crm'
-  const systemPrompt = isSales ? SALES_EMAIL_WRITER_PROMPT : COLD_EMAIL_WRITER_PROMPT
+  const systemPrompt = buildEmailPrompt(agentType, agentConfig)
   const tools = isSales ? SALES_EMAIL_TOOLS : COLD_EMAIL_TOOLS
   const toolName = isSales ? 'compose_sales_email' : 'compose_email'
 
@@ -93,7 +112,7 @@ async function generateEmailsForLead(
 // ─── Main Export ────────────────────────────────────────────────
 
 export async function generateOutreach(params: GenerateParams): Promise<GenerateResult> {
-  const { userId, agentRunId, agentType, minScore = 60, batchSize = 10 } = params
+  const { userId, agentRunId, agentType, minScore = 60, batchSize = 10, agentConfig } = params
   const sb = getAdminClient()
 
   try {
@@ -133,7 +152,7 @@ export async function generateOutreach(params: GenerateParams): Promise<Generate
     //    blowing the 60s function budget. Now parallel: ~3s total.
     const results = await Promise.all(eligibleLeads.map(async (lead: any) => {
       try {
-        const drafts = await generateEmailsForLead(lead, agentType)
+        const drafts = await generateEmailsForLead(lead, agentType, agentConfig)
 
         const { data: sequence, error: seqErr } = await sb
           .from('outreach_sequences')

@@ -318,16 +318,21 @@ function ClientAgentConfigSection({
       {expanded && (
         <div className="border-t border-border px-5 py-5" style={{ animation: 'fadeIn 0.15s ease-out' }}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div>
-              <p className="label mb-1.5">Client Business</p>
-              <input
-                className="w-full px-3 py-2 bg-surface border border-border rounded-md text-polar"
-                style={{ fontSize: '13px' }}
+
+            {/* ── SECTION: Client Business ── */}
+            <div className="md:col-span-2">
+              <p className="label mb-1.5">Client Business Description</p>
+              <textarea
+                className="w-full px-3 py-2 bg-surface border border-border rounded-md text-polar resize-none"
+                style={{ fontSize: '13px', minHeight: '60px' }}
+                rows={2}
                 value={localConfig.client_business || ''}
                 onChange={e => updateField('client_business', e.target.value)}
-                placeholder="Home automation & smart home installation"
+                placeholder="Premium smart home automation, Control4 & Lutron integration, commercial AV, security systems - Edmonton, AB"
               />
+              <p className="text-dim mt-1" style={{ fontSize: '10px' }}>What does your client sell? This context is fed to the AI for scoring and emails.</p>
             </div>
+
             <div>
               <p className="label mb-1.5">Target Location</p>
               <input
@@ -339,8 +344,8 @@ function ClientAgentConfigSection({
               />
             </div>
 
-            <div className="md:col-span-2">
-              <p className="label mb-1.5">Target Industries / Lead Types</p>
+            <div>
+              <p className="label mb-1.5">Target Industries</p>
               <input
                 className="w-full px-3 py-2 bg-surface border border-border rounded-md text-polar"
                 style={{ fontSize: '13px' }}
@@ -348,7 +353,94 @@ function ClientAgentConfigSection({
                 onChange={e => updateField('target_industries', e.target.value)}
                 placeholder="home builders, property managers, real estate developers"
               />
-              <p className="text-dim mt-1" style={{ fontSize: '10px' }}>Comma-separated list</p>
+              <p className="text-dim mt-1" style={{ fontSize: '10px' }}>Comma-separated — used as Google Places search queries</p>
+            </div>
+
+            {/* ── SECTION: AI Training ── */}
+            <div className="md:col-span-2 pt-2">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1 h-4 bg-blue-500 rounded-full" />
+                <span className="text-polar font-semibold" style={{ fontSize: '12px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>AI Training Rules</span>
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <p className="label mb-1.5">Ideal Customer Profile</p>
+              <textarea
+                className="w-full px-3 py-2 bg-surface border border-border rounded-md text-polar resize-none"
+                style={{ fontSize: '13px', minHeight: '80px' }}
+                rows={3}
+                value={localConfig.ideal_customer_profile || ''}
+                onChange={e => updateField('ideal_customer_profile', e.target.value)}
+                placeholder="New home builders building $500K+ homes, luxury property managers, commercial office developers, businesses renovating or building new spaces that would benefit from smart home / AV integration"
+              />
+              <p className="text-dim mt-1" style={{ fontSize: '10px' }}>Describe the perfect lead. The AI uses this to score leads higher or lower.</p>
+            </div>
+
+            <div className="md:col-span-2">
+              <p className="label mb-1.5">Qualifying Signals (What makes a HOT lead)</p>
+              <textarea
+                className="w-full px-3 py-2 bg-surface border border-border rounded-md text-polar resize-none"
+                style={{ fontSize: '13px', minHeight: '60px' }}
+                rows={2}
+                value={localConfig.qualifying_signals || ''}
+                onChange={e => updateField('qualifying_signals', e.target.value)}
+                placeholder="Builds luxury/custom homes, mentions smart home on website, has a showroom, works with high-end clients, new construction projects"
+              />
+              <p className="text-dim mt-1" style={{ fontSize: '10px' }}>Comma-separated signals that mean a lead is a great fit</p>
+            </div>
+
+            <div className="md:col-span-2">
+              <p className="label mb-1.5">Disqualifying Signals (Auto-skip these)</p>
+              <textarea
+                className="w-full px-3 py-2 bg-surface border border-border rounded-md text-polar resize-none"
+                style={{ fontSize: '13px', minHeight: '60px' }}
+                rows={2}
+                value={localConfig.disqualifying_signals || ''}
+                onChange={e => updateField('disqualifying_signals', e.target.value)}
+                placeholder="National chain, franchise location, already has smart home partner, only does small repairs, no website"
+              />
+              <p className="text-dim mt-1" style={{ fontSize: '10px' }}>Comma-separated — leads matching these get scored low or skipped entirely</p>
+            </div>
+
+            <div>
+              <p className="label mb-1.5">Excluded Businesses</p>
+              <textarea
+                className="w-full px-3 py-2 bg-surface border border-border rounded-md text-polar resize-none"
+                style={{ fontSize: '13px', minHeight: '60px' }}
+                rows={2}
+                value={localConfig.excluded_businesses || ''}
+                onChange={e => updateField('excluded_businesses', e.target.value)}
+                placeholder="Home Depot, Lowes, Best Buy"
+              />
+              <p className="text-dim mt-1" style={{ fontSize: '10px' }}>Specific business names to never pull</p>
+            </div>
+
+            <div>
+              <p className="label mb-1.5">Minimum Google Rating</p>
+              <div className="flex items-center gap-3">
+                <select
+                  className="px-3 py-2 bg-surface border border-border rounded-md text-polar"
+                  style={{ fontSize: '13px', width: '100px' }}
+                  value={localConfig.min_rating || '0'}
+                  onChange={e => updateField('min_rating', Number(e.target.value))}
+                >
+                  <option value="0">Any</option>
+                  <option value="3">3.0+</option>
+                  <option value="3.5">3.5+</option>
+                  <option value="4">4.0+</option>
+                  <option value="4.5">4.5+</option>
+                </select>
+                <p className="text-dim" style={{ fontSize: '11px' }}>Skip low-rated businesses</p>
+              </div>
+            </div>
+
+            {/* ── SECTION: Quotas & Schedule ── */}
+            <div className="md:col-span-2 pt-2">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1 h-4 bg-green-500 rounded-full" />
+                <span className="text-polar font-semibold" style={{ fontSize: '12px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Quotas & Schedule</span>
+              </div>
             </div>
 
             <div>
