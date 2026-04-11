@@ -2,6 +2,8 @@
 import { getAdminClient } from './supabase-admin'
 import { askClaude, extractToolUse, LEAD_QUALIFIER_PROMPT, LEAD_QUALIFIER_TOOLS } from './claude'
 import { isValidEmail, normalizeIndustryLabel, scrapeEmailFromWebsitePublic } from './scraper'
+import { analyzeWebsite, type WebsiteIntel } from './website-analyzer'
+import { buildLearnedPatterns } from './feedback-engine'
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -144,15 +146,41 @@ export async function qualifyLeads(params: QualifyParams): Promise<QualifyResult
       return { qualified: 0, avgScore: 0, attempted: 0 }
     }
 
-    // 2. Qualify ALL leads via Claude in PARALLEL
+    // 2. Build prompt with feedback learning
     const attempted = leads.length
     const errors: string[] = []
-    const systemPrompt = buildQualifierPrompt(agentConfig)
+    let systemPrompt = buildQualifierPrompt(agentConfig)
+
+    // Inject learned patterns from user feedback
+    try {
+      const patterns = await buildLearnedPatterns(userId, agentConfig)
+      if (patterns && patterns.sampleSize >= 2) {
+        systemPrompt += `\n\nHISTORICAL FEEDBACK (${patterns.sampleSize} data points):\n`
+        if (patterns.goodPatterns) systemPrompt += patterns.goodPatterns + '\n'
+        if (patterns.badPatterns) systemPrompt += patterns.badPatterns + '\n'
+        systemPrompt += 'Adjust your scoring to favor leads similar to GOOD fits and penalize leads similar to BAD fits.'
+      }
+    } catch { /* non-fatal */ }
+
+    // 2b. Analyze websites in parallel BEFORE qualification so Claude has
+    //     rich context about each business (services, decision makers, etc.)
+
+    const websiteIntelMap = new Map<string, WebsiteIntel>()
+    await Promise.all(
+      leads.map(async (lead) => {
+        if (!lead.website) return
+        try {
+          const intel = await analyzeWebsite(lead.website)
+          websiteIntelMap.set(lead.id, intel)
+        } catch { /* non-fatal */ }
+      })
+    )
 
     const results = await Promise.all(
       leads.map(async (lead) => {
         try {
-          const leadInfo = [
+          const intel = websiteIntelMap.get(lead.id)
+          const leadInfoParts = [
             `Business Name: ${lead.name || 'Unknown'}`,
             `Industry/Type: ${lead.industry || 'Unknown'}`,
             `Location: ${lead.address || 'Unknown'}`,
@@ -160,7 +188,26 @@ export async function qualifyLeads(params: QualifyParams): Promise<QualifyResult
             `Phone: ${lead.phone || 'None'}`,
             `Google Rating: ${lead.rating ?? 'N/A'}`,
             `Business Status: ${lead.business_status || 'Unknown'}`,
-          ].join('\n')
+          ]
+
+          // Inject website intelligence if available
+          if (intel && intel.contentSnippet) {
+            leadInfoParts.push(`\nWEBSITE ANALYSIS:`)
+            leadInfoParts.push(`Website Quality: ${intel.websiteQuality}`)
+            if (intel.summary) leadInfoParts.push(`Business Summary: ${intel.summary}`)
+            if (intel.services.length > 0) leadInfoParts.push(`Services Found: ${intel.services.join(', ')}`)
+            if (intel.decisionMakers.length > 0) {
+              leadInfoParts.push(`Decision Makers: ${intel.decisionMakers.map(d => `${d.name} (${d.title})`).join(', ')}`)
+            }
+            if (intel.techSignals.length > 0) leadInfoParts.push(`Tech Stack: ${intel.techSignals.join(', ')}`)
+            if (intel.socialLinks.length > 0) leadInfoParts.push(`Social Presence: ${intel.socialLinks.length} profiles`)
+            leadInfoParts.push(`Has Blog: ${intel.hasBlog ? 'Yes' : 'No'}`)
+            leadInfoParts.push(`Has Contact Form: ${intel.hasContactForm ? 'Yes' : 'No'}`)
+            if (intel.copyrightYear) leadInfoParts.push(`Established: ~${intel.copyrightYear}`)
+            leadInfoParts.push(`\nWebsite Content Excerpt:\n${intel.contentSnippet.slice(0, 800)}`)
+          }
+
+          const leadInfo = leadInfoParts.join('\n')
 
           const response = await askClaude({
             systemPrompt,
@@ -189,21 +236,45 @@ export async function qualifyLeads(params: QualifyParams): Promise<QualifyResult
           const existingEnrichment = (lead.enrichment_data && typeof lead.enrichment_data === 'object')
             ? lead.enrichment_data
             : {}
+          // Store website intel + qualification data in enrichment_data
+          const websiteData = intel ? {
+            website_quality: intel.websiteQuality,
+            website_summary: intel.summary || null,
+            services_found: intel.services,
+            decision_makers: intel.decisionMakers,
+            tech_signals: intel.techSignals,
+            social_links: intel.socialLinks,
+            has_blog: intel.hasBlog,
+            has_contact_form: intel.hasContactForm,
+            copyright_year: intel.copyrightYear,
+            website_analyzed_at: new Date().toISOString(),
+          } : {}
+
           const mergedEnrichment = {
             ...existingEnrichment,
+            ...websiteData,
             qualification_signals: signals,
             recommended_action: recommendedAction,
             qualified_at: new Date().toISOString(),
             agent_run_id: agentRunId,
           }
 
+          // Extract primary decision maker for the lead record
+          const primaryDM = intel?.decisionMakers?.[0]
+
+          const updatePayload: Record<string, any> = {
+            qualification_score: score,
+            qualification_reason: reason,
+            enrichment_data: mergedEnrichment,
+          }
+          // Store decision maker name directly on the lead for easy display
+          if (primaryDM?.name) {
+            updatePayload.contact_name = primaryDM.name
+          }
+
           const { error: updateErr } = await sb
             .from('outreach_leads')
-            .update({
-              qualification_score: score,
-              qualification_reason: reason,
-              enrichment_data: mergedEnrichment,
-            })
+            .update(updatePayload)
             .eq('id', lead.id)
 
           if (updateErr) {

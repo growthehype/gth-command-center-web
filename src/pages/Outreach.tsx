@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, DragEvent } from 'react'
-import { Target, Plus, Trash2, ChevronUp, ChevronDown, Search, AlertTriangle, Clock, List, Columns3, Download, Bot } from 'lucide-react'
+import { Target, Plus, Trash2, ChevronUp, ChevronDown, Search, AlertTriangle, Clock, List, Columns3, Download, Bot, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { useAppStore, OutreachLead } from '@/lib/store'
 import { outreach } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
@@ -380,6 +380,18 @@ export default function Outreach() {
     }
   }
 
+  const handleFeedback = async (lead: OutreachLead, feedback: 'good' | 'bad', e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      const existing = lead.enrichment_data || {}
+      await supabase.from('outreach_leads').update({
+        enrichment_data: { ...existing, user_feedback: feedback, feedback_at: new Date().toISOString() },
+      }).eq('id', lead.id)
+      await refreshLeads()
+      showToast(feedback === 'good' ? 'Marked as good lead' : 'Marked as bad lead', 'success')
+    } catch { showToast('Failed to save feedback', 'error') }
+  }
+
   const handleDelete = async (lead: OutreachLead, e: React.MouseEvent) => {
     e.stopPropagation()
     if (!confirm(`Delete "${lead.name}"? This cannot be undone.`)) return
@@ -642,7 +654,7 @@ export default function Outreach() {
                     <th className="label px-4 py-3 cursor-pointer text-right" onClick={() => handleSort('deal_value')}>
                       Deal Value <SortIcon col="deal_value" />
                     </th>
-                    <th className="label px-4 py-3 w-10"></th>
+                    <th className="label px-4 py-3 w-24">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -655,6 +667,11 @@ export default function Outreach() {
                       <td className="px-4 py-3 text-polar font-semibold">
                         <div className="flex flex-col">
                           <span>{lead.name}</span>
+                          {lead.contact_name && (
+                            <span className="text-blue-400 font-normal" style={{ fontSize: '11px' }}>
+                              {lead.contact_name}{lead.enrichment_data?.decision_makers?.[0]?.title ? ` — ${lead.enrichment_data.decision_makers[0].title}` : ''}
+                            </span>
+                          )}
                           {lead.address && (
                             <span className="text-dim font-normal" style={{ fontSize: '11px' }}>
                               {lead.address}
@@ -736,13 +753,37 @@ export default function Outreach() {
                         </button>
                       </td>
                       <td className="px-4 py-3 text-right mono text-steel">{formatCurrency(lead.deal_value)}</td>
-                      <td className="px-4 py-3">
-                        <button
-                          onClick={(e) => handleDelete(lead, e)}
-                          className="text-dim hover:text-err transition-colors"
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => handleFeedback(lead, 'good', e)}
+                            className={`p-1 rounded transition-colors cursor-pointer ${
+                              lead.enrichment_data?.user_feedback === 'good'
+                                ? 'text-green-400 bg-green-500/20'
+                                : 'text-dim hover:text-green-400'
+                            }`}
+                            title="Good lead"
+                          >
+                            <ThumbsUp size={12} />
+                          </button>
+                          <button
+                            onClick={(e) => handleFeedback(lead, 'bad', e)}
+                            className={`p-1 rounded transition-colors cursor-pointer ${
+                              lead.enrichment_data?.user_feedback === 'bad'
+                                ? 'text-red-400 bg-red-500/20'
+                                : 'text-dim hover:text-red-400'
+                            }`}
+                            title="Bad lead"
+                          >
+                            <ThumbsDown size={12} />
+                          </button>
+                          <button
+                            onClick={(e) => handleDelete(lead, e)}
+                            className="p-1 text-dim hover:text-err transition-colors cursor-pointer"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

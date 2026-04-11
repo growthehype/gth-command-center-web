@@ -38,6 +38,8 @@ export interface OutreachLead {
   agent_run_id?: string | null;
   qualification_score?: number | null;
   qualification_reason?: string | null;
+  contact_name?: string | null;
+  enrichment_data?: Record<string, any> | null;
 }
 
 export interface CalendarEvent {

@@ -67,14 +67,23 @@ async function generateEmailsForLead(
   const tools = isSales ? SALES_EMAIL_TOOLS : COLD_EMAIL_TOOLS
   const toolName = isSales ? 'compose_sales_email' : 'compose_email'
 
-  const leadInfo = [
+  const enrichment = lead.enrichment_data || {}
+  const dm = enrichment.decision_makers?.[0]
+  const leadInfoParts = [
     `Business Name: ${lead.name || 'Unknown'}`,
     `Business Type: ${lead.industry || 'Unknown'}`,
     `Location: ${lead.address || 'Unknown'}`,
     `Website: ${lead.website || 'None'}`,
     `Qualification Score: ${lead.qualification_score ?? 'N/A'}`,
     `Qualification Reason: ${lead.qualification_reason || 'N/A'}`,
-  ].join('\n')
+  ]
+  // Add website intelligence for personalization
+  if (dm) leadInfoParts.push(`Decision Maker: ${dm.name} (${dm.title})`)
+  if (lead.contact_name) leadInfoParts.push(`Contact Name: ${lead.contact_name}`)
+  if (enrichment.services_found?.length > 0) leadInfoParts.push(`Services they offer: ${enrichment.services_found.join(', ')}`)
+  if (enrichment.website_summary) leadInfoParts.push(`About them: ${enrichment.website_summary}`)
+
+  const leadInfo = leadInfoParts.join('\n')
 
   // Generate all 3 steps IN PARALLEL (was serial — 3 round-trips per lead)
   const stepPrompts = [
