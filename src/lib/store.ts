@@ -282,19 +282,28 @@ export const useAppStore = create<AppStore>((set) => ({
       const safe = async <T,>(fn: () => Promise<T>, fallback: T): Promise<T> => {
         try { return await fn() } catch { return fallback }
       }
-      const [clients, tasks, projects, invoices, leads, events, campaigns, contacts, meetings, services, templates, goals, activity, credentials, sops, timeEntries, settings, runningTimer] = await Promise.all([
+      // Batch queries in groups of 6 to avoid Supabase rate limits
+      const [clients, tasks, projects, invoices, leads, events] = await Promise.all([
         safe(() => clientsApi.getAll(), []),
         safe(() => tasksApi.getAll(), []),
         safe(() => projectsApi.getAll(), []),
         safe(() => invoicesApi.getAll(), []),
         safe(() => outreachApi.getAll(), []),
         safe(() => eventsApi.getAll(), []),
+      ])
+      set({ clients, tasks, projects, invoices, leads, events })
+
+      const [campaigns, contacts, meetings, services, templates, goals] = await Promise.all([
         safe(() => campaignsApi.getAll(), []),
         safe(() => contactsApi.getAll(), []),
         safe(() => meetingsApi.getAll(), []),
         safe(() => servicesApi.getAll(), []),
         safe(() => templatesApi.getAll(), []),
         safe(() => goalsApi.getAll(), []),
+      ])
+      set({ campaigns, contacts, meetings, services, templates, goals })
+
+      const [activity, credentials, sops, timeEntries, settings, runningTimer] = await Promise.all([
         safe(() => activityApi.getAll(50, 0), []),
         safe(() => credentialsApi.getAll(), []),
         safe(() => sopsApi.getAll(), []),
@@ -302,7 +311,7 @@ export const useAppStore = create<AppStore>((set) => ({
         safe(() => settingsApi.getAll(), {}),
         safe(() => timeEntriesApi.getRunning(), null),
       ])
-      set({ clients, tasks, projects, invoices, leads, events, campaigns, contacts, meetings, services, templates, goals, activity, credentials, sops, timeEntries, settings, runningTimer })
+      set({ activity, credentials, sops, timeEntries, settings, runningTimer })
     } catch (err) {
       console.error('loadAllData failed:', err)
     }
