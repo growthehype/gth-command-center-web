@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { Mail, Search, RefreshCw, Archive, Trash2, MailOpen, Eye, Send, ArrowLeft, ChevronLeft, ChevronRight, Inbox, Star, Clock, AlertCircle, X, Paperclip, Reply, Forward, MoreHorizontal, CheckCheck, LogOut, Download, FileText, Image as ImageIcon } from 'lucide-react'
+import { Mail, Search, RefreshCw, Archive, Trash2, MailOpen, Eye, Send, ArrowLeft, ChevronLeft, ChevronRight, Inbox, Star, Clock, AlertCircle, X, Paperclip, Reply, Forward, MoreHorizontal, CheckCheck, LogOut, Download, FileText, Image as ImageIcon, Tag, ShoppingBag, Users, Bell } from 'lucide-react'
 import { isGmailConnected, connectGmail, disconnectGmail, listMessages, getMessage, getAttachment, markAsRead, markAsUnread, archiveMessage, trashMessage, sendEmail, type GmailMessage, type GmailAttachment } from '@/lib/gmail'
 import { showToast } from '@/components/ui/Toast'
 import { formatDistanceToNow, format, isToday, isYesterday, isThisYear } from 'date-fns'
@@ -14,6 +14,14 @@ const FOLDERS = [
   { id: 'DRAFT', label: 'Drafts', icon: Paperclip },
   { id: 'SPAM', label: 'Spam', icon: AlertCircle },
   { id: 'TRASH', label: 'Trash', icon: Trash2 },
+]
+
+const INBOX_CATEGORIES = [
+  { id: '', label: 'All Mail', icon: Inbox },
+  { id: 'CATEGORY_PERSONAL', label: 'Primary', icon: Mail },
+  { id: 'CATEGORY_PROMOTIONS', label: 'Promotions', icon: Tag },
+  { id: 'CATEGORY_SOCIAL', label: 'Social', icon: Users },
+  { id: 'CATEGORY_UPDATES', label: 'Updates', icon: Bell },
 ]
 
 // ── Helper: extract sender name ──
@@ -340,13 +348,17 @@ export default function GmailInbox() {
   const [nextPageToken, setNextPageToken] = useState<string | undefined>()
   const [pageHistory, setPageHistory] = useState<string[]>([])
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set())
+  const [activeCategory, setActiveCategory] = useState('')
 
-  const loadMessages = useCallback(async (folder?: string, query?: string, token?: string) => {
+  const loadMessages = useCallback(async (folder?: string, query?: string, token?: string, category?: string) => {
     setLoading(true)
     try {
       const f = folder || activeFolder
+      const cat = category !== undefined ? category : activeCategory
+      const labelIds = [f]
+      if (f === 'INBOX' && cat) labelIds.push(cat)
       const result = await listMessages({
-        labelIds: [f],
+        labelIds,
         query: query || searchQuery || undefined,
         maxResults: 25,
         pageToken: token,
@@ -369,9 +381,11 @@ export default function GmailInbox() {
       setSelectedMessage(null)
       setPageToken(undefined)
       setPageHistory([])
-      loadMessages(activeFolder, searchQuery)
+      // Reset category when switching away from inbox
+      if (activeFolder !== 'INBOX') setActiveCategory('')
+      loadMessages(activeFolder, searchQuery, undefined, activeFolder !== 'INBOX' ? '' : activeCategory)
     }
-  }, [connected, activeFolder]) // eslint-disable-line
+  }, [connected, activeFolder, activeCategory]) // eslint-disable-line
 
   // Re-check connection on mount (catches OAuth callback redirect) and on focus
   useEffect(() => {
@@ -594,6 +608,26 @@ export default function GmailInbox() {
               />
             </div>
           </form>
+
+          {/* Gmail category tabs — only in inbox */}
+          {activeFolder === 'INBOX' && (
+            <div className="flex gap-0 mb-3 border-b border-border/60">
+              {INBOX_CATEGORIES.map(cat => {
+                const Icon = cat.icon
+                const active = cat.id === activeCategory
+                return (
+                  <button
+                    key={cat.id || 'all'}
+                    onClick={() => setActiveCategory(cat.id)}
+                    className={`flex items-center gap-1.5 px-4 py-2.5 transition-all border-b-2 ${active ? 'border-accent text-accent' : 'border-transparent text-dim hover:text-steel hover:bg-surface-2/30'}`}
+                    style={{ fontSize: '11.5px', fontWeight: active ? 700 : 500 }}
+                  >
+                    <Icon size={13} /> {cat.label}
+                  </button>
+                )
+              })}
+            </div>
+          )}
 
           {/* Bulk action bar */}
           {checkedIds.size > 0 && (
