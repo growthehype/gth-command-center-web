@@ -19,8 +19,8 @@ const BRAND_COLORS = [
 
 const TYPOGRAPHY = [
   {
-    name: 'Montserrat',
-    family: 'Montserrat, sans-serif',
+    name: 'Figtree',
+    family: 'Figtree, sans-serif',
     usage: 'Headings, UI labels, buttons',
     weights: ['400 Regular', '600 Semibold', '700 Bold', '800 Extra Bold', '900 Black'],
     sample: 'The quick brown fox jumps over the lazy dog',
