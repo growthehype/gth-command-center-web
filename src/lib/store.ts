@@ -282,11 +282,15 @@ export const useAppStore = create<AppStore>((set) => ({
       set({ ...demoData, dataLoaded: true })
       return
     }
+    const safe = async <T,>(fn: () => Promise<T>, fallback: T): Promise<T> => {
+      try { return await fn() } catch { return fallback }
+    }
+
+    // Batch queries in groups of 6 to avoid Supabase rate limits.
+    // Each batch is wrapped in its own try/catch so a failure in one
+    // batch doesn't prevent subsequent batches from running.
+
     try {
-      const safe = async <T,>(fn: () => Promise<T>, fallback: T): Promise<T> => {
-        try { return await fn() } catch { return fallback }
-      }
-      // Batch queries in groups of 6 to avoid Supabase rate limits
       const [clients, tasks, projects, invoices, leads, events] = await Promise.all([
         safe(() => clientsApi.getAll(), []),
         safe(() => tasksApi.getAll(), []),
@@ -296,7 +300,11 @@ export const useAppStore = create<AppStore>((set) => ({
         safe(() => eventsApi.getAll(), []),
       ])
       set({ clients, tasks, projects, invoices, leads, events })
+    } catch (err) {
+      console.error('loadAllData batch 1 failed:', err)
+    }
 
+    try {
       const [campaigns, contacts, meetings, services, templates, goals] = await Promise.all([
         safe(() => campaignsApi.getAll(), []),
         safe(() => contactsApi.getAll(), []),
@@ -306,7 +314,11 @@ export const useAppStore = create<AppStore>((set) => ({
         safe(() => goalsApi.getAll(), []),
       ])
       set({ campaigns, contacts, meetings, services, templates, goals })
+    } catch (err) {
+      console.error('loadAllData batch 2 failed:', err)
+    }
 
+    try {
       const [activity, credentials, sops, timeEntries, settings, runningTimer] = await Promise.all([
         safe(() => activityApi.getAll(50, 0), []),
         safe(() => credentialsApi.getAll(), []),
@@ -315,11 +327,12 @@ export const useAppStore = create<AppStore>((set) => ({
         safe(() => settingsApi.getAll(), {}),
         safe(() => timeEntriesApi.getRunning(), null),
       ])
-      set({ activity, credentials, sops, timeEntries, settings, runningTimer, dataLoaded: true })
+      set({ activity, credentials, sops, timeEntries, settings, runningTimer })
     } catch (err) {
-      console.error('loadAllData failed:', err)
-      set({ dataLoaded: true }) // Mark as loaded even on error to avoid infinite skeleton
+      console.error('loadAllData batch 3 failed:', err)
     }
+
+    set({ dataLoaded: true })
   },
 
   refreshClients: async () => { try { set({ clients: await clientsApi.getAll() }) } catch (e) { console.error('refreshClients:', e) } },

@@ -33,7 +33,7 @@ const DEFAULT_SETTINGS: PomodoroSettings = {
 // Audio helper  (Web Audio API — no external files)
 // ---------------------------------------------------------------------------
 
-function playCompletionTone() {
+function playCompletionTone(): (() => void) | undefined {
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
     const notes = [523.25, 659.25, 783.99, 1046.5] // C5 E5 G5 C6
@@ -50,9 +50,21 @@ function playCompletionTone() {
       osc.stop(ctx.currentTime + i * 0.15 + 0.4)
     })
     // close context after all notes finish
-    setTimeout(() => ctx.close(), 1200)
+    let closed = false
+    const timer = setTimeout(() => {
+      closed = true
+      ctx.close()
+    }, 1200)
+    // Return cleanup fn so callers can close early on unmount
+    return () => {
+      if (!closed) {
+        clearTimeout(timer)
+        ctx.close()
+      }
+    }
   } catch {
     // Audio not available — silently ignore
+    return undefined
   }
 }
 
@@ -149,6 +161,8 @@ export default function PomodoroTimer({ onClose }: { onClose: () => void }) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const activeTimeEntryIdRef = useRef<string | null>(null)
   const isStoppingRef = useRef(false)
+  const handlePhaseCompleteRef = useRef<() => void>(() => {})
+  const audioCleanupRef = useRef<(() => void) | undefined>(undefined)
 
   // ---- Derived values -----------------------------------------------------
   const totalSeconds = useMemo(() => {
@@ -181,34 +195,43 @@ export default function PomodoroTimer({ onClose }: { onClose: () => void }) {
     }
   }, [runningTimer])
 
-  // ---- Timer tick ---------------------------------------------------------
-  useEffect(() => {
-    if (status !== 'running') {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-      return
-    }
-
-    intervalRef.current = setInterval(() => {
-      setSecondsLeft(prev => {
-        if (prev <= 1) {
-          handlePhaseComplete()
-          return 0
-        }
-        return prev - 1
+  // ---- Time entry helpers -------------------------------------------------
+  const startTimeEntry = async () => {
+    try {
+      const entry = await timeEntriesApi.start({
+        project_id: selectedProjectId || null,
+        client_id: selectedClientId || null,
+        notes: notes || 'Pomodoro session',
+        billable: billable ? 1 : 0,
       })
-    }, 1000)
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
+      activeTimeEntryIdRef.current = entry.id
+      await Promise.all([refreshTimeEntries(), refreshRunningTimer()])
+    } catch (err) {
+      showToast('Could not start time tracking', 'error')
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status])
+  }
+
+  const stopTimeEntry = useCallback(async () => {
+    if (isStoppingRef.current) return
+    const id = activeTimeEntryIdRef.current
+    if (!id) return
+    isStoppingRef.current = true
+    try {
+      await timeEntriesApi.stop(id, notes || 'Pomodoro session')
+      activeTimeEntryIdRef.current = null
+      await Promise.all([refreshTimeEntries(), refreshRunningTimer()])
+    } catch (err) {
+      showToast('Could not stop time tracking', 'error')
+    } finally {
+      isStoppingRef.current = false
+    }
+  }, [notes, refreshTimeEntries, refreshRunningTimer])
 
   // ---- Phase completion ---------------------------------------------------
   const handlePhaseComplete = useCallback(async () => {
     if (intervalRef.current) clearInterval(intervalRef.current)
     setStatus('idle')
-    playCompletionTone()
+    audioCleanupRef.current = playCompletionTone()
 
     if (phase === 'work') {
       // Stop time entry
@@ -231,40 +254,34 @@ export default function PomodoroTimer({ onClose }: { onClose: () => void }) {
       setPhase('work')
       setSecondsLeft(settings.workMinutes * 60)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, completedPomodoros, settings])
+  }, [phase, completedPomodoros, settings, stopTimeEntry])
 
-  // ---- Time entry helpers -------------------------------------------------
-  const startTimeEntry = async () => {
-    try {
-      const entry = await timeEntriesApi.start({
-        project_id: selectedProjectId || null,
-        client_id: selectedClientId || null,
-        notes: notes || 'Pomodoro session',
-        billable: billable ? 1 : 0,
+  // Keep the ref always pointing to the latest handlePhaseComplete
+  useEffect(() => {
+    handlePhaseCompleteRef.current = handlePhaseComplete
+  })
+
+  // ---- Timer tick ---------------------------------------------------------
+  useEffect(() => {
+    if (status !== 'running') {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+      return
+    }
+
+    intervalRef.current = setInterval(() => {
+      setSecondsLeft(prev => {
+        if (prev <= 1) {
+          handlePhaseCompleteRef.current()
+          return 0
+        }
+        return prev - 1
       })
-      activeTimeEntryIdRef.current = entry.id
-      await Promise.all([refreshTimeEntries(), refreshRunningTimer()])
-    } catch (err) {
-      showToast('Could not start time tracking', 'error')
-    }
-  }
+    }, 1000)
 
-  const stopTimeEntry = async () => {
-    if (isStoppingRef.current) return
-    const id = activeTimeEntryIdRef.current
-    if (!id) return
-    isStoppingRef.current = true
-    try {
-      await timeEntriesApi.stop(id, notes || 'Pomodoro session')
-      activeTimeEntryIdRef.current = null
-      await Promise.all([refreshTimeEntries(), refreshRunningTimer()])
-    } catch (err) {
-      showToast('Could not stop time tracking', 'error')
-    } finally {
-      isStoppingRef.current = false
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }
+  }, [status])
 
   // ---- Controls -----------------------------------------------------------
   const handleStart = async () => {
@@ -320,9 +337,12 @@ export default function PomodoroTimer({ onClose }: { onClose: () => void }) {
     }
   }, [status, phase, display, setPomodoroStatus])
 
-  // Clear pomodoro status on unmount (close)
+  // Clear pomodoro status and audio context on unmount (close)
   useEffect(() => {
-    return () => { setPomodoroStatus(false, '', 'work') }
+    return () => {
+      setPomodoroStatus(false, '', 'work')
+      audioCleanupRef.current?.()
+    }
   }, [setPomodoroStatus])
 
   // ---- Phase label --------------------------------------------------------

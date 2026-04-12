@@ -29,9 +29,13 @@ export default function Modal({ open, onClose, title, children, width = '480px' 
       if (e.key === 'Escape') { onCloseRef.current(); return }
 
       if (e.key === 'Tab' && containerRef.current) {
-        const focusable = containerRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        )
+        // Query focusable elements fresh on every Tab press so dynamically
+        // added elements (e.g. new invoice line-item fields) are included.
+        const focusable = Array.from(
+          containerRef.current.querySelectorAll<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          )
+        ).filter(el => !el.hasAttribute('disabled') && el.offsetParent !== null)
         if (focusable.length === 0) return
         const first = focusable[0]
         const last = focusable[focusable.length - 1]

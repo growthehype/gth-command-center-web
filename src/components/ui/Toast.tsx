@@ -8,7 +8,7 @@ interface ToastItem {
   undoAction?: () => void
 }
 
-let toastListeners: ((toast: ToastItem) => void)[] = []
+const toastListeners = new Set<(toast: ToastItem) => void>()
 
 export function showToast(message: string, type: ToastItem['type'] = 'info', undoAction?: () => void) {
   const toast: ToastItem = { id: Date.now().toString(), message, type, undoAction }
@@ -39,9 +39,9 @@ export default function ToastContainer() {
         setToasts(prev => prev.filter(t => t.id !== toast.id))
       }, toast.undoAction ? 5000 : 3000)
     }
-    toastListeners.push(handler)
+    toastListeners.add(handler)
     return () => {
-      toastListeners = toastListeners.filter(fn => fn !== handler)
+      toastListeners.delete(handler)
     }
   }, [])
 

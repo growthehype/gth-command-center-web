@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { validateString, validateEmail, validateNumber } from './validate'
 
 // ---- File Upload Validation ----
 const ALLOWED_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv', 'text/plain']
@@ -85,12 +86,18 @@ export const clients = {
     return data
   },
   async create(d: any) {
+    d.name = validateString(d.name, 'Client name', { required: true, max: 255 })
+    if (d.email !== undefined && d.email !== null && d.email !== '') d.email = validateEmail(d.email, 'Email')
+    if (d.mrr !== undefined && d.mrr !== null && d.mrr !== '') d.mrr = validateNumber(d.mrr, 'MRR', { min: 0 })
     const userId = await uid()
     const { data, error } = await supabase.from('clients').insert({ ...d, user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), created_at: new Date().toISOString(), updated_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
   async update(id: string, d: any) {
+    if (d.name !== undefined) d.name = validateString(d.name, 'Client name', { required: true, max: 255 })
+    if (d.email !== undefined && d.email !== null && d.email !== '') d.email = validateEmail(d.email, 'Email')
+    if (d.mrr !== undefined && d.mrr !== null && d.mrr !== '') d.mrr = validateNumber(d.mrr, 'MRR', { min: 0 })
     const { error } = await supabase.from('clients').update({ ...d, updated_at: new Date().toISOString() }).eq('id', id)
     if (error) throw error
     return { success: true }
@@ -182,12 +189,16 @@ export const invoices = {
     return (data || []).map((i: any) => ({ ...i, client_name: i.clients?.name || null }))
   },
   async create(d: any) {
+    if (d.num !== undefined && d.num !== null && d.num !== '') d.num = validateString(d.num, 'Invoice number', { max: 50 })
+    if (d.amount !== undefined && d.amount !== null && d.amount !== '') d.amount = validateNumber(d.amount, 'Amount', { min: 0 })
     const userId = await uid()
     const { data, error } = await supabase.from('invoices').insert({ ...d, user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
   async update(id: string, d: any) {
+    if (d.num !== undefined && d.num !== null && d.num !== '') d.num = validateString(d.num, 'Invoice number', { max: 50 })
+    if (d.amount !== undefined && d.amount !== null && d.amount !== '') d.amount = validateNumber(d.amount, 'Amount', { min: 0 })
     const { error } = await supabase.from('invoices').update(d).eq('id', id)
     if (error) throw error
     return { success: true }
@@ -470,12 +481,16 @@ export const contacts = {
     return (data || []).map((c: any) => ({ ...c, client_name: c.clients?.name || null }))
   },
   async create(d: any) {
+    d.name = validateString(d.name, 'Contact name', { required: true, max: 255 })
+    if (d.email !== undefined && d.email !== null && d.email !== '') d.email = validateEmail(d.email, 'Email')
     const userId = await uid()
     const { data, error } = await supabase.from('contacts').insert({ ...d, user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
     return data
   },
   async update(id: string, d: any) {
+    if (d.name !== undefined) d.name = validateString(d.name, 'Contact name', { required: true, max: 255 })
+    if (d.email !== undefined && d.email !== null && d.email !== '') d.email = validateEmail(d.email, 'Email')
     const { error } = await supabase.from('contacts').update(d).eq('id', id)
     if (error) throw error
     return { success: true }
