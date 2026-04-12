@@ -42,13 +42,11 @@ const PLATFORM_META: Record<string, { color: string; icon: string }> = {
   'instagram': { color: '#E4405F', icon: 'I' },
   'shopify': { color: '#96BF48', icon: 'S' },
   'stripe': { color: '#635BFF', icon: 'S' },
-  'aws': { color: '#FF9900', icon: 'A' },
   'github': { color: '#8B949E', icon: 'G' },
   'webflow': { color: '#4353FF', icon: 'W' },
   'wordpress': { color: '#21759B', icon: 'W' },
-  'hosting': { color: '#00B4D8', icon: 'H' },
   'godaddy': { color: '#1BDBDB', icon: 'G' },
-  'cloudflare': { color: '#F38020', icon: 'C' },
+  'wave': { color: '#2E67D1', icon: 'W' },
   'mailchimp': { color: '#FFE01B', icon: 'M' },
   'linkedin': { color: '#0A66C2', icon: 'L' },
   'tiktok': { color: '#FF004F', icon: 'T' },
@@ -62,8 +60,8 @@ function getPlatformMeta(platform: string) {
 }
 
 const COMMON_PLATFORMS = [
-  'Google Ads', 'Meta Ads', 'Shopify', 'Stripe', 'WordPress', 'Webflow', 'Hosting',
-  'GitHub', 'AWS', 'Cloudflare', 'Mailchimp', 'LinkedIn', 'TikTok Ads',
+  'Google Ads', 'Meta Ads', 'Shopify', 'Stripe', 'WordPress', 'Webflow', 'GoDaddy',
+  'GitHub', 'Wave', 'Mailchimp', 'LinkedIn', 'TikTok',
 ]
 
 /* ── Component ── */
