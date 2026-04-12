@@ -130,8 +130,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     document.getElementById('status').innerHTML = '<div class="success">Connected successfully! Redirecting...</div>';
     setTimeout(function() { window.location.href = '${appHome}'; }, 1500);
   } catch(e) {
+    var safeMsg = (e.message || 'Unknown error').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     document.getElementById('spinner').style.display = 'none';
-    document.getElementById('status').innerHTML = '<div class="error">Error: ' + e.message + '</div><br><br><a href="${appHome}">Go back to app</a>';
+    document.getElementById('status').innerHTML = '<div class="error">Error: ' + safeMsg + '</div><br><br><a href="${appHome}">Go back to app</a>';
   }
 </script>
 <noscript>JavaScript required. Please enable JavaScript and try again.</noscript>

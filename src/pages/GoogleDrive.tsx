@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { HardDrive, Search, RefreshCw, Folder, FileText, Image, Film, FileSpreadsheet, Presentation, File, ExternalLink, ChevronRight, Grid3X3, List, FolderOpen, X, Clock, Home } from 'lucide-react'
 import { isGmailConnected, connectGmail, listDriveFiles, type DriveFile } from '@/lib/gmail'
 import { showToast } from '@/components/ui/Toast'
+import { useDebounce } from '@/hooks/useDebounce'
 import { format, formatDistanceToNow, isToday, isYesterday, isThisYear } from 'date-fns'
 
 // ── File icon with colored background ──
@@ -92,6 +93,7 @@ export default function GoogleDrive() {
   const [files, setFiles] = useState<DriveFile[]>([])
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const [isSearching, setIsSearching] = useState(false)
   const [activeFilter, setActiveFilter] = useState<string | null>(null)
   const [currentFolder, setCurrentFolder] = useState<string | null>(null)
@@ -151,6 +153,19 @@ export default function GoogleDrive() {
       window.removeEventListener('storage', check)
     }
   }, [])
+
+  // Auto-search when debounced query changes
+  useEffect(() => {
+    if (!connected) return
+    if (!debouncedSearchQuery.trim()) {
+      if (isSearching) clearSearch()
+      return
+    }
+    setIsSearching(true)
+    setActiveFilter(null)
+    setNextPageToken(undefined)
+    loadFiles(null, debouncedSearchQuery)
+  }, [debouncedSearchQuery]) // eslint-disable-line
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()

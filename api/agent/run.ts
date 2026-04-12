@@ -1,5 +1,6 @@
 // Manual trigger — POST to run an agent on demand
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { createClient } from '@supabase/supabase-js'
 import { getAgentConfig, getAgentConfigById, updateAgentRun } from './_lib/supabase-admin'
 import { runAgentTick, type AgentAction } from './_lib/orchestrator'
 import { scrapeLeads } from './_lib/scraper'
@@ -76,11 +77,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(405).json({ error: 'Method not allowed' })
     }
 
-    step = 'parse_body'
-    const { agentType, userId, configId } = (req.body ?? {}) as any
+    // ── Auth: require Supabase JWT ──
+    step = 'auth'
+    const authHeader = req.headers.authorization
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authentication required' })
+    }
 
-    if (!agentType || !userId) {
-      return res.status(400).json({ error: 'Missing agentType or userId', step })
+    const token = authHeader.slice(7)
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
+    const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return res.status(500).json({ error: 'Supabase not configured' })
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Invalid token' })
+    }
+
+    step = 'parse_body'
+    const { agentType, configId } = (req.body ?? {}) as any
+    const userId = user.id
+
+    if (!agentType) {
+      return res.status(400).json({ error: 'Missing agentType', step })
     }
 
     const validTypes = ['lead_gen', 'sales', 'client']

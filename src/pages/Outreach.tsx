@@ -181,7 +181,7 @@ export default function Outreach() {
         if (error) throw error
         if (!cancelled) setAgentConfigs(data || [])
       } catch (err) {
-        /* silently handled */
+        showToast('Failed to load agent settings', 'error')
       }
     })()
     return () => { cancelled = true }

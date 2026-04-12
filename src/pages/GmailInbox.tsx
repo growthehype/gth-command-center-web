@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { Mail, Search, RefreshCw, Archive, Trash2, MailOpen, Eye, Send, ArrowLeft, ChevronLeft, ChevronRight, Inbox, Star, Clock, AlertCircle, X, Paperclip, Reply, Forward, MoreHorizontal, CheckCheck, LogOut, Download, FileText, Image as ImageIcon, Tag, ShoppingBag, Users, Bell } from 'lucide-react'
 import { isGmailConnected, connectGmail, disconnectGmail, listMessages, getMessage, getAttachment, markAsRead, markAsUnread, archiveMessage, trashMessage, sendEmail, type GmailMessage, type GmailAttachment } from '@/lib/gmail'
 import { showToast } from '@/components/ui/Toast'
+import { useDebounce } from '@/hooks/useDebounce'
 import { formatDistanceToNow, format, isToday, isYesterday, isThisYear } from 'date-fns'
 import DOMPurify from 'dompurify'
 
@@ -267,9 +268,9 @@ function MessageDetail({ message, onBack, onRefresh }: {
               className="email-body"
               style={{ fontSize: '13.5px', lineHeight: '1.7', color: 'var(--color-steel)' }}
               dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(full.body, {
-                ADD_TAGS: ['img', 'style'],
+                ADD_TAGS: ['img'],
                 ADD_ATTR: ['target', 'src', 'alt', 'width', 'height', 'style', 'class'],
-                ALLOW_DATA_ATTR: true,
+                ALLOW_DATA_ATTR: false,
               }) }}
             />
           ) : (
@@ -341,6 +342,7 @@ export default function GmailInbox() {
   const [messages, setMessages] = useState<GmailMessage[]>([])
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const [activeFolder, setActiveFolder] = useState('INBOX')
   const [selectedMessage, setSelectedMessage] = useState<GmailMessage | null>(null)
   const [composing, setComposing] = useState(false)
@@ -359,7 +361,7 @@ export default function GmailInbox() {
       if (f === 'INBOX' && cat) labelIds.push(cat)
       const result = await listMessages({
         labelIds,
-        query: query || searchQuery || undefined,
+        query: query || debouncedSearchQuery || undefined,
         maxResults: 25,
         pageToken: token,
       })
@@ -374,7 +376,7 @@ export default function GmailInbox() {
     } finally {
       setLoading(false)
     }
-  }, [activeFolder, searchQuery])
+  }, [activeFolder, debouncedSearchQuery])
 
   useEffect(() => {
     if (connected) {

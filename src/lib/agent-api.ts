@@ -1,40 +1,21 @@
 // Frontend API wrapper for AI agent system
 import { supabase } from './supabase'
 
-// ─── Gmail Integration ─────────────────────────────────────────
-
-/** Persist the Gmail refresh token from localStorage to Supabase via the server endpoint */
-export async function linkGmailRefreshToken(): Promise<boolean> {
-  const refreshToken = localStorage.getItem('gth_gmail_refresh_token')
-  if (!refreshToken) return false
-
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session?.access_token) return false
-
-  try {
-    const res = await fetch('/api/agent/link-gmail', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ refreshToken }),
-    })
-    const json = await res.json()
-    return json.stored === true
-  } catch {
-    return false
-  }
-}
-
 // ─── Agent Trigger / Status ────────────────────────────────────
 
 /** Manually trigger an agent run */
 export async function triggerAgent(agentType: string, userId: string): Promise<{ runId: string; status: string }> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.access_token) {
+    throw new Error('Not authenticated — please sign in again')
+  }
   const res = await fetch('/api/agent/run', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ agentType, userId }),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ agentType }),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Unknown error' }))
