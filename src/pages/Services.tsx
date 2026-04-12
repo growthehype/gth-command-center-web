@@ -81,6 +81,8 @@ export default function Services() {
 
   const save = async () => {
     if (!form.name.trim()) { showToast('Name is required', 'warn'); return }
+    if (Number(form.default_price) < 0) { showToast('Default price cannot be negative', 'error'); return }
+    if (Number(form.typical_hours) < 0) { showToast('Typical hours cannot be negative', 'error'); return }
     try {
       const deliverablesArr = form.deliverables.split('\n').map(d => d.trim()).filter(Boolean)
       const payload = {

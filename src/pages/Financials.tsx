@@ -4,6 +4,45 @@ import { useAppStore } from '@/lib/store'
 import { taxStatus as taxStatusApi } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
 import { formatCurrency } from '@/lib/utils'
+import Skeleton from '@/components/ui/Skeleton'
+
+function FinancialsSkeleton() {
+  return (
+    <div>
+      {/* Header */}
+      <div className="mb-6">
+        <Skeleton variant="text" width="140px" height="24px" />
+        <Skeleton variant="text" width="260px" height="13px" className="mt-2" />
+      </div>
+      {/* Year tabs */}
+      <div className="flex gap-1 mb-6">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} variant="text" width="48px" height="28px" />
+        ))}
+      </div>
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6">
+        {[0, 1, 2, 3].map(i => (
+          <div key={i} className="stat-card">
+            <Skeleton variant="text" width="90px" height="10px" />
+            <Skeleton variant="text" width="100px" height="20px" className="mt-2" />
+            <Skeleton variant="text" width="70px" height="12px" className="mt-2" />
+          </div>
+        ))}
+      </div>
+      {/* Chart placeholder */}
+      <div className="card p-5 mb-6">
+        <Skeleton variant="text" width="180px" height="12px" className="mb-4" />
+        <Skeleton variant="rect" width="100%" height="200px" />
+      </div>
+      {/* Bar chart placeholder */}
+      <div className="card p-5 mb-6">
+        <Skeleton variant="text" width="180px" height="12px" className="mb-4" />
+        <Skeleton variant="rect" width="100%" height="180px" />
+      </div>
+    </div>
+  )
+}
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -224,7 +263,9 @@ function TopClientsTable({ clients }: { clients: { name: string; revenue: number
 /*  MAIN PAGE                                                         */
 /* ================================================================== */
 export default function Financials() {
-  const { invoices, refreshInvoices } = useAppStore()
+  const { invoices, refreshInvoices, dataLoaded } = useAppStore()
+
+  if (!dataLoaded) return <FinancialsSkeleton />
 
   const currentYear = new Date().getFullYear()
   const years = useMemo(() => {

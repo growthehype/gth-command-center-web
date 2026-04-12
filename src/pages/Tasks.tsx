@@ -1,5 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { CheckSquare, Plus, Trash2, RefreshCw, Calendar as CalIcon, Edit3, Check, AlertTriangle, Clock, Download, X, List, LayoutGrid, Play, Square } from 'lucide-react'
+import { usePagination } from '@/hooks/usePagination'
+import PaginationBar from '@/components/ui/PaginationBar'
 import { useAppStore } from '@/lib/store'
 import { tasks as tasksApi, timeEntries as timeEntriesApi } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
@@ -10,6 +12,7 @@ import ContextMenu, { ContextMenuItem } from '@/components/ui/ContextMenu'
 import { formatDate, friendlyDate, isOverdue, safeParseJSON } from '@/lib/utils'
 import { exportToCSV } from '@/lib/export-csv'
 import { isToday, parseISO, differenceInCalendarDays } from 'date-fns'
+import { useConfirm } from '@/hooks/useConfirm'
 
 /* Priority sort weight — lower = higher priority */
 const PRIORITY_WEIGHT: Record<string, number> = {
@@ -51,6 +54,7 @@ const EMPTY_FORM = {
 
 export default function Tasks() {
   const { tasks, clients, runningTimer, refreshTasks, refreshActivity, refreshTimeEntries, refreshRunningTimer, selectedTaskId, setSelectedTaskId } = useAppStore()
+  const { confirm, ConfirmDialog } = useConfirm()
 
   const [filter, setFilter] = useState<Filter>('all')
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
@@ -84,11 +88,12 @@ export default function Tasks() {
     }
   }, [runningTimer])
 
-  // Tick the timer every second
+  // Tick the timer every second — recalculate from started_at to prevent drift
   useEffect(() => {
-    if (activeTimerTaskId) {
+    if (activeTimerTaskId && runningTimer) {
+      const startedMs = new Date(runningTimer.started_at).getTime()
       timerIntervalRef.current = setInterval(() => {
-        setElapsedSeconds(prev => prev + 1)
+        setElapsedSeconds(Math.floor((Date.now() - startedMs) / 1000))
       }, 1000)
     } else {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
@@ -97,7 +102,7 @@ export default function Tasks() {
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
     }
-  }, [activeTimerTaskId])
+  }, [activeTimerTaskId, runningTimer])
 
   // Persist view mode
   useEffect(() => {
@@ -164,6 +169,8 @@ export default function Tasks() {
     return list
   }, [tasks, filter])
 
+  const pagination = usePagination(filteredTasks, 25)
+
   /* ── handlers ── */
   const handleToggle = useCallback(async (id: string) => {
     // Check if the task is currently not done (i.e. being completed)
@@ -186,7 +193,7 @@ export default function Tasks() {
   }, [tasks, refreshTasks, refreshActivity])
 
   const handleDelete = useCallback(async (id: string) => {
-    if (!confirm('Delete this task? This cannot be undone.')) return
+    if (!(await confirm('Delete task', 'Delete this task? This cannot be undone.'))) return
     await tasksApi.delete(id)
     await Promise.all([refreshTasks(), refreshActivity()])
     showToast('Task deleted', 'info', () => {
@@ -214,7 +221,6 @@ export default function Tasks() {
       setModalOpen(false)
       showToast('Task created', 'success')
     } catch (err: any) {
-      console.error('Task create failed:', err)
       showToast(err?.message || 'Failed to create task', 'error')
     } finally {
       setSaving(false)
@@ -240,7 +246,6 @@ export default function Tasks() {
       setModalOpen(false)
       showToast('Task updated', 'success')
     } catch (err: any) {
-      console.error('Task update failed:', err)
       showToast(err?.message || 'Failed to update task', 'error')
     } finally {
       setSaving(false)
@@ -309,7 +314,7 @@ export default function Tasks() {
 
   const handleBulkDelete = useCallback(async () => {
     if (selectedIds.size === 0) return
-    if (!confirm(`Delete ${selectedIds.size} task${selectedIds.size !== 1 ? 's' : ''}? This cannot be undone.`)) return
+    if (!(await confirm('Delete tasks', `Delete ${selectedIds.size} task${selectedIds.size !== 1 ? 's' : ''}? This cannot be undone.`))) return
     setBulkLoading(true)
     try {
       await Promise.all(
@@ -655,7 +660,7 @@ export default function Tasks() {
               {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Select all'}
             </span>
           </div>
-          {filteredTasks.map(task => {
+          {pagination.pageItems.map(task => {
             const tags = safeParseJSON<string[]>(task.tags, [])
             const overdue = !task.done && isOverdue(task.due_date)
             const todayTask = !task.done && task.due_date && (() => {
@@ -798,6 +803,20 @@ export default function Tasks() {
               </ContextMenu>
             )
           })}
+
+          <PaginationBar
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            perPage={pagination.perPage}
+            hasNext={pagination.hasNext}
+            hasPrev={pagination.hasPrev}
+            onNext={pagination.nextPage}
+            onPrev={pagination.prevPage}
+            onPageChange={pagination.setPage}
+            onPerPageChange={pagination.setPerPage}
+            noun="tasks"
+          />
         </div>
       )}
 
@@ -992,6 +1011,7 @@ export default function Tasks() {
           </div>
         </div>
       )}
+    {ConfirmDialog}
     </div>
   )
 }

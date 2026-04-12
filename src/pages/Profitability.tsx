@@ -3,6 +3,30 @@ import { TrendingUp, ChevronUp, ChevronDown } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import EmptyState from '@/components/ui/EmptyState'
 import { formatCurrency } from '@/lib/utils'
+import Skeleton, { SkeletonTable } from '@/components/ui/Skeleton'
+
+function ProfitabilitySkeleton() {
+  return (
+    <div>
+      {/* Header */}
+      <div className="mb-6">
+        <Skeleton variant="text" width="160px" height="24px" />
+        <Skeleton variant="text" width="320px" height="13px" className="mt-2" />
+      </div>
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        {[0, 1, 2, 3].map(i => (
+          <div key={i} className="stat-card">
+            <Skeleton variant="text" width="100px" height="10px" />
+            <Skeleton variant="text" width="80px" height="20px" className="mt-2" />
+          </div>
+        ))}
+      </div>
+      {/* Table */}
+      <SkeletonTable rows={6} columns={5} />
+    </div>
+  )
+}
 
 type SortKey = 'name' | 'mrr' | 'hoursMonth' | 'effectiveRate' | 'hoursAll'
 
@@ -16,7 +40,9 @@ interface ClientProfit {
 }
 
 export default function Profitability() {
-  const { clients, timeEntries } = useAppStore()
+  const { clients, timeEntries, dataLoaded } = useAppStore()
+
+  if (!dataLoaded) return <ProfitabilitySkeleton />
 
   const [sortKey, setSortKey] = useState<SortKey>('effectiveRate')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')

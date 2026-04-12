@@ -7,6 +7,47 @@ import { Plus } from 'lucide-react'
 import AchievementBadges from '@/components/ui/AchievementBadges'
 import WeeklyScorecard from '@/components/ui/WeeklyScorecard'
 import ActivityHeatmap from '@/components/ui/ActivityHeatmap'
+import Skeleton from '@/components/ui/Skeleton'
+
+function BriefingSkeleton() {
+  return (
+    <div className="max-w-full md:max-w-[920px] mx-auto" style={{ padding: '48px 0 64px' }}>
+      {/* Greeting */}
+      <Skeleton variant="text" width="260px" height="28px" />
+      <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+        <Skeleton variant="text" width="180px" height="14px" />
+        <Skeleton variant="text" width="100px" height="20px" />
+      </div>
+      {/* Quote */}
+      <div style={{ marginTop: 28 }}>
+        <Skeleton variant="text" width="80%" height="14px" />
+        <Skeleton variant="text" width="120px" height="11px" className="mt-2" />
+      </div>
+      {/* Today's Focus */}
+      <div style={{ marginTop: 40 }}>
+        <Skeleton variant="text" width="140px" height="16px" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-[10px]" style={{ marginTop: 14 }}>
+          {[0, 1, 2].map(i => (
+            <div key={i} className="stat-card" style={{ minHeight: 140 }}>
+              <Skeleton variant="text" width="40px" height="24px" />
+              <Skeleton variant="text" width="80px" height="12px" className="mt-2" />
+              <Skeleton variant="text" width="100%" height="13px" className="mt-4" />
+              <Skeleton variant="text" width="75%" height="13px" className="mt-2" />
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Scorecard placeholder */}
+      <div style={{ marginTop: 36 }}>
+        <Skeleton variant="rect" width="100%" height="120px" />
+      </div>
+      {/* Heatmap placeholder */}
+      <div style={{ marginTop: 36 }}>
+        <Skeleton variant="rect" width="100%" height="100px" />
+      </div>
+    </div>
+  )
+}
 
 // --------------- DAILY QUOTES ---------------
 const DAILY_QUOTES: { text: string; author: string }[] = [
@@ -61,8 +102,10 @@ function RelativeTime({ date, className, style }: { date: string | null; classNa
 export default function DailyBriefing() {
   const {
     clients, tasks, projects, invoices, events, activity, goals, settings,
-    setCurrentPage,
+    setCurrentPage, dataLoaded,
   } = useAppStore()
+
+  if (!dataLoaded) return <BriefingSkeleton />
 
   const displayName = settings.display_name || 'Omar'
   const now = new Date()

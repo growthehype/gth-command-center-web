@@ -158,7 +158,6 @@ export default function ClientDetail() {
       await navigator.clipboard.writeText(url)
       showToast('Portal link copied to clipboard!', 'success')
     } catch (err) {
-      console.error('Portal gen error:', err)
       showToast('Failed to generate portal link', 'error')
     }
     setPortalLoading(false)

@@ -91,7 +91,6 @@ export default function ClientPortal() {
         companyLogoUrl: settingsMap.company_logo_url || '',
       })
     } catch (err) {
-      console.error('Portal load error:', err)
       setError('Failed to load portal')
     }
     setLoading(false)

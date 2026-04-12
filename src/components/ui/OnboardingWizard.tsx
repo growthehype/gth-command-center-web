@@ -84,7 +84,6 @@ export default function OnboardingWizard({ open, onComplete }: Props) {
       showToast('Setup complete! Welcome to your Command Center.', 'success')
       onComplete()
     } catch (err) {
-      console.error('Onboarding save error:', err)
       showToast('Failed to save — try again', 'error')
     } finally {
       setSaving(false)

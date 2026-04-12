@@ -13,6 +13,7 @@ import {
   deleteGoogleEvent,
   type GoogleCalendarEvent,
 } from '@/lib/google-calendar'
+import { useConfirm } from '@/hooks/useConfirm'
 import {
   format,
   startOfWeek,
@@ -133,6 +134,7 @@ function eventColor(title: string) {
 
 export default function Calendar() {
   const { clients } = useAppStore()
+  const { confirm, ConfirmDialog } = useConfirm()
 
   // View mode
   const [view, setView] = useState<CalendarView>('week')
@@ -204,6 +206,7 @@ export default function Calendar() {
       .catch(() => {
         // Token may have been invalidated mid-request
         if (!isGoogleConnected()) setGoogleConnected(false)
+        else showToast('Failed to load calendar events', 'error')
         setLoading(false)
       })
   }, [googleConnected, fetchStart, fetchEnd])
@@ -306,7 +309,7 @@ export default function Calendar() {
 
   /* ---- Delete event ---- */
   const handleDelete = async (eventId: string) => {
-    if (!confirm('Delete this event from Google Calendar?')) return
+    if (!(await confirm('Delete event', 'Delete this event from Google Calendar?'))) return
     setSaving(true)
     try {
       const ok = await deleteGoogleEvent(eventId)
@@ -1041,6 +1044,7 @@ export default function Calendar() {
           </div>
         )}
       </Modal>
+    {ConfirmDialog}
     </div>
   )
 }

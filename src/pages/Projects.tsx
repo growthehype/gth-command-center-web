@@ -256,7 +256,6 @@ export default function Projects() {
       setEditProject(null)
       setForm({ ...EMPTY_FORM })
     } catch (err: any) {
-      console.error('Failed to save project:', err)
       showToast(`Error: ${err?.message || 'Failed to save'}`, 'error')
     } finally {
       setSaving(false)

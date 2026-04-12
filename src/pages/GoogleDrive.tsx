@@ -287,7 +287,7 @@ export default function GoogleDrive() {
               <List size={14} />
             </button>
           </div>
-          <button onClick={() => loadFiles(currentFolder)} disabled={loading} className="btn-ghost flex items-center gap-1.5" style={{ fontSize: '11px', padding: '6px 12px' }}>
+          <button onClick={() => loadFiles(currentFolder)} disabled={loading} className="btn-ghost flex items-center gap-1.5" style={{ fontSize: '11px', padding: '6px 12px' }} aria-label="Refresh files">
             <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
@@ -302,6 +302,7 @@ export default function GoogleDrive() {
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search your Drive..."
+            aria-label="Search Google Drive"
             className="w-full bg-cell border border-border rounded-xl pl-10 pr-10 py-2.5 text-polar focus:border-accent focus:ring-1 focus:ring-accent/30 transition-colors"
             style={{ fontSize: '12.5px' }}
           />

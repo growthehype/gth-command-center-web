@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useDebounce } from '@/hooks/useDebounce'
 import { Plus, Trash2, Search, Shield, Eye, EyeOff, X, AlertTriangle, Clock, Copy, Check, KeyRound, Globe, Edit3, ExternalLink } from 'lucide-react'
 import { useAppStore, type Credential } from '@/lib/store'
 import { credentials as credentialsApi, shell } from '@/lib/api'
@@ -68,6 +69,7 @@ export default function Credentials() {
   const { credentials, clients, refreshCredentials, refreshActivity, selectedCredentialId, setSelectedCredentialId } = useAppStore()
 
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
   const [revealedCards, setRevealedCards] = useState<Set<string>>(new Set())
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [filterClient, setFilterClient] = useState('')
@@ -107,15 +109,15 @@ export default function Credentials() {
     if (filterClient) {
       list = list.filter(c => c.client_id === filterClient)
     }
-    if (search.trim()) {
-      const q = search.trim().toLowerCase()
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.trim().toLowerCase()
       list = list.filter(c =>
         c.platform.toLowerCase().includes(q) ||
         (c.client_name && c.client_name.toLowerCase().includes(q))
       )
     }
     return list
-  }, [credentials, clientMap, search, filterClient])
+  }, [credentials, clientMap, debouncedSearch, filterClient])
 
   /* ── Stats (exclude internal tokens) ── */
   const userCredentials = useMemo(() => credentials.filter(c => c.platform !== 'google_calendar'), [credentials])
@@ -224,7 +226,6 @@ export default function Credentials() {
       await Promise.all([refreshCredentials(), refreshActivity()])
       setModalOpen(false)
     } catch (err: any) {
-      console.error('Credential save failed:', err)
       showToast(err?.message || 'Failed to save credential', 'error')
     } finally {
       setSaving(false)
@@ -240,7 +241,6 @@ export default function Credentials() {
       setDeleteId(null)
       showToast('Credential deleted', 'info')
     } catch (err: any) {
-      console.error('Credential delete failed:', err)
       showToast(err?.message || 'Failed to delete credential', 'error')
     }
   }, [deleteId, refreshCredentials, refreshActivity])
@@ -291,6 +291,7 @@ export default function Credentials() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search platforms or clients..."
+            aria-label="Search credentials"
             className="input pl-8 w-full"
             style={{ fontSize: '13px' }}
           />
@@ -399,6 +400,7 @@ export default function Credentials() {
                       onClick={() => openEdit(cred)}
                       className="text-dim hover:text-polar transition-colors cursor-pointer p-1.5"
                       title="Edit"
+                      aria-label="Edit credential"
                     >
                       <Edit3 size={12} />
                     </button>
@@ -406,6 +408,7 @@ export default function Credentials() {
                       onClick={() => setDeleteId(cred.id)}
                       className="text-dim hover:text-err transition-colors cursor-pointer p-1.5"
                       title="Delete"
+                      aria-label="Delete credential"
                     >
                       <Trash2 size={12} />
                     </button>

@@ -65,7 +65,7 @@ export default function Campaigns() {
       await campaignsApi.update(campaign.id, { status: next })
       await refreshCampaigns()
       showToast(`${campaign.name} -> ${next}`, 'success')
-    } catch (err: any) { console.error('Campaign status update failed:', err); showToast(err?.message || 'Failed to update status', 'error') }
+    } catch (err: any) { showToast(err?.message || 'Failed to update status', 'error') }
   }
 
   const openCreate = () => {
@@ -110,7 +110,6 @@ export default function Campaigns() {
       await refreshCampaigns()
       setModalOpen(false)
     } catch (err: any) {
-      console.error('Campaign save failed:', err)
       showToast(err?.message || 'Failed to save campaign', 'error')
     } finally {
       setSaving(false)
@@ -123,7 +122,7 @@ export default function Campaigns() {
       await campaignsApi.delete(campaign.id)
       await refreshCampaigns()
       showToast(`Deleted ${campaign.name}`, 'success')
-    } catch (err: any) { console.error('Campaign delete failed:', err); showToast(err?.message || 'Failed to delete', 'error') }
+    } catch (err: any) { showToast(err?.message || 'Failed to delete', 'error') }
   }
 
   return (
@@ -162,6 +161,7 @@ export default function Campaigns() {
           <input
             className="bg-cell border border-border text-polar pl-8 pr-3 py-1.5 font-sans outline-none focus:border-dim transition-colors w-full"
             placeholder="Search campaigns..."
+            aria-label="Search campaigns"
             value={search}
             onChange={e => setSearch(e.target.value)}
             style={{ fontSize: '12px' }}

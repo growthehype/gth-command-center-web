@@ -94,7 +94,6 @@ export default function Documents() {
         await documents.upload(activeKey, file.name, file)
         showToast(`Uploaded ${file.name}`, 'success')
       } catch (err: any) {
-        console.error('Upload error:', err)
         showToast(`Failed to upload ${file.name}`, 'error')
       }
     }
@@ -126,7 +125,6 @@ export default function Documents() {
         setPreviewOpen(true)
       }
     } catch (err: any) {
-      console.error('Document open failed:', err)
       showToast(err?.message || 'Could not open file', 'error')
     }
   }
@@ -140,7 +138,6 @@ export default function Documents() {
       await loadDocs(activeKey)
       await loadCounts()
     } catch (err: any) {
-      console.error('Document delete failed:', err)
       showToast(err?.message || 'Delete failed', 'error')
     }
   }
@@ -158,7 +155,6 @@ export default function Documents() {
       showToast('File renamed', 'success')
       await loadDocs(activeKey)
     } catch (err: any) {
-      console.error('Document rename failed:', err)
       showToast(err?.message || 'Rename failed', 'error')
     }
     setRenamingId(null)

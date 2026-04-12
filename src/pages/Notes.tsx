@@ -4,6 +4,7 @@ import { showToast } from '@/components/ui/Toast'
 import { notes as notesApi } from '@/lib/api'
 import EmptyState from '@/components/ui/EmptyState'
 import VoiceTextarea from '@/components/ui/VoiceTextarea'
+import { useConfirm } from '@/hooks/useConfirm'
 
 interface NoteItem {
   id: string
@@ -17,6 +18,7 @@ interface NoteItem {
 type SaveStatus = 'saved' | 'saving' | 'unsaved'
 
 export default function Notes() {
+  const { confirm, ConfirmDialog } = useConfirm()
   const [notes, setNotes] = useState<NoteItem[]>([])
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null)
   const [content, setContent] = useState('')
@@ -175,8 +177,8 @@ export default function Notes() {
   }
 
   /* ── Delete note ── */
-  const deleteNote = (id: string) => {
-    if (!confirm('Delete this note? This cannot be undone.')) return
+  const deleteNote = async (id: string) => {
+    if (!(await confirm('Delete note', 'Delete this note? This cannot be undone.'))) return
     const updated = notes.filter(n => n.id !== id)
     setNotes(updated)
     if (activeNoteId === id) setActiveNoteId(null)
@@ -376,6 +378,7 @@ export default function Notes() {
           )}
         </div>
       )}
+    {ConfirmDialog}
     </div>
   )
 }

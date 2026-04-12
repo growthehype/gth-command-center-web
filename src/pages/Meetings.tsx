@@ -151,7 +151,6 @@ export default function Meetings() {
       await refreshMeetings()
       setModalOpen(false)
     } catch (err: any) {
-      console.error('Meeting save failed:', err)
       showToast(err?.message || 'Failed to save meeting', 'error')
     } finally {
       setSaving(false)

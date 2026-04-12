@@ -8,6 +8,7 @@ import FilterChips from '@/components/ui/FilterChips'
 import { formatDate } from '@/lib/utils'
 import { documents } from '@/lib/api'
 import { SkeletonCard } from '@/components/ui/Skeleton'
+import { useConfirm } from '@/hooks/useConfirm'
 
 // Template categories — stored as "template-<slug>" in the documents table
 const CATEGORIES = ['All', 'Letterhead', 'Proposals', 'Invoices', 'Contracts', 'Reports', 'Other'] as const
@@ -46,6 +47,7 @@ function formatSize(bytes: number): string {
 }
 
 export default function Templates() {
+  const { confirm, ConfirmDialog } = useConfirm()
   const [templates, setTemplates] = useState<TemplateDoc[]>([])
   const [filter, setFilter] = useState<Category>('All')
   const [search, setSearch] = useState('')
@@ -117,7 +119,7 @@ export default function Templates() {
   }
 
   const deleteTemplate = async (doc: TemplateDoc) => {
-    if (!confirm(`Delete "${doc.name}"? This cannot be undone.`)) return
+    if (!(await confirm('Delete template', `Delete "${doc.name}"? This cannot be undone.`))) return
     try {
       await documents.delete(doc.id)
       showToast(`Deleted "${doc.name}"`, 'info')
@@ -203,6 +205,7 @@ export default function Templates() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search templates..."
+            aria-label="Search templates"
             className="bg-cell border border-border text-polar pl-8 pr-3 py-1.5 font-sans outline-none focus:border-dim transition-colors"
             style={{ fontSize: '12px', width: '200px' }}
           />
@@ -307,6 +310,7 @@ export default function Templates() {
           </div>
         </div>
       </Modal>
+    {ConfirmDialog}
     </div>
   )
 }

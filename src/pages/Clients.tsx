@@ -1,4 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { useDebounce } from '@/hooks/useDebounce'
+import { usePagination } from '@/hooks/usePagination'
+import PaginationBar from '@/components/ui/PaginationBar'
 import { Building2, Plus, Search, ChevronUp, ChevronDown, ExternalLink, Globe, Edit3, Trash2, Eye, RefreshCw, Download, Upload, File, FileText, Image } from 'lucide-react'
 import { useAppStore, Client } from '@/lib/store'
 import { clients as clientsApi, contacts as contactsApi, shell, clientFiles } from '@/lib/api'
@@ -7,11 +10,12 @@ import Modal from '@/components/ui/Modal'
 import EmptyState from '@/components/ui/EmptyState'
 import ContextMenu, { ContextMenuItem } from '@/components/ui/ContextMenu'
 import VoiceTextarea from '@/components/ui/VoiceTextarea'
-import { daysSince, clientHealth, formatCurrency, relativeDate, safeParseJSON } from '@/lib/utils'
+import { daysSince, clientHealth, formatCurrency, relativeDate, safeParseJSON, isValidEmail } from '@/lib/utils'
 import PageHint from '@/components/ui/PageHint'
 import ClientAvatar from '@/components/ui/ClientAvatar'
 import { exportToCSV } from '@/lib/export-csv'
 import FilePreview from '@/components/ui/FilePreview'
+import { useConfirm } from '@/hooks/useConfirm'
 
 /* ========================================
    CONSTANTS
@@ -110,9 +114,12 @@ export default function Clients() {
     setSelectedClientId, setCurrentPage,
   } = useAppStore()
 
+  const { confirm, ConfirmDialog } = useConfirm()
+
   // UI state
   const [filter, setFilter] = useState<'all' | ClientStatus>('all')
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
   const [sortKey, setSortKey] = useState<'name' | 'mrr' | 'status'>('name')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -156,8 +163,8 @@ export default function Clients() {
   // Filter + search + sort
   const visible = useMemo(() => {
     let list = filter === 'all' ? [...clients] : clients.filter(c => c.status === filter)
-    if (search.trim()) {
-      const q = search.toLowerCase()
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase()
       list = list.filter(c =>
         (c.name || '').toLowerCase().includes(q) ||
         (c.service || '').toLowerCase().includes(q) ||
@@ -172,7 +179,9 @@ export default function Clients() {
       return sortDir === 'asc' ? cmp : -cmp
     })
     return list
-  }, [clients, filter, search, sortKey, sortDir])
+  }, [clients, filter, debouncedSearch, sortKey, sortDir])
+
+  const pagination = usePagination(visible, 25)
 
   const selectedClient = useMemo(() => clients.find(c => c.id === selectedId) ?? null, [clients, selectedId])
 
@@ -198,7 +207,7 @@ export default function Clients() {
       await clientsApi.update(client.id, { status: next })
       await refreshClients()
       showToast(`${client.name} → ${next}`, 'success')
-    } catch (err: any) { console.error('Client status update failed:', err); showToast(err?.message || 'Failed to update status', 'error') }
+    } catch (err: any) { showToast(err?.message || 'Failed to update status', 'error') }
   }
 
   // Create / Edit
@@ -222,6 +231,7 @@ export default function Clients() {
 
   const saveClient = async () => {
     if (!form.name.trim()) { showToast('Name is required', 'warn'); return }
+    if (form.email && !isValidEmail(form.email)) { showToast('Please enter a valid email address', 'error'); return }
     if (saving) return
     setSaving(true)
     try {
@@ -250,7 +260,6 @@ export default function Clients() {
       await Promise.all([refreshClients(), refreshActivity()])
       setModalOpen(false)
     } catch (err: any) {
-      console.error('Client save failed:', err)
       showToast(err?.message || 'Save failed', 'error')
     } finally {
       setSaving(false)
@@ -259,13 +268,13 @@ export default function Clients() {
 
   // Delete
   const deleteClient = async (id: string) => {
-    if (!confirm('Delete this client? This cannot be undone.')) return
+    if (!(await confirm('Delete client', 'Delete this client? This cannot be undone.'))) return
     try {
       await clientsApi.delete(id)
       if (selectedId === id) setSelectedId(null)
       await Promise.all([refreshClients(), refreshActivity()])
       showToast('Client deleted', 'info')
-    } catch (err: any) { console.error('Client delete failed:', err); showToast(err?.message || 'Delete failed', 'error') }
+    } catch (err: any) { showToast(err?.message || 'Delete failed', 'error') }
   }
 
   // Row click => open drawer
@@ -341,6 +350,7 @@ export default function Clients() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search clients..."
+            aria-label="Search clients"
             className="bg-cell border border-border text-polar pl-8 pr-3 py-1.5 font-sans outline-none focus:border-dim transition-colors w-full md:w-[200px]"
             style={{ fontSize: '12px' }}
           />
@@ -385,7 +395,7 @@ export default function Clients() {
                 </tr>
               </thead>
               <tbody>
-                {visible.map(c => {
+                {pagination.pageItems.map(c => {
                   const days = daysSince(c.last_activity)
                   const health = clientHealth(days)
                   const openClientDetail = () => {
@@ -517,6 +527,20 @@ export default function Clients() {
             </table>
           </div>
 
+          <PaginationBar
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            perPage={pagination.perPage}
+            hasNext={pagination.hasNext}
+            hasPrev={pagination.hasPrev}
+            onNext={pagination.nextPage}
+            onPrev={pagination.prevPage}
+            onPageChange={pagination.setPage}
+            onPerPageChange={pagination.setPerPage}
+            noun="clients"
+          />
+
           {/* Client Detail Drawer */}
           {selectedClient && (
             <ClientDrawer
@@ -545,6 +569,7 @@ export default function Clients() {
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? 'Edit Client' : 'New Client'} width="560px">
         <ClientForm form={form} setForm={setForm} onSave={saveClient} clients={clients} editingId={editingId} saving={saving} />
       </Modal>
+    {ConfirmDialog}
     </div>
   )
 }
@@ -723,7 +748,7 @@ function ClientDrawer({
         <div className="flex items-center gap-2">
           <button onClick={onEdit} className="btn-ghost" style={{ fontSize: '10px', padding: '4px 10px' }}>Edit</button>
           <button
-            onClick={() => { if (confirm(`Delete ${client.name}?`)) onDelete() }}
+            onClick={() => onDelete()}
             className="btn-ghost text-err border-err/30 hover:border-err"
             style={{ fontSize: '10px', padding: '4px 10px' }}
           >
@@ -911,7 +936,7 @@ function ContactsTab({
       showToast('Contact added', 'success')
       setAdding(false)
       setName(''); setRole(''); setEmail(''); setPhone('')
-    } catch (err: any) { console.error('Client contact add failed:', err); showToast(err?.message || 'Failed to add contact', 'error') }
+    } catch (err: any) { showToast(err?.message || 'Failed to add contact', 'error') }
   }
 
   return (
@@ -1326,6 +1351,7 @@ function clientFileIcon(name: string) {
 const ACCEPTED_FILE_TYPES = '.pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.webp,.zip,.txt,.csv'
 
 function FilesTab({ client }: { client: Client }) {
+  const { confirm, ConfirmDialog: FilesConfirmDialog } = useConfirm()
   const [files, setFiles] = useState<ClientFile[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -1390,7 +1416,7 @@ function FilesTab({ client }: { client: Client }) {
   }
 
   const handleDelete = async (f: ClientFile) => {
-    if (!confirm(`Delete "${f.name}"? This cannot be undone.`)) return
+    if (!(await confirm('Delete file', `Delete "${f.name}"? This cannot be undone.`))) return
     try {
       await clientFiles.delete(f.id)
       showToast(`Deleted ${f.name}`, 'info')
@@ -1450,6 +1476,7 @@ function FilesTab({ client }: { client: Client }) {
                 onClick={() => handleDelete(f)}
                 className="text-dim hover:text-err transition-colors bg-transparent border-none p-0 cursor-pointer"
                 title="Delete"
+                aria-label="Delete file"
               >
                 <Trash2 size={12} />
               </button>
@@ -1464,6 +1491,7 @@ function FilesTab({ client }: { client: Client }) {
         url={previewUrl}
         fileName={previewName}
       />
+      {FilesConfirmDialog}
     </div>
   )
 }
@@ -1490,7 +1518,7 @@ function NotesTab({
       await clientsApi.update(client.id, { notes })
       await refreshClients()
       showToast('Notes saved', 'success')
-    } catch (err: any) { console.error('Client notes save failed:', err); showToast(err?.message || 'Failed to save notes', 'error') }
+    } catch (err: any) { showToast(err?.message || 'Failed to save notes', 'error') }
   }, [notes, client.id, client.notes, refreshClients])
 
   return (

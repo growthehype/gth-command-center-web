@@ -179,7 +179,7 @@ export default function Outreach() {
         if (error) throw error
         if (!cancelled) setAgentConfigs(data || [])
       } catch (err) {
-        console.error('Failed to load agent configs for picker:', err)
+        /* silently handled */
       }
     })()
     return () => { cancelled = true }
@@ -304,7 +304,7 @@ export default function Outreach() {
       await outreach.update(lead.id, { stage: next })
       await refreshLeads()
       showToast(`${lead.name} -> ${next}`, 'success')
-    } catch (err: any) { console.error('Outreach stage update failed:', err); showToast(err?.message || 'Failed to update stage', 'error') }
+    } catch (err: any) { showToast(err?.message || 'Failed to update stage', 'error') }
   }
 
   const openCreate = () => {
@@ -373,7 +373,6 @@ export default function Outreach() {
       await refreshLeads()
       setModalOpen(false)
     } catch (err: any) {
-      console.error('Outreach save failed:', err)
       showToast(err?.message || 'Failed to save lead', 'error')
     } finally {
       setSaving(false)
@@ -399,7 +398,7 @@ export default function Outreach() {
       await outreach.delete(lead.id)
       await refreshLeads()
       showToast(`Deleted ${lead.name}`, 'success')
-    } catch (err: any) { console.error('Outreach delete failed:', err); showToast(err?.message || 'Failed to delete', 'error') }
+    } catch (err: any) { showToast(err?.message || 'Failed to delete', 'error') }
   }
 
   // Drag and drop handlers
@@ -453,7 +452,6 @@ export default function Outreach() {
       await refreshLeads()
       showToast(`${lead.name} moved to ${newStage}`, 'success')
     } catch (err: any) {
-      console.error('Outreach stage update failed:', err)
       showToast(err?.message || 'Failed to move lead', 'error')
     }
   }, [leads, refreshLeads])
@@ -547,6 +545,7 @@ export default function Outreach() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search leads..."
+              aria-label="Search leads"
               className="bg-cell border border-border text-polar pl-8 pr-3 py-1.5 font-sans outline-none focus:border-dim transition-colors w-full md:w-[200px]"
               style={{ fontSize: '12px' }}
             />
@@ -780,6 +779,7 @@ export default function Outreach() {
                           <button
                             onClick={(e) => handleDelete(lead, e)}
                             className="p-1 text-dim hover:text-err transition-colors cursor-pointer"
+                            aria-label="Delete lead"
                           >
                             <Trash2 size={12} />
                           </button>

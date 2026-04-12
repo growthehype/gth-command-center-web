@@ -100,7 +100,6 @@ export default function Goals() {
       await Promise.all([refreshGoals(), refreshActivity()])
       setModalOpen(false)
     } catch (err: any) {
-      console.error('Goal save failed:', err)
       showToast(err?.message || 'Save failed', 'error')
     } finally {
       setSaving(false)
@@ -112,7 +111,7 @@ export default function Goals() {
       await goalsApi.delete(id)
       await Promise.all([refreshGoals(), refreshActivity()])
       showToast('Goal deleted', 'info')
-    } catch (err: any) { console.error('Goal delete failed:', err); showToast(err?.message || 'Delete failed', 'error') }
+    } catch (err: any) { showToast(err?.message || 'Delete failed', 'error') }
   }
 
   const GoalCard = ({ g }: { g: Goal }) => {

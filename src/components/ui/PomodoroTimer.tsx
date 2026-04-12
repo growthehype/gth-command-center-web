@@ -246,7 +246,6 @@ export default function PomodoroTimer({ onClose }: { onClose: () => void }) {
       activeTimeEntryIdRef.current = entry.id
       await Promise.all([refreshTimeEntries(), refreshRunningTimer()])
     } catch (err) {
-      console.error('Failed to start time entry:', err)
       showToast('Could not start time tracking', 'error')
     }
   }
@@ -261,7 +260,6 @@ export default function PomodoroTimer({ onClose }: { onClose: () => void }) {
       activeTimeEntryIdRef.current = null
       await Promise.all([refreshTimeEntries(), refreshRunningTimer()])
     } catch (err) {
-      console.error('Failed to stop time entry:', err)
       showToast('Could not stop time tracking', 'error')
     } finally {
       isStoppingRef.current = false

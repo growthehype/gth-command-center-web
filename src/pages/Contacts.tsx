@@ -1,14 +1,16 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
-import { Users, Plus, Trash2, Search, Mail, X, Download, ChevronUp, ChevronDown, Check, Phone, Copy } from 'lucide-react'
+import { useDebounce } from '@/hooks/useDebounce'
+import { Users, Plus, Trash2, Search, Mail, X, Download, ChevronUp, ChevronDown, Phone, Copy } from 'lucide-react'
 import { useAppStore, Contact } from '@/lib/store'
 import { contacts as contactsApi, shell } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
 import Modal from '@/components/ui/Modal'
 import EmptyState from '@/components/ui/EmptyState'
 import VoiceTextarea from '@/components/ui/VoiceTextarea'
-import { relativeDate } from '@/lib/utils'
+import { relativeDate, isValidEmail } from '@/lib/utils'
 import { exportToCSV } from '@/lib/export-csv'
 import ClientAvatar from '@/components/ui/ClientAvatar'
+import { useConfirm } from '@/hooks/useConfirm'
 
 const EMPTY_FORM = {
   name: '', role: '', client_id: '', email: '', phone: '',
@@ -45,11 +47,13 @@ const getInitials = (name: string) => {
 
 export default function Contacts() {
   const { contacts, clients, refreshContacts } = useAppStore()
+  const { confirm, ConfirmDialog } = useConfirm()
 
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({ ...EMPTY_FORM })
   const [editingId, setEditingId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
   const [filter, setFilter] = useState<'all' | 'primary'>('all')
   const [detailContact, setDetailContact] = useState<Contact | null>(null)
   const [sortField, setSortField] = useState<'name' | 'email' | 'role'>('name')
@@ -109,8 +113,8 @@ export default function Contacts() {
   const visible = useMemo(() => {
     let list = [...contacts]
     if (filter === 'primary') list = list.filter(c => c.is_primary === 1)
-    if (search.trim()) {
-      const q = search.toLowerCase()
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase()
       list = list.filter(c =>
         (c.name || '').toLowerCase().includes(q) ||
         (c.role || '').toLowerCase().includes(q) ||
@@ -149,6 +153,7 @@ export default function Contacts() {
 
   const handleSave = async () => {
     if (!form.name.trim()) { showToast('Name is required', 'warn'); return }
+    if (form.email && !isValidEmail(form.email)) { showToast('Please enter a valid email address', 'error'); return }
     if (saving) return
     setSaving(true)
     try {
@@ -171,7 +176,6 @@ export default function Contacts() {
       await refreshContacts()
       setModalOpen(false)
     } catch (err: any) {
-      console.error('Contact save failed:', err)
       showToast(err?.message || 'Failed to save contact', 'error')
     } finally {
       setSaving(false)
@@ -180,12 +184,12 @@ export default function Contacts() {
 
   const handleDelete = async (contact: Contact, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!confirm(`Delete "${contact.name}"? This cannot be undone.`)) return
+    if (!(await confirm('Delete contact', `Delete "${contact.name}"? This cannot be undone.`))) return
     try {
       await contactsApi.delete(contact.id)
       await refreshContacts()
       showToast(`Deleted ${contact.name}`, 'success')
-    } catch (err: any) { console.error('Contact delete failed:', err); showToast(err?.message || 'Failed to delete', 'error') }
+    } catch (err: any) { showToast(err?.message || 'Failed to delete', 'error') }
   }
 
   /* ── bulk selection helpers ── */
@@ -220,7 +224,7 @@ export default function Contacts() {
 
   const handleBulkDelete = useCallback(async () => {
     if (selectedIds.size === 0) return
-    if (!confirm(`Delete ${selectedIds.size} contact${selectedIds.size !== 1 ? 's' : ''}? This cannot be undone.`)) return
+    if (!(await confirm('Delete contacts', `Delete ${selectedIds.size} contact${selectedIds.size !== 1 ? 's' : ''}? This cannot be undone.`))) return
     setBulkLoading(true)
     try {
       await Promise.all(Array.from(selectedIds).map(id => contactsApi.delete(id)))
@@ -271,6 +275,7 @@ export default function Contacts() {
           <input
             className="input w-full pl-8"
             placeholder="Search contacts..."
+            aria-label="Search contacts"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -645,6 +650,7 @@ export default function Contacts() {
           </div>
         </div>
       )}
+    {ConfirmDialog}
     </div>
   )
 }

@@ -122,7 +122,7 @@ function ComposeModal({ onClose, onSent, replyTo, forwardMsg }: {
           <h3 className="text-polar font-[700]" style={{ fontSize: '14px' }}>
             {replyTo ? 'Reply' : forwardMsg ? 'Forward' : 'New Email'}
           </h3>
-          <button onClick={onClose} className="text-dim hover:text-polar transition-colors"><X size={16} /></button>
+          <button onClick={onClose} className="text-dim hover:text-polar transition-colors" aria-label="Close"><X size={16} /></button>
         </div>
         <div className="p-5 space-y-3">
           <div className="flex items-center gap-2">
@@ -185,7 +185,7 @@ function MessageDetail({ message, onBack, onRefresh }: {
         setFull(m)
         if (m.isUnread) markAsRead(m.id).catch(() => {})
       })
-      .catch(err => showToast(err.message, 'error'))
+      .catch(err => showToast(err.message || 'Failed to load email', 'error'))
       .finally(() => setLoading(false))
   }, [message.id])
 
@@ -195,7 +195,7 @@ function MessageDetail({ message, onBack, onRefresh }: {
       showToast('Archived', 'success')
       onBack()
       onRefresh()
-    } catch (err: any) { showToast(err.message, 'error') }
+    } catch (err: any) { showToast(err.message || 'Failed to archive email', 'error') }
   }
 
   const handleTrash = async () => {
@@ -204,7 +204,7 @@ function MessageDetail({ message, onBack, onRefresh }: {
       showToast('Moved to trash', 'success')
       onBack()
       onRefresh()
-    } catch (err: any) { showToast(err.message, 'error') }
+    } catch (err: any) { showToast(err.message || 'Failed to delete email', 'error') }
   }
 
   const msg = full || message
@@ -225,10 +225,10 @@ function MessageDetail({ message, onBack, onRefresh }: {
           <Forward size={13} /> Forward
         </button>
         <div className="w-px h-4 bg-border mx-1" />
-        <button onClick={handleArchive} className="btn-ghost flex items-center gap-1" style={{ fontSize: '11px', padding: '5px 10px' }} title="Archive">
+        <button onClick={handleArchive} className="btn-ghost flex items-center gap-1" style={{ fontSize: '11px', padding: '5px 10px' }} title="Archive" aria-label="Archive email">
           <Archive size={13} />
         </button>
-        <button onClick={handleTrash} className="btn-ghost text-err flex items-center gap-1" style={{ fontSize: '11px', padding: '5px 10px' }} title="Delete">
+        <button onClick={handleTrash} className="btn-ghost text-err flex items-center gap-1" style={{ fontSize: '11px', padding: '5px 10px' }} title="Delete" aria-label="Delete email">
           <Trash2 size={13} />
         </button>
       </div>
@@ -603,6 +603,7 @@ export default function GmailInbox() {
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Search emails... (try: from:someone, has:attachment, is:unread)"
+                aria-label="Search emails"
                 className="w-full bg-cell border border-border rounded-lg pl-9 pr-3 py-2.5 text-polar focus:border-accent focus:ring-1 focus:ring-accent/30 transition-colors"
                 style={{ fontSize: '12px' }}
               />
@@ -718,10 +719,10 @@ export default function GmailInbox() {
                           <Eye size={13} />
                         </button>
                       )}
-                      <button onClick={() => handleAction(msg, 'archive')} className="p-1.5 rounded-md hover:bg-surface-2 text-dim hover:text-steel transition-colors" title="Archive">
+                      <button onClick={() => handleAction(msg, 'archive')} className="p-1.5 rounded-md hover:bg-surface-2 text-dim hover:text-steel transition-colors" title="Archive" aria-label="Archive email">
                         <Archive size={13} />
                       </button>
-                      <button onClick={() => handleAction(msg, 'trash')} className="p-1.5 rounded-md hover:bg-surface-2 text-dim hover:text-err transition-colors" title="Delete">
+                      <button onClick={() => handleAction(msg, 'trash')} className="p-1.5 rounded-md hover:bg-surface-2 text-dim hover:text-err transition-colors" title="Delete" aria-label="Delete email">
                         <Trash2 size={13} />
                       </button>
                     </div>

@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import Skeleton from '@/components/ui/Skeleton'
 import { format, parseISO, addDays, isWithinInterval, startOfDay, subMonths, startOfMonth, endOfMonth } from 'date-fns'
 import { useAppStore } from '@/lib/store'
 import {
@@ -267,6 +268,38 @@ function ClientHealthBar({ distribution }: { distribution: { label: string; coun
   )
 }
 
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-baseline justify-between">
+        <Skeleton variant="text" width="140px" height="24px" />
+        <Skeleton variant="text" width="100px" height="14px" />
+      </div>
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="bg-cell border border-border p-4 flex flex-col gap-2">
+            <Skeleton variant="text" width="60%" height="11px" />
+            <Skeleton variant="text" width="40%" height="22px" />
+            <Skeleton variant="text" width="80px" height="40px" />
+          </div>
+        ))}
+      </div>
+      {/* Chart area */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-cell border border-border p-5 flex flex-col gap-3">
+          <Skeleton variant="text" width="50%" height="14px" />
+          <Skeleton variant="rect" width="100%" height="180px" />
+        </div>
+        <div className="bg-cell border border-border p-5 flex flex-col gap-3">
+          <Skeleton variant="text" width="50%" height="14px" />
+          <Skeleton variant="rect" width="100%" height="180px" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Dashboard() {
   const {
     clients,
@@ -277,7 +310,10 @@ export default function Dashboard() {
     activity,
     invoices,
     setCurrentPage,
+    dataLoaded,
   } = useAppStore()
+
+  if (!dataLoaded) return <DashboardSkeleton />
 
   const now = new Date()
   const todayStr = format(now, 'MMM d, yyyy') // "Apr 6, 2026"

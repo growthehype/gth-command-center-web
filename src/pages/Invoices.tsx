@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useDebounce } from '@/hooks/useDebounce'
+import { usePagination } from '@/hooks/usePagination'
+import PaginationBar from '@/components/ui/PaginationBar'
 import { Receipt, Upload, Trash2, ExternalLink, FolderOpen, Pencil, Search, FileText, FileSpreadsheet, Image, Archive, File, Download, DollarSign, Eye, Plus, Send, X, Mail } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import type { Invoice } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
-import { formatDate } from '@/lib/utils'
+import { formatDate, isValidEmail } from '@/lib/utils'
 import { exportToCSV } from '@/lib/export-csv'
 import ContextMenu, { ContextMenuItem } from '@/components/ui/ContextMenu'
 import { invoiceFiles, invoices as invoicesApi } from '@/lib/api'
@@ -14,6 +17,7 @@ import { generateInvoicePDF, type LineItem, type InvoiceData } from '@/lib/invoi
 import { isGmailConnected, connectGmail, sendEmailWithAttachment } from '@/lib/gmail'
 import { format, addDays } from 'date-fns'
 import PageHint from '@/components/ui/PageHint'
+import { useConfirm } from '@/hooks/useConfirm'
 
 interface InvoiceFile {
   id: string
@@ -102,10 +106,12 @@ const defaultDueStr = () => format(addDays(new Date(), 30), 'yyyy-MM-dd')
 
 export default function Invoices() {
   const { clients, invoices, selectedInvoiceId, setSelectedInvoiceId, refreshInvoices, settings, services, templates: emailTemplates } = useAppStore()
+  const { confirm, ConfirmDialog } = useConfirm()
 
   const [files, setFiles] = useState<InvoiceFile[]>([])
   const [activeClient, setActiveClient] = useState<string>('all')
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
   const [loading, setLoading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [renamingId, setRenamingId] = useState<string | null>(null)
@@ -198,12 +204,12 @@ export default function Invoices() {
   const visible = useMemo(() => {
     let list = files
     if (activeClient !== 'all') list = list.filter(f => f.client_id === activeClient)
-    if (search.trim()) {
-      const q = search.toLowerCase()
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase()
       list = list.filter(f => f.name.toLowerCase().includes(q) || (f.client_name || '').toLowerCase().includes(q))
     }
     return list
-  }, [files, activeClient, search])
+  }, [files, activeClient, debouncedSearch])
 
   /* ── Upload ── */
   const uploadFiles = async (fileList: FileList | File[]) => {
@@ -217,7 +223,6 @@ export default function Invoices() {
         await invoiceFiles.upload(activeClient, file.name, file)
         showToast(`Uploaded ${file.name}`, 'success')
       } catch (err: any) {
-        console.error('Upload error:', err)
         showToast(`Failed to upload ${file.name}`, 'error')
       }
     }
@@ -248,20 +253,18 @@ export default function Invoices() {
         setPreviewOpen(true)
       }
     } catch (err: any) {
-      console.error('Invoice file open failed:', err)
       showToast(err?.message || 'Could not open file', 'error')
     }
   }
 
   /* ── Delete ── */
   const deleteFile = async (id: string, fileName: string) => {
-    if (!confirm(`Delete "${fileName}"? This cannot be undone.`)) return
+    if (!(await confirm('Delete file', `Delete "${fileName}"? This cannot be undone.`))) return
     try {
       await invoiceFiles.delete(id)
       showToast(`Deleted ${fileName}`, 'info')
       await loadFiles()
     } catch (err: any) {
-      console.error('Invoice file delete failed:', err)
       showToast(err?.message || 'Delete failed', 'error')
     }
   }
@@ -279,7 +282,6 @@ export default function Invoices() {
       showToast('File renamed', 'success')
       await loadFiles()
     } catch (err: any) {
-      console.error('Invoice file rename failed:', err)
       showToast(err?.message || 'Rename failed', 'error')
     }
     setRenamingId(null)
@@ -290,8 +292,8 @@ export default function Invoices() {
   const filteredInvoices = useMemo(() => {
     let list = invoices
     if (activeClient !== 'all') list = list.filter(i => i.client_id === activeClient)
-    if (search.trim()) {
-      const q = search.toLowerCase()
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase()
       list = list.filter(i =>
         (i.num || '').toLowerCase().includes(q) ||
         (i.client_name || '').toLowerCase().includes(q) ||
@@ -299,7 +301,9 @@ export default function Invoices() {
       )
     }
     return list
-  }, [invoices, activeClient, search])
+  }, [invoices, activeClient, debouncedSearch])
+
+  const invoicePagination = usePagination(filteredInvoices, 25)
 
   const totalOutstanding = useMemo(() =>
     invoices.filter(i => i.status !== 'paid').reduce((sum, i) => sum + (i.amount || 0), 0),
@@ -462,13 +466,24 @@ export default function Invoices() {
       window.open(url, '_blank')
     } catch (err: any) {
       showToast('Failed to generate PDF preview', 'error')
-      console.error(err)
     }
   }
 
   const handleSaveDraft = async () => {
     if (!builderClientId) {
       showToast('Please select a client', 'warn')
+      return
+    }
+    if (!builderLineItems.some(li => li.description.trim())) {
+      showToast('At least one line item must have a description', 'error')
+      return
+    }
+    if (builderLineItems.some(li => li.qty < 0 || li.rate < 0)) {
+      showToast('Quantity and rate must be non-negative', 'error')
+      return
+    }
+    if (builderClientEmail && !isValidEmail(builderClientEmail)) {
+      showToast('Client email address is not valid', 'error')
       return
     }
     setBuilderSaving(true)
@@ -493,7 +508,6 @@ export default function Invoices() {
       setBuilderOpen(false)
     } catch (err: any) {
       showToast(err?.message || 'Failed to save invoice', 'error')
-      console.error(err)
     }
     setBuilderSaving(false)
   }
@@ -501,6 +515,18 @@ export default function Invoices() {
   const handleSendInvoice = async () => {
     if (!builderClientId) {
       showToast('Please select a client', 'warn')
+      return
+    }
+    if (!builderLineItems.some(li => li.description.trim())) {
+      showToast('At least one line item must have a description', 'error')
+      return
+    }
+    if (builderLineItems.some(li => li.qty < 0 || li.rate < 0)) {
+      showToast('Quantity and rate must be non-negative', 'error')
+      return
+    }
+    if (builderClientEmail && !isValidEmail(builderClientEmail)) {
+      showToast('Client email address is not valid', 'error')
       return
     }
 
@@ -535,12 +561,15 @@ export default function Invoices() {
       setEmailModalOpen(true)
     } catch (err: any) {
       showToast(err?.message || 'Failed to save invoice', 'error')
-      console.error(err)
       setBuilderSaving(false)
     }
   }
 
   const handleSendEmail = async () => {
+    if (!emailTo || !isValidEmail(emailTo)) {
+      showToast('Please enter a valid recipient email address', 'error')
+      return
+    }
     if (!isGmailConnected()) {
       connectGmail()
       return
@@ -572,7 +601,6 @@ export default function Invoices() {
       setEmailModalOpen(false)
     } catch (err: any) {
       showToast(err?.message || 'Failed to send email', 'error')
-      console.error(err)
     }
     setEmailSending(false)
   }
@@ -616,7 +644,6 @@ export default function Invoices() {
       doc.save(`Invoice-${inv.num || 'draft'}.pdf`)
     } catch (err: any) {
       showToast('Failed to generate PDF', 'error')
-      console.error(err)
     }
   }
 
@@ -669,6 +696,7 @@ export default function Invoices() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search invoices..."
+              aria-label="Search invoices"
               className="bg-cell border border-border text-polar pl-8 pr-3 py-1.5 font-sans outline-none focus:border-dim transition-colors w-full md:w-[200px]"
               style={{ fontSize: '12px' }}
             />
@@ -789,7 +817,7 @@ export default function Invoices() {
                 </tr>
               </thead>
               <tbody>
-            {filteredInvoices.map(inv => {
+            {invoicePagination.pageItems.map(inv => {
               const st = getInvoiceStatus(inv)
               return (
                 <tr
@@ -848,6 +876,7 @@ export default function Invoices() {
                       onClick={() => handleDownloadPDF(inv)}
                       className="text-dim hover:text-polar transition-colors"
                       title="Download PDF"
+                      aria-label="Download PDF"
                     >
                       <Download size={13} />
                     </button>
@@ -856,6 +885,7 @@ export default function Invoices() {
                         onClick={() => handleSendExistingInvoice(inv)}
                         className="text-dim hover:text-polar transition-colors"
                         title="Send Invoice"
+                        aria-label="Send invoice"
                       >
                         <Send size={13} />
                       </button>
@@ -864,6 +894,7 @@ export default function Invoices() {
                       onClick={() => openEditInvoice(inv)}
                       className="text-dim hover:text-polar transition-colors"
                       title="Edit"
+                      aria-label="Edit invoice"
                     >
                       <Pencil size={13} />
                     </button>
@@ -875,6 +906,20 @@ export default function Invoices() {
               </tbody>
             </table>
           </div>
+
+          <PaginationBar
+            page={invoicePagination.page}
+            totalPages={invoicePagination.totalPages}
+            totalItems={invoicePagination.totalItems}
+            perPage={invoicePagination.perPage}
+            hasNext={invoicePagination.hasNext}
+            hasPrev={invoicePagination.hasPrev}
+            onNext={invoicePagination.nextPage}
+            onPrev={invoicePagination.prevPage}
+            onPageChange={invoicePagination.setPage}
+            onPerPageChange={invoicePagination.setPerPage}
+            noun="invoices"
+          />
         </div>
       )}
 
@@ -1467,7 +1512,6 @@ export default function Invoices() {
                     doc.save(`Invoice-${builderNum || 'draft'}.pdf`)
                   } catch (err: any) {
                     showToast('Failed to generate PDF', 'error')
-                    console.error(err)
                   }
                 }}
                 className="btn-ghost flex items-center gap-2"
@@ -1596,6 +1640,7 @@ export default function Invoices() {
           )}
         </div>
       </Modal>
+    {ConfirmDialog}
     </div>
   )
 }

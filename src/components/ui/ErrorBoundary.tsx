@@ -18,8 +18,8 @@ export default class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error }
   }
 
-  componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error('[ErrorBoundary]', error, info.componentStack)
+  componentDidCatch(_error: Error, _info: React.ErrorInfo) {
+    /* silently handled */
   }
 
   handleReset = () => {

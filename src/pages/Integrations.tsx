@@ -273,6 +273,8 @@ function WebhookCard({ def, config, onSave }: {
       const saveConfig = { ...localConfig, enabled: true }
       await onSave(def.provider, saveConfig)
       setLocalConfig(saveConfig)
+    } catch {
+      showToast(`Failed to save ${def.name} integration`, 'error')
     } finally {
       setSaving(false)
     }
@@ -285,6 +287,8 @@ function WebhookCard({ def, config, onSave }: {
       await onSave(def.provider, saveConfig)
       setLocalConfig(saveConfig)
       setExpanded(false)
+    } catch {
+      showToast(`Failed to disconnect ${def.name}`, 'error')
     } finally {
       setSaving(false)
     }

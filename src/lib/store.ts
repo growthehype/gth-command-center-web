@@ -115,6 +115,7 @@ interface AppStore {
   sops: Sop[]
   timeEntries: TimeEntry[]
   settings: Record<string, string>
+  dataLoaded: boolean
 
   // Tenant
   currentTenantId: string | null
@@ -229,6 +230,7 @@ export const useAppStore = create<AppStore>((set) => ({
   sops: [],
   timeEntries: [],
   settings: {},
+  dataLoaded: false,
 
   currentPage: 'briefing',
   selectedClientId: null,
@@ -277,7 +279,7 @@ export const useAppStore = create<AppStore>((set) => ({
   loadAllData: async () => {
     // In demo mode, load demo data instead of calling Supabase
     if (useAppStore.getState().demoMode) {
-      set({ ...demoData })
+      set({ ...demoData, dataLoaded: true })
       return
     }
     try {
@@ -313,9 +315,10 @@ export const useAppStore = create<AppStore>((set) => ({
         safe(() => settingsApi.getAll(), {}),
         safe(() => timeEntriesApi.getRunning(), null),
       ])
-      set({ activity, credentials, sops, timeEntries, settings, runningTimer })
+      set({ activity, credentials, sops, timeEntries, settings, runningTimer, dataLoaded: true })
     } catch (err) {
       console.error('loadAllData failed:', err)
+      set({ dataLoaded: true }) // Mark as loaded even on error to avoid infinite skeleton
     }
   },
 

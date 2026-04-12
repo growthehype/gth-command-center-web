@@ -56,7 +56,7 @@ export default function SOPs() {
       showToast('SOP created', 'success')
       await Promise.all([refreshSops(), refreshActivity()])
       setModalOpen(false)
-    } catch { showToast('Save failed', 'error') }
+    } catch { showToast('Failed to create SOP', 'error') }
   }
 
   const cycleStatus = async (sop: Sop, e: React.MouseEvent) => {
@@ -67,7 +67,7 @@ export default function SOPs() {
       await sopsApi.update(sop.id, { status: next })
       await refreshSops()
       showToast(`${sop.title} → ${next}`, 'success')
-    } catch { showToast('Update failed', 'error') }
+    } catch { showToast('Failed to update SOP status', 'error') }
   }
 
   const deleteSop = async (id: string, e: React.MouseEvent) => {
@@ -76,7 +76,7 @@ export default function SOPs() {
       await sopsApi.delete(id)
       await Promise.all([refreshSops(), refreshActivity()])
       showToast('SOP deleted', 'info')
-    } catch { showToast('Delete failed', 'error') }
+    } catch { showToast('Failed to delete SOP', 'error') }
   }
 
   const openDoc = (url: string | null, e: React.MouseEvent) => {

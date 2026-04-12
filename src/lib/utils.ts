@@ -122,6 +122,11 @@ export function fuzzyMatch(query: string, text: string): boolean {
   return qi === q.length
 }
 
+// Email validation
+export function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
 // Parse JSON safely
 export function safeParseJSON<T>(str: string | null, fallback: T): T {
   if (!str) return fallback
