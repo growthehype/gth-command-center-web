@@ -385,9 +385,9 @@ export default function GmailInbox() {
       setPageHistory([])
       // Reset category when switching away from inbox
       if (activeFolder !== 'INBOX') setActiveCategory('')
-      loadMessages(activeFolder, searchQuery, undefined, activeFolder !== 'INBOX' ? '' : activeCategory)
+      loadMessages(activeFolder, debouncedSearchQuery, undefined, activeFolder !== 'INBOX' ? '' : activeCategory)
     }
-  }, [connected, activeFolder, activeCategory]) // eslint-disable-line
+  }, [connected, activeFolder, activeCategory, debouncedSearchQuery]) // eslint-disable-line
 
   // Re-check connection on mount (catches OAuth callback redirect) and on focus
   useEffect(() => {
@@ -425,14 +425,14 @@ export default function GmailInbox() {
     e.preventDefault()
     setPageToken(undefined)
     setPageHistory([])
-    loadMessages(activeFolder, searchQuery)
+    loadMessages(activeFolder, debouncedSearchQuery)
   }
 
   const handleNextPage = () => {
     if (!nextPageToken) return
     setPageHistory(prev => [...prev, pageToken || ''])
     setPageToken(nextPageToken)
-    loadMessages(activeFolder, searchQuery, nextPageToken)
+    loadMessages(activeFolder, debouncedSearchQuery, nextPageToken)
   }
 
   const handlePrevPage = () => {
@@ -440,7 +440,7 @@ export default function GmailInbox() {
     const prevToken = prev.pop()
     setPageHistory(prev)
     setPageToken(prevToken || undefined)
-    loadMessages(activeFolder, searchQuery, prevToken || undefined)
+    loadMessages(activeFolder, debouncedSearchQuery, prevToken || undefined)
   }
 
   const handleAction = async (msg: GmailMessage, action: 'read' | 'unread' | 'archive' | 'trash') => {

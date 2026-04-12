@@ -239,8 +239,7 @@ export async function createGoogleEvent(params: {
     )
 
     return res?.ok ?? false
-  } catch (err) {
-    console.error('Failed to create Google Calendar event:', err)
+  } catch {
     return false
   }
 }
@@ -257,8 +256,7 @@ export async function deleteGoogleEvent(googleEventId: string): Promise<boolean>
     )
 
     return res ? (res.ok || res.status === 204) : false
-  } catch (err) {
-    console.error('Failed to delete Google Calendar event:', err)
+  } catch {
     return false
   }
 }
@@ -283,7 +281,6 @@ export async function fetchGoogleEvents(
     )
 
     if (!res || !res.ok) {
-      if (res && !res.ok) console.error('Google Calendar API error:', res.status)
       return []
     }
 
@@ -314,8 +311,7 @@ export async function fetchGoogleEvents(
           source: 'google',
         }
       })
-  } catch (err) {
-    console.error('Failed to fetch Google Calendar events:', err)
+  } catch {
     return []
   }
 }

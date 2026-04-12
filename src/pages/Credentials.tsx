@@ -7,6 +7,8 @@ import { showToast } from '@/components/ui/Toast'
 import { safeParseJSON, fuzzyMatch } from '@/lib/utils'
 import Modal from '@/components/ui/Modal'
 import EmptyState from '@/components/ui/EmptyState'
+import { usePagination } from '@/hooks/usePagination'
+import PaginationBar from '@/components/ui/PaginationBar'
 import { differenceInCalendarDays, parseISO, format } from 'date-fns'
 
 /* ── Helpers ── */
@@ -118,6 +120,8 @@ export default function Credentials() {
     }
     return list
   }, [credentials, clientMap, debouncedSearch, filterClient])
+
+  const pagination = usePagination(filtered, 25)
 
   /* ── Stats (exclude internal tokens) ── */
   const userCredentials = useMemo(() => credentials.filter(c => c.platform !== 'google_calendar'), [credentials])
@@ -338,7 +342,7 @@ export default function Credentials() {
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map(cred => {
+          {pagination.pageItems.map(cred => {
             const rawFields = safeParseJSON(cred.fields, [])
     const fields: FieldPair[] = Array.isArray(rawFields) ? rawFields : []
             const age = credentialAge(cred.created_at)
@@ -500,6 +504,20 @@ export default function Credentials() {
           })}
         </div>
       )}
+
+      <PaginationBar
+        page={pagination.page}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.totalItems}
+        perPage={pagination.perPage}
+        hasNext={pagination.hasNext}
+        hasPrev={pagination.hasPrev}
+        onNext={pagination.nextPage}
+        onPrev={pagination.prevPage}
+        onPageChange={pagination.setPage}
+        onPerPageChange={pagination.setPerPage}
+        noun="credentials"
+      />
 
       {/* ── Add / Edit Credential Modal ── */}
       <Modal

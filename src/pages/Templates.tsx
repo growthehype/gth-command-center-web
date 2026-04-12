@@ -9,6 +9,7 @@ import { formatDate } from '@/lib/utils'
 import { documents } from '@/lib/api'
 import { SkeletonCard } from '@/components/ui/Skeleton'
 import { useConfirm } from '@/hooks/useConfirm'
+import { useDebounce } from '@/hooks/useDebounce'
 
 // Template categories — stored as "template-<slug>" in the documents table
 const CATEGORIES = ['All', 'Letterhead', 'Proposals', 'Invoices', 'Contracts', 'Reports', 'Other'] as const
@@ -51,6 +52,7 @@ export default function Templates() {
   const [templates, setTemplates] = useState<TemplateDoc[]>([])
   const [filter, setFilter] = useState<Category>('All')
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
   const [uploadModalOpen, setUploadModalOpen] = useState(false)
   const [uploadCategory, setUploadCategory] = useState<Category>('Letterhead')
   const [loading, setLoading] = useState(true)
@@ -76,14 +78,14 @@ export default function Templates() {
       ? [...templates]
       : templates.filter(t => t.category === categoryToDb(filter))
 
-    if (search.trim()) {
-      const q = search.toLowerCase()
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase()
       list = list.filter(t => (t.name || '').toLowerCase().includes(q))
     }
 
     list.sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime())
     return list
-  }, [templates, filter, search])
+  }, [templates, filter, debouncedSearch])
 
   // Category counts
   const counts = useMemo(() => {

@@ -11,6 +11,8 @@ import { relativeDate, isValidEmail } from '@/lib/utils'
 import { exportToCSV } from '@/lib/export-csv'
 import ClientAvatar from '@/components/ui/ClientAvatar'
 import { useConfirm } from '@/hooks/useConfirm'
+import { usePagination } from '@/hooks/usePagination'
+import PaginationBar from '@/components/ui/PaginationBar'
 
 const EMPTY_FORM = {
   name: '', role: '', client_id: '', email: '', phone: '',
@@ -130,6 +132,8 @@ export default function Contacts() {
     })
     return list
   }, [contacts, filter, search, sortField, sortDir])
+
+  const pagination = usePagination(visible, 25)
 
   const openCreate = () => {
     setForm({ ...EMPTY_FORM })
@@ -343,7 +347,7 @@ export default function Contacts() {
               </tr>
             </thead>
             <tbody>
-              {visible.map(c => (
+              {pagination.pageItems.map(c => (
                 <tr
                   key={c.id}
                   className={`table-row cursor-pointer group ${selectedIds.has(c.id) ? 'row-selected' : ''}`}
@@ -452,6 +456,22 @@ export default function Contacts() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {visible.length > 0 && (
+        <PaginationBar
+          page={pagination.page}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          perPage={pagination.perPage}
+          hasNext={pagination.hasNext}
+          hasPrev={pagination.hasPrev}
+          onNext={pagination.nextPage}
+          onPrev={pagination.prevPage}
+          onPageChange={pagination.setPage}
+          onPerPageChange={pagination.setPerPage}
+          noun="contacts"
+        />
       )}
 
       {/* Detail Drawer */}

@@ -113,7 +113,7 @@ export default function App() {
           // Fallback: init scope with user_id and load data
           await initScope()
           loadAllData().catch(() => {
-            console.error('Failed to load data — check Supabase tables exist')
+            /* silently handled */
           })
         })
     }

@@ -11,6 +11,7 @@ import { formatCurrency, relativeDate, friendlyDate, isOverdue } from '@/lib/uti
 import { isToday, parseISO, differenceInCalendarDays } from 'date-fns'
 import { downloadLeadsCsv } from '@/lib/lead-export'
 import { useConfirm } from '@/hooks/useConfirm'
+import { useDebounce } from '@/hooks/useDebounce'
 
 const STAGES = ['New Lead', 'Contacted', 'Responded', 'Meeting Set', 'Closed Won', 'Closed Lost'] as const
 type Stage = (typeof STAGES)[number]
@@ -157,6 +158,7 @@ export default function Outreach() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
   const [sortKey, setSortKey] = useState<'name' | 'deal_value' | 'stage'>('name')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [viewMode, setViewMode] = useState<ViewMode>('table')
@@ -249,7 +251,7 @@ export default function Outreach() {
   const leadsByStage = useMemo(() => {
     const result: Record<string, OutreachLead[]> = {}
     STAGES.forEach(s => { result[s] = [] })
-    const q = search.trim().toLowerCase()
+    const q = debouncedSearch.trim().toLowerCase()
     visibleLeads.forEach(l => {
       const s = (l.stage || 'New Lead') as string
       if (!result[s]) result[s] = []
@@ -263,13 +265,13 @@ export default function Outreach() {
       result[s].push(l)
     })
     return result
-  }, [visibleLeads, search])
+  }, [visibleLeads, debouncedSearch])
 
   // Filter + Sort (filtered by agent + search)
   const sorted = useMemo(() => {
     let list = [...visibleLeads]
-    if (search.trim()) {
-      const q = search.toLowerCase()
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase()
       list = list.filter(l =>
         (l.name || '').toLowerCase().includes(q) ||
         (l.industry || '').toLowerCase().includes(q) ||
@@ -284,7 +286,7 @@ export default function Outreach() {
       return sortDir === 'asc' ? cmp : -cmp
     })
     return list
-  }, [visibleLeads, search, sortKey, sortDir])
+  }, [visibleLeads, debouncedSearch, sortKey, sortDir])
 
   const handleSort = (key: typeof sortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
