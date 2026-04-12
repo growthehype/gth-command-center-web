@@ -63,16 +63,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // If found in legacy table, migrate to integrations table for future lookups
     if (refreshToken) {
-      await sb.from('integrations').upsert(
-        {
-          user_id: user.id,
-          provider: 'gmail',
-          refresh_token: refreshToken,
-          email: user.email,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id,provider' },
-      ).catch(() => { /* non-fatal */ })
+      try {
+        await sb.from('integrations').upsert(
+          {
+            user_id: user.id,
+            provider: 'gmail',
+            refresh_token: refreshToken,
+            email: user.email,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id,provider' },
+        )
+      } catch { /* non-fatal */ }
     }
   }
 
@@ -98,7 +100,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!tokenRes.ok || !data.access_token) {
       // If Google says the refresh token is revoked/invalid, clean up
       if (data.error === 'invalid_grant') {
-        await sb.from('integrations').delete().eq('user_id', user.id).eq('provider', 'gmail').catch(() => {})
+        try { await sb.from('integrations').delete().eq('user_id', user.id).eq('provider', 'gmail') } catch { /* ignore */ }
       }
       return res.status(tokenRes.status).json({
         error: data.error || 'refresh_failed',

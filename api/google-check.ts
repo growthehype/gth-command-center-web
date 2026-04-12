@@ -54,16 +54,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (legacyRow?.refresh_token) {
       // Migrate to integrations table
-      await sb.from('integrations').upsert(
-        {
-          user_id: user.id,
-          provider: 'gmail',
-          refresh_token: legacyRow.refresh_token,
-          email: user.email,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id,provider' },
-      ).catch(() => {})
+      try {
+        await sb.from('integrations').upsert(
+          {
+            user_id: user.id,
+            provider: 'gmail',
+            refresh_token: legacyRow.refresh_token,
+            email: user.email,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id,provider' },
+        )
+      } catch { /* non-fatal */ }
 
       return res.status(200).json({ connected: true, email: user.email })
     }
