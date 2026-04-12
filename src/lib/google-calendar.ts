@@ -1,18 +1,15 @@
-// ── Google Calendar — uses shared server-side refresh token flow ──
-// Same auth as Gmail: access token + refresh token stored in localStorage.
-// The refresh token is obtained via /api/google-auth (authorization code flow)
-// and refreshed via /api/google-refresh — so the user stays connected permanently.
+// ── Google Calendar — shares Gmail's auth (same access token + server-side refresh) ──
+// Calendar piggybacks on Gmail's OAuth connection. Tokens are shared via localStorage keys.
+
+import { supabase } from '@/lib/supabase'
 
 const GMAIL_TOKEN_KEY = 'gth_gmail_token'
-const GMAIL_REFRESH_KEY = 'gth_gmail_refresh_token'
 const GMAIL_EVER_CONNECTED = 'gth_gmail_ever_connected'
 
 interface StoredToken {
   access_token: string
   expires_at: number
 }
-
-// ── Token helpers (shared with gmail.ts via localStorage keys) ──
 
 function getLocalToken(): StoredToken | null {
   try {
@@ -30,21 +27,35 @@ function saveToken(token: StoredToken) {
   localStorage.setItem(GMAIL_EVER_CONNECTED, 'true')
 }
 
-function getRefreshToken(): string | null {
-  return localStorage.getItem(GMAIL_REFRESH_KEY)
+function hasServerRefreshToken(): boolean {
+  return localStorage.getItem(GMAIL_EVER_CONNECTED) === 'true'
 }
 
-// ── Refresh logic ──
+async function getAuthToken(): Promise<string | null> {
+  try {
+    const { data } = await supabase.auth.getSession()
+    return data.session?.access_token || null
+  } catch {
+    return null
+  }
+}
+
+// ── Refresh logic (sends JWT for user identification) ──
 
 async function refreshAccessToken(): Promise<boolean> {
-  const refreshToken = getRefreshToken()
-  if (!refreshToken) return false
+  if (!hasServerRefreshToken()) return false
 
   try {
+    const jwt = await getAuthToken()
+    if (!jwt) return false
+
     const res = await fetch('/api/google-refresh-v2', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refreshToken }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwt}`,
+      },
+      body: JSON.stringify({}),
     })
     if (!res.ok) return false
     const data = await res.json()
@@ -60,8 +71,8 @@ async function ensureToken(): Promise<string | null> {
   const token = getLocalToken()
   if (token && Date.now() < token.expires_at - 30_000) return token.access_token
 
-  // Try refresh
-  if (getRefreshToken()) {
+  // Try server-side refresh
+  if (hasServerRefreshToken()) {
     const ok = await refreshAccessToken()
     if (ok) return getLocalToken()?.access_token || null
   }
@@ -76,44 +87,33 @@ async function ensureToken(): Promise<string | null> {
 export function isGoogleConnected(): boolean {
   const token = getLocalToken()
   if (token && Date.now() < token.expires_at - 30_000) return true
-  if (getRefreshToken()) return true // has refresh token = permanently connected
+  if (hasServerRefreshToken()) return true
   return false
 }
 
 export async function initGoogleToken(): Promise<boolean> {
-  // If we have a valid access token, we're good
   const token = getLocalToken()
   if (token && Date.now() < token.expires_at - 30_000) return true
 
-  // If we have a refresh token, try to get a new access token
-  if (getRefreshToken()) {
-    const ok = await refreshAccessToken()
-    return ok
+  if (hasServerRefreshToken()) {
+    return refreshAccessToken()
   }
 
   return false
 }
 
 export async function silentReconnectIfNeeded(): Promise<boolean> {
-  // With refresh tokens, we just refresh — no redirect needed
   if (isGoogleConnected()) return true
-
-  if (getRefreshToken()) {
-    return await refreshAccessToken()
-  }
-
+  if (hasServerRefreshToken()) return refreshAccessToken()
   return false
 }
 
 export function connectGoogleCalendar(_silent = false) {
-  // Use the server-side OAuth flow (same as Gmail) — includes calendar scopes
   const returnPage = 'calendar'
   window.location.href = `/api/google-auth?returnPage=${encodeURIComponent(returnPage)}`
 }
 
 export async function captureTokenFromUrl(): Promise<boolean> {
-  // Server-side flow handles token capture via the callback page (saves to localStorage)
-  // Also support legacy implicit flow fallback: #access_token=...
   const hash = window.location.hash
   if (!hash || !hash.includes('access_token=')) return false
 
@@ -137,16 +137,11 @@ export async function captureTokenFromUrl(): Promise<boolean> {
 }
 
 export async function disconnectGoogle() {
-  // Only clear the calendar credential marker — don't wipe Gmail tokens
-  // since they're shared. User can disconnect Gmail separately.
-  // For now, this is a no-op since Calendar piggybacks on Gmail's auth.
-  // The "Disconnect" button in Calendar UI should just clear the local UI state.
+  // No-op — Calendar piggybacks on Gmail's auth
 }
 
 export async function clearTokens() {
-  // Full disconnect (also disconnects Gmail since tokens are shared)
   localStorage.removeItem(GMAIL_TOKEN_KEY)
-  localStorage.removeItem(GMAIL_REFRESH_KEY)
   localStorage.removeItem(GMAIL_EVER_CONNECTED)
 }
 

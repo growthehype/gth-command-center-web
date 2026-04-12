@@ -1,15 +1,8 @@
-// ─── Google Auth: Hybrid flow ──────────────────────────────────
-// Implicit flow works immediately (no server config needed).
-// If server-side refresh tokens are available, uses those for permanent auth.
+// ─── Google Auth: Server-side refresh token flow ───────────────
+// Refresh tokens stored server-side (Supabase) for permanent cross-device auth.
+// Client only holds short-lived access tokens in localStorage.
 
-const GOOGLE_CLIENT_ID = '272925349594-4dtb910g2m3jp2433na7r9eac297hoot.apps.googleusercontent.com'
-const SCOPES = [
-  'https://www.googleapis.com/auth/gmail.send',
-  'https://www.googleapis.com/auth/gmail.readonly',
-  'https://www.googleapis.com/auth/gmail.modify',
-  'https://www.googleapis.com/auth/gmail.labels',
-  'https://www.googleapis.com/auth/drive.readonly',
-].join(' ')
+import { supabase } from '@/lib/supabase'
 
 const GMAIL_TOKEN_KEY = 'gth_gmail_token'
 const GMAIL_EVER_CONNECTED = 'gth_gmail_ever_connected'
@@ -35,18 +28,25 @@ function saveToken(token: GmailToken) {
   localStorage.setItem(GMAIL_EVER_CONNECTED, 'true')
 }
 
-// SECURITY: Refresh token is stored server-side only (Supabase via link-gmail)
-// We check if the user has ever connected (which means server has the refresh token)
 function hasServerRefreshToken(): boolean {
   return localStorage.getItem(GMAIL_EVER_CONNECTED) === 'true'
 }
 
-// Legacy cleanup: remove any refresh tokens from localStorage (from old code)
-;(() => {
-  localStorage.removeItem('gth_gmail_refresh_token')
-})()
+// Legacy cleanup
+;(() => { localStorage.removeItem('gth_gmail_refresh_token') })()
 
-// ── Server-side refresh (when available) ──
+// ── Helper: get current Supabase JWT for authenticated API calls ──
+
+async function getAuthToken(): Promise<string | null> {
+  try {
+    const { data } = await supabase.auth.getSession()
+    return data.session?.access_token || null
+  } catch {
+    return null
+  }
+}
+
+// ── Server-side refresh (sends JWT so server identifies user) ──
 
 let _refreshing = false
 let _refreshTimer: ReturnType<typeof setTimeout> | null = null
@@ -60,12 +60,27 @@ async function refreshAccessToken(): Promise<boolean> {
   _refreshing = true
   _refreshPromise = (async () => {
     try {
+      const jwt = await getAuthToken()
+      if (!jwt) return false
+
       const res = await fetch('/api/google-refresh-v2', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}), // Server fetches refresh token from Supabase
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${jwt}`,
+        },
+        body: JSON.stringify({}),
       })
-      if (!res.ok) return false
+      if (!res.ok) {
+        // If server says no refresh token, clear the local flag
+        if (res.status === 401) {
+          const body = await res.json().catch(() => ({}))
+          if (body.error?.includes('No refresh token')) {
+            localStorage.removeItem(GMAIL_EVER_CONNECTED)
+          }
+        }
+        return false
+      }
       const data = await res.json()
       const seconds = data.expires_in || 3600
       saveToken({ access_token: data.access_token, expires_at: Date.now() + seconds * 1000 })
@@ -88,18 +103,53 @@ function scheduleRefresh(expiresInSeconds: number) {
   _refreshTimer = setTimeout(() => refreshAccessToken(), refreshIn)
 }
 
-// On module load: if we have a refresh token, try to use it
+// ── Cross-device: check server for existing Gmail connection ──
+// Called on login to restore connection state on new devices
+
+export async function restoreGmailConnection(): Promise<boolean> {
+  // If we already know we're connected, just refresh the token
+  if (hasServerRefreshToken()) {
+    const token = getLocalToken()
+    if (token && Date.now() < token.expires_at - 60_000) {
+      // Token still valid, schedule refresh
+      const remaining = Math.floor((token.expires_at - Date.now()) / 1000)
+      scheduleRefresh(remaining)
+      return true
+    }
+    // Try refresh
+    return refreshAccessToken()
+  }
+
+  // Check server if user has a stored refresh token (cross-device restore)
+  try {
+    const jwt = await getAuthToken()
+    if (!jwt) return false
+
+    const res = await fetch('/api/google-check', {
+      headers: { 'Authorization': `Bearer ${jwt}` },
+    })
+    if (!res.ok) return false
+    const data = await res.json()
+
+    if (data.connected) {
+      // Server has a refresh token — mark as connected and get a fresh access token
+      localStorage.setItem(GMAIL_EVER_CONNECTED, 'true')
+      return refreshAccessToken()
+    }
+  } catch {
+    // Non-fatal — user can manually reconnect
+  }
+
+  return false
+}
+
+// On module load: schedule refresh if we have a token
 ;(() => {
   const token = getLocalToken()
-  const hasRefresh = !!hasServerRefreshToken()
-  if (hasRefresh) {
-    if (token) {
-      const remaining = Math.floor((token.expires_at - Date.now()) / 1000)
-      if (remaining > 300) scheduleRefresh(remaining)
-      else refreshAccessToken()
-    } else {
-      refreshAccessToken()
-    }
+  if (hasServerRefreshToken() && token) {
+    const remaining = Math.floor((token.expires_at - Date.now()) / 1000)
+    if (remaining > 300) scheduleRefresh(remaining)
+    // Don't eagerly refresh on module load — restoreGmailConnection handles it
   }
 })()
 

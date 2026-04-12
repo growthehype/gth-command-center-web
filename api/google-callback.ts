@@ -1,5 +1,6 @@
 // Vercel serverless: Exchange authorization code for tokens
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { createClient } from '@supabase/supabase-js'
 
 const GOOGLE_CLIENT_ID = '272925349594-4dtb910g2m3jp2433na7r9eac297hoot.apps.googleusercontent.com'
 
@@ -71,8 +72,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       )
     }
 
+    // ── Server-side: persist refresh token to Supabase immediately ──
+    // This runs on the server so the token is saved reliably regardless of
+    // what happens in the browser (localStorage issues, tab closes, etc.)
+    if (tokens.refresh_token) {
+      try {
+        const sbUrl = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim().replace(/\\n/g, '')
+        const sbKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim().replace(/\\n/g, '')
+        if (sbUrl && sbKey) {
+          const sb = createClient(sbUrl, sbKey)
+
+          // Get the user's email from Google to find their Supabase account
+          let googleEmail: string | null = null
+          try {
+            const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+              headers: { Authorization: `Bearer ${tokens.access_token}` },
+            })
+            if (userInfoRes.ok) {
+              const info = await userInfoRes.json()
+              googleEmail = info.email
+            }
+          } catch { /* non-fatal */ }
+
+          if (googleEmail) {
+            // Find the Supabase user by email
+            const { data: { users } } = await sb.auth.admin.listUsers()
+            const sbUser = users?.find((u: any) => u.email === googleEmail)
+
+            if (sbUser) {
+              // Save to integrations table
+              await sb.from('integrations').upsert(
+                {
+                  user_id: sbUser.id,
+                  provider: 'gmail',
+                  refresh_token: tokens.refresh_token,
+                  email: googleEmail,
+                  updated_at: new Date().toISOString(),
+                },
+                { onConflict: 'user_id,provider' },
+              )
+            }
+          }
+        }
+      } catch {
+        // Non-fatal — client-side link-gmail call is the fallback
+      }
+    }
+
     // Success — serve page that saves tokens to localStorage and redirects
-    const ALLOWED_PAGES = ['gmail', 'dashboard', 'inbox', 'drive', 'integrations-settings', 'settings', 'agents', 'briefing']
+    const ALLOWED_PAGES = ['gmail', 'dashboard', 'inbox', 'drive', 'integrations-settings', 'settings', 'agents', 'briefing', 'calendar']
     const returnPage = ALLOWED_PAGES.includes(state) ? state : 'gmail'
     const expiresAt = Date.now() + (tokens.expires_in || 3600) * 1000
     const appHome = `${baseUrl}/#${returnPage.replace(/'/g, "\\'")}`
@@ -110,16 +158,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Never put refresh_token in localStorage — XSS could steal permanent access
     localStorage.setItem('gth_gmail_ever_connected', 'true');
 
-    // Persist refresh token server-side for agent use AND for token refresh
+    // Persist refresh token server-side — the callback page already stored it
+    // server-side below (before serving this HTML). This is just a fallback
+    // in case the server-side save failed.
     if (tokenData.refresh_token && tokenData.access_token) {
-      fetch('/api/agent/link-gmail', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          refreshToken: tokenData.refresh_token,
-          accessToken: tokenData.access_token
-        })
-      }).catch(function() {}); // fire and forget
+      // Try to get Supabase JWT from localStorage for authenticated link-gmail call
+      var allKeys = Object.keys(localStorage);
+      var jwt = '';
+      for (var i = 0; i < allKeys.length; i++) {
+        if (allKeys[i].indexOf('sb-') === 0 && allKeys[i].indexOf('-auth-token') > 0) {
+          try {
+            var parsed = JSON.parse(localStorage.getItem(allKeys[i]) || '{}');
+            if (parsed.access_token) { jwt = parsed.access_token; break; }
+          } catch(e) {}
+        }
+      }
+      if (jwt) {
+        fetch('/api/agent/link-gmail', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + jwt
+          },
+          body: JSON.stringify({
+            refreshToken: tokenData.refresh_token,
+            accessToken: tokenData.access_token
+          })
+        }).catch(function() {});
+      }
     }
 
     // Verify it saved

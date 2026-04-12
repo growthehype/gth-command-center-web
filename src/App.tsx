@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAppStore } from '@/lib/store'
 import { captureTokenFromUrl, initGoogleToken } from '@/lib/google-calendar'
-import { captureGmailToken } from '@/lib/gmail'
+import { captureGmailToken, restoreGmailConnection } from '@/lib/gmail'
 import { setCurrentTenantId, initScope, tenants as tenantsApi } from '@/lib/api'
 import { isOverdue } from '@/lib/utils'
 import { useFaviconBadge } from '@/hooks/useFaviconBadge'
@@ -44,12 +44,13 @@ export default function App() {
     }
   }, [])
 
-  // Hydrate Google token from Supabase on login (cross-device persistence)
-  // Do NOT trigger silentReconnectIfNeeded here — that causes unwanted redirects
-  // Silent re-auth is only safe on the Calendar page itself
+  // On login: restore Gmail/Calendar connection from server (cross-device)
+  // Checks Supabase for stored refresh token, refreshes access token if found
   useEffect(() => {
     if (user) {
-      initGoogleToken()
+      restoreGmailConnection().then(() => {
+        initGoogleToken()
+      })
     }
   }, [user])
 
