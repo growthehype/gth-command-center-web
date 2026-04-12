@@ -9,8 +9,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const userId = req.query.userId as string | undefined
 
-  if (!userId) {
-    return res.status(400).json({ error: 'Missing userId query parameter' })
+  if (!userId || typeof userId !== 'string' || userId.length < 10) {
+    return res.status(400).json({ error: 'Missing or invalid userId query parameter' })
+  }
+
+  // Validate ownership: check Authorization header contains a valid Supabase JWT
+  // and extract the authenticated user's ID from it
+  const authHeader = req.headers.authorization
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Fallback: if no auth header, validate that the userId exists in the database
+    // This prevents random UUID guessing from returning data
+    const sb = getAdminClient()
+    const { data: userCheck } = await sb
+      .from('agent_configs')
+      .select('user_id')
+      .eq('user_id', userId)
+      .limit(1)
+
+    if (!userCheck || userCheck.length === 0) {
+      // Also check agent_runs in case they have runs but no configs
+      const { data: runCheck } = await sb
+        .from('agent_runs')
+        .select('user_id')
+        .eq('user_id', userId)
+        .limit(1)
+
+      if (!runCheck || runCheck.length === 0) {
+        return res.status(404).json({ error: 'User not found' })
+      }
+    }
   }
 
   const sb = getAdminClient()

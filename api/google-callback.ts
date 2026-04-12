@@ -105,12 +105,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       access_token: tokenData.access_token,
       expires_at: tokenData.expires_at
     }));
-    if (tokenData.refresh_token) {
-      localStorage.setItem('gth_gmail_refresh_token', tokenData.refresh_token);
-    }
+    // SECURITY: Refresh token is stored SERVER-SIDE ONLY (Supabase)
+    // Never put refresh_token in localStorage — XSS could steal permanent access
     localStorage.setItem('gth_gmail_ever_connected', 'true');
 
-    // Persist refresh token server-side for agent use
+    // Persist refresh token server-side for agent use AND for token refresh
     if (tokenData.refresh_token && tokenData.access_token) {
       fetch('/api/agent/link-gmail', {
         method: 'POST',

@@ -1,7 +1,8 @@
-// Simple in-memory + Supabase-backed rate limiter for agent actions
+// Supabase-backed rate limiter for agent actions
+// Memory cache is used only for fast-path rejection, Supabase is source of truth
 import { getAdminClient } from './supabase-admin'
 
-// In-memory counters (reset on cold start — Supabase is the source of truth)
+// In-memory cache for fast-path rejection only
 const memoryCounters = new Map<string, { count: number; date: string }>()
 
 function todayKey(): string {
@@ -29,16 +30,16 @@ export async function checkRateLimit(
   const today = todayKey()
   const key = memKey(userId, action)
 
-  // Check memory first (fast path)
+  // Fast-path rejection from memory (avoids DB call if already over limit)
   const mem = memoryCounters.get(key)
   if (mem && mem.date === today && mem.count >= maxPerDay) {
     return { allowed: false, remaining: 0, used: mem.count, limit: maxPerDay }
   }
 
-  // Query Supabase for today's actual count
+  // Always check Supabase for the real count (handles cold starts)
   const count = await getTodayCount(userId, action, today)
 
-  // Update memory cache
+  // Sync memory cache with DB truth
   memoryCounters.set(key, { count, date: today })
 
   const remaining = Math.max(0, maxPerDay - count)
@@ -57,47 +58,27 @@ export async function incrementCounter(userId: string, action: string): Promise<
   const key = memKey(userId, action)
   const sb = getAdminClient()
 
-  // Upsert into agent_rate_limits table
+  // Read current count from DB first
+  const currentCount = await getTodayCount(userId, action, today)
+  const newCount = currentCount + 1
+
+  // Upsert with the incremented count
   const { error } = await sb.from('agent_rate_limits').upsert(
     {
       user_id: userId,
       action,
       date: today,
-      count: 1,
+      count: newCount,
     },
     { onConflict: 'user_id,action,date' },
   )
 
-  // If upsert doesn't support increment, do a manual increment
   if (error) {
-    // Fallback: read then update
-    const current = await getTodayCount(userId, action, today)
-    await sb.from('agent_rate_limits').upsert({
-      user_id: userId,
-      action,
-      date: today,
-      count: current + 1,
-    }, { onConflict: 'user_id,action,date' })
-  } else {
-    // Increment via RPC or manual read-update
-    const current = await getTodayCount(userId, action, today)
-    if (current > 0) {
-      await sb
-        .from('agent_rate_limits')
-        .update({ count: current + 1 })
-        .eq('user_id', userId)
-        .eq('action', action)
-        .eq('date', today)
-    }
+    console.error('Rate limiter increment failed:', error.message)
   }
 
-  // Update memory
-  const mem = memoryCounters.get(key)
-  if (mem && mem.date === today) {
-    mem.count += 1
-  } else {
-    memoryCounters.set(key, { count: 1, date: today })
-  }
+  // Update memory cache to match
+  memoryCounters.set(key, { count: newCount, date: today })
 }
 
 // ─── Internal ───────────────────────────────────────────────────
@@ -105,7 +86,6 @@ export async function incrementCounter(userId: string, action: string): Promise<
 async function getTodayCount(userId: string, action: string, today: string): Promise<number> {
   const sb = getAdminClient()
 
-  // Try agent_rate_limits table first
   const { data, error } = await sb
     .from('agent_rate_limits')
     .select('count')

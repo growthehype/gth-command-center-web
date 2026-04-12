@@ -78,10 +78,7 @@ export async function sendEmail(userId: string, params: SendEmailParams): Promis
     `<html><body style="font-family: Arial, sans-serif; color: #333;">${htmlBody}${GTH_EMAIL_SIGNATURE}</body></html>`,
   ].join('\r\n')
 
-  const utf8Bytes = new TextEncoder().encode(mimeMessage)
-  let binary = ''
-  utf8Bytes.forEach(b => { binary += String.fromCharCode(b) })
-  const encoded = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  const encoded = Buffer.from(mimeMessage, 'utf-8').toString('base64url')
 
   const body: any = { raw: encoded }
   if (params.threadId) body.threadId = params.threadId

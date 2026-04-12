@@ -8,14 +8,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET
+  const clientSecret = (process.env.GOOGLE_CLIENT_SECRET || '').trim().replace(/\\n/g, '')
   if (!clientSecret) {
     return res.status(500).json({ error: 'GOOGLE_CLIENT_SECRET not configured' })
   }
 
   const refreshToken = req.body?.refresh_token
-  if (!refreshToken) {
-    return res.status(400).json({ error: 'refresh_token required' })
+  if (!refreshToken || typeof refreshToken !== 'string') {
+    return res.status(400).json({ error: 'refresh_token required (must be a string)' })
   }
 
   try {

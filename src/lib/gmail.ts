@@ -12,7 +12,6 @@ const SCOPES = [
 ].join(' ')
 
 const GMAIL_TOKEN_KEY = 'gth_gmail_token'
-const GMAIL_REFRESH_KEY = 'gth_gmail_refresh_token'
 const GMAIL_EVER_CONNECTED = 'gth_gmail_ever_connected'
 
 interface GmailToken {
@@ -36,9 +35,16 @@ function saveToken(token: GmailToken) {
   localStorage.setItem(GMAIL_EVER_CONNECTED, 'true')
 }
 
-function getRefreshToken(): string | null {
-  return localStorage.getItem(GMAIL_REFRESH_KEY)
+// SECURITY: Refresh token is stored server-side only (Supabase via link-gmail)
+// We check if the user has ever connected (which means server has the refresh token)
+function hasServerRefreshToken(): boolean {
+  return localStorage.getItem(GMAIL_EVER_CONNECTED) === 'true'
 }
+
+// Legacy cleanup: remove any refresh tokens from localStorage (from old code)
+;(() => {
+  localStorage.removeItem('gth_gmail_refresh_token')
+})()
 
 // ── Server-side refresh (when available) ──
 
@@ -49,16 +55,15 @@ let _refreshPromise: Promise<boolean> | null = null
 async function refreshAccessToken(): Promise<boolean> {
   if (_refreshing && _refreshPromise) return _refreshPromise
 
-  const refreshToken = getRefreshToken()
-  if (!refreshToken) return false
+  if (!hasServerRefreshToken()) return false
 
   _refreshing = true
   _refreshPromise = (async () => {
     try {
-      const res = await fetch('/api/google-refresh', {
+      const res = await fetch('/api/google-refresh-v2', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: refreshToken }),
+        body: JSON.stringify({}), // Server fetches refresh token from Supabase
       })
       if (!res.ok) return false
       const data = await res.json()
@@ -86,7 +91,7 @@ function scheduleRefresh(expiresInSeconds: number) {
 // On module load: if we have a refresh token, try to use it
 ;(() => {
   const token = getLocalToken()
-  const hasRefresh = !!getRefreshToken()
+  const hasRefresh = !!hasServerRefreshToken()
   if (hasRefresh) {
     if (token) {
       const remaining = Math.floor((token.expires_at - Date.now()) / 1000)
@@ -103,14 +108,14 @@ function scheduleRefresh(expiresInSeconds: number) {
 export function isGmailConnected(): boolean {
   const token = getLocalToken()
   if (token && Date.now() < token.expires_at - 30_000) return true
-  if (getRefreshToken()) return true
+  if (hasServerRefreshToken()) return true
   return false
 }
 
 export function getGmailToken(): string | null {
   const token = getLocalToken()
   if (!token) return null
-  if (Date.now() >= token.expires_at - 300_000 && getRefreshToken()) {
+  if (Date.now() >= token.expires_at - 300_000 && hasServerRefreshToken()) {
     refreshAccessToken()
   }
   if (Date.now() >= token.expires_at) return null
@@ -120,7 +125,7 @@ export function getGmailToken(): string | null {
 export async function ensureToken(): Promise<string | null> {
   const token = getLocalToken()
   if (token && Date.now() < token.expires_at - 30_000) return token.access_token
-  if (getRefreshToken()) {
+  if (hasServerRefreshToken()) {
     const ok = await refreshAccessToken()
     if (ok) return getLocalToken()?.access_token || null
   }
@@ -163,8 +168,8 @@ export function captureGmailToken(): boolean {
 
 export function disconnectGmail(): void {
   localStorage.removeItem(GMAIL_TOKEN_KEY)
-  localStorage.removeItem(GMAIL_REFRESH_KEY)
   localStorage.removeItem(GMAIL_EVER_CONNECTED)
+  localStorage.removeItem('gth_gmail_refresh_token') // legacy cleanup
   if (_refreshTimer) clearTimeout(_refreshTimer)
 }
 
@@ -282,7 +287,7 @@ async function gmailFetch(path: string, options?: RequestInit) {
   })
 
   // Auto-retry once on 401 with a fresh token
-  if (res.status === 401 && getRefreshToken()) {
+  if (res.status === 401 && hasServerRefreshToken()) {
     const ok = await refreshAccessToken()
     if (ok) {
       token = getLocalToken()?.access_token || null
@@ -453,7 +458,7 @@ export async function sendEmail(params: {
   })
 
   // Auto-retry once on 401
-  if (res.status === 401 && getRefreshToken()) {
+  if (res.status === 401 && hasServerRefreshToken()) {
     const ok = await refreshAccessToken()
     if (ok) {
       token = getLocalToken()?.access_token || null
@@ -527,7 +532,7 @@ export async function sendEmailWithAttachment(params: {
   })
 
   // Auto-retry once on 401
-  if (res.status === 401 && getRefreshToken()) {
+  if (res.status === 401 && hasServerRefreshToken()) {
     const ok = await refreshAccessToken()
     if (ok) {
       token = getLocalToken()?.access_token || null
@@ -573,7 +578,7 @@ async function driveFetch(path: string) {
   })
 
   // Auto-retry once on 401 with a fresh token
-  if (res.status === 401 && getRefreshToken()) {
+  if (res.status === 401 && hasServerRefreshToken()) {
     const ok = await refreshAccessToken()
     if (ok) {
       token = getLocalToken()?.access_token || null
