@@ -44,6 +44,7 @@ const PLATFORM_META: Record<string, { color: string; icon: string }> = {
   'stripe': { color: '#635BFF', icon: 'S' },
   'aws': { color: '#FF9900', icon: 'A' },
   'github': { color: '#8B949E', icon: 'G' },
+  'webflow': { color: '#4353FF', icon: 'W' },
   'wordpress': { color: '#21759B', icon: 'W' },
   'hosting': { color: '#00B4D8', icon: 'H' },
   'godaddy': { color: '#1BDBDB', icon: 'G' },
@@ -61,7 +62,7 @@ function getPlatformMeta(platform: string) {
 }
 
 const COMMON_PLATFORMS = [
-  'Google Ads', 'Meta Ads', 'Shopify', 'Stripe', 'WordPress', 'Hosting',
+  'Google Ads', 'Meta Ads', 'Shopify', 'Stripe', 'WordPress', 'Webflow', 'Hosting',
   'GitHub', 'AWS', 'Cloudflare', 'Mailchimp', 'LinkedIn', 'TikTok Ads',
 ]
 
