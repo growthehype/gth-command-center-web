@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAppStore } from '@/lib/store'
 import { tasks as tasksApi, projects as projectsApi, invoices as invoicesApi, activity as activityApi, timeEntries as timeEntriesApi } from '@/lib/api'
 import { createGoogleEvent, isGoogleConnected } from '@/lib/google-calendar'
+import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { X, Sparkles, Send, Key, Trash2, CheckCircle, AlertCircle, Loader2, Mic, MicOff } from 'lucide-react'
 
@@ -329,7 +330,13 @@ ${store.clients.filter(c => c.status === 'active').map(c => `- ${c.name}: ${c.se
   const useProxy = !apiKey || apiKey === 'proxy'
   const url = useProxy ? '/api/ai-proxy' : 'https://api.anthropic.com/v1/messages'
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (!useProxy) {
+  if (useProxy) {
+    // Send Supabase JWT for auth on the proxy endpoint
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`
+    }
+  } else {
     headers['x-api-key'] = apiKey
     headers['anthropic-version'] = '2023-06-01'
     headers['anthropic-dangerous-direct-browser-access'] = 'true'
@@ -429,7 +436,7 @@ export default function AiPanel() {
     if (!userText || isLoading) return
     setInput('')
 
-    const apiKey = settings.ai_api_key || localStorage.getItem('gth_ai_api_key') || ''
+    const apiKey = settings.ai_api_key || ''
     const model = settings.ai_model || 'claude-sonnet-4-20250514'
 
     // Add user message to chat display

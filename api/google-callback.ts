@@ -72,7 +72,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Success — serve page that saves tokens to localStorage and redirects
-    const returnPage = state || 'gmail'
+    const ALLOWED_PAGES = ['gmail', 'dashboard', 'inbox', 'drive', 'integrations-settings', 'settings', 'agents', 'briefing']
+    const returnPage = ALLOWED_PAGES.includes(state) ? state : 'gmail'
     const expiresAt = Date.now() + (tokens.expires_in || 3600) * 1000
     const appHome = `${baseUrl}/#${returnPage.replace(/'/g, "\\'")}`
 

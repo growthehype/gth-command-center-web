@@ -6,6 +6,7 @@ import { invitations, team } from '@/lib/api'
 import Modal from '@/components/ui/Modal'
 import { showToast } from '@/components/ui/Toast'
 import EmptyState from '@/components/ui/EmptyState'
+import { useConfirm } from '@/hooks/useConfirm'
 
 function getInitials(email: string) {
   const parts = email.split('@')[0].split(/[._-]/)
@@ -31,6 +32,7 @@ function roleIcon(role: string) {
 export default function TeamManagement() {
   const { user, teamMembers, pendingInvites, refreshTeamMembers, refreshPendingInvites } = useAppStore()
   const { canManageTeam } = useTenant()
+  const { confirm, ConfirmDialog } = useConfirm()
   const [inviteOpen, setInviteOpen] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState('member')
@@ -79,7 +81,7 @@ export default function TeamManagement() {
   }
 
   const handleRemoveMember = async (memberId: string) => {
-    if (!confirm('Remove this team member?')) return
+    if (!await confirm('Remove Member', 'Remove this team member?')) return
     try {
       await team.remove(memberId)
       showToast('Member removed', 'success')
@@ -294,6 +296,7 @@ export default function TeamManagement() {
           </div>
         )}
       </div>
+      {ConfirmDialog}
     </div>
   )
 }

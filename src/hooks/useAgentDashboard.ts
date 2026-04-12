@@ -278,7 +278,7 @@ export function useAgentDashboard() {
       activityItems.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       setActivity(activityItems.slice(0, 30))
     } catch (err) {
-      console.warn('useAgentDashboard fetch error:', err)
+      /* silently handled */
     } finally {
       setLoading(false)
     }
@@ -344,7 +344,6 @@ export function useAgentDashboard() {
       const label = existing?.agent_name || (agentKey === 'lead_generator' ? 'Sarah' : 'Selina')
       showToast(`${label} ${enabled ? 'enabled' : 'disabled'}`, 'success')
     } catch (err: any) {
-      console.error('toggleAgent error:', err)
       showToast(err?.message || 'Failed to update agent', 'error')
       // Revert
       setConfigs(prev =>
@@ -400,17 +399,13 @@ export function useAgentDashboard() {
         try {
           const parsed = JSON.parse(raw)
           msg = parsed.error || parsed.message || parsed.details || raw || msg
-          if (parsed.stack) console.error('Agent run stack:', parsed.stack)
         } catch {
           if (raw) msg = `${msg}: ${raw.slice(0, 400)}`
         }
-        console.error('Agent run error raw:', raw)
         throw new Error(msg)
       }
 
       const result = await res.json()
-      console.log('[runAgent] full response:', result)
-
       setConfigs(prev =>
         prev.map(c =>
           c.agent_key === agentKey
@@ -464,7 +459,6 @@ export function useAgentDashboard() {
           if (actionSummary.length > 0) parts.push(actionSummary.join(', '))
           parts.push(...actionErrors)
           showToast(`${label}: ${parts.join(' | ')}`, 'error')
-          console.error('[runAgent] action errors:', actionErrors)
         } else if (actionSummary.length > 0) {
           showToast(`${label}: ${actionSummary.join(', ')}`, 'success')
         } else {
@@ -531,7 +525,6 @@ export function useAgentDashboard() {
 
       showToast('Configuration saved', 'success')
     } catch (err: any) {
-      console.error('saveConfig error:', err)
       showToast(err?.message || 'Failed to save configuration', 'error')
     }
   }, [configs, getUserId])
@@ -641,7 +634,6 @@ export function useAgentDashboard() {
         showToast(`${name} agent created`, 'success')
       }
     } catch (err: any) {
-      console.error('createClientAgent error:', err)
       showToast(err?.message || 'Failed to create agent', 'error')
     }
   }, [getUserId])
@@ -665,7 +657,6 @@ export function useAgentDashboard() {
       setConfigs(prev => prev.filter(c => c.agent_key !== agentKey))
       showToast(`${existing.agent_name || agentKey} removed`, 'success')
     } catch (err: any) {
-      console.error('deleteClientAgent error:', err)
       showToast(err?.message || 'Failed to delete agent', 'error')
     }
   }, [configs])

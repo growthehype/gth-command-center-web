@@ -10,6 +10,7 @@ import VoiceTextarea from '@/components/ui/VoiceTextarea'
 import { formatCurrency, relativeDate, friendlyDate, isOverdue } from '@/lib/utils'
 import { isToday, parseISO, differenceInCalendarDays } from 'date-fns'
 import { downloadLeadsCsv } from '@/lib/lead-export'
+import { useConfirm } from '@/hooks/useConfirm'
 
 const STAGES = ['New Lead', 'Contacted', 'Responded', 'Meeting Set', 'Closed Won', 'Closed Lost'] as const
 type Stage = (typeof STAGES)[number]
@@ -149,6 +150,7 @@ type ViewMode = 'table' | 'pipeline'
 
 export default function Outreach() {
   const { leads, refreshLeads } = useAppStore()
+  const { confirm, ConfirmDialog } = useConfirm()
 
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState({ ...EMPTY_FORM })
@@ -393,7 +395,7 @@ export default function Outreach() {
 
   const handleDelete = async (lead: OutreachLead, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!confirm(`Delete "${lead.name}"? This cannot be undone.`)) return
+    if (!await confirm('Delete Lead', `Delete "${lead.name}"? This cannot be undone.`)) return
     try {
       await outreach.delete(lead.id)
       await refreshLeads()
@@ -1116,6 +1118,7 @@ export default function Outreach() {
           </div>
         </div>
       </Modal>
+      {ConfirmDialog}
     </div>
   )
 }

@@ -463,7 +463,7 @@ export default function Settings() {
                 type={aiKeyVisible ? 'text' : 'password'}
                 value={aiKey}
                 onChange={e => setAiKey(e.target.value)}
-                onBlur={() => { saveSetting('ai_api_key', aiKey); localStorage.setItem('gth_ai_api_key', aiKey) }}
+                onBlur={() => { saveSetting('ai_api_key', aiKey) }}
                 className={inputClass}
                 style={{ fontSize: '13px', paddingRight: '36px' }}
                 placeholder="sk-ant-..."

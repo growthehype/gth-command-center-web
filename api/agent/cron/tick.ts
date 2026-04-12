@@ -76,10 +76,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const authHeader = req.headers['authorization'] ?? ''
   const cronSecret = process.env.CRON_SECRET
 
-  if (cronSecret) {
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return res.status(401).json({ error: 'Unauthorized' })
-    }
+  if (!cronSecret) {
+    return res.status(500).json({ error: 'CRON_SECRET is not configured' })
+  }
+  if (authHeader !== `Bearer ${cronSecret}`) {
+    return res.status(401).json({ error: 'Unauthorized' })
   }
 
   const results: Array<{ agentType: string; userId: string; action: string }> = []

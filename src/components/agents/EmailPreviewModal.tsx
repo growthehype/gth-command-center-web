@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import DOMPurify from 'dompurify'
 import { X, Send, Save, Ban, Edit3, User, Building, Globe, MapPin, Sparkles } from 'lucide-react'
 import type { OutreachQueueItem } from '@/hooks/useAgentDashboard'
 
@@ -102,7 +103,7 @@ export default function EmailPreviewModal({ item, onClose, onApprove, onSkip, on
                   <div
                     className="px-4 py-3 bg-surface border border-border rounded-md text-steel"
                     style={{ fontSize: '13px', lineHeight: 1.7, minHeight: 150 }}
-                    dangerouslySetInnerHTML={{ __html: body.replace(/\n/g, '<br/>') || '<span class="text-dim">No content</span>' }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(body.replace(/\n/g, '<br/>') || '<span class="text-dim">No content</span>') }}
                   />
                 )}
               </div>

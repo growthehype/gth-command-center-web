@@ -6,6 +6,9 @@ import { showToast } from '@/components/ui/Toast'
 import Modal from '@/components/ui/Modal'
 import EmptyState from '@/components/ui/EmptyState'
 import { formatCurrency } from '@/lib/utils'
+import { useDebounce } from '@/hooks/useDebounce'
+import { usePagination } from '@/hooks/usePagination'
+import PaginationBar from '@/components/ui/PaginationBar'
 
 const STATUSES = ['active', 'paused', 'completed', 'draft'] as const
 type CampaignStatus = (typeof STATUSES)[number]
@@ -32,6 +35,7 @@ export default function Campaigns() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounce(search, 300)
 
   // Stats
   const stats = useMemo(() => {
@@ -48,14 +52,16 @@ export default function Campaigns() {
   }, [campaigns])
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return campaigns
-    const q = search.toLowerCase()
+    if (!debouncedSearch.trim()) return campaigns
+    const q = debouncedSearch.toLowerCase()
     return campaigns.filter(c =>
       (c.name || '').toLowerCase().includes(q) ||
       (c.platform || '').toLowerCase().includes(q) ||
       (c.client_name || '').toLowerCase().includes(q)
     )
-  }, [campaigns, search])
+  }, [campaigns, debouncedSearch])
+
+  const pagination = usePagination(filtered, 25)
 
   const cycleStatus = async (campaign: Campaign, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -195,7 +201,7 @@ export default function Campaigns() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(c => (
+              {pagination.pageItems.map(c => (
                 <tr
                   key={c.id}
                   className="table-row cursor-pointer"
@@ -226,6 +232,19 @@ export default function Campaigns() {
               ))}
             </tbody>
           </table>
+          <PaginationBar
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            perPage={pagination.perPage}
+            hasNext={pagination.hasNext}
+            hasPrev={pagination.hasPrev}
+            onNext={pagination.nextPage}
+            onPrev={pagination.prevPage}
+            onPageChange={pagination.setPage}
+            onPerPageChange={pagination.setPerPage}
+            noun="campaigns"
+          />
         </div>
       )}
 

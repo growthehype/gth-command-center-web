@@ -9,14 +9,16 @@ export async function linkGmailRefreshToken(): Promise<boolean> {
   if (!refreshToken) return false
 
   const { data: { session } } = await supabase.auth.getSession()
-  const userId = session?.user?.id
-  if (!userId) return false
+  if (!session?.access_token) return false
 
   try {
     const res = await fetch('/api/agent/link-gmail', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, refreshToken }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ refreshToken }),
     })
     const json = await res.json()
     return json.stored === true

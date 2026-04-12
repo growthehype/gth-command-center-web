@@ -8,6 +8,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import VoiceTextarea from '@/components/ui/VoiceTextarea'
 import ContextMenu, { ContextMenuItem } from '@/components/ui/ContextMenu'
 import { friendlyDate, isOverdue } from '@/lib/utils'
+import { useConfirm } from '@/hooks/useConfirm'
 
 /* ── Constants ── */
 
@@ -79,6 +80,7 @@ function sortByPriorityThenDue(a: Project, b: Project): number {
 
 export default function Projects() {
   const { projects, clients, tasks, refreshProjects, refreshActivity, selectedProjectId, setSelectedProjectId } = useAppStore()
+  const { confirm, ConfirmDialog } = useConfirm()
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editProject, setEditProject] = useState<Project | null>(null)
@@ -186,7 +188,7 @@ export default function Projects() {
 
   /* ── Delete ── */
   const handleDelete = useCallback(async (id: string) => {
-    if (!confirm('Delete this project? This cannot be undone.')) return
+    if (!await confirm('Delete Project', 'Delete this project? This cannot be undone.')) return
     await projectsApi.delete(id)
     await Promise.all([refreshProjects(), refreshActivity()])
     setEditProject(null)
@@ -786,6 +788,7 @@ export default function Projects() {
 
       {/* Modal */}
       {renderModal()}
+      {ConfirmDialog}
     </div>
   )
 }

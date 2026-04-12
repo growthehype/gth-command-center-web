@@ -1,5 +1,18 @@
 import { supabase } from './supabase'
 
+// ---- File Upload Validation ----
+const ALLOWED_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv', 'text/plain']
+const MAX_FILE_SIZE = 25 * 1024 * 1024 // 25MB
+
+function validateFile(file: File) {
+  if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+    throw new Error(`File type "${file.type}" is not allowed. Accepted: PDF, images, documents, spreadsheets.`)
+  }
+  if (file.size > MAX_FILE_SIZE) {
+    throw new Error(`File is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 25MB.`)
+  }
+}
+
 // Helper to get current user id
 async function uid(): Promise<string> {
   const { data } = await supabase.auth.getUser()
@@ -224,6 +237,7 @@ export const invoiceFiles = {
     return (data || []).map((f: any) => ({ ...f, client_name: f.clients?.name || null }))
   },
   async upload(clientId: string, fileName: string, file: File) {
+    validateFile(file)
     const userId = await uid()
     const ext = fileName.split('.').pop()
     const filePath = `${tid()}/invoices/${clientId}/${crypto.randomUUID()}.${ext}`
@@ -412,6 +426,7 @@ export const documents = {
     return data || []
   },
   async upload(category: string, fileName: string, file: File) {
+    validateFile(file)
     const userId = await uid()
     const ext = fileName.split('.').pop()
     const filePath = `${tid()}/documents/${category}/${crypto.randomUUID()}.${ext}`
@@ -666,6 +681,7 @@ export const clientFiles = {
     return data || []
   },
   async upload(clientId: string, category: string, fileName: string, file: File) {
+    validateFile(file)
     const userId = await uid()
     const ext = fileName.split('.').pop()
     const filePath = `${tid()}/clients/${clientId}/${category}/${crypto.randomUUID()}.${ext}`
