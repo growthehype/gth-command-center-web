@@ -85,7 +85,7 @@ export default function Credentials() {
   const [formPlatform, setFormPlatform] = useState('')
   const [formClientId, setFormClientId] = useState('')
   const [formFields, setFormFields] = useState<FieldPair[]>([
-    { label: 'Username', value: '' },
+    { label: 'Email / Username', value: '' },
     { label: 'Password', value: '' },
   ])
   const [formUrl, setFormUrl] = useState('')
@@ -158,7 +158,7 @@ export default function Credentials() {
     setFormPlatform('')
     setFormClientId('')
     setFormFields([
-      { label: 'Username', value: '' },
+      { label: 'Email / Username', value: '' },
       { label: 'Password', value: '' },
     ])
     setFormUrl('')
@@ -182,7 +182,7 @@ export default function Credentials() {
     setEditingId(cred.id)
     setFormPlatform(cred.platform)
     setFormClientId(cred.client_id || '')
-    setFormFields(otherFields.length > 0 ? otherFields : [{ label: 'Username', value: '' }, { label: 'Password', value: '' }])
+    setFormFields(otherFields.length > 0 ? otherFields : [{ label: 'Email / Username', value: '' }, { label: 'Password', value: '' }])
     setFormUrl(urlField?.value || '')
     setFormNotes(notesField?.value || '')
     setModalOpen(true)
