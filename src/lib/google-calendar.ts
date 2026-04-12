@@ -41,7 +41,7 @@ async function refreshAccessToken(): Promise<boolean> {
   if (!refreshToken) return false
 
   try {
-    const res = await fetch('/api/google-refresh', {
+    const res = await fetch('/api/google-refresh-v2', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refresh_token: refreshToken }),

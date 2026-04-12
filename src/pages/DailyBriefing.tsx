@@ -105,12 +105,8 @@ export default function DailyBriefing() {
     setCurrentPage, dataLoaded,
   } = useAppStore()
 
-  if (!dataLoaded) return <BriefingSkeleton />
-
-  const displayName = settings.display_name || 'Omar'
   const now = new Date()
   const todayStr = format(now, 'yyyy-MM-dd')
-  const fullDate = format(now, 'EEEE, MMMM d, yyyy')
 
   // --------------- DAILY QUOTE ---------------
   const dailyQuote = useMemo(() => {
@@ -124,7 +120,6 @@ export default function DailyBriefing() {
   // --------------- PRODUCTIVITY STREAK ---------------
 
   const streak = useMemo(() => {
-    // Get all dates that have at least 1 completed task
     const completedDates = new Set<string>()
     tasks.forEach((t) => {
       if (t.done && t.completed_at) {
@@ -135,21 +130,16 @@ export default function DailyBriefing() {
       }
     })
 
-    // Count consecutive days backwards from yesterday (today is still in progress)
-    // But if today already has completions, include it and count from today
     let count = 0
     const check = startOfDay(new Date())
 
-    // If today has completions, count today
     if (completedDates.has(format(check, 'yyyy-MM-dd'))) {
       count = 1
       check.setDate(check.getDate() - 1)
     } else {
-      // Start checking from yesterday
       check.setDate(check.getDate() - 1)
     }
 
-    // Count consecutive days backwards
     while (completedDates.has(format(check, 'yyyy-MM-dd'))) {
       count++
       check.setDate(check.getDate() - 1)
@@ -208,7 +198,6 @@ export default function DailyBriefing() {
   // --------------- ONE THING THAT NEEDS YOU ---------------
 
   const oneThingCard = useMemo(() => {
-    // 1 — Overdue invoice
     const overdueInvoice = invoices.find(
       (i) => i.status !== 'paid' && i.due_date && isOverdue(i.due_date),
     )
@@ -222,7 +211,6 @@ export default function DailyBriefing() {
       }
     }
 
-    // 2 — Stale active client > 21 days
     const staleClient = clients.find(
       (c) => c.status === 'active' && daysSince(c.last_activity) > 21,
     )
@@ -236,7 +224,6 @@ export default function DailyBriefing() {
       }
     }
 
-    // 3 — High-priority overdue task
     const highPriorityOverdue = overdueTasks.find((t) => t.priority === 'high')
     if (highPriorityOverdue) {
       return {
@@ -248,7 +235,6 @@ export default function DailyBriefing() {
       }
     }
 
-    // 4 — Task due today
     if (tasksDueToday.length > 0) {
       const t = tasksDueToday[0]
       return {
@@ -271,6 +257,11 @@ export default function DailyBriefing() {
   )
 
   // --------------- RENDER ---------------
+
+  if (!dataLoaded) return <BriefingSkeleton />
+
+  const displayName = settings.display_name || 'Omar'
+  const fullDate = format(now, 'EEEE, MMMM d, yyyy')
 
   return (
     <div className="max-w-full md:max-w-[920px] mx-auto" style={{ padding: '48px 0 64px' }}>

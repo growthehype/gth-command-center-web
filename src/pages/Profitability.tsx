@@ -42,8 +42,6 @@ interface ClientProfit {
 export default function Profitability() {
   const { clients, timeEntries, dataLoaded } = useAppStore()
 
-  if (!dataLoaded) return <ProfitabilitySkeleton />
-
   const [sortKey, setSortKey] = useState<SortKey>('effectiveRate')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
@@ -140,6 +138,8 @@ export default function Profitability() {
     if (rate >= 40) return 'text-warn'
     return 'text-err'
   }
+
+  if (!dataLoaded) return <ProfitabilitySkeleton />
 
   return (
     <div>

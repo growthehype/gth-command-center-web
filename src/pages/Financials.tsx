@@ -265,8 +265,6 @@ function TopClientsTable({ clients }: { clients: { name: string; revenue: number
 export default function Financials() {
   const { invoices, refreshInvoices, dataLoaded } = useAppStore()
 
-  if (!dataLoaded) return <FinancialsSkeleton />
-
   const currentYear = new Date().getFullYear()
   const years = useMemo(() => {
     const list: number[] = []
@@ -462,6 +460,8 @@ export default function Financials() {
       showToast(`${year} tax status -> ${next}`, 'success')
     } catch { showToast('Failed to update tax status', 'error') }
   }
+
+  if (!dataLoaded) return <FinancialsSkeleton />
 
   return (
     <div>

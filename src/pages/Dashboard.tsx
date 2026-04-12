@@ -313,8 +313,6 @@ export default function Dashboard() {
     dataLoaded,
   } = useAppStore()
 
-  if (!dataLoaded) return <DashboardSkeleton />
-
   const now = new Date()
   const todayStr = format(now, 'MMM d, yyyy') // "Apr 6, 2026"
   const todayStart = startOfDay(now)
@@ -724,6 +722,8 @@ export default function Dashboard() {
   }
 
   // ===================== RENDER =====================
+
+  if (!dataLoaded) return <DashboardSkeleton />
 
   return (
     <div className="space-y-6">
