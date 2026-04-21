@@ -6,6 +6,19 @@ import { supabase } from '@/lib/supabase'
 const GMAIL_TOKEN_KEY = 'gth_gmail_token'
 const GMAIL_EVER_CONNECTED = 'gth_gmail_ever_connected'
 
+// Same demo-mode isolation guard as gmail.ts — when the CRM is loaded in
+// demo mode, NEVER expose real tokens or real connection state.
+function isDemoActive(): boolean {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('demo') === 'true') return true
+  } catch { /* ignore */ }
+  try {
+    return localStorage.getItem('gth_demo_mode') === 'true'
+  } catch { /* ignore */ }
+  return false
+}
+
 interface StoredToken {
   access_token: string
   expires_at: number
@@ -85,6 +98,8 @@ async function ensureToken(): Promise<string | null> {
 // ── Public connection API ──
 
 export function isGoogleConnected(): boolean {
+  // DEMO ISOLATION: report disconnected in demo mode
+  if (isDemoActive()) return false
   const token = getLocalToken()
   if (token && Date.now() < token.expires_at - 30_000) return true
   if (hasServerRefreshToken()) return true
@@ -92,6 +107,8 @@ export function isGoogleConnected(): boolean {
 }
 
 export async function initGoogleToken(): Promise<boolean> {
+  // DEMO ISOLATION: never restore tokens in demo mode
+  if (isDemoActive()) return false
   const token = getLocalToken()
   if (token && Date.now() < token.expires_at - 30_000) return true
 
@@ -103,12 +120,15 @@ export async function initGoogleToken(): Promise<boolean> {
 }
 
 export async function silentReconnectIfNeeded(): Promise<boolean> {
+  if (isDemoActive()) return false
   if (isGoogleConnected()) return true
   if (hasServerRefreshToken()) return refreshAccessToken()
   return false
 }
 
 export function connectGoogleCalendar(_silent = false) {
+  // DEMO ISOLATION: do not initiate OAuth flow from demo mode
+  if (isDemoActive()) return
   const returnPage = 'calendar'
   window.location.href = `/api/google-auth?returnPage=${encodeURIComponent(returnPage)}`
 }

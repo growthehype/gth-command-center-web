@@ -52,43 +52,41 @@ export default function ClientPortal() {
       const token = params.get('portal')
       if (!token) { setError('Invalid portal link'); setLoading(false); return }
 
-      // Look up portal token
-      const { data: portal, error: pErr } = await supabase
-        .from('client_portal_tokens')
-        .select('client_id, user_id, expires_at')
-        .eq('token', token)
-        .single()
+      // SECURITY: Previously this did client-side SELECT queries on
+      // client_portal_tokens + other tables, which required a public RLS
+      // policy on client_portal_tokens that allowed token enumeration. We now
+      // call a SECURITY DEFINER RPC that takes the token and returns only
+      // that token's bundled data. See supabase/post-audit-hardening.sql.
+      const { data: result, error: rpcErr } = await supabase
+        .rpc('get_portal_data', { token_input: token })
 
-      if (pErr || !portal) { setError('Portal link expired or invalid'); setLoading(false); return }
-
-      // Check expiry
-      if (portal.expires_at && new Date(portal.expires_at) < new Date()) {
-        setError('This portal link has expired'); setLoading(false); return
+      if (rpcErr) {
+        setError('Failed to load portal')
+        setLoading(false)
+        return
       }
 
-      const clientId = portal.client_id
-      const userId = portal.user_id
+      // RPC returns { error: 'invalid_token' | 'expired' | ... } on failure
+      if (result?.error) {
+        const msg = result.error === 'expired'
+          ? 'This portal link has expired'
+          : result.error === 'invalid_token'
+          ? 'Portal link invalid'
+          : 'Portal data not available'
+        setError(msg); setLoading(false); return
+      }
 
-      // Fetch client data (public read via service role or RLS bypass on portal table)
-      const [clientRes, projRes, taskRes, invRes, settRes] = await Promise.all([
-        supabase.from('clients').select('name, service, status').eq('id', clientId).single(),
-        supabase.from('projects').select('title, status, due_date').eq('client_id', clientId).eq('user_id', userId).order('created_at', { ascending: false }).limit(20),
-        supabase.from('tasks').select('text, done, priority, due_date').eq('client_id', clientId).eq('user_id', userId).order('created_at', { ascending: false }).limit(30),
-        supabase.from('invoices').select('num, amount, status, due_date').eq('client_id', clientId).eq('user_id', userId).order('created_at', { ascending: false }).limit(20),
-        supabase.from('settings').select('key, value').eq('user_id', userId).in('key', ['company_name', 'company_logo_url']),
-      ])
+      if (!result?.client) { setError('Client not found'); setLoading(false); return }
 
-      if (clientRes.error || !clientRes.data) { setError('Client not found'); setLoading(false); return }
-
-      const settingsMap = Object.fromEntries((settRes.data || []).map((r: any) => [r.key, r.value]))
+      const settings = result.settings || {}
 
       setData({
-        client: clientRes.data,
-        projects: projRes.data || [],
-        tasks: taskRes.data || [],
-        invoices: invRes.data || [],
-        companyName: settingsMap.company_name || 'Operations Command Center',
-        companyLogoUrl: settingsMap.company_logo_url || '',
+        client: result.client,
+        projects: result.projects || [],
+        tasks: result.tasks || [],
+        invoices: result.invoices || [],
+        companyName: settings.company_name || 'Operations Command Center',
+        companyLogoUrl: settings.company_logo_url || '',
       })
     } catch (err) {
       setError('Failed to load portal')

@@ -1,12 +1,14 @@
 {
-  "name": "GTH Operations Command Center",
-  "short_name": "GTH Ops",
-  "description": "Operations Command Center for Grow The Hype",
-  "start_url": "/",
+  "name": "Command Center — Grow The Hype",
+  "short_name": "Command Center",
+  "description": "Operations Command Center — CRM, Gmail, Calendar, AI agents in one place",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#111111",
   "theme_color": "#111111",
   "orientation": "any",
+  "categories": ["business", "productivity"],
   "icons": [
     {
       "src": "/icon.png",

@@ -133,7 +133,7 @@ function eventColor(title: string) {
 /* ------------------------------------------------------------------ */
 
 export default function Calendar() {
-  const { clients } = useAppStore()
+  const { clients, demoMode } = useAppStore()
   const { confirm, ConfirmDialog } = useConfirm()
 
   // View mode
@@ -253,7 +253,13 @@ export default function Calendar() {
   const goToday = () => setAnchor(new Date())
 
   /* ---- Google connect/disconnect ---- */
-  const handleConnect = () => connectGoogleCalendar()
+  const handleConnect = () => {
+    if (demoMode) {
+      showToast('Google Calendar integration is available in the full product', 'warn')
+      return
+    }
+    connectGoogleCalendar()
+  }
 
   const handleDisconnect = async () => {
     await disconnectGoogle()
@@ -464,13 +470,23 @@ export default function Calendar() {
             style={{ width: 48, height: 48, opacity: 0.5 }}
             className="mb-4"
           />
-          <h3 className="text-polar font-[700] mb-2" style={{ fontSize: '16px' }}>Connect Google Calendar</h3>
+          <h3 className="text-polar font-[700] mb-2" style={{ fontSize: '16px' }}>
+            {demoMode ? 'Google Calendar Integration' : 'Connect Google Calendar'}
+          </h3>
           <p className="text-dim mb-4" style={{ fontSize: '13px', maxWidth: '340px' }}>
-            Your calendar lives in Google. Connect it to view, create, and manage events right from the command center.
+            {demoMode
+              ? 'In the full product, your Google Calendar syncs here — view, create, and manage events right from the command center.'
+              : 'Your calendar lives in Google. Connect it to view, create, and manage events right from the command center.'}
           </p>
-          <button className="btn-primary" onClick={handleConnect}>
-            Connect Google Calendar
-          </button>
+          {demoMode ? (
+            <button className="btn-primary opacity-60 cursor-not-allowed" disabled title="Available in the full product">
+              Connect Google Calendar (Preview)
+            </button>
+          ) : (
+            <button className="btn-primary" onClick={handleConnect}>
+              Connect Google Calendar
+            </button>
+          )}
         </div>
       )}
 

@@ -790,62 +790,557 @@
 
 /* ── Sidebar ── */
 
-/* Subtle top-to-bottom gradient + hidden scrollbar */
-.sidebar-nav {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--color-obsidian), white 3%) 0%,
-    var(--color-obsidian) 100%
-  );
+/* ── Sidebar v3 ─────────────────────────────────────────────── */
+
+.sb {
+  background: var(--color-obsidian);
+  border-right: 1px solid var(--color-border);
+  position: relative;
+  --sb-gap: 2px;
+  --sb-item-py: 7px;
+  --sb-section-gap: 4px;
+}
+
+/* Density variants */
+.sb--compact {
+  --sb-item-py: 5px;
+  --sb-section-gap: 2px;
+}
+.sb--spacious {
+  --sb-item-py: 10px;
+  --sb-section-gap: 8px;
+}
+
+/* ── Header: search + collapse toggle ── */
+.sb-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 10px 8px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.sb-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--color-dim);
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.sb-icon-btn:hover {
+  background: var(--color-surface);
+  color: var(--color-polar);
+}
+
+.sb-search {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.sb-search-icon {
+  position: absolute;
+  left: 8px;
+  color: var(--color-dim);
+  pointer-events: none;
+}
+.sb-search-input {
+  width: 100%;
+  padding: 6px 22px 6px 26px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--color-polar);
+  outline: none;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.sb-search-input::placeholder { color: var(--color-dim); }
+.sb-search-input:focus {
+  border-color: var(--color-info);
+  background: var(--color-obsidian);
+}
+.sb-search-kbd {
+  position: absolute;
+  right: 7px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--color-surface-2);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-dim);
+  pointer-events: none;
+}
+.sb-search-clear {
+  position: absolute;
+  right: 6px;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  border: none;
+  background: transparent;
+  color: var(--color-dim);
+  cursor: pointer;
+}
+.sb-search-clear:hover { background: var(--color-surface-2); color: var(--color-polar); }
+
+/* ── Body: scrollable ── */
+.sb-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0 12px;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
-.sidebar-nav::-webkit-scrollbar {
-  display: none;
+.sb-body::-webkit-scrollbar { display: none; }
+
+/* ── Group ── */
+.sb-group {
+  padding: 0 8px;
+  margin-bottom: var(--sb-section-gap);
 }
 
-[data-theme="dark"] .sidebar-nav {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--color-obsidian), white 2%) 0%,
-    var(--color-obsidian) 100%
-  );
+.sb-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 10px 4px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  user-select: none;
+}
+.sb-group-header--static { cursor: default; }
+
+.sb-group-icon {
+  color: var(--color-dim);
+  flex-shrink: 0;
 }
 
-/* Nav item — hover: translate, brighten, smooth bg */
-.sidebar-nav-item {
-  transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease !important;
+.sb-group-label {
+  flex: 1;
+  text-align: left;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-dim);
+  transition: color 0.15s;
+}
+.sb-group-header:not(.sb-group-header--static):hover .sb-group-label {
+  color: var(--color-steel);
+}
+
+.sb-group-chevron {
+  color: var(--color-dim);
+  opacity: 0;
+  transition: opacity 0.15s, transform 0.2s ease;
+  flex-shrink: 0;
+}
+.sb-group-header:hover .sb-group-chevron { opacity: 1; }
+.sb-group-chevron--collapsed { transform: rotate(-90deg); opacity: 1; }
+
+.sb-group-notif {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-err) 15%, transparent);
+  color: var(--color-err);
+  flex-shrink: 0;
+}
+
+.sb-group-add {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: var(--color-dim);
+  opacity: 0;
+  transition: opacity 0.15s, background-color 0.15s, color 0.15s;
+  cursor: pointer;
+}
+.sb-group-header:hover .sb-group-add { opacity: 1; }
+.sb-group-add:hover { background: var(--color-surface); color: var(--color-info); }
+
+/* Collapse animation */
+.sb-group-items {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.22s ease, opacity 0.15s ease;
+  opacity: 1;
+  overflow: hidden;
+}
+.sb-group-items--collapsed {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+.sb-group-items > * { min-height: 0; }
+
+.sb-empty {
+  padding: 10px;
+  font-size: 11.5px;
+  color: var(--color-dim);
+  text-align: center;
+  font-style: italic;
+}
+
+/* ── Nav item ── */
+.sb-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: var(--sb-item-py) 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  color: var(--color-dim);
+  text-align: left;
 }
 @media (hover: hover) {
-  .sidebar-nav-item:hover {
-    transform: translateX(2px);
-  }
-
-  /* Icon glow on hover */
-  .sidebar-nav-item:hover .sidebar-nav-icon {
-    filter: drop-shadow(0 0 3px rgba(37, 99, 235, 0.35));
+  .sb-item:hover {
+    background: var(--color-surface);
+    color: var(--color-polar);
   }
 }
 
-/* Active item — left accent bar via ::before */
-.sidebar-nav-active {
-  position: relative;
+.sb-item--active {
+  background: var(--color-surface-2);
+  color: var(--color-polar);
 }
-.sidebar-nav-active::before {
+.sb-item--active::before {
   content: '';
   position: absolute;
   left: 0;
   top: 50%;
   transform: translateY(-50%);
   width: 3px;
-  height: 60%;
-  border-radius: 0 3px 3px 0;
-  background: #2563EB;
+  height: 16px;
+  border-radius: 0 4px 4px 0;
+  background: var(--color-info);
 }
 
-/* Active item should not shift on hover */
-.sidebar-nav-active:hover {
-  transform: none;
+.sb-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: background-color 0.15s, color 0.15s;
+  color: inherit;
+  position: relative;
+}
+@media (hover: hover) {
+  .sb-item:hover .sb-item-icon {
+    background: color-mix(in srgb, var(--color-info) 10%, transparent);
+    color: var(--color-info);
+  }
+}
+.sb-item-icon--active {
+  background: color-mix(in srgb, var(--color-info) 12%, transparent);
+  color: var(--color-info) !important;
+}
+
+.sb-item-label {
+  flex: 1;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sb-item--active .sb-item-label { font-weight: 650; }
+
+/* Live agent dot */
+.sb-live-dot {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22C55E;
+  box-shadow: 0 0 0 1.5px var(--color-obsidian);
+  animation: sb-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes sb-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+/* Keyboard shortcut hint */
+.sb-shortcut {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--color-surface-2);
+  color: var(--color-dim);
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+@media (hover: hover) {
+  .sb-item:hover .sb-shortcut { opacity: 1; }
+}
+/* On touch devices, don't keep the shortcut hint from taking click area */
+@media (hover: none) {
+  .sb-shortcut { display: none; }
+}
+
+/* Pin icon (inline) */
+.sb-pin {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: var(--color-dim);
+  opacity: 0;
+  transition: opacity 0.15s, background-color 0.15s, color 0.15s;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+@media (hover: hover) {
+  .sb-item:hover .sb-pin { opacity: 0.7; }
+  .sb-pin:hover { background: var(--color-surface-2); color: var(--color-info); opacity: 1 !important; }
+}
+.sb-pin--pinned { opacity: 1 !important; color: var(--color-info); }
+/* Touch devices: hide inline pin toggle — it steals the click area. Users can pin via the settings/long-press flow. */
+@media (hover: none) {
+  .sb-pin:not(.sb-pin--pinned) { display: none; }
+}
+
+/* ── Badges ── */
+.sb-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.sb-badge--count { background: var(--color-surface-2); color: var(--color-dim); }
+.sb-badge--overdue { background: color-mix(in srgb, var(--color-err) 12%, transparent); color: var(--color-err); }
+.sb-badge--notif {
+  color: #FFFFFF;
+  min-width: 18px;
+  text-align: center;
+  padding: 2px 5px;
+}
+
+/* ── Footer ── */
+.sb-footer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  border-top: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-obsidian), black 2%);
+}
+
+.sb-user {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  text-align: left;
+  min-width: 0;
+}
+.sb-user:hover { background: var(--color-surface); }
+
+.sb-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-info), #6366F1);
+  color: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.sb-user-info {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.sb-user-name {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-polar);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sb-user-sub {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  color: var(--color-dim);
+  font-weight: 500;
+}
+.sb-user-cog {
+  color: var(--color-dim);
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+.sb-user:hover .sb-user-cog { opacity: 1; }
+
+.sb-user--mini {
+  padding: 4px;
+  justify-content: center;
+}
+
+/* Density toggle */
+.sb-density-btn { width: 24px; height: 24px; }
+.sb-density-icon {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-end;
+}
+.sb-density-bar {
+  height: 1.5px;
+  background: currentColor;
+  border-radius: 1px;
+}
+.sb--compact .sb-density-bar:nth-child(1) { width: 8px; }
+.sb--compact .sb-density-bar:nth-child(2) { width: 10px; }
+.sb--compact .sb-density-bar:nth-child(3) { width: 12px; }
+.sb--normal .sb-density-bar:nth-child(1) { width: 6px; }
+.sb--normal .sb-density-bar:nth-child(2) { width: 10px; }
+.sb--normal .sb-density-bar:nth-child(3) { width: 12px; }
+.sb--spacious .sb-density-bar { width: 12px; }
+.sb--spacious .sb-density-bar:nth-child(2) { margin: 2px 0; }
+
+/* ── Resize handle (desktop only) ── */
+.sb-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  width: 4px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+  background: transparent;
+  transition: background-color 0.2s;
+}
+.sb-resize-handle:hover,
+.sb-resize-handle:active {
+  background: var(--color-info);
+}
+@media (max-width: 768px) {
+  .sb-resize-handle { display: none; }
+}
+
+/* ── Minimized (icon-only) mode ── */
+.sb--minimized .sb-item {
+  justify-content: center;
+  padding: 7px;
+  gap: 0;
+}
+.sb--minimized .sb-group-header {
+  justify-content: center;
+  padding: 6px 4px 2px;
+}
+.sb--minimized .sb-group-label {
+  font-size: 0;
+  height: 4px;
+  width: 16px;
+  background: var(--color-border);
+  border-radius: 2px;
+  margin: 0 auto;
+}
+.sb--minimized .sb-group-chevron,
+.sb--minimized .sb-group-add,
+.sb--minimized .sb-group-icon,
+.sb--minimized .sb-group-notif {
+  display: none;
+}
+.sb--minimized .sb-group-items { grid-template-rows: 1fr !important; opacity: 1 !important; }
+.sb--minimized .sb-footer { padding: 6px; }
+.sb--minimized .sb-header { padding: 10px 6px; }
+
+/* ── iOS PWA safe areas ───────────────────────────────────────
+ * When installed as a Home Screen PWA with `black-translucent` status bar,
+ * iOS overlays the status bar (notch/Dynamic Island area) on top of the
+ * page. Without safe-area padding, the topbar buttons hide behind the notch.
+ * Also pad for the bottom home indicator so FAB-style content doesn't clip. */
+:root {
+  /* Default. Overridden below when iOS safe-area is available (PWA). */
+  --topbar-h: 44px;
+}
+
+@supports (padding: env(safe-area-inset-top)) {
+  :root {
+    --topbar-h: calc(44px + env(safe-area-inset-top));
+  }
+  .topbar-header {
+    padding-top: env(safe-area-inset-top);
+    padding-left: max(0.5rem, env(safe-area-inset-left));
+    padding-right: max(0.5rem, env(safe-area-inset-right));
+    /* Override Tailwind's h-11 (44px) so topbar grows to clear the notch */
+    height: auto !important;
+    min-height: var(--topbar-h);
+  }
+  /* Main scroll area respects bottom home indicator */
+  .shell-main {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+  /* Sidebar drawer on mobile also needs safe areas */
+  .sb {
+    padding-top: 0;
+  }
+  .sb-header {
+    padding-top: max(10px, env(safe-area-inset-top));
+  }
+  /* Background fill under the status bar so it isn't transparent */
+  html {
+    background: #111111;
+  }
 }
 
 /* ── Topbar ── */

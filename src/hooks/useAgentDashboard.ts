@@ -238,11 +238,15 @@ export function useAgentDashboard() {
       // Fetch metrics
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
+      // NOTE: We let RLS scope these queries by tenant_id rather than
+      // filtering by user_id. This means team members of the same agency
+      // see the agency-wide dashboard, not just their own activity — which
+      // is the expected behavior for a shared operations dashboard.
       const [leadsRes, emailsRes, repliesRes, meetingsRes] = await Promise.all([
-        supabase.from('outreach_leads').select('*', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', weekAgo),
-        supabase.from('outreach_steps').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('step_type', 'email').eq('status', 'sent').gte('created_at', weekAgo),
-        supabase.from('outreach_steps').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'replied').gte('created_at', weekAgo),
-        supabase.from('outreach_steps').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('step_type', 'meeting').eq('status', 'booked').gte('created_at', weekAgo),
+        supabase.from('outreach_leads').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo),
+        supabase.from('outreach_steps').select('*', { count: 'exact', head: true }).eq('step_type', 'email').eq('status', 'sent').gte('created_at', weekAgo),
+        supabase.from('outreach_steps').select('*', { count: 'exact', head: true }).eq('status', 'replied').gte('created_at', weekAgo),
+        supabase.from('outreach_steps').select('*', { count: 'exact', head: true }).eq('step_type', 'meeting').eq('status', 'booked').gte('created_at', weekAgo),
       ])
 
       const leads = leadsRes.count ?? 0

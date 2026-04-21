@@ -186,19 +186,23 @@ export interface UpsertIntegrationParams {
 
 export async function upsertIntegration(params: UpsertIntegrationParams): Promise<void> {
   const sb = getAdminClient()
+  // NOTE: integrations table has `credentials` JSONB, not `metadata`.
+  // Writing `metadata` would fail with "column does not exist" and silently
+  // drop the refresh token — causing users to keep getting logged out.
+  const row: Record<string, any> = {
+    user_id: params.user_id,
+    provider: params.provider,
+    refresh_token: params.refresh_token,
+    email: params.email || null,
+    updated_at: new Date().toISOString(),
+  }
+  if (params.metadata && Object.keys(params.metadata).length > 0) {
+    row.credentials = params.metadata
+  }
+
   const { error } = await sb
     .from('integrations')
-    .upsert(
-      {
-        user_id: params.user_id,
-        provider: params.provider,
-        refresh_token: params.refresh_token,
-        email: params.email || null,
-        metadata: params.metadata || {},
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id,provider' },
-    )
+    .upsert(row, { onConflict: 'user_id,provider' })
 
   if (error) throw error
 }

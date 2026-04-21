@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { Mail, Search, RefreshCw, Archive, Trash2, MailOpen, Eye, Send, ArrowLeft, ChevronLeft, ChevronRight, Inbox, Star, Clock, AlertCircle, X, Paperclip, Reply, Forward, MoreHorizontal, CheckCheck, LogOut, Download, FileText, Image as ImageIcon, Tag, ShoppingBag, Users, Bell } from 'lucide-react'
 import { isGmailConnected, connectGmail, disconnectGmail, listMessages, getMessage, getAttachment, markAsRead, markAsUnread, archiveMessage, trashMessage, sendEmail, type GmailMessage, type GmailAttachment } from '@/lib/gmail'
+import { useAppStore } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { formatDistanceToNow, format, isToday, isYesterday, isThisYear } from 'date-fns'
@@ -271,6 +272,9 @@ function MessageDetail({ message, onBack, onRefresh }: {
                 ADD_TAGS: ['img'],
                 ADD_ATTR: ['target', 'src', 'alt', 'width', 'height', 'style', 'class'],
                 ALLOW_DATA_ATTR: false,
+                // Allow http(s) + data: URIs so inline cid-resolved images
+                // (data:image/png;base64,...) actually render.
+                ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
               }) }}
             />
           ) : (
@@ -338,6 +342,7 @@ function MessageDetail({ message, onBack, onRefresh }: {
 // ── Main Gmail Inbox Page ──
 
 export default function GmailInbox() {
+  const demoMode = useAppStore(s => s.demoMode)
   const [connected, setConnected] = useState(isGmailConnected())
   const [messages, setMessages] = useState<GmailMessage[]>([])
   const [loading, setLoading] = useState(false)
@@ -352,7 +357,13 @@ export default function GmailInbox() {
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set())
   const [activeCategory, setActiveCategory] = useState('')
 
+  // Sequence guard: rapid folder-switching can have older (slower) requests
+  // resolve *after* newer ones, overwriting the correct results. We tag each
+  // request with an incrementing id and only commit results from the latest.
+  const loadSeqRef = useRef(0)
+
   const loadMessages = useCallback(async (folder?: string, query?: string, token?: string, category?: string) => {
+    const mySeq = ++loadSeqRef.current
     setLoading(true)
     try {
       const f = folder || activeFolder
@@ -362,19 +373,27 @@ export default function GmailInbox() {
       const result = await listMessages({
         labelIds,
         query: query || debouncedSearchQuery || undefined,
-        maxResults: 25,
+        maxResults: 20,
         pageToken: token,
       })
+      // Drop result if a newer request started after this one
+      if (mySeq !== loadSeqRef.current) return
       setMessages(result.messages)
       setNextPageToken(result.nextPageToken)
       setCheckedIds(new Set())
     } catch (err: any) {
+      if (mySeq !== loadSeqRef.current) return
       if (err.message?.includes('expired') || err.message?.includes('not connected')) {
         setConnected(false)
       }
-      showToast(err.message || 'Failed to load messages', 'error')
+      // Silently swallow rate-limit errors — the retry-with-backoff in
+      // gmailFetch handles recovery, no need to panic the user
+      const msg = err.message || 'Failed to load messages'
+      if (!/too many|rate|concurrent|429/i.test(msg)) {
+        showToast(msg, 'error')
+      }
     } finally {
-      setLoading(false)
+      if (mySeq === loadSeqRef.current) setLoading(false)
     }
   }, [activeFolder, debouncedSearchQuery])
 
@@ -495,15 +514,32 @@ export default function GmailInbox() {
         <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-4">
           <Mail size={28} className="text-red-400" />
         </div>
-        <h1 className="text-polar font-[800] mb-2" style={{ fontSize: '22px' }}>Connect Gmail</h1>
+        <h1 className="text-polar font-[800] mb-2" style={{ fontSize: '22px' }}>
+          {demoMode ? 'Gmail Integration' : 'Connect Gmail'}
+        </h1>
         <p className="text-dim mb-6" style={{ fontSize: '13px', maxWidth: 360, margin: '0 auto' }}>
-          Connect your Gmail account to read, send, and manage emails directly from your CRM.
+          {demoMode
+            ? 'In the full product, connect your Gmail to read, send, and manage emails directly from the CRM — no tab-switching.'
+            : 'Connect your Gmail account to read, send, and manage emails directly from your CRM.'}
         </p>
-        <button onClick={() => connectGmail()} className="btn-primary" style={{ fontSize: '13px', padding: '10px 28px' }}>
-          Connect with Google
-        </button>
+        {demoMode ? (
+          <button
+            disabled
+            className="btn-primary opacity-60 cursor-not-allowed"
+            style={{ fontSize: '13px', padding: '10px 28px' }}
+            title="Available in the full product"
+          >
+            Connect with Google (Preview)
+          </button>
+        ) : (
+          <button onClick={() => connectGmail()} className="btn-primary" style={{ fontSize: '13px', padding: '10px 28px' }}>
+            Connect with Google
+          </button>
+        )}
         <p className="text-dim mt-4" style={{ fontSize: '10.5px' }}>
-          Grants read, send, and organize permissions. You can disconnect anytime.
+          {demoMode
+            ? 'Demo mode — OAuth is disabled. Explore other features below.'
+            : 'Grants read, send, and organize permissions. You can disconnect anytime.'}
         </p>
       </div>
     )

@@ -406,41 +406,42 @@ export default function Contacts() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        {c.email && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); window.open(`mailto:${c.email}`, '_self') }}
-                            className="p-1 text-dim hover:text-polar transition-colors"
-                            title="Send email"
-                            aria-label={`Send email to ${c.name}`}
-                          >
-                            <Mail size={13} />
-                          </button>
-                        )}
-                        {c.phone && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); window.open(`tel:${c.phone}`, '_self') }}
-                            className="p-1 text-dim hover:text-polar transition-colors"
-                            title="Call"
-                            aria-label={`Call ${c.name}`}
-                          >
-                            <Phone size={13} />
-                          </button>
-                        )}
-                        {c.email && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              navigator.clipboard.writeText(c.email!)
-                              showToast('Email copied', 'success')
-                            }}
-                            className="p-1 text-dim hover:text-polar transition-colors"
-                            title="Copy email"
-                            aria-label={`Copy email for ${c.name}`}
-                          >
-                            <Copy size={13} />
-                          </button>
-                        )}
+                      {/* Always-visible quick-action icons. Disabled state makes
+                          the full column of rows scannable at a glance — users
+                          don't have to hover to know which contacts are reachable. */}
+                      <div className="flex items-center gap-0.5">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); if (c.email) window.open(`mailto:${c.email}`, '_self') }}
+                          disabled={!c.email}
+                          className={`p-1.5 rounded transition-colors ${c.email ? 'text-dim hover:text-polar hover:bg-surface-2' : 'text-dim/30 cursor-not-allowed'}`}
+                          title={c.email ? 'Send email' : 'No email'}
+                          aria-label={c.email ? `Send email to ${c.name}` : 'No email'}
+                        >
+                          <Mail size={13} />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); if (c.phone) window.open(`tel:${c.phone}`, '_self') }}
+                          disabled={!c.phone}
+                          className={`p-1.5 rounded transition-colors ${c.phone ? 'text-dim hover:text-polar hover:bg-surface-2' : 'text-dim/30 cursor-not-allowed'}`}
+                          title={c.phone ? 'Call' : 'No phone'}
+                          aria-label={c.phone ? `Call ${c.name}` : 'No phone'}
+                        >
+                          <Phone size={13} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (!c.email) return
+                            navigator.clipboard.writeText(c.email)
+                            showToast('Email copied', 'success')
+                          }}
+                          disabled={!c.email}
+                          className={`p-1.5 rounded transition-colors ${c.email ? 'text-dim hover:text-polar hover:bg-surface-2' : 'text-dim/30 cursor-not-allowed'}`}
+                          title={c.email ? 'Copy email' : 'No email'}
+                          aria-label={c.email ? `Copy email for ${c.name}` : 'No email'}
+                        >
+                          <Copy size={13} />
+                        </button>
                       </div>
                       <button
                         onClick={(e) => handleDelete(c, e)}

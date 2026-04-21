@@ -26,12 +26,14 @@ function errorPage(res: VercelResponse, title: string, detail: string, homeUrl: 
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const PRODUCTION_URL = 'https://gth-command-center-web-ljda.vercel.app'
+  // Hardcoded production URL — no longer reads APP_URL env var since
+  // that kept getting out of sync. Single source of truth.
+  const PRODUCTION_URL = 'https://app.growthehype.ca'
   const code = req.query.code as string
   const state = (req.query.state as string) || ''
   const error = req.query.error as string
 
-  const baseUrl = process.env.APP_URL || PRODUCTION_URL
+  const baseUrl = PRODUCTION_URL
 
   if (error) {
     return errorPage(res, 'Google denied access', error, baseUrl)
@@ -64,10 +66,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const tokens = await tokenRes.json()
 
     if (!tokenRes.ok || !tokens.access_token) {
+      // Diagnostic info to help pinpoint the mismatch.
+      const secretLen = clientSecret.length
+      const secretPrefix = clientSecret.slice(0, 7)
+      const secretSuffix = clientSecret.slice(-4)
+      console.error('[google-callback] Token exchange failed:', JSON.stringify(tokens))
       return errorPage(
         res,
         'Token exchange failed',
-        `Google returned: ${tokens.error || 'unknown'} — ${tokens.error_description || 'no description'}. redirect_uri used: ${redirectUri}`,
+        `Google: ${tokens.error || 'unknown'} — ${tokens.error_description || 'no description'}. redirect_uri: ${redirectUri}. Client secret state: length=${secretLen}, prefix="${secretPrefix}", suffix="${secretSuffix}". If prefix is NOT "GOCSPX-" — the Vercel env var has the wrong value.`,
         baseUrl,
       )
     }
@@ -95,9 +102,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           } catch { /* non-fatal */ }
 
           if (googleEmail) {
-            // Find the Supabase user by email
-            const { data: { users } } = await sb.auth.admin.listUsers()
-            const sbUser = users?.find((u: any) => u.email === googleEmail)
+            // Find the Supabase user by email — paginate through all pages
+            // (default limit is 50; accounts beyond that would silently fail)
+            let sbUser: any = null
+            let page = 1
+            const perPage = 1000
+            while (!sbUser && page <= 20) {
+              const { data, error: listErr } = await sb.auth.admin.listUsers({ page, perPage })
+              if (listErr) break
+              const list = data?.users || []
+              sbUser = list.find((u: any) => u.email?.toLowerCase() === googleEmail!.toLowerCase())
+              if (sbUser || list.length < perPage) break
+              page++
+            }
 
             if (sbUser) {
               // Save to integrations table
@@ -111,6 +128,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 },
                 { onConflict: 'user_id,provider' },
               )
+
+              // Also write to legacy table as belt-and-suspenders (older code paths
+              // may still read from here until fully migrated)
+              try {
+                await sb.from('user_google_tokens').upsert(
+                  {
+                    email: googleEmail,
+                    refresh_token: tokens.refresh_token,
+                    updated_at: new Date().toISOString(),
+                  },
+                  { onConflict: 'email' },
+                )
+              } catch { /* non-fatal — table may not exist */ }
             }
           }
         }

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Briefcase, Plus, Archive, RotateCcw } from 'lucide-react'
+import { Briefcase, Plus, Archive, RotateCcw, Search, X, ArrowUpDown } from 'lucide-react'
 import { useAppStore, Service } from '@/lib/store'
 import { services as servicesApi } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
@@ -34,19 +34,61 @@ const EMPTY_FORM = {
   active: 1,
 }
 
+type SortKey = 'name' | 'price-high' | 'price-low' | 'hours'
+
 export default function Services() {
   const { services, refreshServices, refreshActivity } = useAppStore()
   const [filter, setFilter] = useState<string>('All')
+  const [search, setSearch] = useState('')
+  const [sort, setSort] = useState<SortKey>('name')
+  const [hideArchived, setHideArchived] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState({ ...EMPTY_FORM })
 
   const visible = useMemo(() => {
     let list = filter === 'All' ? [...services] : services.filter(s => s.category === filter)
-    // Active first, then archived
-    list.sort((a, b) => b.active - a.active || a.name.localeCompare(b.name))
+
+    // Filter archived
+    if (hideArchived) list = list.filter(s => s.active)
+
+    // Search
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      list = list.filter(s =>
+        s.name.toLowerCase().includes(q) ||
+        (s.description || '').toLowerCase().includes(q) ||
+        (s.category || '').toLowerCase().includes(q)
+      )
+    }
+
+    // Sort
+    list.sort((a, b) => {
+      // Always active first
+      if (a.active !== b.active) return b.active - a.active
+      switch (sort) {
+        case 'price-high': return (b.default_price || 0) - (a.default_price || 0)
+        case 'price-low': return (a.default_price || 0) - (b.default_price || 0)
+        case 'hours': return (b.typical_hours || 0) - (a.typical_hours || 0)
+        case 'name':
+        default: return a.name.localeCompare(b.name)
+      }
+    })
     return list
-  }, [services, filter])
+  }, [services, filter, search, sort, hideArchived])
+
+  // Aggregate stats
+  const stats = useMemo(() => {
+    const active = services.filter(s => s.active)
+    const totalRevenue = active.reduce((sum, s) => sum + (s.default_price || 0), 0)
+    const avgPrice = active.length ? totalRevenue / active.length : 0
+    return {
+      total: services.length,
+      active: active.length,
+      archived: services.length - active.length,
+      avgPrice,
+    }
+  }, [services])
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { All: services.length }
@@ -124,6 +166,8 @@ export default function Services() {
     } catch { showToast('Delete failed', 'error') }
   }
 
+  const hasActiveFilter = filter !== 'All' || search.trim() !== '' || !hideArchived
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -131,7 +175,7 @@ export default function Services() {
         <div>
           <h1>Services</h1>
           <p className="text-steel mt-1" style={{ fontSize: '13px' }}>
-            {services.length} total &middot; {services.filter(s => s.active).length} active
+            Service catalog and pricing
           </p>
         </div>
         <button onClick={openCreate} className="btn-primary flex items-center gap-2">
@@ -139,8 +183,92 @@ export default function Services() {
         </button>
       </div>
 
-      {/* Filter chips */}
+      {/* Stats row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="card" style={{ padding: '14px 16px' }}>
+          <div className="label text-dim">TOTAL</div>
+          <div className="mono text-polar mt-1" style={{ fontSize: '20px', fontWeight: 700 }}>{stats.total}</div>
+        </div>
+        <div className="card" style={{ padding: '14px 16px' }}>
+          <div className="label text-dim">ACTIVE</div>
+          <div className="mono mt-1" style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-ok)' }}>{stats.active}</div>
+        </div>
+        <div className="card" style={{ padding: '14px 16px' }}>
+          <div className="label text-dim">ARCHIVED</div>
+          <div className="mono text-dim mt-1" style={{ fontSize: '20px', fontWeight: 700 }}>{stats.archived}</div>
+        </div>
+        <div className="card" style={{ padding: '14px 16px' }}>
+          <div className="label text-dim">AVG PRICE</div>
+          <div className="mono text-polar mt-1" style={{ fontSize: '20px', fontWeight: 700 }}>
+            {stats.avgPrice ? formatCurrency(stats.avgPrice) : '--'}
+          </div>
+        </div>
+      </div>
+
+      {/* Controls row: search, sort, hide archived */}
       <div className="flex items-center gap-3 flex-wrap">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[220px] max-w-[360px]">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-dim pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search services..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-surface border border-border pl-9 pr-8 py-2 text-polar outline-none focus:border-dim"
+            style={{ fontSize: '13px' }}
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-dim hover:text-polar p-1"
+              aria-label="Clear search"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+
+        {/* Sort dropdown */}
+        <div className="relative flex items-center gap-1.5 text-dim" style={{ fontSize: '12px' }}>
+          <ArrowUpDown size={12} />
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortKey)}
+            className="bg-surface border border-border px-2 py-2 text-polar outline-none focus:border-dim cursor-pointer"
+            style={{ fontSize: '12px' }}
+          >
+            <option value="name">Name (A-Z)</option>
+            <option value="price-high">Price (High → Low)</option>
+            <option value="price-low">Price (Low → High)</option>
+            <option value="hours">Hours (Most → Least)</option>
+          </select>
+        </div>
+
+        {/* Hide archived toggle */}
+        <label className="flex items-center gap-2 cursor-pointer text-steel" style={{ fontSize: '12px' }}>
+          <input
+            type="checkbox"
+            checked={hideArchived}
+            onChange={(e) => setHideArchived(e.target.checked)}
+            className="cursor-pointer"
+          />
+          Hide archived
+        </label>
+
+        {hasActiveFilter && (
+          <button
+            onClick={() => { setFilter('All'); setSearch(''); setHideArchived(true) }}
+            className="btn-ghost text-dim hover:text-polar"
+            style={{ fontSize: '11px', padding: '6px 12px' }}
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+
+      {/* Category filter chips */}
+      <div className="flex items-center gap-2 flex-wrap">
         {CATEGORIES.map(cat => (
           <button
             key={cat}
@@ -166,7 +294,20 @@ export default function Services() {
           onAction={openCreate}
         />
       ) : visible.length === 0 ? (
-        <p className="text-dim text-center py-12" style={{ fontSize: '13px' }}>No services match this filter.</p>
+        <div className="text-center py-16">
+          <Search size={32} className="text-dim mx-auto mb-3 opacity-40" />
+          <p className="text-steel mb-2" style={{ fontSize: '14px', fontWeight: 600 }}>No services match your filters</p>
+          <p className="text-dim mb-4" style={{ fontSize: '12px' }}>
+            Try adjusting your search or clearing filters to see all services.
+          </p>
+          <button
+            onClick={() => { setFilter('All'); setSearch(''); setHideArchived(false) }}
+            className="btn-ghost"
+            style={{ fontSize: '12px' }}
+          >
+            Clear all filters
+          </button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {visible.map(s => {
@@ -175,11 +316,26 @@ export default function Services() {
               <div
                 key={s.id}
                 onClick={() => openEdit(s)}
-                className={`card cursor-pointer ${!s.active ? 'opacity-50' : ''}`}
+                className={`card cursor-pointer transition-all hover:border-dim relative ${!s.active ? 'opacity-70' : ''}`}
+                style={!s.active ? { backgroundColor: 'var(--color-surface)' } : undefined}
               >
+                {!s.active && (
+                  <span
+                    className="absolute top-3 right-10 badge"
+                    style={{
+                      backgroundColor: 'rgba(217, 119, 6, 0.15)',
+                      color: 'var(--color-warn)',
+                      fontSize: '9px',
+                      fontWeight: 700,
+                      letterSpacing: '0.08em',
+                    }}
+                  >
+                    ARCHIVED
+                  </span>
+                )}
                 <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="text-polar font-[700]" style={{ fontSize: '14px' }}>{s.name}</h3>
+                  <div className="flex-1 min-w-0 pr-2">
+                    <h3 className="text-polar font-[700] truncate" style={{ fontSize: '14px' }}>{s.name}</h3>
                     {s.category && (
                       <span className={CATEGORY_BADGE[s.category] || 'badge badge-neutral'} style={{ marginTop: '4px' }}>
                         {s.category}
@@ -188,7 +344,7 @@ export default function Services() {
                   </div>
                   <button
                     onClick={(e) => toggleActive(s, e)}
-                    className="text-dim hover:text-polar transition-colors"
+                    className="text-dim hover:text-polar transition-colors p-1"
                     title={s.active ? 'Archive' : 'Activate'}
                   >
                     {s.active ? <Archive size={14} /> : <RotateCcw size={14} />}

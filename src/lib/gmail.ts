@@ -7,6 +7,23 @@ import { supabase } from '@/lib/supabase'
 const GMAIL_TOKEN_KEY = 'gth_gmail_token'
 const GMAIL_EVER_CONNECTED = 'gth_gmail_ever_connected'
 
+// ─── Demo mode isolation guard ──────────────────────────────────
+// When the CRM is loaded in demo mode (e.g. ?demo=true or embedded on
+// growthehype.ca), the user must NEVER see real data — even if they happen
+// to be logged in in the same browser. This guard short-circuits every
+// Gmail-related operation to behave as "not connected" when demo mode
+// is active, so real emails / tokens never render.
+function isDemoActive(): boolean {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('demo') === 'true') return true
+  } catch { /* ignore */ }
+  try {
+    return localStorage.getItem('gth_demo_mode') === 'true'
+  } catch { /* ignore */ }
+  return false
+}
+
 interface GmailToken {
   access_token: string
   expires_at: number
@@ -38,12 +55,16 @@ function hasServerRefreshToken(): boolean {
 // ── Helper: get current Supabase JWT for authenticated API calls ──
 
 async function getAuthToken(): Promise<string | null> {
-  try {
-    const { data } = await supabase.auth.getSession()
-    return data.session?.access_token || null
-  } catch {
-    return null
+  // Retry a few times — Supabase session may not be hydrated immediately on
+  // fresh page loads, causing the first call to return null spuriously.
+  for (let i = 0; i < 5; i++) {
+    try {
+      const { data } = await supabase.auth.getSession()
+      if (data.session?.access_token) return data.session.access_token
+    } catch { /* retry */ }
+    await new Promise(r => setTimeout(r, 200))
   }
+  return null
 }
 
 // ── Server-side refresh (sends JWT so server identifies user) ──
@@ -107,6 +128,8 @@ function scheduleRefresh(expiresInSeconds: number) {
 // Called on login to restore connection state on new devices
 
 export async function restoreGmailConnection(): Promise<boolean> {
+  // DEMO ISOLATION: never touch real tokens in demo mode
+  if (isDemoActive()) return false
   // If we already know we're connected, just refresh the token
   if (hasServerRefreshToken()) {
     const token = getLocalToken()
@@ -156,6 +179,9 @@ export async function restoreGmailConnection(): Promise<boolean> {
 // ── Public API ──
 
 export function isGmailConnected(): boolean {
+  // DEMO ISOLATION: report disconnected in demo mode so UI shows preview,
+  // never real inbox
+  if (isDemoActive()) return false
   const token = getLocalToken()
   if (token && Date.now() < token.expires_at - 30_000) return true
   if (hasServerRefreshToken()) return true
@@ -163,6 +189,8 @@ export function isGmailConnected(): boolean {
 }
 
 export function getGmailToken(): string | null {
+  // DEMO ISOLATION: never hand out real access tokens in demo mode
+  if (isDemoActive()) return null
   const token = getLocalToken()
   if (!token) return null
   if (Date.now() >= token.expires_at - 300_000 && hasServerRefreshToken()) {
@@ -173,6 +201,8 @@ export function getGmailToken(): string | null {
 }
 
 export async function ensureToken(): Promise<string | null> {
+  // DEMO ISOLATION: block token retrieval in demo mode
+  if (isDemoActive()) return null
   const token = getLocalToken()
   if (token && Date.now() < token.expires_at - 30_000) return token.access_token
   if (hasServerRefreshToken()) {
@@ -185,6 +215,8 @@ export async function ensureToken(): Promise<string | null> {
 }
 
 export function connectGmail(): void {
+  // DEMO ISOLATION: do nothing in demo mode — OAuth initiation is blocked
+  if (isDemoActive()) return
   // Server-side OAuth: gets refresh token for permanent access
   const returnPage = window.location.hash?.replace('#', '') || 'gmail'
   window.location.href = `/api/google-auth?returnPage=${encodeURIComponent(returnPage)}`
@@ -301,6 +333,41 @@ function extractBody(payload: any): string {
   return ''
 }
 
+// Collect inline-image parts keyed by Content-ID (cid) — used to resolve
+// `<img src="cid:...">` references in HTML bodies into data URIs.
+interface InlinePart {
+  contentId: string
+  attachmentId: string
+  mimeType: string
+}
+function extractInlineParts(payload: any): InlinePart[] {
+  const results: InlinePart[] = []
+  function walk(parts: any[]) {
+    for (const part of parts) {
+      const headers = part.headers || []
+      const cidHeader = headers.find((h: any) => h.name?.toLowerCase() === 'content-id')
+      const dispHeader = headers.find((h: any) => h.name?.toLowerCase() === 'content-disposition')
+      const isInlineImage =
+        part.mimeType?.startsWith('image/') &&
+        part.body?.attachmentId &&
+        (cidHeader?.value || dispHeader?.value?.toLowerCase().includes('inline'))
+      if (isInlineImage) {
+        const rawCid = (cidHeader?.value || '').replace(/^<|>$/g, '').trim()
+        if (rawCid) {
+          results.push({
+            contentId: rawCid,
+            attachmentId: part.body.attachmentId,
+            mimeType: part.mimeType,
+          })
+        }
+      }
+      if (part.parts) walk(part.parts)
+    }
+  }
+  if (payload.parts) walk(payload.parts)
+  return results
+}
+
 function extractAttachments(payload: any): GmailAttachment[] {
   const attachments: GmailAttachment[] = []
 
@@ -323,18 +390,66 @@ function extractAttachments(payload: any): GmailAttachment[] {
   return attachments
 }
 
-async function gmailFetch(path: string, options?: RequestInit) {
+// ─── Concurrency limiter ────────────────────────────────────────
+// Gmail API enforces per-user concurrent request limits (typically ~10/sec).
+// Firing 25 parallel message detail fetches trips "too many concurrent
+// requests" errors, especially when users click folders rapidly. We cap
+// concurrency globally so bursts get queued instead of rejected.
+
+const GMAIL_CONCURRENCY_LIMIT = 5
+let _gmailActive = 0
+const _gmailQueue: Array<() => void> = []
+
+function acquireGmailSlot(): Promise<void> {
+  if (_gmailActive < GMAIL_CONCURRENCY_LIMIT) {
+    _gmailActive++
+    return Promise.resolve()
+  }
+  return new Promise<void>(resolve => _gmailQueue.push(resolve))
+}
+function releaseGmailSlot() {
+  _gmailActive--
+  const next = _gmailQueue.shift()
+  if (next) { _gmailActive++; next() }
+}
+
+// Batched parallel execution with concurrency limit. Drop-in for Promise.all.
+export async function limitedParallel<T, R>(
+  items: T[],
+  fn: (item: T, index: number) => Promise<R>,
+  limit = GMAIL_CONCURRENCY_LIMIT,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length)
+  let idx = 0
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (true) {
+      const i = idx++
+      if (i >= items.length) return
+      results[i] = await fn(items[i], i)
+    }
+  })
+  await Promise.all(workers)
+  return results
+}
+
+async function gmailFetch(path: string, options?: RequestInit, attempt = 0): Promise<any> {
   let token = await ensureToken()
   if (!token) throw new Error('Gmail not connected')
 
-  let res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  })
+  await acquireGmailSlot()
+  let res: Response
+  try {
+    res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    })
+  } finally {
+    releaseGmailSlot()
+  }
 
   // Auto-retry once on 401 with a fresh token
   if (res.status === 401 && hasServerRefreshToken()) {
@@ -342,16 +457,29 @@ async function gmailFetch(path: string, options?: RequestInit) {
     if (ok) {
       token = getLocalToken()?.access_token || null
       if (token) {
-        res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`, {
-          ...options,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            ...options?.headers,
-          },
-        })
+        await acquireGmailSlot()
+        try {
+          res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`, {
+            ...options,
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              ...options?.headers,
+            },
+          })
+        } finally {
+          releaseGmailSlot()
+        }
       }
     }
+  }
+
+  // Retry on 429 (rate limit) and 5xx (server errors) with exponential backoff
+  if ((res.status === 429 || res.status >= 500) && attempt < 3) {
+    const retryAfter = parseInt(res.headers.get('Retry-After') || '0', 10)
+    const backoffMs = retryAfter > 0 ? retryAfter * 1000 : (500 * Math.pow(2, attempt)) + Math.random() * 300
+    await new Promise(r => setTimeout(r, backoffMs))
+    return gmailFetch(path, options, attempt + 1)
   }
 
   if (!res.ok) {
@@ -377,9 +505,12 @@ export async function listMessages(params: {
   const list = await gmailFetch(`messages?${q}`)
   if (!list.messages?.length) return { messages: [], resultSizeEstimate: 0 }
 
-  // Batch fetch message details
-  const detailed = await Promise.all(
-    list.messages.map((m: any) => gmailFetch(`messages/${m.id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Subject&metadataHeaders=Date`))
+  // Batch fetch message details with concurrency limit (see gmailFetch comment).
+  // This was firing 25 parallel fetches which tripped Gmail's concurrency cap
+  // on rapid folder-switching — now capped via limitedParallel.
+  const detailed = await limitedParallel(
+    list.messages,
+    (m: any) => gmailFetch(`messages/${m.id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Subject&metadataHeaders=Date`)
   )
 
   const messages: GmailMessage[] = detailed.map((msg: any) => ({
@@ -405,6 +536,30 @@ export async function listMessages(params: {
 
 export async function getMessage(id: string): Promise<GmailMessage> {
   const msg = await gmailFetch(`messages/${id}?format=full`)
+  let body = extractBody(msg.payload)
+
+  // Resolve inline `cid:` image references by fetching each referenced
+  // attachment and embedding it as a base64 data URI. Without this, the
+  // browser shows a broken-image placeholder since `cid:` URLs aren't
+  // resolvable over HTTP.
+  const inlineParts = extractInlineParts(msg.payload)
+  if (inlineParts.length > 0 && /cid:/i.test(body)) {
+    await Promise.all(
+      inlineParts.map(async (part) => {
+        try {
+          const data = await gmailFetch(`messages/${id}/attachments/${part.attachmentId}`)
+          const b64 = (data.data || '').replace(/-/g, '+').replace(/_/g, '/')
+          if (!b64) return
+          const dataUri = `data:${part.mimeType};base64,${b64}`
+          // Replace src="cid:xxx" and src='cid:xxx' — escape regex chars in CID
+          const escCid = part.contentId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+          const re = new RegExp(`(["'])cid:${escCid}(\\1)`, 'gi')
+          body = body.replace(re, `$1${dataUri}$2`)
+        } catch { /* non-fatal — leave broken cid in place */ }
+      }),
+    )
+  }
+
   return {
     id: msg.id,
     threadId: msg.threadId,
@@ -414,7 +569,7 @@ export async function getMessage(id: string): Promise<GmailMessage> {
     to: parseHeader(msg.payload?.headers, 'To'),
     subject: parseHeader(msg.payload?.headers, 'Subject') || '(no subject)',
     date: parseHeader(msg.payload?.headers, 'Date'),
-    body: extractBody(msg.payload),
+    body,
     isUnread: (msg.labelIds || []).includes('UNREAD'),
     attachments: extractAttachments(msg.payload),
   }
@@ -474,7 +629,7 @@ export async function sendEmail(params: {
 
   const htmlBody = params.body.replace(/\n/g, '<br>')
 
-  const gthSignature = GTH_EMAIL_SIGNATURE
+  const gthSignature = buildEmailSignature()
 
   const headers = [
     `To: ${params.to}`,
@@ -546,7 +701,7 @@ export async function sendEmailWithAttachment(params: {
   const boundary = 'gth_boundary_' + Date.now()
   const htmlBody = params.body.replace(/\n/g, '<br>')
 
-  const gthSignature = GTH_EMAIL_SIGNATURE
+  const gthSignature = buildEmailSignature()
 
   const mimeMessage = [
     `Content-Type: multipart/mixed; boundary="${boundary}"`,
@@ -690,9 +845,57 @@ export async function searchDriveFiles(query: string): Promise<DriveFile[]> {
   return files
 }
 
-// ─── GTH Email Signature (exact copy from gth-signature-HOSTED-FINAL.html) ──
+// ─── Email Signature — per-tenant, generated from settings cache ──────────
+// SECURITY / MULTI-TENANT: Previously this was a hardcoded Omar Alladina / GTH
+// signature that got stamped on EVERY tenant's outbound email. That would leak
+// Omar's PII and brand to every customer's clients. Now we build the signature
+// dynamically from the signed-in tenant's settings (synced to localStorage via
+// email-sig-cache.ts). If a tenant hasn't filled out their signature fields,
+// we send NO signature rather than the wrong one.
+function buildEmailSignature(): string {
+  let cache: any = null
+  try {
+    const raw = localStorage.getItem('gth_email_sig_cache')
+    if (raw) cache = JSON.parse(raw)
+  } catch { return '' }
 
-const GTH_EMAIL_SIGNATURE = `
+  if (!cache) return ''
+
+  const name = (cache.name || '').trim()
+  const title = (cache.title || '').trim()
+  const email = (cache.email || '').trim()
+  const phone = (cache.phone || '').trim()
+  const website = (cache.website || '').trim()
+  const logoUrl = (cache.logoUrl || '').trim()
+  const tagline = (cache.tagline || '').trim()
+  const companyName = (cache.companyName || '').trim()
+
+  // If nothing meaningful to show, send no signature rather than a broken one
+  if (!name && !email && !phone && !website && !companyName) return ''
+
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+  // Helper: strip protocol from website for display, keep it for href
+  const websiteDisplay = website.replace(/^https?:\/\//, '').replace(/\/$/, '')
+  const websiteHref = website.startsWith('http') ? website : (website ? `https://${website}` : '')
+
+  // Phone href (strip spaces/dashes/parens for tel:)
+  const phoneHref = phone.replace(/[^0-9+]/g, '')
+
+  const logoCell = logoUrl
+    ? `<td style="width:74px;vertical-align:top;padding:0;">
+         ${websiteHref ? `<a href="${esc(websiteHref)}" target="_blank" style="text-decoration:none;border:none;">` : ''}
+           <img src="${esc(logoUrl)}" alt="${esc(companyName || name || 'Logo')}" width="60" style="display:block;width:60px;height:auto;border:0;outline:none;" />
+         ${websiteHref ? '</a>' : ''}
+       </td>
+       <td style="width:24px;vertical-align:top;padding:2px 0 0 0;">
+         <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;border-collapse:collapse;">
+           <tr><td style="width:1px;height:78px;background-color:#D0D0D0;font-size:1px;line-height:1px;">&nbsp;</td></tr>
+         </table>
+       </td>`
+    : ''
+
+  return `
 <br><br>
 <table cellpadding="0" cellspacing="0" border="0" style="width:460px;max-width:460px;font-family:'Figtree',Helvetica,Arial,sans-serif;border-collapse:collapse;border:none;">
   <tr>
@@ -706,55 +909,33 @@ const GTH_EMAIL_SIGNATURE = `
     </td>
   </tr>
   <tr>
-    <td style="width:74px;vertical-align:top;padding:0 0 0 0;">
-      <a href="https://growthehype.ca" target="_blank" style="text-decoration:none;border:none;">
-        <img src="https://i.imgur.com/69I8Ojh.png" alt="Grow The Hype" width="60" height="68" style="display:block;width:60px;height:auto;border:0;outline:none;" />
-      </a>
-    </td>
-    <td style="width:24px;vertical-align:top;padding:2px 0 0 0;">
-      <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;border-collapse:collapse;">
-        <tr>
-          <td style="width:1px;height:78px;background-color:#D0D0D0;font-size:1px;line-height:1px;">&nbsp;</td>
-        </tr>
-      </table>
-    </td>
+    ${logoCell}
     <td style="vertical-align:top;padding:0;">
+      ${name ? `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+        <tr><td style="font-family:'Figtree',Helvetica,Arial,sans-serif;font-size:17px;font-weight:700;color:#111111;letter-spacing:0.3px;line-height:1.15;padding:0 0 2px 0;">${esc(name)}</td></tr>
+      </table>` : ''}
+      ${title ? `<table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+        <tr><td style="font-family:'Figtree',Helvetica,Arial,sans-serif;font-size:11px;font-weight:500;color:#888888;letter-spacing:2.5px;text-transform:uppercase;line-height:1.3;padding:0 0 14px 0;">${esc(title)}</td></tr>
+      </table>` : ''}
       <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
-        <tr>
-          <td style="font-family:'Figtree',Helvetica,Arial,sans-serif;font-size:17px;font-weight:700;color:#111111;letter-spacing:0.3px;line-height:1.15;padding:0 0 2px 0;">Omar Alladina</td>
-        </tr>
-      </table>
-      <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
-        <tr>
-          <td style="font-family:'Figtree',Helvetica,Arial,sans-serif;font-size:11px;font-weight:500;color:#888888;letter-spacing:2.5px;text-transform:uppercase;line-height:1.3;padding:0 0 14px 0;">Chief Marketing Strategist</td>
-        </tr>
-      </table>
-      <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
-        <tr>
-          <td style="font-family:'Figtree',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400;color:#555555;line-height:1.3;padding:0 0 5px 0;">
-            <a href="mailto:omar@growthehype.ca" style="color:#555555;text-decoration:none;">omar@growthehype.ca</a>
-          </td>
-        </tr>
-        <tr>
-          <td style="font-family:'Figtree',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400;color:#555555;line-height:1.3;padding:0 0 5px 0;">
-            <a href="tel:+17809664986" style="color:#555555;text-decoration:none;">(780) 966-4986</a>
-          </td>
-        </tr>
-        <tr>
-          <td style="font-family:'Figtree',Helvetica,Arial,sans-serif;font-size:12px;font-weight:600;color:#111111;line-height:1.3;padding:0;">
-            <a href="https://growthehype.ca" target="_blank" style="color:#111111;text-decoration:none;">growthehype.ca</a>
-          </td>
-        </tr>
+        ${email ? `<tr><td style="font-family:'Figtree',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400;color:#555555;line-height:1.3;padding:0 0 5px 0;">
+          <a href="mailto:${esc(email)}" style="color:#555555;text-decoration:none;">${esc(email)}</a>
+        </td></tr>` : ''}
+        ${phone ? `<tr><td style="font-family:'Figtree',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400;color:#555555;line-height:1.3;padding:0 0 5px 0;">
+          <a href="tel:${esc(phoneHref)}" style="color:#555555;text-decoration:none;">${esc(phone)}</a>
+        </td></tr>` : ''}
+        ${websiteDisplay ? `<tr><td style="font-family:'Figtree',Helvetica,Arial,sans-serif;font-size:12px;font-weight:600;color:#111111;line-height:1.3;padding:0;">
+          <a href="${esc(websiteHref)}" target="_blank" style="color:#111111;text-decoration:none;">${esc(websiteDisplay)}</a>
+        </td></tr>` : ''}
       </table>
     </td>
   </tr>
-  <tr>
+  ${tagline ? `<tr>
     <td colspan="3" style="padding:20px 0 0 0;">
       <table cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
-        <tr>
-          <td style="font-family:'Figtree',Helvetica,Arial,sans-serif;font-size:9px;font-weight:500;color:#BBBBBB;letter-spacing:3px;text-transform:uppercase;line-height:1.3;">Strategy&nbsp;&nbsp;&middot;&nbsp;&nbsp;Design&nbsp;&nbsp;&middot;&nbsp;&nbsp;Growth</td>
-        </tr>
+        <tr><td style="font-family:'Figtree',Helvetica,Arial,sans-serif;font-size:9px;font-weight:500;color:#BBBBBB;letter-spacing:3px;text-transform:uppercase;line-height:1.3;">${esc(tagline)}</td></tr>
       </table>
     </td>
-  </tr>
+  </tr>` : ''}
 </table>`
+}

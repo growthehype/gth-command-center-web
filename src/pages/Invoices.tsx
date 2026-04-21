@@ -786,20 +786,47 @@ export default function Invoices() {
       {/* Invoice Records */}
       {filteredInvoices.length > 0 && (
         <div className="space-y-3">
-          {/* Summary bar */}
-          <div className="flex items-center gap-6 px-4 py-3 border border-border bg-surface">
-            <div className="flex items-center gap-2">
-              <DollarSign size={13} className="text-dim" />
-              <span className="text-steel" style={{ fontSize: '12px' }}>Total Outstanding:</span>
-              <span className="text-polar font-[700] mono" style={{ fontSize: '13px' }}>{formatCurrency(totalOutstanding)}</span>
-            </div>
-            {totalOverdue > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-steel" style={{ fontSize: '12px' }}>Overdue:</span>
-                <span className="text-err font-[700] mono" style={{ fontSize: '13px' }}>{formatCurrency(totalOverdue)}</span>
+          {/* Stat cards — at-a-glance AR health */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="card" style={{ padding: '14px 16px' }}>
+              <div className="label text-dim">TOTAL INVOICES</div>
+              <div className="mono text-polar mt-1" style={{ fontSize: '20px', fontWeight: 700 }}>
+                {filteredInvoices.length}
               </div>
-            )}
-            <span className="text-dim" style={{ fontSize: '11px' }}>{filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? 's' : ''}</span>
+              <div className="text-dim mt-0.5" style={{ fontSize: '10.5px' }}>
+                {activeClientName}
+              </div>
+            </div>
+            <div className="card" style={{ padding: '14px 16px' }}>
+              <div className="label text-dim">PAID</div>
+              <div className="mono mt-1" style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-ok)' }}>
+                {formatCurrency(filteredInvoices.filter(i => i.status === 'paid').reduce((s, i) => s + (i.amount || 0), 0))}
+              </div>
+              <div className="text-dim mt-0.5" style={{ fontSize: '10.5px' }}>
+                {filteredInvoices.filter(i => i.status === 'paid').length} collected
+              </div>
+            </div>
+            <div className="card" style={{ padding: '14px 16px' }}>
+              <div className="label text-dim">OUTSTANDING</div>
+              <div className="mono text-polar mt-1" style={{ fontSize: '20px', fontWeight: 700 }}>
+                {formatCurrency(totalOutstanding)}
+              </div>
+              <div className="text-dim mt-0.5" style={{ fontSize: '10.5px' }}>
+                {filteredInvoices.filter(i => i.status !== 'paid').length} unpaid
+              </div>
+            </div>
+            <div className="card" style={{ padding: '14px 16px' }}>
+              <div className="label text-dim">OVERDUE</div>
+              <div
+                className="mono mt-1"
+                style={{ fontSize: '20px', fontWeight: 700, color: totalOverdue > 0 ? 'var(--color-err)' : 'var(--color-dim)' }}
+              >
+                {formatCurrency(totalOverdue)}
+              </div>
+              <div className="text-dim mt-0.5" style={{ fontSize: '10.5px' }}>
+                {filteredInvoices.filter(i => i.status !== 'paid' && i.due_date && new Date(i.due_date) < new Date()).length} past due
+              </div>
+            </div>
           </div>
 
           {/* Invoice table */}

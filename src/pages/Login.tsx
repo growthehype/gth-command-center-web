@@ -57,6 +57,11 @@ export default function Login() {
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const enterDemoMode = useAppStore((s) => s.enterDemoMode)
 
+  // Public signups are disabled. This is an invite-only product — only
+  // admin-provisioned accounts can log in. Visitors use Demo Mode or
+  // request access via the landing page.
+  const SIGNUP_ENABLED = false
+
   const handleForgotPassword = async () => {
     setResetMsg(null)
     setError(null)
@@ -80,6 +85,12 @@ export default function Login() {
     setResetMsg(null)
 
     if (mode === 'signup') {
+      // Safety net: even if somehow the signup UI is shown, the handler refuses.
+      if (!SIGNUP_ENABLED) {
+        setError('Public signup is not available. Try the live demo or request access from growthehype.ca')
+        setLoading(false)
+        return
+      }
       if (password !== confirmPassword) {
         setError('Passwords do not match')
         setLoading(false)
@@ -489,31 +500,47 @@ export default function Login() {
             </button>
           </form>
 
-          {/* Mode switch */}
-          <div className="text-center mt-6">
-            <button
-              type="button"
-              onClick={switchMode}
-              className="text-dim hover:text-polar transition-colors bg-transparent border-none cursor-pointer p-0"
-              style={{ fontSize: '11px', fontWeight: 600 }}
-            >
-              {mode === 'login' ? (
-                <>
-                  Don&apos;t have an account?{' '}
-                  <span className="text-polar" style={{ fontWeight: 700 }}>
-                    Sign Up
-                  </span>
-                </>
-              ) : (
-                <>
-                  Already have an account?{' '}
-                  <span className="text-polar" style={{ fontWeight: 700 }}>
-                    Sign In
-                  </span>
-                </>
-              )}
-            </button>
-          </div>
+          {/* Invite-only messaging — signup replaced with demo / request access */}
+          {SIGNUP_ENABLED ? (
+            <div className="text-center mt-6">
+              <button
+                type="button"
+                onClick={switchMode}
+                className="text-dim hover:text-polar transition-colors bg-transparent border-none cursor-pointer p-0"
+                style={{ fontSize: '11px', fontWeight: 600 }}
+              >
+                {mode === 'login' ? (
+                  <>Don&apos;t have an account? <span className="text-polar" style={{ fontWeight: 700 }}>Sign Up</span></>
+                ) : (
+                  <>Already have an account? <span className="text-polar" style={{ fontWeight: 700 }}>Sign In</span></>
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className="text-center mt-6 space-y-2">
+              <p className="text-dim" style={{ fontSize: '11px' }}>
+                Command Center is invite-only
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => enterDemoMode()}
+                  className="text-polar hover:text-dim transition-colors bg-transparent border-none cursor-pointer p-0"
+                  style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em' }}
+                >
+                  Try Live Demo →
+                </button>
+                <span className="text-dim" style={{ fontSize: '11px' }}>·</span>
+                <a
+                  href="https://growthehype.ca/command-center"
+                  className="text-polar hover:text-dim transition-colors"
+                  style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em' }}
+                >
+                  Request Access →
+                </a>
+              </div>
+            </div>
+          )}
 
           {/* Divider */}
           <div className="relative my-6">

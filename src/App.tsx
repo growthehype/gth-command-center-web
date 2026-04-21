@@ -12,6 +12,8 @@ import ClientPortal from '@/pages/ClientPortal'
 
 // If URL contains ?portal= parameter, render the client portal directly
 const isPortalView = new URLSearchParams(window.location.search).has('portal')
+// Note: ?demo=true is handled by an inline script in index.html that runs
+// before the Zustand store reads localStorage.
 
 export default function App() {
   if (isPortalView) return <ClientPortal />
@@ -62,9 +64,24 @@ export default function App() {
     }
   }, [])
 
+  // White-label: dynamic document title when the tenant has set a company name
+  const companyName = useAppStore((s) => s.settings.company_name)
+  useEffect(() => {
+    if (companyName && !demoMode) {
+      document.title = `${companyName} — Command Center`
+    } else if (demoMode) {
+      document.title = 'Demo — Command Center'
+    } else {
+      document.title = 'Command Center — Grow The Hype'
+    }
+  }, [companyName, demoMode])
+
   // If demo mode is active on mount, load demo data and skip auth
   useEffect(() => {
     if (demoMode) {
+      // DEMO ISOLATION: even if a real Supabase session exists in this
+      // browser, explicitly null the user so no real data can render.
+      setUser(null)
       if (!dataLoadedRef.current) {
         dataLoadedRef.current = true
         loadAllData()
@@ -98,7 +115,7 @@ export default function App() {
       dataLoadedRef.current = true
       // Load tenants first, set context, then load all data
       tenantsApi.getUserTenants()
-        .then((userTenants: any[]) => {
+        .then(async (userTenants: any[]) => {
           if (userTenants.length > 0) {
             // Auto-select first tenant (or last used from localStorage)
             const savedTenantId = localStorage.getItem('gth_current_tenant')
@@ -106,6 +123,12 @@ export default function App() {
             setCurrentTenantId(tenant.tenant_id)
             localStorage.setItem('gth_current_tenant', tenant.tenant_id)
             useAppStore.getState().setCurrentTenant(tenant.tenant_id, tenant.role, tenant.tenant_name)
+          } else {
+            // No tenants (single-tenant / pre-migration schema). Previously this
+            // branch forgot to initialize the scope → all data queries ran with
+            // an empty user_id filter and returned zero rows. Now we initialize
+            // properly so user_id-based filtering works.
+            await initScope()
           }
           return loadAllData()
         })
@@ -124,7 +147,13 @@ export default function App() {
     return (
       <div className="min-h-screen bg-obsidian flex items-center justify-center">
         <div className="text-center">
-          <img src="/icon.png" alt="GTH" className="w-12 h-12 mx-auto mb-3 rounded-lg animate-pulse" />
+          {demoMode ? (
+            <div className="w-12 h-12 mx-auto mb-3 rounded-lg flex items-center justify-center animate-pulse" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
+              <div className="w-6 h-6 rounded" style={{ backgroundColor: 'rgba(255,255,255,0.4)' }} />
+            </div>
+          ) : (
+            <img src="/icon.png" alt="Logo" className="w-12 h-12 mx-auto mb-3 rounded-lg animate-pulse" />
+          )}
           <p className="text-frost text-sm">Loading...</p>
         </div>
       </div>

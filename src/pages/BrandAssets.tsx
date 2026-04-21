@@ -5,8 +5,8 @@ import { showToast } from '@/components/ui/Toast'
 import EmptyState from '@/components/ui/EmptyState'
 import { safeParseJSON } from '@/lib/utils'
 
-const TABS = ['GTH Assets', 'Client Brands', 'Templates'] as const
-type BrandTab = typeof TABS[number]
+const ALL_TABS = ['GTH Assets', 'Client Brands', 'Templates'] as const
+type BrandTab = typeof ALL_TABS[number]
 
 const BRAND_COLORS = [
   { name: 'Obsidian', hex: '#000000' },
@@ -43,8 +43,12 @@ const TEMPLATE_CARDS = [
 ]
 
 export default function BrandAssets() {
-  const { clients } = useAppStore()
-  const [activeTab, setActiveTab] = useState<BrandTab>('GTH Assets')
+  const { clients, demoMode } = useAppStore()
+  // In demo mode, hide agency-specific "GTH Assets" tab
+  const TABS = demoMode
+    ? (['Client Brands', 'Templates'] as const)
+    : ALL_TABS
+  const [activeTab, setActiveTab] = useState<BrandTab>(demoMode ? 'Client Brands' : 'GTH Assets')
 
   return (
     <div className="space-y-6">
@@ -53,7 +57,9 @@ export default function BrandAssets() {
         <div>
           <h1>Brand Assets</h1>
           <p className="text-steel mt-1" style={{ fontSize: '13px' }}>
-            GTH brand system, client brands, and template library
+            {demoMode
+              ? 'Client brands and template library'
+              : 'GTH brand system, client brands, and template library'}
           </p>
         </div>
       </div>

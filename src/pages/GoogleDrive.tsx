@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { HardDrive, Search, RefreshCw, Folder, FileText, Image, Film, FileSpreadsheet, Presentation, File, ExternalLink, ChevronRight, Grid3X3, List, FolderOpen, X, Clock, Home } from 'lucide-react'
 import { isGmailConnected, connectGmail, listDriveFiles, type DriveFile } from '@/lib/gmail'
+import { useAppStore } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import { useDebounce } from '@/hooks/useDebounce'
 import { format, formatDistanceToNow, isToday, isYesterday, isThisYear } from 'date-fns'
@@ -89,6 +90,7 @@ const QUICK_FILTERS = [
 // ── Main Component ──
 
 export default function GoogleDrive() {
+  const demoMode = useAppStore(s => s.demoMode)
   const [connected, setConnected] = useState(isGmailConnected())
   const [files, setFiles] = useState<DriveFile[]>([])
   const [loading, setLoading] = useState(false)
@@ -262,11 +264,21 @@ export default function GoogleDrive() {
     return (
       <div className="max-w-lg mx-auto text-center py-20">
         <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-4"><HardDrive size={28} className="text-emerald-400" /></div>
-        <h1 className="text-polar font-[800] mb-2" style={{ fontSize: '22px' }}>Connect Google Drive</h1>
+        <h1 className="text-polar font-[800] mb-2" style={{ fontSize: '22px' }}>
+          {demoMode ? 'Google Drive Integration' : 'Connect Google Drive'}
+        </h1>
         <p className="text-dim mb-6" style={{ fontSize: '13px', maxWidth: 380, margin: '0 auto' }}>
-          Browse your Google Drive files directly from your CRM. Read-only — we never modify your files.
+          {demoMode
+            ? 'In the full product, browse your Google Drive files directly from the CRM. Read-only — your files are never modified.'
+            : 'Browse your Google Drive files directly from your CRM. Read-only — we never modify your files.'}
         </p>
-        <button onClick={() => connectGmail()} className="btn-primary" style={{ fontSize: '13px', padding: '10px 28px' }}>Connect with Google</button>
+        {demoMode ? (
+          <button disabled className="btn-primary opacity-60 cursor-not-allowed" style={{ fontSize: '13px', padding: '10px 28px' }} title="Available in the full product">
+            Connect with Google (Preview)
+          </button>
+        ) : (
+          <button onClick={() => connectGmail()} className="btn-primary" style={{ fontSize: '13px', padding: '10px 28px' }}>Connect with Google</button>
+        )}
       </div>
     )
   }

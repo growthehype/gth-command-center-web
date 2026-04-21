@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-import { Kanban, Plus, ChevronLeft, ChevronRight, Trash2, Edit3, ArrowRight, ArrowLeft, ExternalLink } from 'lucide-react'
+import { Kanban, Plus, ChevronLeft, ChevronRight, Trash2, Edit3, ArrowRight, ArrowLeft, ExternalLink, Search, X, EyeOff, Eye } from 'lucide-react'
 import { useAppStore, type Project } from '@/lib/store'
 import { projects as projectsApi, shell } from '@/lib/api'
 import Modal from '@/components/ui/Modal'
@@ -91,6 +91,15 @@ export default function Projects() {
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<ColumnKey | null>(null)
 
+  // Filtering state
+  const [search, setSearch] = useState('')
+  const [priorityFilter, setPriorityFilter] = useState<string>('all')
+  const [clientFilter, setClientFilter] = useState<string>('all')
+  const [hideDone, setHideDone] = useState<boolean>(() => {
+    try { return localStorage.getItem('gth_projects_hide_done') === 'true' } catch { return false }
+  })
+  useEffect(() => { localStorage.setItem('gth_projects_hide_done', String(hideDone)) }, [hideDone])
+
   /* ── Task progress per project (by client_id) ── */
   const taskProgress = useMemo(() => {
     const map: Record<string, { total: number; done: number }> = {}
@@ -104,6 +113,30 @@ export default function Projects() {
     return map
   }, [projects, tasks])
 
+  /* ── Filtered project list ── */
+  const filteredProjects = useMemo(() => {
+    let list = projects
+    const q = search.trim().toLowerCase()
+    if (q) {
+      const clientByName = (p: Project) => {
+        const c = clients.find(c => c.id === p.client_id)
+        return (c?.name || '').toLowerCase()
+      }
+      list = list.filter(p =>
+        p.title.toLowerCase().includes(q) ||
+        (p.description || '').toLowerCase().includes(q) ||
+        clientByName(p).includes(q)
+      )
+    }
+    if (priorityFilter !== 'all') {
+      list = list.filter(p => (p.priority || 'none') === priorityFilter)
+    }
+    if (clientFilter !== 'all') {
+      list = list.filter(p => p.client_id === clientFilter)
+    }
+    return list
+  }, [projects, clients, search, priorityFilter, clientFilter])
+
   /* ── Columns data ── */
   const columns = useMemo(() => {
     const map: Record<ColumnKey, Project[]> = {
@@ -112,7 +145,7 @@ export default function Projects() {
       review: [],
       done: [],
     }
-    for (const p of projects) {
+    for (const p of filteredProjects) {
       const key = COLUMNS.includes(p.status as ColumnKey)
         ? (p.status as ColumnKey)
         : (STATUS_ALIAS[p.status] || 'backlog')
@@ -120,6 +153,16 @@ export default function Projects() {
     }
     for (const key of COLUMNS) {
       map[key].sort(sortByPriorityThenDue)
+    }
+    return map
+  }, [filteredProjects])
+
+  // Total unfiltered counts for stats
+  const totalCounts = useMemo(() => {
+    const map: Record<ColumnKey, number> = { backlog: 0, progress: 0, review: 0, done: 0 }
+    for (const p of projects) {
+      const key = COLUMNS.includes(p.status as ColumnKey) ? (p.status as ColumnKey) : (STATUS_ALIAS[p.status] || 'backlog')
+      map[key]++
     }
     return map
   }, [projects])
@@ -534,7 +577,7 @@ export default function Projects() {
 
   /* ── Main render ── */
   return (
-    <div className="space-y-5" style={{ height: 'calc(100vh - 80px)' }}>
+    <div className="space-y-4" style={{ height: 'calc(100vh - 80px)' }}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3"><h1>Projects</h1><Kanban size={14} className="text-dim" /></div>
@@ -544,14 +587,92 @@ export default function Projects() {
         </button>
       </div>
 
+      {/* Filter bar */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[220px] max-w-[340px]">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-dim pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search projects, clients..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-surface border border-border pl-9 pr-8 py-2 text-polar outline-none focus:border-dim"
+            style={{ fontSize: '13px' }}
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-dim hover:text-polar p-1" aria-label="Clear search">
+              <X size={12} />
+            </button>
+          )}
+        </div>
+
+        {/* Priority pills */}
+        <div className="flex items-center gap-1">
+          {(['all', 'urgent', 'high', 'medium', 'low'] as const).map(p => (
+            <button
+              key={p}
+              onClick={() => setPriorityFilter(p)}
+              className={`px-2.5 py-1.5 border transition-colors cursor-pointer capitalize ${
+                priorityFilter === p
+                  ? 'bg-polar text-obsidian border-polar'
+                  : 'bg-transparent text-steel border-border-hard hover:border-dim'
+              }`}
+              style={{ fontSize: '11px', fontWeight: 600 }}
+            >
+              {p === 'all' ? 'All' : p}
+            </button>
+          ))}
+        </div>
+
+        {/* Client filter */}
+        {clients.length > 0 && (
+          <select
+            value={clientFilter}
+            onChange={(e) => setClientFilter(e.target.value)}
+            className="bg-surface border border-border px-2 py-2 text-polar outline-none focus:border-dim cursor-pointer"
+            style={{ fontSize: '12px' }}
+          >
+            <option value="all">All clients</option>
+            {clients.filter(c => c.status === 'active').map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        )}
+
+        {/* Hide done toggle */}
+        <button
+          onClick={() => setHideDone(!hideDone)}
+          className={`flex items-center gap-1.5 px-3 py-2 border transition-colors cursor-pointer ${
+            hideDone ? 'bg-surface-2 text-polar border-border-hard' : 'bg-transparent text-steel border-border-hard hover:border-dim'
+          }`}
+          style={{ fontSize: '11px', fontWeight: 600 }}
+          title={hideDone ? 'Show done column' : 'Hide done column'}
+        >
+          {hideDone ? <EyeOff size={12} /> : <Eye size={12} />}
+          {hideDone ? 'Done hidden' : 'Hide done'}
+        </button>
+
+        {/* Clear filters */}
+        {(search || priorityFilter !== 'all' || clientFilter !== 'all') && (
+          <button
+            onClick={() => { setSearch(''); setPriorityFilter('all'); setClientFilter('all') }}
+            className="btn-ghost text-dim hover:text-polar"
+            style={{ fontSize: '11px', padding: '6px 12px' }}
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
+
       {/* Kanban board */}
       <div
         className="flex gap-4 overflow-x-auto -mx-3 px-3 md:mx-0 md:px-0 pb-4"
         style={{
-          height: 'calc(100% - 60px)',
+          height: 'calc(100% - 120px)',
         }}
       >
-        {COLUMNS.map(colKey => {
+        {COLUMNS.filter(colKey => !(hideDone && colKey === 'done')).map(colKey => {
           const items = columns[colKey]
           const isDone = colKey === 'done'
           const isDropping = dropTarget === colKey

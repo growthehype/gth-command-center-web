@@ -12,10 +12,13 @@ const SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',
 ].join(' ')
 
-const PRODUCTION_URL = 'https://gth-command-center-web-ljda.vercel.app'
+// Hardcoded production URL. Previously this read from process.env.APP_URL
+// which kept getting out of sync with the actual deploy. Hardcoding removes
+// one moving part — OAuth always redirects to the real production domain.
+const PRODUCTION_URL = 'https://app.growthehype.ca'
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
-  const origin = process.env.APP_URL || PRODUCTION_URL
+  const origin = PRODUCTION_URL
   const returnPage = (req.query.returnPage as string) || ''
 
   const redirectUri = `${origin}/api/google-callback`

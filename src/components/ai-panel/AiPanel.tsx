@@ -1,6 +1,17 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAppStore } from '@/lib/store'
-import { tasks as tasksApi, projects as projectsApi, invoices as invoicesApi, activity as activityApi, timeEntries as timeEntriesApi } from '@/lib/api'
+import {
+  tasks as tasksApi,
+  projects as projectsApi,
+  invoices as invoicesApi,
+  activity as activityApi,
+  timeEntries as timeEntriesApi,
+  clients as clientsApi,
+  contacts as contactsApi,
+  outreach as outreachApi,
+  notes as notesApi,
+} from '@/lib/api'
+import { sendEmail as gmailSend, isGmailConnected } from '@/lib/gmail'
 import { createGoogleEvent, isGoogleConnected } from '@/lib/google-calendar'
 import { supabase } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
@@ -156,6 +167,140 @@ const tools = [
       required: [],
     },
   },
+  // ─── Clients CRUD ───
+  {
+    name: 'create_client',
+    description: 'Create a new client in the CRM. Use this when the user asks to add a client, customer, or account.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string', description: 'Client business name (required)' },
+        email: { type: 'string', description: 'Primary email (optional)' },
+        phone: { type: 'string', description: 'Phone number (optional)' },
+        service: { type: 'string', description: 'Service offering, e.g. "Paid Media", "Web Design"' },
+        mrr: { type: 'number', description: 'Monthly recurring revenue in dollars' },
+        status: { type: 'string', enum: ['active', 'paused', 'churned', 'prospect'], description: 'Client status (default: active)' },
+        notes: { type: 'string', description: 'Any notes about the client' },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name: 'update_client',
+    description: 'Update an existing client. Use this to change a client\'s name, email, MRR, status, notes, etc.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        client_id: { type: 'string', description: 'The client ID to update' },
+        name: { type: 'string' },
+        email: { type: 'string' },
+        phone: { type: 'string' },
+        service: { type: 'string' },
+        mrr: { type: 'number' },
+        status: { type: 'string', enum: ['active', 'paused', 'churned', 'prospect'] },
+        notes: { type: 'string' },
+      },
+      required: ['client_id'],
+    },
+  },
+  // ─── Contacts ───
+  {
+    name: 'create_contact',
+    description: 'Create a new contact (person) in the CRM, optionally linked to a client.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string', description: 'Full name' },
+        email: { type: 'string' },
+        phone: { type: 'string' },
+        role: { type: 'string', description: 'Job title / role' },
+        client_id: { type: 'string', description: 'Link to a client (optional)' },
+        is_primary: { type: 'boolean', description: 'Is this the primary contact for the client?' },
+        notes: { type: 'string' },
+      },
+      required: ['name'],
+    },
+  },
+  // ─── Leads (Outreach) ───
+  {
+    name: 'create_lead',
+    description: 'Add a new sales lead to the outreach pipeline.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string', description: 'Lead name / business name' },
+        email: { type: 'string' },
+        phone: { type: 'string' },
+        stage: { type: 'string', enum: ['Prospect', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost'] },
+        deal_value: { type: 'number', description: 'Potential deal size in dollars' },
+        source: { type: 'string', description: 'Where the lead came from' },
+        next_follow_up: { type: 'string', description: 'Next follow-up date YYYY-MM-DD' },
+        notes: { type: 'string' },
+      },
+      required: ['name'],
+    },
+  },
+  // ─── Tasks update ───
+  {
+    name: 'update_task',
+    description: 'Update an existing task (priority, due date, description, etc.).',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        task_id: { type: 'string', description: 'Task ID to update' },
+        text: { type: 'string' },
+        priority: { type: 'string', enum: ['urgent', 'high', 'medium', 'low'] },
+        due_date: { type: 'string' },
+        description: { type: 'string' },
+      },
+      required: ['task_id'],
+    },
+  },
+  // ─── Projects update ───
+  {
+    name: 'update_project',
+    description: 'Update a project (status, priority, description, due date, etc.).',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        project_id: { type: 'string', description: 'Project ID to update' },
+        title: { type: 'string' },
+        description: { type: 'string' },
+        status: { type: 'string', enum: ['backlog', 'progress', 'review', 'done'] },
+        priority: { type: 'string', enum: ['urgent', 'high', 'medium', 'low'] },
+        due_date: { type: 'string' },
+      },
+      required: ['project_id'],
+    },
+  },
+  // ─── Notes ───
+  {
+    name: 'create_note',
+    description: 'Create a standalone note, optionally attached to a client or project.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        title: { type: 'string', description: 'Note title' },
+        content: { type: 'string', description: 'Note body (markdown OK)' },
+        client_id: { type: 'string', description: 'Link to a client (optional)' },
+      },
+      required: ['content'],
+    },
+  },
+  // ─── Gmail send ───
+  {
+    name: 'send_email',
+    description: 'Send an email via the user\'s connected Gmail. Always confirm with user before sending.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        to: { type: 'string', description: 'Recipient email address' },
+        subject: { type: 'string', description: 'Email subject' },
+        body: { type: 'string', description: 'Email body (plain text or simple HTML)' },
+      },
+      required: ['to', 'subject', 'body'],
+    },
+  },
 ]
 
 // -- Tool executor --
@@ -279,6 +424,140 @@ async function executeTool(name: string, input: any): Promise<string> {
       await store.refreshRunningTimer()
       return JSON.stringify({ success: true, message: 'Timer stopped' })
     }
+
+    // ─── Clients ───
+    case 'create_client': {
+      try {
+        const client = await clientsApi.create({
+          name: input.name,
+          email: input.email || null,
+          phone: input.phone || null,
+          service: input.service || null,
+          mrr: input.mrr || 0,
+          status: input.status || 'active',
+          notes: input.notes || null,
+        })
+        await store.refreshClients()
+        return JSON.stringify({ success: true, client_id: client.id, message: `Client "${input.name}" created` })
+      } catch (err: any) {
+        return JSON.stringify({ success: false, error: err.message || 'Failed to create client' })
+      }
+    }
+    case 'update_client': {
+      try {
+        const patch: any = {}
+        for (const k of ['name', 'email', 'phone', 'service', 'mrr', 'status', 'notes']) {
+          if (input[k] !== undefined) patch[k] = input[k]
+        }
+        await clientsApi.update(input.client_id, patch)
+        await store.refreshClients()
+        return JSON.stringify({ success: true, message: 'Client updated' })
+      } catch (err: any) {
+        return JSON.stringify({ success: false, error: err.message || 'Failed to update client' })
+      }
+    }
+
+    // ─── Contacts ───
+    case 'create_contact': {
+      try {
+        const contact = await contactsApi.create({
+          name: input.name,
+          email: input.email || null,
+          phone: input.phone || null,
+          role: input.role || null,
+          client_id: input.client_id || null,
+          is_primary: input.is_primary ? 1 : 0,
+          notes: input.notes || null,
+        })
+        await store.refreshContacts()
+        return JSON.stringify({ success: true, contact_id: contact.id, message: `Contact "${input.name}" created` })
+      } catch (err: any) {
+        return JSON.stringify({ success: false, error: err.message || 'Failed to create contact' })
+      }
+    }
+
+    // ─── Leads (Outreach) ───
+    case 'create_lead': {
+      try {
+        const lead = await outreachApi.create({
+          name: input.name,
+          email: input.email || null,
+          phone: input.phone || null,
+          stage: input.stage || 'Prospect',
+          deal_value: input.deal_value || null,
+          source: input.source || null,
+          next_follow_up: input.next_follow_up || null,
+          notes: input.notes || null,
+        })
+        await store.refreshLeads()
+        return JSON.stringify({ success: true, lead_id: lead.id, message: `Lead "${input.name}" added to pipeline` })
+      } catch (err: any) {
+        return JSON.stringify({ success: false, error: err.message || 'Failed to create lead' })
+      }
+    }
+
+    // ─── Tasks update ───
+    case 'update_task': {
+      try {
+        const patch: any = {}
+        for (const k of ['text', 'priority', 'due_date', 'description']) {
+          if (input[k] !== undefined) patch[k] = input[k]
+        }
+        await tasksApi.update(input.task_id, patch)
+        await store.refreshTasks()
+        return JSON.stringify({ success: true, message: 'Task updated' })
+      } catch (err: any) {
+        return JSON.stringify({ success: false, error: err.message || 'Failed to update task' })
+      }
+    }
+
+    // ─── Projects update ───
+    case 'update_project': {
+      try {
+        const patch: any = {}
+        for (const k of ['title', 'description', 'status', 'priority', 'due_date']) {
+          if (input[k] !== undefined) patch[k] = input[k]
+        }
+        await projectsApi.update(input.project_id, patch)
+        await store.refreshProjects()
+        return JSON.stringify({ success: true, message: 'Project updated' })
+      } catch (err: any) {
+        return JSON.stringify({ success: false, error: err.message || 'Failed to update project' })
+      }
+    }
+
+    // ─── Notes ───
+    case 'create_note': {
+      try {
+        const note = await notesApi.create({
+          title: input.title || 'Untitled',
+          content: input.content,
+          client_id: input.client_id || null,
+        })
+        await store.refreshNotes?.()
+        return JSON.stringify({ success: true, note_id: note.id, message: 'Note created' })
+      } catch (err: any) {
+        return JSON.stringify({ success: false, error: err.message || 'Failed to create note' })
+      }
+    }
+
+    // ─── Gmail send ───
+    case 'send_email': {
+      try {
+        if (!isGmailConnected()) {
+          return JSON.stringify({ success: false, error: 'Gmail not connected. Ask the user to reconnect Gmail first.' })
+        }
+        await gmailSend({
+          to: input.to,
+          subject: input.subject,
+          body: input.body,
+        })
+        return JSON.stringify({ success: true, message: `Email sent to ${input.to}` })
+      } catch (err: any) {
+        return JSON.stringify({ success: false, error: err.message || 'Failed to send email' })
+      }
+    }
+
     default:
       return JSON.stringify({ error: `Unknown tool: ${name}` })
   }
