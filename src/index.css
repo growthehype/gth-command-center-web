@@ -816,13 +816,15 @@
 .sidebar-nav-item {
   transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease !important;
 }
-.sidebar-nav-item:hover {
-  transform: translateX(2px);
-}
+@media (hover: hover) {
+  .sidebar-nav-item:hover {
+    transform: translateX(2px);
+  }
 
-/* Icon glow on hover */
-.sidebar-nav-item:hover .sidebar-nav-icon {
-  filter: drop-shadow(0 0 3px rgba(37, 99, 235, 0.35));
+  /* Icon glow on hover */
+  .sidebar-nav-item:hover .sidebar-nav-icon {
+    filter: drop-shadow(0 0 3px rgba(37, 99, 235, 0.35));
+  }
 }
 
 /* Active item — left accent bar via ::before */
