@@ -53,7 +53,7 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
       </button>
       {/* Logo + wordmark */}
       <div className="flex items-center gap-2.5">
-        <img src="./icon.png" alt="GTH" className="w-[26px] h-[26px]" draggable={false} style={{ filter: 'invert(1)', mixBlendMode: 'screen' }} />
+        <img src="./icon.png" alt="GTH" className="w-[26px] h-[26px]" draggable={false} />
         <span
           className="font-sans font-[800] uppercase hidden md:inline"
           style={{ fontSize: '14px', letterSpacing: '0.12em', color: '#FFFFFF' }}
