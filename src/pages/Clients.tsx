@@ -1,10 +1,11 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import StatusMenu from '@/components/ui/StatusMenu'
 import { CLIENT_STATUS_OPTIONS } from '@/lib/statuses'
 import { useDebounce } from '@/hooks/useDebounce'
 import { usePagination } from '@/hooks/usePagination'
 import PaginationBar from '@/components/ui/PaginationBar'
-import { Building2, Plus, Search, ChevronUp, ChevronDown, ExternalLink, Globe, Edit3, Trash2, Eye, RefreshCw, Download, Upload, File, FileText, Image } from 'lucide-react'
+import { X, Building2, Plus, Search, ChevronUp, ChevronDown, ExternalLink, Globe, Edit3, Trash2, Eye, RefreshCw, Download, Upload, File, FileText, Image } from 'lucide-react'
 import { useAppStore, Client } from '@/lib/store'
 import { clients as clientsApi, contacts as contactsApi, shell, clientFiles } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
@@ -456,7 +457,7 @@ export default function Clients() {
                         )}
                       </td>
                       <td className="py-2.5 px-3 text-steel">{c.service || '\u2014'}</td>
-                      <td className="py-2.5 px-3 mono">{c.retainer || formatCurrency(c.mrr)}</td>
+                      <td className="py-2.5 px-3 mono">{displayMrr(c)}</td>
                       <td className="py-2.5 px-3">
                         <StatusMenu
                           label={`${c.name} status`}
@@ -547,8 +548,10 @@ export default function Clients() {
             noun="clients"
           />
 
-          {/* Client Detail Drawer */}
-          {selectedClient && (
+          {/* Client window: opens over the list, closes only from the X */}
+          {selectedClient && createPortal(
+            <div className="cw-overlay" role="dialog" aria-modal="true" aria-label={selectedClient.name}>
+            <div className="cw-window">
             <ClientDrawer
               client={selectedClient}
               tab={drawerTab}
@@ -568,6 +571,9 @@ export default function Clients() {
               refreshContacts={refreshContacts}
               refreshActivity={refreshActivity}
             />
+            </div>
+            </div>,
+            document.body,
           )}
         </>
       )}
@@ -745,15 +751,23 @@ function ClientDrawer({
   const health = clientHealth(days)
 
   return (
-    <div className="card mt-0 border-t-2" style={{ borderTopColor: health.color }}>
-      {/* Drawer header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <Building2 size={16} className="text-steel" />
-          <h2 className="text-polar" style={{ fontSize: '17px' }}>{client.name}</h2>
+    <div className="cw-inner">
+      {/* Window header */}
+      <div className="cw-head">
+        <div className="flex items-center gap-3 min-w-0">
+          <ClientAvatar name={client.name} size="md" />
+          <div className="min-w-0">
+            <h2 className="text-polar truncate" style={{ fontSize: '21px' }}>{client.name}</h2>
+            <p className="cw-health"><span className="cw-health-dot" style={{ background: health.color }} />{health.label}{client.last_activity ? ` · last activity ${relativeDate(client.last_activity)}` : ''}</p>
+          </div>
           <StatusMenu label={`${client.name} status`} value={client.status} options={CLIENT_STATUS_OPTIONS} onChange={onStatus} />
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          {client.website && (
+            <button onClick={() => shell.openExternal(client.website!)} className="btn-ghost" style={{ fontSize: '10.5px', padding: '4px 10px' }} title={client.website}>
+              <ExternalLink size={11} /> Website
+            </button>
+          )}
           <button onClick={onEdit} className="btn-ghost" style={{ fontSize: '10.5px', padding: '4px 10px' }}>Edit</button>
           <button
             onClick={() => onDelete()}
@@ -762,14 +776,14 @@ function ClientDrawer({
           >
             Delete
           </button>
-          <button onClick={onClose} className="text-dim hover:text-steel ml-2 cursor-pointer" style={{ fontSize: '13px' }}>
-            Close
+          <button onClick={onClose} className="modal-close-btn cursor-pointer ml-1" aria-label="Close client window">
+            <X size={16} />
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-0 border-b border-border mb-4 overflow-x-auto">
+      <div className="cw-tabs flex gap-0 border-b border-border mb-4 overflow-x-auto">
         {DRAWER_TABS.map(t => (
           <button
             key={t}
@@ -790,6 +804,7 @@ function ClientDrawer({
         {tab === 'Overview' && (
           <OverviewTab
             client={client}
+            refreshClients={refreshClients}
             invoices={invoices}
             timeEntries={timeEntries}
             health={health}
@@ -823,14 +838,112 @@ function ClientDrawer({
 }
 
 /* ========================================
+   INLINE EDITING
+   ======================================== */
+
+const PLATFORM_PRESETS = [
+  'Custom HTML', 'Website/Netlify', 'WordPress', 'Shopify', 'Webflow', 'Wix', 'Squarespace',
+  'D2C Media', 'Meta', 'Google Ads', 'Google Business', 'TikTok', 'All Digital Marketing',
+]
+
+function uniqueOptions(list: (string | null | undefined)[]): string[] {
+  const seen = new Map<string, string>()
+  list.forEach(v => {
+    const t = (v || '').trim()
+    if (t && !seen.has(t.toLowerCase())) seen.set(t.toLowerCase(), t)
+  })
+  return [...seen.values()].sort((a, b) => a.localeCompare(b))
+}
+
+function displayMrr(c: Client): string {
+  if (c.mrr && c.mrr > 0) return formatCurrency(c.mrr)
+  const r = (c.retainer || '').trim()
+  if (/^\$?\s*[\d,]+(\.\d+)?$/.test(r)) return formatCurrency(parseFloat(r.replace(/[$,\s]/g, '')))
+  return r || '\u2014'
+}
+
+/** A field that reads as text and turns into an input when clicked. Enter saves, Esc cancels. */
+function EditableRow({ label, value, onSave, options, placeholder, type = 'text', display }: {
+  label: string
+  value: string | null | undefined
+  onSave: (v: string) => void | Promise<void>
+  options?: string[]
+  placeholder?: string
+  type?: 'text' | 'email' | 'tel' | 'url' | 'money'
+  display?: React.ReactNode
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value ?? '')
+  const listId = useMemo(() => `opts-${label.replace(/\s+/g, '-').toLowerCase()}-${Math.random().toString(36).slice(2, 7)}`, [label])
+  useEffect(() => { if (!editing) setDraft(value ?? '') }, [value, editing])
+
+  const commit = async () => {
+    setEditing(false)
+    if ((draft ?? '').trim() !== (value ?? '').trim()) await onSave(draft.trim())
+  }
+
+  return (
+    <div className="cw-field">
+      <span className="cw-field-label">{label}</span>
+      {editing ? (
+        <div className="cw-field-edit">
+          <input
+            autoFocus
+            type={type === 'money' ? 'text' : type}
+            inputMode={type === 'money' ? 'decimal' : undefined}
+            value={draft}
+            list={options ? listId : undefined}
+            placeholder={placeholder}
+            onChange={e => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={e => {
+              if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur() }
+              if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setDraft(value ?? ''); setEditing(false) }
+            }}
+            className="cw-input"
+          />
+          {options && (
+            <datalist id={listId}>
+              {options.map(o => <option key={o} value={o} />)}
+            </datalist>
+          )}
+        </div>
+      ) : (
+        <button className="cw-field-value" onClick={() => setEditing(true)} title={`Edit ${label.toLowerCase()}`}>
+          <span className={value ? '' : 'cw-field-empty'}>{display ?? (value || `Add ${label.toLowerCase()}`)}</span>
+          <Edit3 size={12} className="cw-field-pencil" />
+        </button>
+      )}
+    </div>
+  )
+}
+
+/* ========================================
    TAB: OVERVIEW
    ======================================== */
 
 function OverviewTab({
-  client, invoices, timeEntries, health, days,
+  client, invoices, timeEntries, health, days, refreshClients,
 }: {
   client: Client; invoices: any[]; timeEntries: any[]; health: { color: string; label: string }; days: number
+  refreshClients: () => Promise<void>
 }) {
+  const { clients: allClients, services } = useAppStore()
+  const saveField = async (field: keyof Client, value: string | number | null) => {
+    if ((client[field] ?? '') === (value ?? '')) return
+    try {
+      await clientsApi.update(client.id, { [field]: value })
+      await refreshClients()
+      showToast('Saved', 'success')
+    } catch (err: any) {
+      showToast(err?.message || 'Could not save that change', 'error')
+    }
+  }
+  const platformOptions = useMemo(() => uniqueOptions([...PLATFORM_PRESETS, ...allClients.map(c => c.platform)]), [allClients])
+  const serviceOptions = useMemo(
+    () => uniqueOptions([...(services || []).map((s: any) => s.name), ...allClients.map(c => c.service)]),
+    [allClients, services],
+  )
   const colors = safeParseJSON<string[]>(client.colors, [])
   const lifetimeRevenue = useMemo(() =>
     invoices
@@ -848,34 +961,22 @@ function OverviewTab({
   )
 
   const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
-    <div className="flex items-start gap-4 py-2 border-b border-border">
-      <span className="label text-dim w-32 shrink-0 pt-0.5">{label}</span>
-      <span className="text-polar" style={{ fontSize: '13px' }}>{value || '\u2014'}</span>
+    <div className="cw-field">
+      <span className="cw-field-label">{label}</span>
+      <span className="cw-field-static">{value || '\u2014'}</span>
     </div>
   )
 
   return (
-    <div className="space-y-1">
-      <Row label="Service" value={client.service} />
-      <Row label="Retainer" value={client.retainer} />
-      <Row label="Platform" value={client.platform} />
-      <Row label="Primary Contact" value={client.contact} />
-      <Row
-        label="Website"
-        value={
-          client.website ? (
-            <button
-              onClick={() => shell.openExternal(client.website!)}
-              className="inline-flex items-center gap-1 bg-surface border border-border px-2 py-0.5 text-steel hover:text-polar hover:border-dim transition-colors cursor-pointer"
-              style={{ fontSize: '10.5px', borderRadius: '3px' }}
-              title={client.website}
-            >
-              <ExternalLink size={9} />
-              {(() => { try { return new URL(client.website!).hostname.replace('www.', '') } catch { return client.website } })()}
-            </button>
-          ) : null
-        }
-      />
+    <div>
+      <EditableRow label="Service" value={client.service} options={serviceOptions} placeholder="e.g. Website Development" onSave={v => saveField('service', v || null)} />
+      <EditableRow label="MRR" value={client.mrr ? String(client.mrr) : ''} type="money" placeholder="0" display={client.mrr ? formatCurrency(client.mrr) : null} onSave={v => saveField('mrr', Number(String(v).replace(/[$,\s]/g, '')) || 0)} />
+      <EditableRow label="Retainer" value={client.retainer} placeholder="e.g. $2,500 / month" onSave={v => saveField('retainer', v || null)} />
+      <EditableRow label="Platform" value={client.platform} options={platformOptions} placeholder="Pick or type a platform" onSave={v => saveField('platform', v || null)} />
+      <EditableRow label="Primary contact" value={client.contact} placeholder="Name" onSave={v => saveField('contact', v || null)} />
+      <EditableRow label="Email" value={client.email} type="email" placeholder="name@company.com" onSave={v => saveField('email', v || null)} />
+      <EditableRow label="Phone" value={client.phone} type="tel" placeholder="(780) 000-0000" onSave={v => saveField('phone', v || null)} />
+      <EditableRow label="Website" value={client.website} type="url" placeholder="https://" onSave={v => saveField('website', v ? (/^https?:\/\//.test(v) ? v : `https://${v}`) : null)} />
       <Row
         label="Brand Colors"
         value={
