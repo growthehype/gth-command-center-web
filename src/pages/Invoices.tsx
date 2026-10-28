@@ -789,7 +789,7 @@ export default function Invoices() {
             <h1>Invoices</h1>
             <Receipt size={14} className="text-dim" />
           </div>
-          <p className="text-steel mt-1" style={{ fontSize: '13px' }}>
+          <p className="text-steel mt-1" style={{ fontSize: '14px' }}>
             {files.length} invoice{files.length !== 1 ? 's' : ''} across {clientsWithFiles.length} client{clientsWithFiles.length !== 1 ? 's' : ''}
           </p>
         </div>
@@ -803,7 +803,7 @@ export default function Invoices() {
               placeholder="Search invoices..."
               aria-label="Search invoices"
               className="bg-cell border border-border text-polar pl-8 pr-3 py-1.5 font-sans outline-none focus:border-dim transition-colors w-full md:w-[200px]"
-              style={{ fontSize: '12px' }}
+              style={{ fontSize: '13px' }}
             />
           </div>
           <button
@@ -859,10 +859,10 @@ export default function Invoices() {
               ? 'text-polar border-polar'
               : 'text-dim border-transparent hover:text-steel'
           }`}
-          style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}
+          style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}
         >
           All
-          <span className="ml-1.5 mono" style={{ fontSize: '10px', opacity: 0.5 }}>
+          <span className="ml-1.5 mono" style={{ fontSize: '10.5px', opacity: 0.5 }}>
             {files.length}
           </span>
         </button>
@@ -876,11 +876,11 @@ export default function Invoices() {
                 ? 'text-polar border-polar'
                 : 'text-dim border-transparent hover:text-steel'
             }`}
-            style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}
+            style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}
           >
             {client.name}
             {(countByClient[client.id] ?? 0) > 0 && (
-              <span className="ml-1.5 mono" style={{ fontSize: '10px', opacity: 0.5 }}>
+              <span className="ml-1.5 mono" style={{ fontSize: '10.5px', opacity: 0.5 }}>
                 {countByClient[client.id]}
               </span>
             )}
@@ -914,7 +914,7 @@ export default function Invoices() {
 
       {clientInvoices.length > 0 && filteredInvoices.length === 0 && (
         <div className="card text-center" style={{ padding: '28px 16px' }}>
-          <p className="text-steel" style={{ fontSize: '13px' }}>No invoices match this filter.</p>
+          <p className="text-steel" style={{ fontSize: '14px' }}>No invoices match this filter.</p>
           <button className="btn-ghost mt-3" onClick={() => setStatusFilter('all')}>Show all invoices</button>
         </div>
       )}
@@ -926,28 +926,28 @@ export default function Invoices() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="card" style={{ padding: '14px 16px' }}>
               <div className="label text-dim">TOTAL INVOICES</div>
-              <div className="mono text-polar mt-1" style={{ fontSize: '20px', fontWeight: 700 }}>
+              <div className="mono text-polar mt-1" style={{ fontSize: '21.5px', fontWeight: 700 }}>
                 {filteredInvoices.length}
               </div>
-              <div className="text-dim mt-0.5" style={{ fontSize: '10.5px' }}>
+              <div className="text-dim mt-0.5" style={{ fontSize: '11px' }}>
                 {activeClientName}
               </div>
             </div>
             <div className="card" style={{ padding: '14px 16px' }}>
               <div className="label text-dim">PAID</div>
-              <div className="mono mt-1" style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-ok)' }}>
+              <div className="mono mt-1" style={{ fontSize: '21.5px', fontWeight: 700, color: 'var(--color-ok)' }}>
                 {formatCurrency(filteredInvoices.filter(i => i.status === 'paid').reduce((s, i) => s + (i.amount || 0), 0))}
               </div>
-              <div className="text-dim mt-0.5" style={{ fontSize: '10.5px' }}>
+              <div className="text-dim mt-0.5" style={{ fontSize: '11px' }}>
                 {filteredInvoices.filter(i => i.status === 'paid').length} collected
               </div>
             </div>
             <div className="card" style={{ padding: '14px 16px' }}>
               <div className="label text-dim">OUTSTANDING</div>
-              <div className="mono text-polar mt-1" style={{ fontSize: '20px', fontWeight: 700 }}>
+              <div className="mono text-polar mt-1" style={{ fontSize: '21.5px', fontWeight: 700 }}>
                 {formatCurrency(totalOutstanding)}
               </div>
-              <div className="text-dim mt-0.5" style={{ fontSize: '10.5px' }}>
+              <div className="text-dim mt-0.5" style={{ fontSize: '11px' }}>
                 {filteredInvoices.filter(i => i.status !== 'paid').length} unpaid
               </div>
             </div>
@@ -955,11 +955,11 @@ export default function Invoices() {
               <div className="label text-dim">OVERDUE</div>
               <div
                 className="mono mt-1"
-                style={{ fontSize: '20px', fontWeight: 700, color: totalOverdue > 0 ? 'var(--color-err)' : 'var(--color-dim)' }}
+                style={{ fontSize: '21.5px', fontWeight: 700, color: totalOverdue > 0 ? 'var(--color-err)' : 'var(--color-dim)' }}
               >
                 {formatCurrency(totalOverdue)}
               </div>
-              <div className="text-dim mt-0.5" style={{ fontSize: '10.5px' }}>
+              <div className="text-dim mt-0.5" style={{ fontSize: '11px' }}>
                 {filteredInvoices.filter(i => i.status !== 'paid' && i.due_date && new Date(i.due_date) < new Date()).length} past due
               </div>
             </div>
@@ -990,7 +990,7 @@ export default function Invoices() {
                   onClick={() => openEditInvoice(inv)}
                 >
                   <td className="px-4 py-3">
-                    <span className="text-polar font-[600] mono" style={{ fontSize: '13px' }}>
+                    <span className="text-polar font-[600] mono" style={{ fontSize: '14px' }}>
                       {inv.num || '---'}
                     </span>
                   </td>
@@ -998,20 +998,20 @@ export default function Invoices() {
                     {inv.client_id ? (
                       <button
                         className="text-steel hover:text-polar hover:underline underline-offset-4 truncate block text-left"
-                        style={{ fontSize: '12px', maxWidth: '100%' }}
+                        style={{ fontSize: '13px', maxWidth: '100%' }}
                         onClick={(e) => { e.stopPropagation(); openClient(inv.client_id) }}
                         title="Open client"
                       >
                         {inv.client_name || 'Client'}
                       </button>
                     ) : (
-                      <span className="text-steel truncate block" style={{ fontSize: '12px' }}>
+                      <span className="text-steel truncate block" style={{ fontSize: '13px' }}>
                         {inv.client_name || '---'}
                       </span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className="text-polar font-[600] mono" style={{ fontSize: '13px' }}>
+                    <span className="text-polar font-[600] mono" style={{ fontSize: '14px' }}>
                       {formatCurrency(inv.amount || 0)}
                     </span>
                   </td>
@@ -1025,12 +1025,12 @@ export default function Invoices() {
                     />
                   </td>
                   <td className="px-4 py-3">
-                    <span className="mono text-dim" style={{ fontSize: '12px' }}>
+                    <span className="mono text-dim" style={{ fontSize: '13px' }}>
                       {inv.due_date ? formatDate(inv.due_date, 'MMM d, yyyy') : '---'}
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-dim truncate block" style={{ fontSize: '11px' }}>
+                    <span className="text-dim truncate block" style={{ fontSize: '11.5px' }}>
                       {displayMemo(inv.notes)}
                     </span>
                   </td>
@@ -1117,7 +1117,7 @@ export default function Invoices() {
             style={{ top: statusDropdownPos.top, left: statusDropdownPos.left, minWidth: '150px', borderRadius: '6px' }}
           >
             <div className="px-3 pb-1.5 mb-1 border-b border-border">
-              <span className="label text-dim" style={{ fontSize: '9px' }}>CHANGE STATUS</span>
+              <span className="label text-dim" style={{ fontSize: '9.5px' }}>CHANGE STATUS</span>
             </div>
             {(['draft', 'sent', 'paid', 'overdue'] as const).map(status => {
               const inv = invoices.find(i => i.id === statusDropdownId)
@@ -1142,7 +1142,7 @@ export default function Invoices() {
                   className={`w-full text-left px-3 py-2 transition-colors flex items-center gap-2.5 ${
                     isActive ? 'text-polar font-[600] bg-border/30' : 'text-steel hover:bg-border/20'
                   }`}
-                  style={{ fontSize: '12px' }}
+                  style={{ fontSize: '13px' }}
                 >
                   <span className={`inline-block w-2.5 h-2.5 rounded-full flex-shrink-0 ${
                     status === 'paid' ? 'bg-ok' : status === 'sent' ? 'bg-warn' : status === 'overdue' ? 'bg-err' : 'bg-dim'
@@ -1179,10 +1179,10 @@ export default function Invoices() {
           }`}
         >
           <FolderOpen size={32} className="text-dim mb-3" />
-          <p className="text-polar font-[700]" style={{ fontSize: '14px' }}>
+          <p className="text-polar font-[700]" style={{ fontSize: '15px' }}>
             {activeClient === 'all' ? 'No invoices uploaded yet' : `No invoices for ${activeClientName}`}
           </p>
-          <p className="text-dim mt-1" style={{ fontSize: '12px' }}>
+          <p className="text-dim mt-1" style={{ fontSize: '13px' }}>
             {activeClient === 'all'
               ? 'Select a client tab, then upload invoice files'
               : 'Click to upload or drag files here'}
@@ -1230,14 +1230,14 @@ export default function Invoices() {
                         onBlur={submitRename}
                         onClick={e => e.stopPropagation()}
                         className="w-full bg-surface border border-border px-2 py-1 text-polar focus:outline-none focus:border-dim"
-                        style={{ fontSize: '13px' }}
+                        style={{ fontSize: '14px' }}
                       />
                     ) : (
-                      <span className="text-polar font-[600] truncate" style={{ fontSize: '13px' }}>{doc.name}</span>
+                      <span className="text-polar font-[600] truncate" style={{ fontSize: '14px' }}>{doc.name}</span>
                     )}
                   </div>
                   {activeClient === 'all' && (
-                    <span className="col-span-2 text-steel truncate" style={{ fontSize: '12px' }}>
+                    <span className="col-span-2 text-steel truncate" style={{ fontSize: '13px' }}>
                       {doc.client_name || '---'}
                     </span>
                   )}
@@ -1267,7 +1267,7 @@ export default function Invoices() {
       {dragOver && visible.length > 0 && (
         <div className="border-2 border-dashed border-polar bg-surface py-6 flex flex-col items-center justify-center transition-all">
           <Upload size={20} className="text-polar mb-2" />
-          <p className="text-polar font-[600]" style={{ fontSize: '12px' }}>
+          <p className="text-polar font-[600]" style={{ fontSize: '13px' }}>
             Drop files to upload to {activeClientName}
           </p>
         </div>
@@ -1287,20 +1287,20 @@ export default function Invoices() {
           {/* From / To */}
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2.5">
-              <span className="label" style={{ color: '#000', fontWeight: 800, fontSize: '10px', letterSpacing: '0.1em' }}>FROM</span>
+              <span className="label" style={{ color: '#000', fontWeight: 800, fontSize: '10.5px', letterSpacing: '0.1em' }}>FROM</span>
               <input
                 value={builderFromName}
                 onChange={e => setBuilderFromName(e.target.value)}
                 placeholder="Company name"
                 className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               />
               <input
                 value={builderFromEmail}
                 onChange={e => setBuilderFromEmail(e.target.value)}
                 placeholder="Email"
                 className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               />
               <div className="grid grid-cols-2 gap-2">
                 <input
@@ -1308,14 +1308,14 @@ export default function Invoices() {
                   onChange={e => setBuilderFromPhone(e.target.value)}
                   placeholder="Phone (optional)"
                   className="w-full bg-cell border border-border text-polar px-3 py-1.5 font-sans outline-none focus:border-dim transition-colors"
-                  style={{ fontSize: '11px' }}
+                  style={{ fontSize: '11.5px' }}
                 />
                 <input
                   value={builderFromWebsite}
                   onChange={e => setBuilderFromWebsite(e.target.value)}
                   placeholder="Website (optional)"
                   className="w-full bg-cell border border-border text-polar px-3 py-1.5 font-sans outline-none focus:border-dim transition-colors"
-                  style={{ fontSize: '11px' }}
+                  style={{ fontSize: '11.5px' }}
                 />
               </div>
               <input
@@ -1323,11 +1323,11 @@ export default function Invoices() {
                 onChange={e => setBuilderFromAddress(e.target.value)}
                 placeholder="Address (optional)"
                 className="w-full bg-cell border border-border text-polar px-3 py-1.5 font-sans outline-none focus:border-dim transition-colors"
-                style={{ fontSize: '11px' }}
+                style={{ fontSize: '11.5px' }}
               />
             </div>
             <div className="space-y-2.5">
-              <span className="label" style={{ color: '#000', fontWeight: 800, fontSize: '10px', letterSpacing: '0.1em' }}>BILL TO</span>
+              <span className="label" style={{ color: '#000', fontWeight: 800, fontSize: '10.5px', letterSpacing: '0.1em' }}>BILL TO</span>
               <select
                 value={builderClientId}
                 onChange={e => {
@@ -1338,7 +1338,7 @@ export default function Invoices() {
                   else setBuilderClientEmail('')
                 }}
                 className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               >
                 <option value="">Select client...</option>
                 {clients.map(c => (
@@ -1350,28 +1350,28 @@ export default function Invoices() {
                 onChange={e => setBuilderClientEmail(e.target.value)}
                 placeholder="Client email"
                 className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               />
               <input
                 value={builderClientContactName}
                 onChange={e => setBuilderClientContactName(e.target.value)}
                 placeholder="Contact name (optional)"
                 className="w-full bg-cell border border-border text-polar px-3 py-1.5 font-sans outline-none focus:border-dim transition-colors"
-                style={{ fontSize: '11px' }}
+                style={{ fontSize: '11.5px' }}
               />
               <input
                 value={builderClientAddress}
                 onChange={e => setBuilderClientAddress(e.target.value)}
                 placeholder="Client address (optional)"
                 className="w-full bg-cell border border-border text-polar px-3 py-1.5 font-sans outline-none focus:border-dim transition-colors"
-                style={{ fontSize: '11px' }}
+                style={{ fontSize: '11.5px' }}
               />
               <input
                 value={builderClientPhone}
                 onChange={e => setBuilderClientPhone(e.target.value)}
                 placeholder="Client phone (optional)"
                 className="w-full bg-cell border border-border text-polar px-3 py-1.5 font-sans outline-none focus:border-dim transition-colors"
-                style={{ fontSize: '11px' }}
+                style={{ fontSize: '11.5px' }}
               />
             </div>
           </div>
@@ -1387,7 +1387,7 @@ export default function Invoices() {
                 value={builderNum}
                 onChange={e => setBuilderNum(e.target.value)}
                 className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors mono"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               />
             </div>
             <div className="space-y-1">
@@ -1397,7 +1397,7 @@ export default function Invoices() {
                 value={builderDate}
                 onChange={e => setBuilderDate(e.target.value)}
                 className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               />
             </div>
             <div className="space-y-1">
@@ -1407,7 +1407,7 @@ export default function Invoices() {
                 value={builderDueDate}
                 onChange={e => setBuilderDueDate(e.target.value)}
                 className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               />
             </div>
             <div className="space-y-1">
@@ -1416,7 +1416,7 @@ export default function Invoices() {
                 value={builderCurrency}
                 onChange={e => setBuilderCurrency(e.target.value)}
                 className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               >
                 <option value="CAD">CAD</option>
                 <option value="USD">USD</option>
@@ -1432,7 +1432,7 @@ export default function Invoices() {
                 value={builderRecurring}
                 onChange={e => setBuilderRecurring(e.target.value)}
                 className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               >
                 <option value="none">One-time</option>
                 <option value="monthly">Monthly</option>
@@ -1447,7 +1447,7 @@ export default function Invoices() {
                 onChange={e => setBuilderGstNumber(e.target.value)}
                 placeholder="GST registration number"
                 className="w-full bg-cell border border-border text-polar px-3 py-1.5 font-sans outline-none focus:border-dim transition-colors mono"
-                style={{ fontSize: '11px' }}
+                style={{ fontSize: '11.5px' }}
               />
             </div>
           </div>
@@ -1477,10 +1477,10 @@ export default function Invoices() {
             <div className="border border-border">
               {/* Header */}
               <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-surface border-b border-border">
-                <span className="label text-dim col-span-5" style={{ fontSize: '10px' }}>SERVICE / DESCRIPTION</span>
-                <span className="label text-dim col-span-2 text-center" style={{ fontSize: '10px' }}>QTY</span>
-                <span className="label text-dim col-span-2 text-center" style={{ fontSize: '10px' }}>RATE</span>
-                <span className="label text-dim col-span-2 text-right" style={{ fontSize: '10px' }}>AMOUNT</span>
+                <span className="label text-dim col-span-5" style={{ fontSize: '10.5px' }}>SERVICE / DESCRIPTION</span>
+                <span className="label text-dim col-span-2 text-center" style={{ fontSize: '10.5px' }}>QTY</span>
+                <span className="label text-dim col-span-2 text-center" style={{ fontSize: '10.5px' }}>RATE</span>
+                <span className="label text-dim col-span-2 text-right" style={{ fontSize: '10.5px' }}>AMOUNT</span>
                 <span className="col-span-1"></span>
               </div>
               {builderLineItems.map((li, i) => (
@@ -1491,7 +1491,7 @@ export default function Invoices() {
                     onChange={e => updateLineItem(i, 'description', e.target.value)}
                     placeholder="Select or type a service..."
                     className="col-span-5 bg-cell border border-border text-polar px-2 py-1.5 font-sans outline-none focus:border-dim transition-colors"
-                    style={{ fontSize: '12px' }}
+                    style={{ fontSize: '13px' }}
                   />
                   <input
                     type="number"
@@ -1499,7 +1499,7 @@ export default function Invoices() {
                     value={li.qty}
                     onChange={e => updateLineItem(i, 'qty', parseFloat(e.target.value) || 0)}
                     className="col-span-2 bg-cell border border-border text-polar px-2 py-1.5 font-sans outline-none focus:border-dim transition-colors text-center mono"
-                    style={{ fontSize: '12px' }}
+                    style={{ fontSize: '13px' }}
                   />
                   <input
                     type="number"
@@ -1507,9 +1507,9 @@ export default function Invoices() {
                     value={li.rate}
                     onChange={e => updateLineItem(i, 'rate', parseFloat(e.target.value) || 0)}
                     className="col-span-2 bg-cell border border-border text-polar px-2 py-1.5 font-sans outline-none focus:border-dim transition-colors text-center mono"
-                    style={{ fontSize: '12px' }}
+                    style={{ fontSize: '13px' }}
                   />
-                  <span className="col-span-2 text-polar font-[600] mono text-right" style={{ fontSize: '12px' }}>
+                  <span className="col-span-2 text-polar font-[600] mono text-right" style={{ fontSize: '13px' }}>
                     ${(li.qty * li.rate).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
                   <div className="col-span-1 flex justify-center">
@@ -1527,7 +1527,7 @@ export default function Invoices() {
             <button
               onClick={addLineItem}
               className="flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-border text-dim hover:text-polar hover:border-dim transition-colors w-full justify-center"
-              style={{ fontSize: '11px' }}
+              style={{ fontSize: '11.5px' }}
             >
               <Plus size={12} /> Add Another Line Item
             </button>
@@ -1540,8 +1540,8 @@ export default function Invoices() {
           <div className="flex justify-end">
             <div className="space-y-2 w-[280px] bg-surface border border-border p-4">
               <div className="flex justify-between items-center">
-                <span className="text-steel" style={{ fontSize: '12px' }}>Subtotal</span>
-                <span className="text-polar mono font-[600]" style={{ fontSize: '13px' }}>
+                <span className="text-steel" style={{ fontSize: '13px' }}>Subtotal</span>
+                <span className="text-polar mono font-[600]" style={{ fontSize: '14px' }}>
                   ${builderSubtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>
               </div>
@@ -1551,7 +1551,7 @@ export default function Invoices() {
                     value={builderTaxLabel}
                     onChange={e => setBuilderTaxLabel(e.target.value)}
                     className="bg-cell border border-border text-polar px-1.5 py-1 font-sans outline-none focus:border-dim transition-colors"
-                    style={{ fontSize: '11px', width: '60px' }}
+                    style={{ fontSize: '11.5px', width: '60px' }}
                   >
                     {['GST', 'HST', 'PST', 'VAT', 'Tax'].map(t => (
                       <option key={t} value={t}>{t}</option>
@@ -1564,17 +1564,17 @@ export default function Invoices() {
                     value={builderTaxRate}
                     onChange={e => setBuilderTaxRate(parseFloat(e.target.value) || 0)}
                     className="w-14 bg-cell border border-border text-polar px-2 py-1 font-sans outline-none focus:border-dim transition-colors text-center mono"
-                    style={{ fontSize: '11px' }}
+                    style={{ fontSize: '11.5px' }}
                   />
-                  <span className="text-dim" style={{ fontSize: '11px' }}>%</span>
+                  <span className="text-dim" style={{ fontSize: '11.5px' }}>%</span>
                 </div>
-                <span className="text-polar mono" style={{ fontSize: '12px' }}>
+                <span className="text-polar mono" style={{ fontSize: '13px' }}>
                   ${builderTaxAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>
               </div>
               <div className="pt-2 flex justify-between items-center" style={{ borderTop: '2px solid #000000' }}>
-                <span className="text-polar font-[700]" style={{ fontSize: '14px' }}>Total</span>
-                <span className="text-polar mono font-[700]" style={{ fontSize: '18px' }}>
+                <span className="text-polar font-[700]" style={{ fontSize: '15px' }}>Total</span>
+                <span className="text-polar mono font-[700]" style={{ fontSize: '19px' }}>
                   ${builderTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>
               </div>
@@ -1603,7 +1603,7 @@ export default function Invoices() {
                       }}
                       className="px-2.5 py-1 border transition-colors"
                       style={{
-                        fontSize: '10px',
+                        fontSize: '10.5px',
                         fontWeight: isActive ? 600 : 400,
                         backgroundColor: isActive ? '#000000' : 'transparent',
                         color: isActive ? '#ffffff' : undefined,
@@ -1621,17 +1621,17 @@ export default function Invoices() {
                   onChange={e => setBuilderTerms(e.target.value)}
                   placeholder="Enter custom terms..."
                   className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors"
-                  style={{ fontSize: '12px' }}
+                  style={{ fontSize: '13px' }}
                 />
               )}
               <div className="pt-1">
-                <span className="label text-dim" style={{ fontSize: '9px' }}>PAYMENT INSTRUCTIONS</span>
+                <span className="label text-dim" style={{ fontSize: '9.5px' }}>PAYMENT INSTRUCTIONS</span>
                 <input
                   value={builderPaymentInstructions}
                   onChange={e => setBuilderPaymentInstructions(e.target.value)}
                   placeholder="e.g., E-Transfer to omar@growthehype.ca"
                   className="w-full bg-cell border border-border text-polar px-3 py-1.5 font-sans outline-none focus:border-dim transition-colors mt-1"
-                  style={{ fontSize: '11px' }}
+                  style={{ fontSize: '11.5px' }}
                 />
               </div>
             </div>
@@ -1650,7 +1650,7 @@ export default function Invoices() {
                     key={opt.label}
                     onClick={() => setBuilderMemo(opt.value === '__custom__' ? '' : opt.value)}
                     className="px-2.5 py-1 border border-border text-dim hover:text-polar hover:border-dim transition-colors"
-                    style={{ fontSize: '10px' }}
+                    style={{ fontSize: '10.5px' }}
                   >
                     {opt.label}
                   </button>
@@ -1662,7 +1662,7 @@ export default function Invoices() {
                 placeholder="Add a note or memo for the client..."
                 rows={2}
                 className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors resize-none"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               />
             </div>
           </div>
@@ -1675,10 +1675,10 @@ export default function Invoices() {
               onChange={e => setBuilderTermsText(e.target.value)}
               rows={5}
               className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors resize-none"
-              style={{ fontSize: '11px', lineHeight: '1.6' }}
+              style={{ fontSize: '11.5px', lineHeight: '1.6' }}
               placeholder="Legal terms and conditions..."
             />
-            <p className="text-dim" style={{ fontSize: '10px' }}>Each line becomes a separate paragraph on the PDF.</p>
+            <p className="text-dim" style={{ fontSize: '10.5px' }}>Each line becomes a separate paragraph on the PDF.</p>
           </div>
 
           {/* Action buttons */}
@@ -1730,7 +1730,7 @@ export default function Invoices() {
           {!isGmailConnected() ? (
             <div className="text-center py-6 space-y-4">
               <Mail size={32} className="text-dim mx-auto" />
-              <p className="text-steel" style={{ fontSize: '13px' }}>Connect your Gmail account to send invoices directly.</p>
+              <p className="text-steel" style={{ fontSize: '14px' }}>Connect your Gmail account to send invoices directly.</p>
               <button
                 onClick={() => connectGmail()}
                 className="btn-primary flex items-center gap-2 mx-auto"
@@ -1764,7 +1764,7 @@ export default function Invoices() {
                       e.target.value = ''
                     }}
                     className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors cursor-pointer"
-                    style={{ fontSize: '12px' }}
+                    style={{ fontSize: '13px' }}
                     defaultValue=""
                   >
                     <option value="" disabled>Select a template...</option>
@@ -1780,7 +1780,7 @@ export default function Invoices() {
                   value={emailTo}
                   onChange={e => setEmailTo(e.target.value)}
                   className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors"
-                  style={{ fontSize: '12px' }}
+                  style={{ fontSize: '13px' }}
                 />
               </div>
               <div className="space-y-1">
@@ -1789,7 +1789,7 @@ export default function Invoices() {
                   value={emailSubject}
                   onChange={e => setEmailSubject(e.target.value)}
                   className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors"
-                  style={{ fontSize: '12px' }}
+                  style={{ fontSize: '13px' }}
                 />
               </div>
               <div className="space-y-1">
@@ -1799,12 +1799,12 @@ export default function Invoices() {
                   onChange={e => setEmailBody(e.target.value)}
                   rows={6}
                   className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors resize-none"
-                  style={{ fontSize: '12px' }}
+                  style={{ fontSize: '13px' }}
                 />
               </div>
               <div className="bg-surface border border-border px-3 py-2 flex items-center gap-2">
                 <FileText size={14} className="text-err" />
-                <span className="text-steel" style={{ fontSize: '12px' }}>Invoice-{builderNum}.pdf will be attached</span>
+                <span className="text-steel" style={{ fontSize: '13px' }}>Invoice-{builderNum}.pdf will be attached</span>
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button

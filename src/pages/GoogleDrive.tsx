@@ -233,16 +233,16 @@ export default function GoogleDrive() {
         <div className="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center mx-auto mb-4">
           <HardDrive size={28} className="text-amber-400" />
         </div>
-        <h1 className="text-polar font-[800] mb-2" style={{ fontSize: '22px' }}>Enable Google Drive API</h1>
-        <p className="text-dim mb-6" style={{ fontSize: '13px', maxWidth: 420, margin: '0 auto', lineHeight: 1.6 }}>
+        <h1 className="text-polar font-[800] mb-2" style={{ fontSize: '23.5px' }}>Enable Google Drive API</h1>
+        <p className="text-dim mb-6" style={{ fontSize: '14px', maxWidth: 420, margin: '0 auto', lineHeight: 1.6 }}>
           Your Google account is connected, but the Google Drive API needs to be enabled in your Google Cloud Console. One-time setup.
         </p>
         <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" rel="noopener noreferrer"
-          className="btn-primary inline-flex items-center gap-2" style={{ fontSize: '13px', padding: '10px 28px' }}>
+          className="btn-primary inline-flex items-center gap-2" style={{ fontSize: '14px', padding: '10px 28px' }}>
           <ExternalLink size={14} /> Enable Drive API
         </a>
-        <p className="text-dim mt-3" style={{ fontSize: '11px' }}>Click "Enable" in Google Cloud, then come back and retry.</p>
-        <button onClick={() => { setErrorType('none'); loadFiles(currentFolder) }} className="btn-ghost mt-2" style={{ fontSize: '12px', padding: '8px 20px' }}>
+        <p className="text-dim mt-3" style={{ fontSize: '11.5px' }}>Click "Enable" in Google Cloud, then come back and retry.</p>
+        <button onClick={() => { setErrorType('none'); loadFiles(currentFolder) }} className="btn-ghost mt-2" style={{ fontSize: '13px', padding: '8px 20px' }}>
           Retry
         </button>
       </div>
@@ -252,11 +252,11 @@ export default function GoogleDrive() {
     return (
       <div className="max-w-lg mx-auto text-center py-20">
         <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-4"><HardDrive size={28} className="text-red-400" /></div>
-        <h1 className="text-polar font-[800] mb-2" style={{ fontSize: '22px' }}>Drive Access Denied</h1>
-        <p className="text-dim mb-6" style={{ fontSize: '13px', maxWidth: 420, margin: '0 auto', lineHeight: 1.6 }}>
+        <h1 className="text-polar font-[800] mb-2" style={{ fontSize: '23.5px' }}>Drive Access Denied</h1>
+        <p className="text-dim mb-6" style={{ fontSize: '14px', maxWidth: 420, margin: '0 auto', lineHeight: 1.6 }}>
           Make sure to check the Google Drive checkbox when granting permissions.
         </p>
-        <button onClick={() => connectGmail()} className="btn-primary" style={{ fontSize: '13px', padding: '10px 28px' }}>Reconnect with Google</button>
+        <button onClick={() => connectGmail()} className="btn-primary" style={{ fontSize: '14px', padding: '10px 28px' }}>Reconnect with Google</button>
       </div>
     )
   }
@@ -264,20 +264,20 @@ export default function GoogleDrive() {
     return (
       <div className="max-w-lg mx-auto text-center py-20">
         <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mx-auto mb-4"><HardDrive size={28} className="text-emerald-400" /></div>
-        <h1 className="text-polar font-[800] mb-2" style={{ fontSize: '22px' }}>
+        <h1 className="text-polar font-[800] mb-2" style={{ fontSize: '23.5px' }}>
           {demoMode ? 'Google Drive Integration' : 'Connect Google Drive'}
         </h1>
-        <p className="text-dim mb-6" style={{ fontSize: '13px', maxWidth: 380, margin: '0 auto' }}>
+        <p className="text-dim mb-6" style={{ fontSize: '14px', maxWidth: 380, margin: '0 auto' }}>
           {demoMode
             ? 'In the full product, browse your Google Drive files directly from the CRM. Read-only — your files are never modified.'
             : 'Browse your Google Drive files directly from your CRM. Read-only — we never modify your files.'}
         </p>
         {demoMode ? (
-          <button disabled className="btn-primary opacity-60 cursor-not-allowed" style={{ fontSize: '13px', padding: '10px 28px' }} title="Available in the full product">
+          <button disabled className="btn-primary opacity-60 cursor-not-allowed" style={{ fontSize: '14px', padding: '10px 28px' }} title="Available in the full product">
             Connect with Google (Preview)
           </button>
         ) : (
-          <button onClick={() => connectGmail()} className="btn-primary" style={{ fontSize: '13px', padding: '10px 28px' }}>Connect with Google</button>
+          <button onClick={() => connectGmail()} className="btn-primary" style={{ fontSize: '14px', padding: '10px 28px' }}>Connect with Google</button>
         )}
       </div>
     )
@@ -289,7 +289,7 @@ export default function GoogleDrive() {
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-polar font-[800] flex items-center gap-2.5" style={{ fontSize: '22px', letterSpacing: '-0.02em' }}>
+          <h1 className="text-polar font-[800] flex items-center gap-2.5" style={{ fontSize: '23.5px', letterSpacing: '-0.02em' }}>
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
               <HardDrive size={17} className="text-emerald-400" />
             </div>
@@ -314,7 +314,7 @@ export default function GoogleDrive() {
               <List size={14} />
             </button>
           </div>
-          <button onClick={() => loadFiles(currentFolder)} disabled={loading} className="btn-ghost flex items-center gap-1.5" style={{ fontSize: '11px', padding: '6px 12px' }} aria-label="Refresh files">
+          <button onClick={() => loadFiles(currentFolder)} disabled={loading} className="btn-ghost flex items-center gap-1.5" style={{ fontSize: '11.5px', padding: '6px 12px' }} aria-label="Refresh files">
             <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
@@ -331,7 +331,7 @@ export default function GoogleDrive() {
             placeholder="Search your Drive..."
             aria-label="Search Google Drive"
             className="w-full bg-cell border border-border rounded-xl pl-10 pr-10 py-2.5 text-polar focus:border-accent focus:ring-1 focus:ring-accent/30 transition-colors"
-            style={{ fontSize: '12.5px' }}
+            style={{ fontSize: '13.5px' }}
           />
           {(isSearching || searchQuery) && (
             <button type="button" onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-dim hover:text-polar transition-colors">
@@ -354,7 +354,7 @@ export default function GoogleDrive() {
                     ? 'bg-accent/10 border-accent/30 text-accent'
                     : 'bg-surface-2/50 border-transparent text-dim hover:text-steel hover:bg-surface-2'
                 }`}
-                style={{ fontSize: '11px', fontWeight: 600 }}
+                style={{ fontSize: '11.5px', fontWeight: 600 }}
               >
                 <Icon size={12} /> {f.label}
               </button>
@@ -375,7 +375,7 @@ export default function GoogleDrive() {
               <button
                 onClick={() => navigateToBreadcrumb(i + 1)}
                 className={`transition-colors rounded-md px-1.5 py-0.5 ${i + 1 === breadcrumbs.length - 1 ? 'text-polar font-[600] bg-surface-2/50' : 'text-dim hover:text-steel'}`}
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               >
                 {bc.name}
               </button>
@@ -387,10 +387,10 @@ export default function GoogleDrive() {
       {/* Search/filter info bar */}
       {(isSearching || activeFilter) && (
         <div className="flex items-center gap-2 mb-4 px-1">
-          <span className="text-dim" style={{ fontSize: '11.5px' }}>
+          <span className="text-dim" style={{ fontSize: '12px' }}>
             {activeFilter ? `Showing: ${activeFilter}` : `Results for "${searchQuery}"`} · {fileCount} item{fileCount !== 1 ? 's' : ''}
           </span>
-          <button onClick={clearSearch} className="text-accent hover:text-accent/80 transition-colors" style={{ fontSize: '11px', fontWeight: 600 }}>
+          <button onClick={clearSearch} className="text-accent hover:text-accent/80 transition-colors" style={{ fontSize: '11.5px', fontWeight: 600 }}>
             Clear
           </button>
         </div>
@@ -400,17 +400,17 @@ export default function GoogleDrive() {
       {loading && files.length === 0 ? (
         <div className="text-center py-20">
           <RefreshCw size={20} className="animate-spin mx-auto mb-3 text-accent" />
-          <p className="text-dim" style={{ fontSize: '12.5px' }}>Loading your files...</p>
+          <p className="text-dim" style={{ fontSize: '13.5px' }}>Loading your files...</p>
         </div>
       ) : files.length === 0 ? (
         <div className="text-center py-20">
           <div className="w-16 h-16 rounded-2xl bg-surface-2 flex items-center justify-center mx-auto mb-4">
             <FolderOpen size={24} className="text-dim" />
           </div>
-          <p className="text-steel font-[600] mb-1" style={{ fontSize: '14px' }}>
+          <p className="text-steel font-[600] mb-1" style={{ fontSize: '15px' }}>
             {isSearching ? 'No results found' : 'This folder is empty'}
           </p>
-          <p className="text-dim" style={{ fontSize: '12px' }}>
+          <p className="text-dim" style={{ fontSize: '13px' }}>
             {isSearching ? 'Try a different search term' : 'Navigate to a folder with files'}
           </p>
         </div>
@@ -419,7 +419,7 @@ export default function GoogleDrive() {
         <div className="space-y-6">
           {folders.length > 0 && (
             <section>
-              <p className="text-dim mb-2.5 px-1 flex items-center gap-2" style={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              <p className="text-dim mb-2.5 px-1 flex items-center gap-2" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 <Folder size={11} /> Folders · {folders.length}
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2.5">
@@ -431,8 +431,8 @@ export default function GoogleDrive() {
                   >
                     <Folder size={20} className="text-amber-400 flex-shrink-0" />
                     <div className="min-w-0 flex-1">
-                      <p className="text-polar font-[600] truncate group-hover:text-amber-300 transition-colors" style={{ fontSize: '12px' }}>{f.name}</p>
-                      <p className="text-dim" style={{ fontSize: '10px' }}>{smartDate(f.modifiedTime)}</p>
+                      <p className="text-polar font-[600] truncate group-hover:text-amber-300 transition-colors" style={{ fontSize: '13px' }}>{f.name}</p>
+                      <p className="text-dim" style={{ fontSize: '10.5px' }}>{smartDate(f.modifiedTime)}</p>
                     </div>
                   </button>
                 ))}
@@ -441,7 +441,7 @@ export default function GoogleDrive() {
           )}
           {regularFiles.length > 0 && (
             <section>
-              <p className="text-dim mb-2.5 px-1 flex items-center gap-2" style={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              <p className="text-dim mb-2.5 px-1 flex items-center gap-2" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 <File size={11} /> Files · {regularFiles.length}
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2.5">
@@ -461,12 +461,12 @@ export default function GoogleDrive() {
                     </div>
                     {/* Info */}
                     <div className="p-3">
-                      <p className="text-polar font-[600] truncate group-hover:text-accent transition-colors" style={{ fontSize: '11.5px' }}>{f.name}</p>
+                      <p className="text-polar font-[600] truncate group-hover:text-accent transition-colors" style={{ fontSize: '12px' }}>{f.name}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-dim" style={{ fontSize: '10px' }}>{fileTypeName(f.mimeType)}</span>
-                        {f.size && <span className="text-dim" style={{ fontSize: '10px' }}>· {formatFileSize(f.size)}</span>}
+                        <span className="text-dim" style={{ fontSize: '10.5px' }}>{fileTypeName(f.mimeType)}</span>
+                        {f.size && <span className="text-dim" style={{ fontSize: '10.5px' }}>· {formatFileSize(f.size)}</span>}
                       </div>
-                      <p className="text-dim mt-0.5" style={{ fontSize: '10px' }}>{smartDate(f.modifiedTime)}</p>
+                      <p className="text-dim mt-0.5" style={{ fontSize: '10.5px' }}>{smartDate(f.modifiedTime)}</p>
                     </div>
                   </button>
                 ))}
@@ -478,7 +478,7 @@ export default function GoogleDrive() {
         // ── List View ──
         <div className="card overflow-hidden">
           {/* Table header */}
-          <div className="flex items-center gap-3 px-4 py-2 border-b border-border bg-surface-2/30" style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-dim)' }}>
+          <div className="flex items-center gap-3 px-4 py-2 border-b border-border bg-surface-2/30" style={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-dim)' }}>
             <span className="w-9" />
             <span className="flex-1">Name</span>
             <span className="hidden sm:block w-24">Type</span>
@@ -497,17 +497,17 @@ export default function GoogleDrive() {
                 >
                   <FileIcon mimeType={f.mimeType} size="sm" />
                   <div className="flex-1 min-w-0">
-                    <p className={`truncate transition-colors ${isFolder ? 'text-polar font-[600] group-hover:text-amber-300' : 'text-steel group-hover:text-polar'}`} style={{ fontSize: '12.5px' }}>
+                    <p className={`truncate transition-colors ${isFolder ? 'text-polar font-[600] group-hover:text-amber-300' : 'text-steel group-hover:text-polar'}`} style={{ fontSize: '13.5px' }}>
                       {f.name}
                     </p>
                   </div>
-                  <span className="text-dim hidden sm:block flex-shrink-0 w-24" style={{ fontSize: '11px' }}>
+                  <span className="text-dim hidden sm:block flex-shrink-0 w-24" style={{ fontSize: '11.5px' }}>
                     {fileTypeName(f.mimeType)}
                   </span>
-                  <span className="text-dim hidden md:block flex-shrink-0 w-16 text-right font-mono" style={{ fontSize: '10.5px' }}>
+                  <span className="text-dim hidden md:block flex-shrink-0 w-16 text-right font-mono" style={{ fontSize: '11px' }}>
                     {isFolder ? '—' : formatFileSize(f.size)}
                   </span>
-                  <span className="text-dim flex-shrink-0 w-24 text-right" style={{ fontSize: '10.5px' }}>
+                  <span className="text-dim flex-shrink-0 w-24 text-right" style={{ fontSize: '11px' }}>
                     {smartDate(f.modifiedTime)}
                   </span>
                   <div className="w-5 flex-shrink-0">
@@ -529,7 +529,7 @@ export default function GoogleDrive() {
             onClick={() => loadFiles(isSearching ? null : currentFolder, isSearching ? searchQuery : undefined, nextPageToken)}
             disabled={loading}
             className="btn-ghost inline-flex items-center gap-2"
-            style={{ fontSize: '11px', padding: '8px 20px' }}
+            style={{ fontSize: '11.5px', padding: '8px 20px' }}
           >
             {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : 'Load more files'}
           </button>

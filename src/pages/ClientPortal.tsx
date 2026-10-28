@@ -20,7 +20,7 @@ function StatusBadge({ status }: { status: string }) {
   }
   const cls = colors[status.toLowerCase()] || 'bg-dim/15 text-dim'
   return (
-    <span className={`inline-flex px-2 py-0.5 font-[700] uppercase ${cls}`} style={{ fontSize: '10px', letterSpacing: '0.08em' }}>
+    <span className={`inline-flex px-2 py-0.5 font-[700] uppercase ${cls}`} style={{ fontSize: '10.5px', letterSpacing: '0.08em' }}>
       {status}
     </span>
   )
@@ -99,7 +99,7 @@ export default function ClientPortal() {
       <div className="min-h-screen bg-obsidian flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-polar/20 border-t-polar mx-auto mb-3" style={{ borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-          <p className="text-dim" style={{ fontSize: '12px' }}>Loading portal...</p>
+          <p className="text-dim" style={{ fontSize: '13px' }}>Loading portal...</p>
         </div>
       </div>
     )
@@ -110,8 +110,8 @@ export default function ClientPortal() {
       <div className="min-h-screen bg-obsidian flex items-center justify-center p-4">
         <div className="card text-center max-w-md">
           <AlertCircle size={32} className="text-err mx-auto mb-3" />
-          <h2 className="text-polar font-[700]" style={{ fontSize: '16px' }}>{error || 'Something went wrong'}</h2>
-          <p className="text-dim mt-2" style={{ fontSize: '12px' }}>Contact the sender of this link for a new portal URL.</p>
+          <h2 className="text-polar font-[700]" style={{ fontSize: '17px' }}>{error || 'Something went wrong'}</h2>
+          <p className="text-dim mt-2" style={{ fontSize: '13px' }}>Contact the sender of this link for a new portal URL.</p>
         </div>
       </div>
     )
@@ -132,19 +132,19 @@ export default function ClientPortal() {
           ) : (
             <img src="./icon.png" alt="" className="w-7 h-7" style={{ filter: 'brightness(0) invert(1)' }} />
           )}
-          <span className="font-[800] uppercase" style={{ fontSize: '12px', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.7)' }}>
+          <span className="font-[800] uppercase" style={{ fontSize: '13px', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.7)' }}>
             {data.companyName}
           </span>
         </div>
-        <span className="text-dim" style={{ fontSize: '10px' }}>CLIENT PORTAL</span>
+        <span className="text-dim" style={{ fontSize: '10.5px' }}>CLIENT PORTAL</span>
       </header>
 
       <div className="max-w-5xl mx-auto p-4 md:p-8 space-y-6">
         {/* Client header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-polar font-[800]" style={{ fontSize: '22px' }}>{data.client.name}</h1>
-            {data.client.service && <span className="text-dim" style={{ fontSize: '12px' }}>{data.client.service}</span>}
+            <h1 className="text-polar font-[800]" style={{ fontSize: '23.5px' }}>{data.client.name}</h1>
+            {data.client.service && <span className="text-dim" style={{ fontSize: '13px' }}>{data.client.service}</span>}
           </div>
           <StatusBadge status={data.client.status} />
         </div>
@@ -153,19 +153,19 @@ export default function ClientPortal() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="card">
             <span className="label text-dim">PROJECTS</span>
-            <p className="text-polar font-[800] mt-1" style={{ fontSize: '20px' }}>{data.projects.length}</p>
+            <p className="text-polar font-[800] mt-1" style={{ fontSize: '21.5px' }}>{data.projects.length}</p>
           </div>
           <div className="card">
             <span className="label text-dim">OPEN TASKS</span>
-            <p className="text-polar font-[800] mt-1" style={{ fontSize: '20px' }}>{activeTasks.length}</p>
+            <p className="text-polar font-[800] mt-1" style={{ fontSize: '21.5px' }}>{activeTasks.length}</p>
           </div>
           <div className="card">
             <span className="label text-dim">TOTAL INVOICED</span>
-            <p className="text-polar font-[800] mt-1" style={{ fontSize: '20px' }}>{fmtCurrency(totalInvoiced)}</p>
+            <p className="text-polar font-[800] mt-1" style={{ fontSize: '21.5px' }}>{fmtCurrency(totalInvoiced)}</p>
           </div>
           <div className="card">
             <span className="label text-dim">OUTSTANDING</span>
-            <p className={`font-[800] mt-1 ${outstanding > 0 ? 'text-warn' : 'text-ok'}`} style={{ fontSize: '20px' }}>{fmtCurrency(outstanding)}</p>
+            <p className={`font-[800] mt-1 ${outstanding > 0 ? 'text-warn' : 'text-ok'}`} style={{ fontSize: '21.5px' }}>{fmtCurrency(outstanding)}</p>
           </div>
         </div>
 
@@ -177,8 +177,8 @@ export default function ClientPortal() {
               {data.projects.map((p, i) => (
                 <div key={i} className="card flex items-center justify-between">
                   <div>
-                    <span className="text-polar font-[600]" style={{ fontSize: '13px' }}>{p.title}</span>
-                    {p.due_date && <span className="text-dim ml-3" style={{ fontSize: '11px' }}>Due {fmtDate(p.due_date)}</span>}
+                    <span className="text-polar font-[600]" style={{ fontSize: '14px' }}>{p.title}</span>
+                    {p.due_date && <span className="text-dim ml-3" style={{ fontSize: '11.5px' }}>Due {fmtDate(p.due_date)}</span>}
                   </div>
                   <StatusBadge status={p.status} />
                 </div>
@@ -195,21 +195,21 @@ export default function ClientPortal() {
               {activeTasks.map((t, i) => (
                 <div key={i} className="card flex items-center gap-3 py-2">
                   <Clock size={12} className="text-warn shrink-0" />
-                  <span className="text-polar flex-1" style={{ fontSize: '12px' }}>{t.text}</span>
-                  {t.due_date && <span className="text-dim" style={{ fontSize: '10px' }}>{fmtDate(t.due_date)}</span>}
+                  <span className="text-polar flex-1" style={{ fontSize: '13px' }}>{t.text}</span>
+                  {t.due_date && <span className="text-dim" style={{ fontSize: '10.5px' }}>{fmtDate(t.due_date)}</span>}
                   <StatusBadge status={t.priority} />
                 </div>
               ))}
               {completedTasks.length > 0 && (
                 <details className="mt-2">
-                  <summary className="text-dim cursor-pointer" style={{ fontSize: '11px' }}>
+                  <summary className="text-dim cursor-pointer" style={{ fontSize: '11.5px' }}>
                     {completedTasks.length} completed task{completedTasks.length !== 1 ? 's' : ''}
                   </summary>
                   <div className="space-y-1.5 mt-2">
                     {completedTasks.map((t, i) => (
                       <div key={i} className="card flex items-center gap-3 py-2 opacity-50">
                         <CheckCircle2 size={12} className="text-ok shrink-0" />
-                        <span className="text-dim flex-1 line-through" style={{ fontSize: '12px' }}>{t.text}</span>
+                        <span className="text-dim flex-1 line-through" style={{ fontSize: '13px' }}>{t.text}</span>
                       </div>
                     ))}
                   </div>
@@ -224,13 +224,13 @@ export default function ClientPortal() {
           <div>
             <h2 className="label-md text-steel mb-3 flex items-center gap-2"><FileText size={13} /> INVOICES</h2>
             <div className="overflow-x-auto">
-              <table className="w-full" style={{ fontSize: '12px' }}>
+              <table className="w-full" style={{ fontSize: '13px' }}>
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left py-2 text-dim font-[700] uppercase" style={{ fontSize: '10px', letterSpacing: '0.08em' }}>Invoice</th>
-                    <th className="text-right py-2 text-dim font-[700] uppercase" style={{ fontSize: '10px', letterSpacing: '0.08em' }}>Amount</th>
-                    <th className="text-center py-2 text-dim font-[700] uppercase" style={{ fontSize: '10px', letterSpacing: '0.08em' }}>Status</th>
-                    <th className="text-right py-2 text-dim font-[700] uppercase" style={{ fontSize: '10px', letterSpacing: '0.08em' }}>Due</th>
+                    <th className="text-left py-2 text-dim font-[700] uppercase" style={{ fontSize: '10.5px', letterSpacing: '0.08em' }}>Invoice</th>
+                    <th className="text-right py-2 text-dim font-[700] uppercase" style={{ fontSize: '10.5px', letterSpacing: '0.08em' }}>Amount</th>
+                    <th className="text-center py-2 text-dim font-[700] uppercase" style={{ fontSize: '10.5px', letterSpacing: '0.08em' }}>Status</th>
+                    <th className="text-right py-2 text-dim font-[700] uppercase" style={{ fontSize: '10.5px', letterSpacing: '0.08em' }}>Due</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -250,7 +250,7 @@ export default function ClientPortal() {
 
         {/* Footer */}
         <div className="border-t border-border pt-4 mt-8 text-center">
-          <p className="text-dim" style={{ fontSize: '10px' }}>
+          <p className="text-dim" style={{ fontSize: '10.5px' }}>
             Powered by {data.companyName} Operations Command Center
           </p>
         </div>

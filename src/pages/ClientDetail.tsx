@@ -93,9 +93,9 @@ function StatCard({ icon: Icon, label, value, sub }: {
         <Icon size={18} className="text-steel" />
       </div>
       <div className="min-w-0">
-        <p className="label text-dim" style={{ fontSize: '10px', letterSpacing: '0.06em' }}>{label}</p>
-        <p className="text-polar font-bold" style={{ fontSize: '20px', lineHeight: 1.2 }}>{value}</p>
-        {sub && <p className="text-dim" style={{ fontSize: '10px' }}>{sub}</p>}
+        <p className="label text-dim" style={{ fontSize: '10.5px', letterSpacing: '0.06em' }}>{label}</p>
+        <p className="text-polar font-bold" style={{ fontSize: '21.5px', lineHeight: 1.2 }}>{value}</p>
+        {sub && <p className="text-dim" style={{ fontSize: '10.5px' }}>{sub}</p>}
       </div>
     </div>
   )
@@ -113,14 +113,14 @@ function Section({ title, icon: Icon, count, onViewAll, children }: {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Icon size={14} className="text-steel" />
-          <h3 className="text-polar font-semibold" style={{ fontSize: '14px' }}>{title}</h3>
-          <span className="text-dim mono" style={{ fontSize: '10px' }}>({count})</span>
+          <h3 className="text-polar font-semibold" style={{ fontSize: '15px' }}>{title}</h3>
+          <span className="text-dim mono" style={{ fontSize: '10.5px' }}>({count})</span>
         </div>
         {onViewAll && count > 0 && (
           <button
             onClick={onViewAll}
             className="text-steel hover:text-polar transition-colors flex items-center gap-1"
-            style={{ fontSize: '11px' }}
+            style={{ fontSize: '11.5px' }}
           >
             View all <ChevronRight size={12} />
           </button>
@@ -186,7 +186,7 @@ export default function ClientDetail() {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <Building2 size={32} className="text-dim" />
-        <p className="text-steel" style={{ fontSize: '14px' }}>Client not found</p>
+        <p className="text-steel" style={{ fontSize: '15px' }}>Client not found</p>
         <button onClick={goBack} className="btn-ghost flex items-center gap-2">
           <ArrowLeft size={14} /> Back to Clients
         </button>
@@ -232,7 +232,7 @@ export default function ClientDetail() {
       <button
         onClick={goBack}
         className="text-steel hover:text-polar transition-colors flex items-center gap-2 -mb-2"
-        style={{ fontSize: '12px' }}
+        style={{ fontSize: '13px' }}
       >
         <ArrowLeft size={14} /> Back to Clients
       </button>
@@ -243,7 +243,7 @@ export default function ClientDetail() {
           <LargeAvatar name={client.name} size={64} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-polar" style={{ fontSize: '24px', fontWeight: 800, lineHeight: 1.2 }}>
+              <h1 className="text-polar" style={{ fontSize: '25.5px', fontWeight: 800, lineHeight: 1.2 }}>
                 {client.name}
               </h1>
               <StatusMenu
@@ -268,7 +268,7 @@ export default function ClientDetail() {
             </div>
 
             {/* Contact info row */}
-            <div className="flex items-center gap-4 mt-2 flex-wrap" style={{ fontSize: '12px' }}>
+            <div className="flex items-center gap-4 mt-2 flex-wrap" style={{ fontSize: '13px' }}>
               {client.email && (
                 <a
                   href={`mailto:${client.email}`}
@@ -298,7 +298,7 @@ export default function ClientDetail() {
             </div>
 
             {/* Meta row */}
-            <div className="flex items-center gap-4 mt-2 flex-wrap text-dim" style={{ fontSize: '11px' }}>
+            <div className="flex items-center gap-4 mt-2 flex-wrap text-dim" style={{ fontSize: '11.5px' }}>
               {client.service && <span>Service: <span className="text-steel">{client.service}</span></span>}
               {client.platform && <span>Platform: <span className="text-steel">{client.platform}</span></span>}
               {client.retainer && <span>Retainer: <span className="text-steel">{client.retainer}</span></span>}
@@ -313,7 +313,7 @@ export default function ClientDetail() {
                 onClick={generatePortalLink}
                 disabled={portalLoading}
                 className="btn-ghost flex items-center gap-2"
-                style={{ fontSize: '11px' }}
+                style={{ fontSize: '11.5px' }}
                 title="Generate a read-only portal link for this client"
               >
                 <Link2 size={12} /> {portalLoading ? 'Generating...' : 'Share Portal'}
@@ -323,14 +323,14 @@ export default function ClientDetail() {
                   setCurrentPage('clients')
                 }}
                 className="btn-ghost flex items-center gap-2"
-                style={{ fontSize: '11px' }}
+                style={{ fontSize: '11.5px' }}
               >
                 <Edit3 size={12} /> Edit Client
               </button>
             </div>
             {portalUrl && (
               <div className="flex items-center gap-2 bg-surface border border-border px-2 py-1">
-                <span className="mono text-dim truncate" style={{ fontSize: '10px', maxWidth: '200px' }}>{portalUrl}</span>
+                <span className="mono text-dim truncate" style={{ fontSize: '10.5px', maxWidth: '200px' }}>{portalUrl}</span>
                 <button onClick={() => { navigator.clipboard.writeText(portalUrl); showToast('Copied!', 'success') }} className="text-dim hover:text-polar transition-colors cursor-pointer"><Copy size={10} /></button>
                 <button onClick={revokePortalLink} className="text-dim hover:text-err transition-colors cursor-pointer" title="Revoke link"><Trash2 size={10} /></button>
               </div>
@@ -341,8 +341,8 @@ export default function ClientDetail() {
         {/* Notes preview */}
         {client.notes && (
           <div className="mt-4 pt-4 border-t border-border">
-            <p className="text-dim label" style={{ fontSize: '10px', marginBottom: 4 }}>Notes</p>
-            <p className="text-steel" style={{ fontSize: '12px', lineHeight: 1.6 }}>
+            <p className="text-dim label" style={{ fontSize: '10.5px', marginBottom: 4 }}>Notes</p>
+            <p className="text-steel" style={{ fontSize: '13px', lineHeight: 1.6 }}>
               {client.notes.length > 200 ? client.notes.slice(0, 200) + '...' : client.notes}
             </p>
           </div>
@@ -385,18 +385,18 @@ export default function ClientDetail() {
         onViewAll={() => navigateTo('projects')}
       >
         {clientProjects.length === 0 ? (
-          <p className="text-dim" style={{ fontSize: '12px' }}>No projects yet.</p>
+          <p className="text-dim" style={{ fontSize: '13px' }}>No projects yet.</p>
         ) : (
           <div className="space-y-0">
             {clientProjects.slice(0, 5).map(p => (
               <div key={p.id} onClick={() => navigateTo('projects')} className="flex items-center justify-between py-2.5 border-b border-border last:border-0 cursor-pointer hover:bg-[var(--surface-2,rgba(255,255,255,0.04))] transition-colors rounded px-1 -mx-1">
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-polar font-medium truncate" style={{ fontSize: '12px' }}>{p.title}</span>
-                  <span className={PROJECT_STATUS_BADGE[p.status] || 'badge badge-neutral'} style={{ fontSize: '9px' }}>
+                  <span className="text-polar font-medium truncate" style={{ fontSize: '13px' }}>{p.title}</span>
+                  <span className={PROJECT_STATUS_BADGE[p.status] || 'badge badge-neutral'} style={{ fontSize: '9.5px' }}>
                     {p.status}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 shrink-0 text-dim" style={{ fontSize: '11px' }}>
+                <div className="flex items-center gap-3 shrink-0 text-dim" style={{ fontSize: '11.5px' }}>
                   {p.due_date && <span>{relativeDate(p.due_date)}</span>}
                   {p.hours > 0 && <span className="mono">{p.hours}h</span>}
                 </div>
@@ -414,7 +414,7 @@ export default function ClientDetail() {
         onViewAll={() => navigateTo('tasks')}
       >
         {clientTasks.length === 0 ? (
-          <p className="text-dim" style={{ fontSize: '12px' }}>No tasks yet.</p>
+          <p className="text-dim" style={{ fontSize: '13px' }}>No tasks yet.</p>
         ) : (
           <div className="space-y-0">
             {clientTasks.slice(0, 5).map(t => (
@@ -435,15 +435,15 @@ export default function ClientDetail() {
                   </span>
                   <span
                     className={`truncate ${t.done ? 'text-dim line-through' : 'text-polar'}`}
-                    style={{ fontSize: '12px' }}
+                    style={{ fontSize: '13px' }}
                   >
                     {t.text}
                   </span>
                   {t.priority === 'high' && (
-                    <span className="badge badge-err" style={{ fontSize: '9px' }}>high</span>
+                    <span className="badge badge-err" style={{ fontSize: '9.5px' }}>high</span>
                   )}
                 </div>
-                <div className="flex items-center gap-3 shrink-0 text-dim" style={{ fontSize: '11px' }}>
+                <div className="flex items-center gap-3 shrink-0 text-dim" style={{ fontSize: '11.5px' }}>
                   {t.due_date && <span>{relativeDate(t.due_date)}</span>}
                 </div>
               </div>
@@ -460,18 +460,18 @@ export default function ClientDetail() {
         onViewAll={() => navigateTo('invoices')}
       >
         {clientInvoices.length === 0 ? (
-          <p className="text-dim" style={{ fontSize: '12px' }}>No invoices yet.</p>
+          <p className="text-dim" style={{ fontSize: '13px' }}>No invoices yet.</p>
         ) : (
           <div className="space-y-0">
             {clientInvoices.slice(0, 5).map(inv => (
               <div key={inv.id} onClick={() => navigateTo('invoices')} className="flex items-center justify-between py-2.5 border-b border-border last:border-0 cursor-pointer hover:bg-[var(--surface-2,rgba(255,255,255,0.04))] transition-colors rounded px-1 -mx-1">
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-polar mono font-medium" style={{ fontSize: '12px' }}>{inv.num}</span>
-                  <span className={INV_STATUS_BADGE[inv.status] || 'badge badge-neutral'} style={{ fontSize: '9px' }}>
+                  <span className="text-polar mono font-medium" style={{ fontSize: '13px' }}>{inv.num}</span>
+                  <span className={INV_STATUS_BADGE[inv.status] || 'badge badge-neutral'} style={{ fontSize: '9.5px' }}>
                     {inv.status}
                   </span>
                 </div>
-                <div className="flex items-center gap-4 shrink-0" style={{ fontSize: '11px' }}>
+                <div className="flex items-center gap-4 shrink-0" style={{ fontSize: '11.5px' }}>
                   <span className="text-polar mono font-semibold">{formatCurrency(inv.amount)}</span>
                   <span className="text-dim">
                     {inv.status === 'paid' && inv.paid_at
@@ -495,7 +495,7 @@ export default function ClientDetail() {
         onViewAll={() => navigateTo('contacts')}
       >
         {clientContacts.length === 0 ? (
-          <p className="text-dim" style={{ fontSize: '12px' }}>No contacts linked.</p>
+          <p className="text-dim" style={{ fontSize: '13px' }}>No contacts linked.</p>
         ) : (
           <div className="space-y-0">
             {clientContacts.slice(0, 5).map(c => (
@@ -503,14 +503,14 @@ export default function ClientDetail() {
                 <div className="flex items-center gap-3 min-w-0">
                   <ClientAvatar name={c.name} size="sm" />
                   <div className="min-w-0">
-                    <span className="text-polar font-medium truncate block" style={{ fontSize: '12px' }}>
+                    <span className="text-polar font-medium truncate block" style={{ fontSize: '13px' }}>
                       {c.name}
-                      {c.is_primary ? <span className="badge badge-ok ml-2" style={{ fontSize: '8px' }}>Primary</span> : null}
+                      {c.is_primary ? <span className="badge badge-ok ml-2" style={{ fontSize: '8.5px' }}>Primary</span> : null}
                     </span>
-                    {c.role && <span className="text-dim block" style={{ fontSize: '10px' }}>{c.role}</span>}
+                    {c.role && <span className="text-dim block" style={{ fontSize: '10.5px' }}>{c.role}</span>}
                   </div>
                 </div>
-                <div className="flex items-center gap-3 shrink-0 text-dim" style={{ fontSize: '11px' }}>
+                <div className="flex items-center gap-3 shrink-0 text-dim" style={{ fontSize: '11.5px' }}>
                   {c.email && (
                     <a href={`mailto:${c.email}`} className="hover:text-polar transition-colors">
                       <Mail size={12} />
@@ -536,7 +536,7 @@ export default function ClientDetail() {
         onViewAll={() => navigateTo('activity')}
       >
         {clientActivity.length === 0 ? (
-          <p className="text-dim" style={{ fontSize: '12px' }}>No activity recorded.</p>
+          <p className="text-dim" style={{ fontSize: '13px' }}>No activity recorded.</p>
         ) : (
           <div className="space-y-0">
             {clientActivity.slice(0, 5).map(a => (
@@ -546,11 +546,11 @@ export default function ClientDetail() {
                     className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
                     style={{ backgroundColor: a.type === 'create' ? '#22C55E' : a.type === 'delete' ? '#FF3333' : '#F59E0B' }}
                   />
-                  <span className="text-steel truncate" style={{ fontSize: '12px' }}>
+                  <span className="text-steel truncate" style={{ fontSize: '13px' }}>
                     {a.description}
                   </span>
                 </div>
-                <span className="text-dim shrink-0" style={{ fontSize: '10px' }}>
+                <span className="text-dim shrink-0" style={{ fontSize: '10.5px' }}>
                   {relativeDate(a.timestamp)}
                 </span>
               </div>
@@ -569,16 +569,16 @@ export default function ClientDetail() {
         >
           <div className="flex items-center gap-6 mb-3">
             <div>
-              <p className="text-dim label" style={{ fontSize: '10px' }}>Total Hours</p>
-              <p className="text-polar font-bold mono" style={{ fontSize: '18px' }}>{totalHours.toFixed(1)}h</p>
+              <p className="text-dim label" style={{ fontSize: '10.5px' }}>Total Hours</p>
+              <p className="text-polar font-bold mono" style={{ fontSize: '19px' }}>{totalHours.toFixed(1)}h</p>
             </div>
             <div>
-              <p className="text-dim label" style={{ fontSize: '10px' }}>Entries</p>
-              <p className="text-polar font-bold mono" style={{ fontSize: '18px' }}>{clientTimeEntries.length}</p>
+              <p className="text-dim label" style={{ fontSize: '10.5px' }}>Entries</p>
+              <p className="text-polar font-bold mono" style={{ fontSize: '19px' }}>{clientTimeEntries.length}</p>
             </div>
             <div>
-              <p className="text-dim label" style={{ fontSize: '10px' }}>Billable</p>
-              <p className="text-polar font-bold mono" style={{ fontSize: '18px' }}>
+              <p className="text-dim label" style={{ fontSize: '10.5px' }}>Billable</p>
+              <p className="text-polar font-bold mono" style={{ fontSize: '19px' }}>
                 {clientTimeEntries.filter(te => te.billable).length}
               </p>
             </div>
@@ -587,12 +587,12 @@ export default function ClientDetail() {
             {clientTimeEntries.slice(0, 3).map(te => (
               <div key={te.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                 <div className="min-w-0">
-                  <span className="text-polar truncate block" style={{ fontSize: '12px' }}>
+                  <span className="text-polar truncate block" style={{ fontSize: '13px' }}>
                     {te.notes || te.project_title || 'Untitled'}
                   </span>
-                  <span className="text-dim" style={{ fontSize: '10px' }}>{relativeDate(te.started_at)}</span>
+                  <span className="text-dim" style={{ fontSize: '10.5px' }}>{relativeDate(te.started_at)}</span>
                 </div>
-                <span className="text-steel mono shrink-0" style={{ fontSize: '11px' }}>
+                <span className="text-steel mono shrink-0" style={{ fontSize: '11.5px' }}>
                   {te.duration_minutes ? `${(te.duration_minutes / 60).toFixed(1)}h` : 'Running'}
                 </span>
               </div>
@@ -613,11 +613,11 @@ export default function ClientDetail() {
             {clientMeetings.slice(0, 3).map(m => (
               <div key={m.id} className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
                 <div className="min-w-0">
-                  <span className="text-polar font-medium truncate block" style={{ fontSize: '12px' }}>{m.title}</span>
-                  <span className="text-dim" style={{ fontSize: '10px' }}>{m.type} &middot; {relativeDate(m.date)}</span>
+                  <span className="text-polar font-medium truncate block" style={{ fontSize: '13px' }}>{m.title}</span>
+                  <span className="text-dim" style={{ fontSize: '10.5px' }}>{m.type} &middot; {relativeDate(m.date)}</span>
                 </div>
                 {m.contact_name && (
-                  <span className="text-dim shrink-0" style={{ fontSize: '10px' }}>
+                  <span className="text-dim shrink-0" style={{ fontSize: '10.5px' }}>
                     w/ {m.contact_name}
                   </span>
                 )}

@@ -175,7 +175,7 @@ export default function Documents() {
       <div className="flex items-center justify-between">
         <div>
           <h1>Documents</h1>
-          <p className="text-steel mt-1" style={{ fontSize: '13px' }}>
+          <p className="text-steel mt-1" style={{ fontSize: '14px' }}>
             {totalDocs} document{totalDocs !== 1 ? 's' : ''} across {CATEGORIES.length} categories
           </p>
         </div>
@@ -209,11 +209,11 @@ export default function Documents() {
                 ? 'text-polar border-polar'
                 : 'text-dim border-transparent hover:text-steel'
             }`}
-            style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}
+            style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}
           >
             {cat.label}
             {(counts[cat.key] ?? 0) > 0 && (
-              <span className="ml-1.5 mono" style={{ fontSize: '10px', opacity: 0.5 }}>
+              <span className="ml-1.5 mono" style={{ fontSize: '10.5px', opacity: 0.5 }}>
                 {counts[cat.key]}
               </span>
             )}
@@ -223,7 +223,7 @@ export default function Documents() {
 
       {/* File list */}
       {loading ? (
-        <p className="text-dim text-center py-12" style={{ fontSize: '13px' }}>Loading...</p>
+        <p className="text-dim text-center py-12" style={{ fontSize: '14px' }}>Loading...</p>
       ) : docs.length === 0 ? (
         <div
           onClick={() => fileInputRef.current?.click()}
@@ -232,10 +232,10 @@ export default function Documents() {
           }`}
         >
           <FolderOpen size={32} className="text-dim mb-3" />
-          <p className="text-polar font-[700]" style={{ fontSize: '14px' }}>
+          <p className="text-polar font-[700]" style={{ fontSize: '15px' }}>
             No {activeLabel.toLowerCase()} documents
           </p>
-          <p className="text-dim mt-1" style={{ fontSize: '12px' }}>
+          <p className="text-dim mt-1" style={{ fontSize: '13px' }}>
             Click to upload or drag files here
           </p>
         </div>
@@ -266,7 +266,7 @@ export default function Documents() {
                   className="table-row grid grid-cols-12 gap-4 px-4 py-3 items-center cursor-pointer min-w-[700px]"
                   onClick={() => { if (!isRenaming) openFile(doc) }}
                 >
-                  <div className="col-span-1 text-center" style={{ fontSize: '16px' }}>
+                  <div className="col-span-1 text-center" style={{ fontSize: '17px' }}>
                     {fileIcon(doc.name)}
                   </div>
                   <div className="col-span-5 flex items-center gap-2">
@@ -282,11 +282,11 @@ export default function Documents() {
                         onBlur={submitRename}
                         onClick={e => e.stopPropagation()}
                         className="w-full bg-surface border border-border px-2 py-1 text-polar focus:outline-none focus:border-dim"
-                        style={{ fontSize: '13px' }}
+                        style={{ fontSize: '14px' }}
                       />
                     ) : (
                       <>
-                        <span className="text-polar font-[600] truncate" style={{ fontSize: '13px' }}>{doc.name}</span>
+                        <span className="text-polar font-[600] truncate" style={{ fontSize: '14px' }}>{doc.name}</span>
                       </>
                     )}
                   </div>
@@ -312,7 +312,7 @@ export default function Documents() {
       {dragOver && docs.length > 0 && (
         <div className="border-2 border-dashed border-polar bg-surface py-6 flex flex-col items-center justify-center transition-all">
           <Upload size={20} className="text-polar mb-2" />
-          <p className="text-polar font-[600]" style={{ fontSize: '12px' }}>Drop files to upload to {activeLabel}</p>
+          <p className="text-polar font-[600]" style={{ fontSize: '13px' }}>Drop files to upload to {activeLabel}</p>
         </div>
       )}
 

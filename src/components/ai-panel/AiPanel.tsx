@@ -919,8 +919,8 @@ export default function AiPanel() {
               <Sparkles size={13} className="text-polar" />
             </div>
             <div>
-              <span className="font-[700] text-polar block" style={{ fontSize: '14px' }}>AI Assistant</span>
-              <span className="text-dim" style={{ fontSize: '10px' }}>Command Center AI</span>
+              <span className="font-[700] text-polar block" style={{ fontSize: '15px' }}>AI Assistant</span>
+              <span className="text-dim" style={{ fontSize: '10.5px' }}>Command Center AI</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -945,8 +945,8 @@ export default function AiPanel() {
             /* No API key state */
             <div className="flex flex-col items-center justify-center h-full text-center gap-3">
               <Key size={24} className="text-dim" strokeWidth={1.5} />
-              <p className="text-steel font-[700]" style={{ fontSize: '14px' }}>API Key Required</p>
-              <p className="text-dim" style={{ fontSize: '12px', maxWidth: '240px' }}>
+              <p className="text-steel font-[700]" style={{ fontSize: '15px' }}>API Key Required</p>
+              <p className="text-dim" style={{ fontSize: '13px', maxWidth: '240px' }}>
                 Add your Claude API key in Settings to enable AI features. Your key is encrypted and stored locally.
               </p>
               <button
@@ -959,7 +959,7 @@ export default function AiPanel() {
           ) : chatMessages.length === 0 ? (
             /* Empty state with suggested prompts */
             <div className="flex flex-col gap-3">
-              <p className="text-dim" style={{ fontSize: '12px' }}>
+              <p className="text-dim" style={{ fontSize: '13px' }}>
                 AI Assist can analyze your CRM data and execute real actions -- create tasks, schedule events, manage projects, and more.
               </p>
               <div className="flex flex-col gap-2 mt-2">
@@ -969,7 +969,7 @@ export default function AiPanel() {
                     key={prompt}
                     onClick={() => handleSend(prompt)}
                     className="text-left px-3 py-2 border border-border hover:border-dim text-steel hover:text-polar transition-colors"
-                    style={{ fontSize: '13px' }}
+                    style={{ fontSize: '14px' }}
                   >
                     {prompt}
                   </button>
@@ -987,7 +987,7 @@ export default function AiPanel() {
                       <div className="px-3 py-2 rounded-lg bg-surface-2 max-w-[85%]">
                         <div className="flex items-center gap-1.5">
                           <Loader2 size={12} className="text-steel animate-spin" />
-                          <span className="text-dim" style={{ fontSize: '12px' }}>Thinking...</span>
+                          <span className="text-dim" style={{ fontSize: '13px' }}>Thinking...</span>
                         </div>
                       </div>
                     </div>
@@ -1004,7 +1004,7 @@ export default function AiPanel() {
                     <div key={msg.id} className="flex justify-start">
                       <div
                         className={`px-3 py-1.5 rounded max-w-[85%] flex items-center gap-2 ${isSuccess ? 'bg-ok/10 border border-ok/20' : 'bg-err/10 border border-err/20'}`}
-                        style={{ fontSize: '12px' }}
+                        style={{ fontSize: '13px' }}
                       >
                         {isSuccess ? (
                           <CheckCircle size={12} className="text-ok flex-shrink-0" />
@@ -1023,7 +1023,7 @@ export default function AiPanel() {
                     <div key={msg.id} className="flex justify-end">
                       <div
                         className="px-3 py-2 rounded-lg max-w-[85%]"
-                        style={{ fontSize: '13px', backgroundColor: 'rgba(0,0,0,0.06)' }}
+                        style={{ fontSize: '14px', backgroundColor: 'rgba(0,0,0,0.06)' }}
                       >
                         <span className="text-polar">{msg.text}</span>
                       </div>
@@ -1038,7 +1038,7 @@ export default function AiPanel() {
                       <div
                         className="px-3 py-2 rounded-lg max-w-[85%]"
                         style={{
-                          fontSize: '13px',
+                          fontSize: '14px',
                           backgroundColor: 'rgba(0,0,0,0.02)',
                           border: msg.isError ? '1px solid rgba(239, 68, 68, 0.3)' : undefined,
                         }}
@@ -1067,7 +1067,7 @@ export default function AiPanel() {
             {isListening && (
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 rounded-full bg-err animate-pulse" />
-                <span className="text-err" style={{ fontSize: '11px', fontWeight: 600 }}>Listening...</span>
+                <span className="text-err" style={{ fontSize: '11.5px', fontWeight: 600 }}>Listening...</span>
               </div>
             )}
             <div className="flex items-center gap-2 bg-cell border border-border rounded-lg px-3 py-2.5">
@@ -1078,7 +1078,7 @@ export default function AiPanel() {
                 onChange={e => setInput(e.target.value)}
                 placeholder="Ask anything..."
                 className="flex-1 bg-transparent text-polar outline-none placeholder:text-dim"
-                style={{ fontSize: '13px' }}
+                style={{ fontSize: '14px' }}
                 disabled={isLoading}
                 onKeyDown={e => {
                   if (e.key === 'Enter' && !e.shiftKey && input.trim()) {

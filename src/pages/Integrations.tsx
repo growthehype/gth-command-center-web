@@ -197,20 +197,20 @@ function BuiltInCard({ def }: { def: IntegrationDef }) {
             <Icon size={20} />
           </div>
           <div>
-            <h3 className="text-polar font-[700]" style={{ fontSize: '13.5px' }}>{def.name}</h3>
-            <p className="text-dim" style={{ fontSize: '11px', maxWidth: 220 }}>{def.description}</p>
+            <h3 className="text-polar font-[700]" style={{ fontSize: '14.5px' }}>{def.name}</h3>
+            <p className="text-dim" style={{ fontSize: '11.5px', maxWidth: 220 }}>{def.description}</p>
           </div>
         </div>
       </div>
       <div className="mt-auto pt-3 flex items-center justify-between">
-        <span className={`inline-flex items-center gap-1.5 ${hasToken ? 'text-ok' : 'text-dim'}`} style={{ fontSize: '11px', fontWeight: 600 }}>
+        <span className={`inline-flex items-center gap-1.5 ${hasToken ? 'text-ok' : 'text-dim'}`} style={{ fontSize: '11.5px', fontWeight: 600 }}>
           <span className={`w-1.5 h-1.5 rounded-full ${hasToken ? 'bg-ok' : 'bg-dim/50'}`} />
           {hasToken ? 'Connected' : 'Not connected'}
         </span>
         <button
           onClick={() => setCurrentPage(navPage)}
           className="btn-ghost flex items-center gap-1"
-          style={{ fontSize: '11px', padding: '6px 12px' }}
+          style={{ fontSize: '11.5px', padding: '6px 12px' }}
         >
           Go to {navPage === 'calendar' ? 'Calendar' : 'Settings'} <ExternalLink size={11} />
         </button>
@@ -309,28 +309,28 @@ function WebhookCard({ def, config, onSave }: {
             <Icon size={20} />
           </div>
           <div>
-            <h3 className="text-polar font-[700]" style={{ fontSize: '13.5px' }}>{def.name}</h3>
-            <p className="text-dim" style={{ fontSize: '11px', maxWidth: 220 }}>{def.description}</p>
+            <h3 className="text-polar font-[700]" style={{ fontSize: '14.5px' }}>{def.name}</h3>
+            <p className="text-dim" style={{ fontSize: '11.5px', maxWidth: 220 }}>{def.description}</p>
           </div>
         </div>
       </div>
 
       {/* Status + actions */}
       <div className="mt-auto pt-3 flex items-center justify-between">
-        <span className={`inline-flex items-center gap-1.5 ${isConnected ? 'text-ok' : 'text-dim'}`} style={{ fontSize: '11px', fontWeight: 600 }}>
+        <span className={`inline-flex items-center gap-1.5 ${isConnected ? 'text-ok' : 'text-dim'}`} style={{ fontSize: '11.5px', fontWeight: 600 }}>
           <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-ok' : 'bg-dim/50'}`} />
           {isConnected ? 'Connected' : 'Not connected'}
         </span>
         <div className="flex gap-2">
           {isConnected && (
-            <button onClick={handleDisconnect} disabled={saving} className="btn-ghost text-err" style={{ fontSize: '11px', padding: '6px 12px' }}>
+            <button onClick={handleDisconnect} disabled={saving} className="btn-ghost text-err" style={{ fontSize: '11.5px', padding: '6px 12px' }}>
               Disconnect
             </button>
           )}
           <button
             onClick={() => setExpanded(!expanded)}
             className={expanded ? 'btn-ghost' : 'btn-primary'}
-            style={{ fontSize: '11px', padding: '6px 14px' }}
+            style={{ fontSize: '11.5px', padding: '6px 14px' }}
           >
             {expanded ? 'Close' : isConnected ? 'Settings' : 'Set Up'}
           </button>
@@ -341,7 +341,7 @@ function WebhookCard({ def, config, onSave }: {
       {expanded && (
         <div className="mt-4 pt-4 border-t border-border space-y-4">
           {def.helpText && (
-            <p className="text-dim" style={{ fontSize: '11px', lineHeight: '1.5' }}>
+            <p className="text-dim" style={{ fontSize: '11.5px', lineHeight: '1.5' }}>
               {def.helpText}
               {def.helpUrl && (
                 <> <a href={def.helpUrl} target="_blank" rel="noopener" className="text-accent hover:underline inline-flex items-center gap-0.5">
@@ -352,7 +352,7 @@ function WebhookCard({ def, config, onSave }: {
           )}
 
           <div>
-            <label className="label text-dim block mb-1.5" style={{ fontSize: '11px' }}>Webhook URL</label>
+            <label className="label text-dim block mb-1.5" style={{ fontSize: '11.5px' }}>Webhook URL</label>
             <div className="flex gap-2">
               <input
                 type="url"
@@ -360,13 +360,13 @@ function WebhookCard({ def, config, onSave }: {
                 onChange={(e) => setLocalConfig(prev => ({ ...prev, webhookUrl: e.target.value }))}
                 placeholder={def.placeholderUrl || 'https://...'}
                 className="bg-cell border border-border px-3 py-2 text-polar rounded flex-1"
-                style={{ fontSize: '11.5px' }}
+                style={{ fontSize: '12px' }}
               />
               <button
                 onClick={handleTest}
                 disabled={testing || !localConfig.webhookUrl?.trim()}
                 className="btn-ghost flex items-center gap-1"
-                style={{ fontSize: '11px', padding: '6px 12px' }}
+                style={{ fontSize: '11.5px', padding: '6px 12px' }}
               >
                 <Send size={12} /> {testing ? 'Sending...' : 'Test'}
               </button>
@@ -375,7 +375,7 @@ function WebhookCard({ def, config, onSave }: {
 
           {/* Event toggles */}
           <div>
-            <label className="label text-dim block mb-2" style={{ fontSize: '11px' }}>Notify on these events:</label>
+            <label className="label text-dim block mb-2" style={{ fontSize: '11.5px' }}>Notify on these events:</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
               {SUPPORTED_EVENTS.map(evt => (
                 <label key={evt.key} className="flex items-center gap-2.5 cursor-pointer group">
@@ -385,7 +385,7 @@ function WebhookCard({ def, config, onSave }: {
                     onChange={() => handleEventToggle(evt.key)}
                     className="accent-accent"
                   />
-                  <span className="text-steel group-hover:text-polar transition-colors" style={{ fontSize: '11.5px' }}>
+                  <span className="text-steel group-hover:text-polar transition-colors" style={{ fontSize: '12px' }}>
                     {evt.label}
                   </span>
                 </label>
@@ -398,7 +398,7 @@ function WebhookCard({ def, config, onSave }: {
               onClick={handleSave}
               disabled={saving}
               className="btn-primary flex items-center gap-1.5"
-              style={{ fontSize: '11px', padding: '7px 16px' }}
+              style={{ fontSize: '11.5px', padding: '7px 16px' }}
             >
               <Check size={13} /> {saving ? 'Saving...' : 'Save & Connect'}
             </button>
@@ -421,13 +421,13 @@ function PlannedCard({ def }: { def: IntegrationDef }) {
             <Icon size={20} />
           </div>
           <div>
-            <h3 className="text-polar font-[700]" style={{ fontSize: '13.5px' }}>{def.name}</h3>
-            <p className="text-dim" style={{ fontSize: '11px', maxWidth: 220 }}>{def.description}</p>
+            <h3 className="text-polar font-[700]" style={{ fontSize: '14.5px' }}>{def.name}</h3>
+            <p className="text-dim" style={{ fontSize: '11.5px', maxWidth: 220 }}>{def.description}</p>
           </div>
         </div>
       </div>
       <div className="mt-auto pt-3">
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2 text-dim" style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.05em' }}>
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2 text-dim" style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '0.05em' }}>
           COMING SOON
         </span>
       </div>
@@ -479,17 +479,17 @@ export default function Integrations() {
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-polar font-[800] flex items-center gap-2" style={{ fontSize: '22px', letterSpacing: '-0.02em' }}>
+        <h1 className="text-polar font-[800] flex items-center gap-2" style={{ fontSize: '23.5px', letterSpacing: '-0.02em' }}>
           <Link2 size={22} /> Integrations
         </h1>
-        <p className="text-dim mt-1" style={{ fontSize: '12.5px' }}>
+        <p className="text-dim mt-1" style={{ fontSize: '13.5px' }}>
           Connect your CRM to the tools you already use.
         </p>
       </div>
 
       {/* Built-in */}
       <section>
-        <h2 className="text-steel font-[700] mb-3 flex items-center gap-2" style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <h2 className="text-steel font-[700] mb-3 flex items-center gap-2" style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           <span className="w-1.5 h-1.5 rounded-full bg-ok" /> Built-in
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -499,14 +499,14 @@ export default function Integrations() {
 
       {/* Webhooks */}
       <section>
-        <h2 className="text-steel font-[700] mb-3 flex items-center gap-2" style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <h2 className="text-steel font-[700] mb-3 flex items-center gap-2" style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           <span className="w-1.5 h-1.5 rounded-full bg-accent" /> Webhooks &amp; Notifications
         </h2>
-        <p className="text-dim mb-4" style={{ fontSize: '11.5px' }}>
+        <p className="text-dim mb-4" style={{ fontSize: '12px' }}>
           Paste a webhook URL and select which events trigger notifications. Works immediately — no OAuth required.
         </p>
         {loading ? (
-          <div className="text-dim text-center py-12" style={{ fontSize: '12.5px' }}>Loading...</div>
+          <div className="text-dim text-center py-12" style={{ fontSize: '13.5px' }}>Loading...</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {webhooks.map(def => (
@@ -518,10 +518,10 @@ export default function Integrations() {
 
       {/* Planned */}
       <section>
-        <h2 className="text-steel font-[700] mb-3 flex items-center gap-2" style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <h2 className="text-steel font-[700] mb-3 flex items-center gap-2" style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           <span className="w-1.5 h-1.5 rounded-full bg-dim/50" /> Coming Soon
         </h2>
-        <p className="text-dim mb-4" style={{ fontSize: '11.5px' }}>
+        <p className="text-dim mb-4" style={{ fontSize: '12px' }}>
           These integrations require OAuth or deeper API work. They're on the roadmap.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

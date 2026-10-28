@@ -121,28 +121,28 @@ function ComposeModal({ onClose, onSent, replyTo, forwardMsg }: {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-surface border border-border rounded-t-xl sm:rounded-xl shadow-2xl w-full max-w-2xl sm:mx-4" onClick={e => e.stopPropagation()} onKeyDown={handleKeyDown}>
         <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-          <h3 className="text-polar font-[700]" style={{ fontSize: '14px' }}>
+          <h3 className="text-polar font-[700]" style={{ fontSize: '15px' }}>
             {replyTo ? 'Reply' : forwardMsg ? 'Forward' : 'New Email'}
           </h3>
           <button onClick={onClose} className="text-dim hover:text-polar transition-colors" aria-label="Close"><X size={16} /></button>
         </div>
         <div className="p-5 space-y-3">
           <div className="flex items-center gap-2">
-            <label className="text-dim flex-shrink-0" style={{ fontSize: '12px', fontWeight: 600, width: 40 }}>To</label>
+            <label className="text-dim flex-shrink-0" style={{ fontSize: '13px', fontWeight: 600, width: 40 }}>To</label>
             <input
               ref={toRef}
               type="email" value={to} onChange={e => setTo(e.target.value)}
               className="flex-1 bg-cell border border-border rounded px-3 py-2 text-polar focus:border-accent focus:ring-1 focus:ring-accent/30 transition-colors"
-              style={{ fontSize: '12.5px' }}
+              style={{ fontSize: '13.5px' }}
               placeholder="recipient@example.com"
             />
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-dim flex-shrink-0" style={{ fontSize: '12px', fontWeight: 600, width: 40 }}>Subj</label>
+            <label className="text-dim flex-shrink-0" style={{ fontSize: '13px', fontWeight: 600, width: 40 }}>Subj</label>
             <input
               type="text" value={subject} onChange={e => setSubject(e.target.value)}
               className="flex-1 bg-cell border border-border rounded px-3 py-2 text-polar focus:border-accent focus:ring-1 focus:ring-accent/30 transition-colors"
-              style={{ fontSize: '12.5px' }}
+              style={{ fontSize: '13.5px' }}
               placeholder="Subject"
             />
           </div>
@@ -150,15 +150,15 @@ function ComposeModal({ onClose, onSent, replyTo, forwardMsg }: {
             ref={bodyRef}
             value={body} onChange={e => setBody(e.target.value)}
             className="w-full bg-cell border border-border rounded px-3 py-2 text-polar resize-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-colors"
-            style={{ fontSize: '12.5px', minHeight: '200px' }}
+            style={{ fontSize: '13.5px', minHeight: '200px' }}
             placeholder="Write your message..."
           />
         </div>
         <div className="flex items-center justify-between px-5 py-3 border-t border-border">
-          <span className="text-dim" style={{ fontSize: '10px' }}>Ctrl+Enter to send</span>
+          <span className="text-dim" style={{ fontSize: '10.5px' }}>Ctrl+Enter to send</span>
           <div className="flex gap-2">
-            <button onClick={onClose} className="btn-ghost" style={{ fontSize: '12px', padding: '7px 16px' }}>Discard</button>
-            <button onClick={handleSend} disabled={sending} className="btn-primary flex items-center gap-1.5" style={{ fontSize: '12px', padding: '7px 20px' }}>
+            <button onClick={onClose} className="btn-ghost" style={{ fontSize: '13px', padding: '7px 16px' }}>Discard</button>
+            <button onClick={handleSend} disabled={sending} className="btn-primary flex items-center gap-1.5" style={{ fontSize: '13px', padding: '7px 20px' }}>
               <Send size={13} /> {sending ? 'Sending...' : 'Send'}
             </button>
           </div>
@@ -216,21 +216,21 @@ function MessageDetail({ message, onBack, onRefresh }: {
     <div className="flex flex-col h-full">
       {/* Toolbar */}
       <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-border flex-shrink-0">
-        <button onClick={onBack} className="btn-ghost flex items-center gap-1" style={{ fontSize: '11px', padding: '5px 10px' }}>
+        <button onClick={onBack} className="btn-ghost flex items-center gap-1" style={{ fontSize: '11.5px', padding: '5px 10px' }}>
           <ArrowLeft size={14} /> Back
         </button>
         <div className="flex-1" />
-        <button onClick={() => setReplying(true)} className="btn-ghost flex items-center gap-1" style={{ fontSize: '11px', padding: '5px 10px' }} title="Reply">
+        <button onClick={() => setReplying(true)} className="btn-ghost flex items-center gap-1" style={{ fontSize: '11.5px', padding: '5px 10px' }} title="Reply">
           <Reply size={13} /> Reply
         </button>
-        <button onClick={() => setForwarding(true)} className="btn-ghost flex items-center gap-1" style={{ fontSize: '11px', padding: '5px 10px' }} title="Forward">
+        <button onClick={() => setForwarding(true)} className="btn-ghost flex items-center gap-1" style={{ fontSize: '11.5px', padding: '5px 10px' }} title="Forward">
           <Forward size={13} /> Forward
         </button>
         <div className="w-px h-4 bg-border mx-1" />
-        <button onClick={handleArchive} className="btn-ghost flex items-center gap-1" style={{ fontSize: '11px', padding: '5px 10px' }} title="Archive" aria-label="Archive email">
+        <button onClick={handleArchive} className="btn-ghost flex items-center gap-1" style={{ fontSize: '11.5px', padding: '5px 10px' }} title="Archive" aria-label="Archive email">
           <Archive size={13} />
         </button>
-        <button onClick={handleTrash} className="btn-ghost text-err flex items-center gap-1" style={{ fontSize: '11px', padding: '5px 10px' }} title="Delete" aria-label="Delete email">
+        <button onClick={handleTrash} className="btn-ghost text-err flex items-center gap-1" style={{ fontSize: '11.5px', padding: '5px 10px' }} title="Delete" aria-label="Delete email">
           <Trash2 size={13} />
         </button>
       </div>
@@ -238,36 +238,36 @@ function MessageDetail({ message, onBack, onRefresh }: {
       {/* Message content */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto p-5">
-          <h2 className="text-polar font-[700] mb-5" style={{ fontSize: '20px', lineHeight: 1.3 }}>{msg.subject}</h2>
+          <h2 className="text-polar font-[700] mb-5" style={{ fontSize: '21.5px', lineHeight: 1.3 }}>{msg.subject}</h2>
 
           {/* Sender card */}
           <div className="flex items-start gap-3 mb-6 p-4 rounded-lg bg-surface-2/40">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center font-[700] flex-shrink-0 text-white" style={{ fontSize: '13px', backgroundColor: color }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center font-[700] flex-shrink-0 text-white" style={{ fontSize: '14px', backgroundColor: color }}>
               {senderName(msg.from).charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline gap-2 flex-wrap">
-                <span className="text-polar font-[700]" style={{ fontSize: '13.5px' }}>{senderName(msg.from)}</span>
-                <span className="text-dim" style={{ fontSize: '11px' }}>{senderEmail(msg.from)}</span>
+                <span className="text-polar font-[700]" style={{ fontSize: '14.5px' }}>{senderName(msg.from)}</span>
+                <span className="text-dim" style={{ fontSize: '11.5px' }}>{senderEmail(msg.from)}</span>
               </div>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-dim" style={{ fontSize: '11px' }}>
+                <span className="text-dim" style={{ fontSize: '11.5px' }}>
                   to {msg.to ? senderEmail(msg.to) : 'me'}
                 </span>
-                <span className="text-dim" style={{ fontSize: '10px' }}>·</span>
-                <span className="text-dim" style={{ fontSize: '11px' }}>{fullDate(msg.date)}</span>
+                <span className="text-dim" style={{ fontSize: '10.5px' }}>·</span>
+                <span className="text-dim" style={{ fontSize: '11.5px' }}>{fullDate(msg.date)}</span>
               </div>
             </div>
           </div>
 
           {loading ? (
-            <div className="text-dim text-center py-16" style={{ fontSize: '12.5px' }}>
+            <div className="text-dim text-center py-16" style={{ fontSize: '13.5px' }}>
               <RefreshCw size={14} className="animate-spin mx-auto mb-2" /> Loading message...
             </div>
           ) : full?.body ? (
             <div
               className="email-body"
-              style={{ fontSize: '13.5px', lineHeight: '1.7', color: 'var(--color-steel)' }}
+              style={{ fontSize: '14.5px', lineHeight: '1.7', color: 'var(--color-steel)' }}
               dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(full.body, {
                 ADD_TAGS: ['img'],
                 ADD_ATTR: ['target', 'src', 'alt', 'width', 'height', 'style', 'class'],
@@ -278,13 +278,13 @@ function MessageDetail({ message, onBack, onRefresh }: {
               }) }}
             />
           ) : (
-            <p className="text-steel" style={{ fontSize: '13.5px', lineHeight: '1.7' }}>{msg.snippet}</p>
+            <p className="text-steel" style={{ fontSize: '14.5px', lineHeight: '1.7' }}>{msg.snippet}</p>
           )}
 
           {/* Attachments */}
           {full?.attachments && full.attachments.length > 0 && (
             <div className="mt-4 pt-4 border-t border-border">
-              <div className="text-dim mb-2" style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+              <div className="text-dim mb-2" style={{ fontSize: '11.5px', fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
                 <Paperclip size={12} className="inline mr-1" /> {full.attachments.length} Attachment{full.attachments.length > 1 ? 's' : ''}
               </div>
               <div className="flex flex-wrap gap-2">
@@ -307,7 +307,7 @@ function MessageDetail({ message, onBack, onRefresh }: {
                       } catch { showToast('Failed to download attachment', 'error') }
                     }}
                     className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-surface-2 hover:bg-surface-3 transition-colors"
-                    style={{ fontSize: '12px' }}
+                    style={{ fontSize: '13px' }}
                   >
                     {att.mimeType.startsWith('image/') ? <ImageIcon size={14} className="text-purple-400" /> :
                      att.mimeType === 'application/pdf' ? <FileText size={14} className="text-red-400" /> :
@@ -325,7 +325,7 @@ function MessageDetail({ message, onBack, onRefresh }: {
             <button
               onClick={() => setReplying(true)}
               className="w-full text-left px-4 py-3 rounded-lg border border-border text-dim hover:text-steel hover:border-accent/30 transition-colors cursor-text"
-              style={{ fontSize: '12.5px' }}
+              style={{ fontSize: '13.5px' }}
             >
               Click here to reply...
             </button>
@@ -514,10 +514,10 @@ export default function GmailInbox() {
         <div className="w-16 h-16 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-4">
           <Mail size={28} className="text-red-400" />
         </div>
-        <h1 className="text-polar font-[800] mb-2" style={{ fontSize: '22px' }}>
+        <h1 className="text-polar font-[800] mb-2" style={{ fontSize: '23.5px' }}>
           {demoMode ? 'Gmail Integration' : 'Connect Gmail'}
         </h1>
-        <p className="text-dim mb-6" style={{ fontSize: '13px', maxWidth: 360, margin: '0 auto' }}>
+        <p className="text-dim mb-6" style={{ fontSize: '14px', maxWidth: 360, margin: '0 auto' }}>
           {demoMode
             ? 'In the full product, connect your Gmail to read, send, and manage emails directly from the CRM — no tab-switching.'
             : 'Connect your Gmail account to read, send, and manage emails directly from your CRM.'}
@@ -526,17 +526,17 @@ export default function GmailInbox() {
           <button
             disabled
             className="btn-primary opacity-60 cursor-not-allowed"
-            style={{ fontSize: '13px', padding: '10px 28px' }}
+            style={{ fontSize: '14px', padding: '10px 28px' }}
             title="Available in the full product"
           >
             Connect with Google (Preview)
           </button>
         ) : (
-          <button onClick={() => connectGmail()} className="btn-primary" style={{ fontSize: '13px', padding: '10px 28px' }}>
+          <button onClick={() => connectGmail()} className="btn-primary" style={{ fontSize: '14px', padding: '10px 28px' }}>
             Connect with Google
           </button>
         )}
-        <p className="text-dim mt-4" style={{ fontSize: '10.5px' }}>
+        <p className="text-dim mt-4" style={{ fontSize: '11px' }}>
           {demoMode
             ? 'Demo mode — OAuth is disabled. Explore other features below.'
             : 'Grants read, send, and organize permissions. You can disconnect anytime.'}
@@ -564,26 +564,26 @@ export default function GmailInbox() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-polar font-[800] flex items-center gap-2" style={{ fontSize: '22px', letterSpacing: '-0.02em' }}>
+          <h1 className="text-polar font-[800] flex items-center gap-2" style={{ fontSize: '23.5px', letterSpacing: '-0.02em' }}>
             <Mail size={22} /> Gmail
           </h1>
           {unreadCount > 0 && (
-            <p className="text-dim mt-0.5" style={{ fontSize: '11.5px' }}>{unreadCount} unread message{unreadCount !== 1 ? 's' : ''}</p>
+            <p className="text-dim mt-0.5" style={{ fontSize: '12px' }}>{unreadCount} unread message{unreadCount !== 1 ? 's' : ''}</p>
           )}
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => { disconnectGmail(); setConnected(false) }}
             className="btn-ghost flex items-center gap-1.5 text-dim"
-            style={{ fontSize: '10px', padding: '5px 10px' }}
+            style={{ fontSize: '10.5px', padding: '5px 10px' }}
             title="Disconnect Gmail"
           >
             <LogOut size={11} />
           </button>
-          <button onClick={() => loadMessages()} disabled={loading} className="btn-ghost flex items-center gap-1.5" style={{ fontSize: '11px', padding: '6px 12px' }}>
+          <button onClick={() => loadMessages()} disabled={loading} className="btn-ghost flex items-center gap-1.5" style={{ fontSize: '11.5px', padding: '6px 12px' }}>
             <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
-          <button onClick={() => setComposing(true)} className="btn-primary flex items-center gap-1.5" style={{ fontSize: '11px', padding: '6px 16px' }}>
+          <button onClick={() => setComposing(true)} className="btn-primary flex items-center gap-1.5" style={{ fontSize: '11.5px', padding: '6px 16px' }}>
             <Send size={12} /> Compose
           </button>
         </div>
@@ -600,14 +600,14 @@ export default function GmailInbox() {
                 key={f.id}
                 onClick={() => setActiveFolder(f.id)}
                 className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-all ${active ? 'bg-accent/10 text-accent border border-accent/20' : 'text-dim hover:text-steel hover:bg-surface-2/50 border border-transparent'}`}
-                style={{ fontSize: '12px', fontWeight: active ? 700 : 500 }}
+                style={{ fontSize: '13px', fontWeight: active ? 700 : 500 }}
               >
                 <Icon size={14} /> {f.label}
               </button>
             )
           })}
           <div className="mt-3 px-3">
-            <p className="text-dim" style={{ fontSize: '9px', fontWeight: 600, letterSpacing: '0.05em' }}>
+            <p className="text-dim" style={{ fontSize: '9.5px', fontWeight: 600, letterSpacing: '0.05em' }}>
               Press C to compose · R to refresh
             </p>
           </div>
@@ -624,7 +624,7 @@ export default function GmailInbox() {
                   key={f.id}
                   onClick={() => setActiveFolder(f.id)}
                   className={`px-3 py-1.5 rounded-full whitespace-nowrap transition-colors ${active ? 'bg-accent text-white' : 'bg-surface-2 text-dim'}`}
-                  style={{ fontSize: '11px', fontWeight: 600 }}
+                  style={{ fontSize: '11.5px', fontWeight: 600 }}
                 >
                   {f.label}
                 </button>
@@ -643,7 +643,7 @@ export default function GmailInbox() {
                 placeholder="Search emails... (try: from:someone, has:attachment, is:unread)"
                 aria-label="Search emails"
                 className="w-full bg-cell border border-border rounded-lg pl-9 pr-3 py-2.5 text-polar focus:border-accent focus:ring-1 focus:ring-accent/30 transition-colors"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               />
             </div>
           </form>
@@ -659,7 +659,7 @@ export default function GmailInbox() {
                     key={cat.id || 'all'}
                     onClick={() => setActiveCategory(cat.id)}
                     className={`flex items-center gap-1.5 px-4 py-2.5 transition-all border-b-2 ${active ? 'border-accent text-accent' : 'border-transparent text-dim hover:text-steel hover:bg-surface-2/30'}`}
-                    style={{ fontSize: '11.5px', fontWeight: active ? 700 : 500 }}
+                    style={{ fontSize: '12px', fontWeight: active ? 700 : 500 }}
                   >
                     <Icon size={13} /> {cat.label}
                   </button>
@@ -671,18 +671,18 @@ export default function GmailInbox() {
           {/* Bulk action bar */}
           {checkedIds.size > 0 && (
             <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-lg bg-accent/10 border border-accent/20">
-              <span className="text-accent font-[600]" style={{ fontSize: '11.5px' }}>{checkedIds.size} selected</span>
+              <span className="text-accent font-[600]" style={{ fontSize: '12px' }}>{checkedIds.size} selected</span>
               <div className="flex-1" />
-              <button onClick={() => handleBulkAction('read')} className="btn-ghost flex items-center gap-1" style={{ fontSize: '11px', padding: '4px 10px' }}>
+              <button onClick={() => handleBulkAction('read')} className="btn-ghost flex items-center gap-1" style={{ fontSize: '11.5px', padding: '4px 10px' }}>
                 <CheckCheck size={12} /> Mark Read
               </button>
-              <button onClick={() => handleBulkAction('archive')} className="btn-ghost flex items-center gap-1" style={{ fontSize: '11px', padding: '4px 10px' }}>
+              <button onClick={() => handleBulkAction('archive')} className="btn-ghost flex items-center gap-1" style={{ fontSize: '11.5px', padding: '4px 10px' }}>
                 <Archive size={12} /> Archive
               </button>
-              <button onClick={() => handleBulkAction('trash')} className="btn-ghost text-err flex items-center gap-1" style={{ fontSize: '11px', padding: '4px 10px' }}>
+              <button onClick={() => handleBulkAction('trash')} className="btn-ghost text-err flex items-center gap-1" style={{ fontSize: '11.5px', padding: '4px 10px' }}>
                 <Trash2 size={12} /> Delete
               </button>
-              <button onClick={() => setCheckedIds(new Set())} className="btn-ghost" style={{ fontSize: '11px', padding: '4px 10px' }}>
+              <button onClick={() => setCheckedIds(new Set())} className="btn-ghost" style={{ fontSize: '11.5px', padding: '4px 10px' }}>
                 Clear
               </button>
             </div>
@@ -690,11 +690,11 @@ export default function GmailInbox() {
 
           {/* Message list */}
           {loading && messages.length === 0 ? (
-            <div className="text-dim text-center py-16" style={{ fontSize: '12.5px' }}>
+            <div className="text-dim text-center py-16" style={{ fontSize: '13.5px' }}>
               <RefreshCw size={16} className="animate-spin mx-auto mb-2" /> Loading messages...
             </div>
           ) : messages.length === 0 ? (
-            <div className="text-dim text-center py-16" style={{ fontSize: '12.5px' }}>
+            <div className="text-dim text-center py-16" style={{ fontSize: '13.5px' }}>
               <Mail size={24} className="mx-auto mb-3 opacity-30" />
               {searchQuery ? 'No emails matching your search' : 'No messages in this folder'}
             </div>
@@ -725,22 +725,22 @@ export default function GmailInbox() {
                     {/* Click area for opening message */}
                     <div className="flex items-center gap-3 flex-1 min-w-0" onClick={() => setSelectedMessage(msg)}>
                       {/* Avatar */}
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white flex-shrink-0" style={{ fontSize: '11px', fontWeight: 700, backgroundColor: color }}>
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-white flex-shrink-0" style={{ fontSize: '11.5px', fontWeight: 700, backgroundColor: color }}>
                         {senderName(msg.from).charAt(0).toUpperCase()}
                       </div>
 
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-baseline gap-2">
-                          <span className={`truncate ${msg.isUnread ? 'text-polar font-[700]' : 'text-steel font-[500]'}`} style={{ fontSize: '12.5px', maxWidth: '180px' }}>
+                          <span className={`truncate ${msg.isUnread ? 'text-polar font-[700]' : 'text-steel font-[500]'}`} style={{ fontSize: '13.5px', maxWidth: '180px' }}>
                             {senderName(msg.from)}
                           </span>
-                          <span className="text-dim flex-shrink-0 ml-auto" style={{ fontSize: '10.5px' }}>{smartDate(msg.date)}</span>
+                          <span className="text-dim flex-shrink-0 ml-auto" style={{ fontSize: '11px' }}>{smartDate(msg.date)}</span>
                         </div>
-                        <div className={`truncate ${msg.isUnread ? 'text-polar font-[600]' : 'text-steel'}`} style={{ fontSize: '12px' }}>
+                        <div className={`truncate ${msg.isUnread ? 'text-polar font-[600]' : 'text-steel'}`} style={{ fontSize: '13px' }}>
                           {msg.subject}
                         </div>
-                        <div className="truncate text-dim" style={{ fontSize: '11px', marginTop: '1px' }}>
+                        <div className="truncate text-dim" style={{ fontSize: '11.5px', marginTop: '1px' }}>
                           {msg.snippet}
                         </div>
                       </div>
@@ -777,18 +777,18 @@ export default function GmailInbox() {
                 onClick={handlePrevPage}
                 disabled={pageHistory.length === 0}
                 className="btn-ghost flex items-center gap-1"
-                style={{ fontSize: '11px', padding: '5px 12px' }}
+                style={{ fontSize: '11.5px', padding: '5px 12px' }}
               >
                 <ChevronLeft size={13} /> Newer
               </button>
-              <span className="text-dim" style={{ fontSize: '10.5px' }}>
+              <span className="text-dim" style={{ fontSize: '11px' }}>
                 Page {pageHistory.length + 1}
               </span>
               <button
                 onClick={handleNextPage}
                 disabled={!nextPageToken}
                 className="btn-ghost flex items-center gap-1"
-                style={{ fontSize: '11px', padding: '5px 12px' }}
+                style={{ fontSize: '11.5px', padding: '5px 12px' }}
               >
                 Older <ChevronRight size={13} />
               </button>

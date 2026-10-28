@@ -95,7 +95,7 @@ function InlineEdit({
       onKeyDown={handleKeyDown}
       className="w-full bg-surface text-polar font-sans outline-none px-2 py-1 transition-all"
       style={{
-        fontSize: '12px',
+        fontSize: '13px',
         border: '1px solid var(--polar, #e8e8e8)',
         borderRadius: '3px',
         boxShadow: '0 0 0 2px rgba(232, 232, 232, 0.15)',
@@ -308,7 +308,7 @@ export default function Clients() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3"><h1>Clients</h1><Building2 size={14} className="text-dim" /></div>
-          <p className="text-steel mt-1" style={{ fontSize: '13px' }}>
+          <p className="text-steel mt-1" style={{ fontSize: '14px' }}>
             {clients.length} total &middot; {counts.active || 0} active
           </p>
         </div>
@@ -346,7 +346,7 @@ export default function Clients() {
                 : 'bg-transparent text-steel border-border-hard hover:border-dim'
             }`}
           >
-            {label} <span className="ml-1 mono" style={{ fontSize: '10px' }}>({counts[key] ?? 0})</span>
+            {label} <span className="ml-1 mono" style={{ fontSize: '10.5px' }}>({counts[key] ?? 0})</span>
           </button>
         ))}
         <div className="ml-auto relative">
@@ -358,7 +358,7 @@ export default function Clients() {
             placeholder="Search clients..."
             aria-label="Search clients"
             className="bg-cell border border-border text-polar pl-8 pr-3 py-1.5 font-sans outline-none focus:border-dim transition-colors w-full md:w-[200px]"
-            style={{ fontSize: '12px' }}
+            style={{ fontSize: '13px' }}
           />
         </div>
       </div>
@@ -381,7 +381,7 @@ export default function Clients() {
       ) : (
         <>
           <div className="overflow-x-auto">
-            <table className="w-full" style={{ fontSize: '12px' }}>
+            <table className="w-full" style={{ fontSize: '13px' }}>
               <thead>
                 <tr className="border-b border-border text-left">
                   <th className="label py-2 px-3 cursor-pointer select-none" onClick={() => handleSort('name')}>
@@ -598,7 +598,7 @@ function FormField({ label, field, type = 'text', placeholder = '', value, onCha
         onChange={e => onChange(field, type === 'number' ? Number(e.target.value) : e.target.value)}
         placeholder={placeholder}
         className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim transition-colors"
-        style={{ fontSize: '12px' }}
+        style={{ fontSize: '13px' }}
       />
     </div>
   )
@@ -659,7 +659,7 @@ function ClientForm({
         <div>
           <FormField label="Name" field="name" placeholder="Client name" value={form.name} onChange={set} />
           {dupWarning && (
-            <p className="text-warn mt-1 font-sans" style={{ fontSize: '11px' }}>{dupWarning}</p>
+            <p className="text-warn mt-1 font-sans" style={{ fontSize: '11.5px' }}>{dupWarning}</p>
           )}
         </div>
         <div className="space-y-1">
@@ -668,7 +668,7 @@ function ClientForm({
             value={form.status}
             onChange={e => set('status', e.target.value)}
             className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim"
-            style={{ fontSize: '12px' }}
+            style={{ fontSize: '13px' }}
           >
             {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
@@ -701,7 +701,7 @@ function ClientForm({
           onChange={(val) => set('notes', val)}
           rows={3}
           className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim resize-none"
-          style={{ fontSize: '12px' }}
+          style={{ fontSize: '13px' }}
         />
       </div>
       <div className="flex justify-end gap-3 pt-2">
@@ -750,19 +750,19 @@ function ClientDrawer({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <Building2 size={16} className="text-steel" />
-          <h2 className="text-polar" style={{ fontSize: '16px' }}>{client.name}</h2>
+          <h2 className="text-polar" style={{ fontSize: '17px' }}>{client.name}</h2>
           <StatusMenu label={`${client.name} status`} value={client.status} options={CLIENT_STATUS_OPTIONS} onChange={onStatus} />
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={onEdit} className="btn-ghost" style={{ fontSize: '10px', padding: '4px 10px' }}>Edit</button>
+          <button onClick={onEdit} className="btn-ghost" style={{ fontSize: '10.5px', padding: '4px 10px' }}>Edit</button>
           <button
             onClick={() => onDelete()}
             className="btn-ghost text-err border-err/30 hover:border-err"
-            style={{ fontSize: '10px', padding: '4px 10px' }}
+            style={{ fontSize: '10.5px', padding: '4px 10px' }}
           >
             Delete
           </button>
-          <button onClick={onClose} className="text-dim hover:text-steel ml-2 cursor-pointer" style={{ fontSize: '12px' }}>
+          <button onClick={onClose} className="text-dim hover:text-steel ml-2 cursor-pointer" style={{ fontSize: '13px' }}>
             Close
           </button>
         </div>
@@ -850,7 +850,7 @@ function OverviewTab({
   const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
     <div className="flex items-start gap-4 py-2 border-b border-border">
       <span className="label text-dim w-32 shrink-0 pt-0.5">{label}</span>
-      <span className="text-polar" style={{ fontSize: '12px' }}>{value || '\u2014'}</span>
+      <span className="text-polar" style={{ fontSize: '13px' }}>{value || '\u2014'}</span>
     </div>
   )
 
@@ -867,7 +867,7 @@ function OverviewTab({
             <button
               onClick={() => shell.openExternal(client.website!)}
               className="inline-flex items-center gap-1 bg-surface border border-border px-2 py-0.5 text-steel hover:text-polar hover:border-dim transition-colors cursor-pointer"
-              style={{ fontSize: '10px', borderRadius: '3px' }}
+              style={{ fontSize: '10.5px', borderRadius: '3px' }}
               title={client.website}
             >
               <ExternalLink size={9} />
@@ -951,7 +951,7 @@ function ContactsTab({
     <div>
       <div className="flex items-center justify-between mb-3">
         <span className="label text-dim">{clientContacts.length} Contact{clientContacts.length !== 1 ? 's' : ''}</span>
-        <button onClick={() => setAdding(!adding)} className="btn-ghost" style={{ fontSize: '10px', padding: '4px 10px' }}>
+        <button onClick={() => setAdding(!adding)} className="btn-ghost" style={{ fontSize: '10.5px', padding: '4px 10px' }}>
           <Plus size={10} className="inline mr-1" /> Add
         </button>
       </div>
@@ -959,26 +959,26 @@ function ContactsTab({
       {adding && (
         <div className="bg-surface border border-border p-3 mb-3 space-y-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="Name" className="bg-cell border border-border px-2 py-1 text-polar font-sans outline-none" style={{ fontSize: '12px' }} />
-            <input value={role} onChange={e => setRole(e.target.value)} placeholder="Role" className="bg-cell border border-border px-2 py-1 text-polar font-sans outline-none" style={{ fontSize: '12px' }} />
-            <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className="bg-cell border border-border px-2 py-1 text-polar font-sans outline-none" style={{ fontSize: '12px' }} />
-            <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone" className="bg-cell border border-border px-2 py-1 text-polar font-sans outline-none" style={{ fontSize: '12px' }} />
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="Name" className="bg-cell border border-border px-2 py-1 text-polar font-sans outline-none" style={{ fontSize: '13px' }} />
+            <input value={role} onChange={e => setRole(e.target.value)} placeholder="Role" className="bg-cell border border-border px-2 py-1 text-polar font-sans outline-none" style={{ fontSize: '13px' }} />
+            <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className="bg-cell border border-border px-2 py-1 text-polar font-sans outline-none" style={{ fontSize: '13px' }} />
+            <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone" className="bg-cell border border-border px-2 py-1 text-polar font-sans outline-none" style={{ fontSize: '13px' }} />
           </div>
           <div className="flex gap-2">
-            <button onClick={addContact} className="btn-primary" style={{ fontSize: '10px', padding: '3px 10px' }}>Save</button>
-            <button onClick={() => setAdding(false)} className="btn-ghost" style={{ fontSize: '10px', padding: '3px 10px' }}>Cancel</button>
+            <button onClick={addContact} className="btn-primary" style={{ fontSize: '10.5px', padding: '3px 10px' }}>Save</button>
+            <button onClick={() => setAdding(false)} className="btn-ghost" style={{ fontSize: '10.5px', padding: '3px 10px' }}>Cancel</button>
           </div>
         </div>
       )}
 
       {clientContacts.length === 0 ? (
-        <p className="text-dim" style={{ fontSize: '12px' }}>No contacts for this client.</p>
+        <p className="text-dim" style={{ fontSize: '13px' }}>No contacts for this client.</p>
       ) : (
         <div className="space-y-2">
           {clientContacts.map(c => (
-            <div key={c.id} className="flex items-center gap-4 py-2 border-b border-border" style={{ fontSize: '12px' }}>
+            <div key={c.id} className="flex items-center gap-4 py-2 border-b border-border" style={{ fontSize: '13px' }}>
               <span className="font-[700] text-polar">{c.name}</span>
-              {c.is_primary === 1 && <span className="badge badge-ok" style={{ fontSize: '9px' }}>Primary</span>}
+              {c.is_primary === 1 && <span className="badge badge-ok" style={{ fontSize: '9.5px' }}>Primary</span>}
               <span className="text-steel">{c.role || ''}</span>
               <span className="text-dim mono ml-auto">{c.email || ''}</span>
               <span className="text-dim mono">{c.phone || ''}</span>
@@ -998,7 +998,7 @@ function ProjectsTab({ client, projects }: { client: Client; projects: any[] }) 
   const { setCurrentPage, setSelectedProjectId } = useAppStore()
   const clientProjects = useMemo(() => projects.filter(p => p.client_id === client.id), [projects, client.id])
 
-  if (clientProjects.length === 0) return <p className="text-dim" style={{ fontSize: '12px' }}>No projects for this client.</p>
+  if (clientProjects.length === 0) return <p className="text-dim" style={{ fontSize: '13px' }}>No projects for this client.</p>
 
   const statusBadge = (s: string) => {
     if (s === 'active' || s === 'in_progress' || s === 'in-progress' || s === 'progress') return 'badge badge-ok'
@@ -1013,7 +1013,7 @@ function ProjectsTab({ client, projects }: { client: Client; projects: any[] }) 
   }
 
   return (
-    <table className="w-full" style={{ fontSize: '12px' }}>
+    <table className="w-full" style={{ fontSize: '13px' }}>
       <thead>
         <tr className="border-b border-border text-left">
           <th className="label py-2 px-2">Title</th>
@@ -1046,7 +1046,7 @@ function TasksTab({ client, tasks }: { client: Client; tasks: any[] }) {
   const { setSelectedTaskId, setCurrentPage } = useAppStore()
   const clientTasks = useMemo(() => tasks.filter(t => t.client_id === client.id), [tasks, client.id])
 
-  if (clientTasks.length === 0) return <p className="text-dim" style={{ fontSize: '12px' }}>No tasks for this client.</p>
+  if (clientTasks.length === 0) return <p className="text-dim" style={{ fontSize: '13px' }}>No tasks for this client.</p>
 
   return (
     <div className="space-y-1">
@@ -1054,7 +1054,7 @@ function TasksTab({ client, tasks }: { client: Client; tasks: any[] }) {
         <div
           key={t.id}
           className="flex items-center gap-3 py-2 border-b border-border cursor-pointer hover:bg-white/5"
-          style={{ fontSize: '12px' }}
+          style={{ fontSize: '13px' }}
           onClick={() => { setSelectedTaskId(t.id); setCurrentPage('tasks') }}
         >
           <span className={`inline-block w-2 h-2 rounded-full ${t.done ? 'bg-ok' : t.priority === 'high' ? 'bg-err' : t.priority === 'medium' ? 'bg-warn' : 'bg-dim'}`} />
@@ -1075,7 +1075,7 @@ function InvoicesTab({ client, invoices }: { client: Client; invoices: any[] }) 
   const { setSelectedInvoiceId, setCurrentPage } = useAppStore()
   const clientInvoices = useMemo(() => invoices.filter(inv => inv.client_id === client.id), [invoices, client.id])
 
-  if (clientInvoices.length === 0) return <p className="text-dim" style={{ fontSize: '12px' }}>No invoices for this client.</p>
+  if (clientInvoices.length === 0) return <p className="text-dim" style={{ fontSize: '13px' }}>No invoices for this client.</p>
 
   const statusBadge = (s: string) => {
     if (s === 'paid') return 'badge badge-ok'
@@ -1085,7 +1085,7 @@ function InvoicesTab({ client, invoices }: { client: Client; invoices: any[] }) 
   }
 
   return (
-    <table className="w-full" style={{ fontSize: '12px' }}>
+    <table className="w-full" style={{ fontSize: '13px' }}>
       <thead>
         <tr className="border-b border-border text-left">
           <th className="label py-2 px-2">Invoice #</th>
@@ -1121,7 +1121,7 @@ function InvoicesTab({ client, invoices }: { client: Client; invoices: any[] }) 
 function TimeTab({ client, timeEntries }: { client: Client; timeEntries: any[] }) {
   const clientTime = useMemo(() => timeEntries.filter(te => te.client_id === client.id), [timeEntries, client.id])
 
-  if (clientTime.length === 0) return <p className="text-dim" style={{ fontSize: '12px' }}>No time entries for this client.</p>
+  if (clientTime.length === 0) return <p className="text-dim" style={{ fontSize: '13px' }}>No time entries for this client.</p>
 
   const totalMinutes = clientTime.reduce((s, te) => s + (te.duration_minutes || 0), 0)
 
@@ -1131,7 +1131,7 @@ function TimeTab({ client, timeEntries }: { client: Client; timeEntries: any[] }
         <span className="label text-dim">{clientTime.length} entries</span>
         <span className="mono text-steel">{(totalMinutes / 60).toFixed(1)}h total</span>
       </div>
-      <table className="w-full" style={{ fontSize: '12px' }}>
+      <table className="w-full" style={{ fontSize: '13px' }}>
         <thead>
           <tr className="border-b border-border text-left">
             <th className="label py-2 px-2">Date</th>
@@ -1168,7 +1168,7 @@ function CredentialsTab({ client, credentials }: { client: Client; credentials: 
     [credentials, client.id]
   )
 
-  if (clientCreds.length === 0) return <p className="text-dim" style={{ fontSize: '12px' }}>No credentials stored for this client.</p>
+  if (clientCreds.length === 0) return <p className="text-dim" style={{ fontSize: '13px' }}>No credentials stored for this client.</p>
 
   return (
     <div className="space-y-3">
@@ -1183,13 +1183,13 @@ function CredentialsTab({ client, credentials }: { client: Client; credentials: 
             <div className="label text-steel mb-2">{cr.platform}</div>
             <div className="space-y-1">
               {Object.entries(fields).map(([key, val]) => (
-                <div key={key} className="flex gap-3" style={{ fontSize: '12px' }}>
+                <div key={key} className="flex gap-3" style={{ fontSize: '13px' }}>
                   <span className="text-dim w-28 shrink-0">{key}</span>
                   <span className="mono text-polar">{val}</span>
                 </div>
               ))}
               {Object.keys(fields).length === 0 && (
-                <span className="text-dim" style={{ fontSize: '12px' }}>No fields</span>
+                <span className="text-dim" style={{ fontSize: '13px' }}>No fields</span>
               )}
             </div>
           </div>
@@ -1232,13 +1232,13 @@ function LinksTab({ client, projects }: { client: Client; projects: any[] }) {
     }
   }
 
-  if (allLinks.length === 0) return <p className="text-dim" style={{ fontSize: '12px' }}>No links for this client.</p>
+  if (allLinks.length === 0) return <p className="text-dim" style={{ fontSize: '13px' }}>No links for this client.</p>
 
   return (
     <div className="space-y-2">
       {allLinks.map((link, i) => (
         <div key={i}>
-          <div className="flex items-center gap-3 py-2 border-b border-border" style={{ fontSize: '12px' }}>
+          <div className="flex items-center gap-3 py-2 border-b border-border" style={{ fontSize: '13px' }}>
             <Globe size={12} className="text-dim shrink-0" />
             <button
               onClick={() => togglePreview(i)}
@@ -1251,7 +1251,7 @@ function LinksTab({ client, projects }: { client: Client; projects: any[] }) {
             <button
               onClick={() => shell.openExternal(link.url)}
               className="inline-flex items-center gap-1 bg-surface border border-border px-2 py-0.5 text-steel hover:text-polar hover:border-dim transition-colors cursor-pointer"
-              style={{ fontSize: '10px', borderRadius: '3px' }}
+              style={{ fontSize: '10.5px', borderRadius: '3px' }}
               title={link.url}
             >
               <ExternalLink size={9} />
@@ -1263,12 +1263,12 @@ function LinksTab({ client, projects }: { client: Client; projects: any[] }) {
             <div className="border border-border rounded mt-2 mb-2 overflow-hidden" style={{ height: '400px', position: 'relative' }}>
               {iframeLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-surface z-10">
-                  <span className="text-dim" style={{ fontSize: '12px' }}>Loading preview...</span>
+                  <span className="text-dim" style={{ fontSize: '13px' }}>Loading preview...</span>
                 </div>
               )}
               {iframeError && (
                 <div className="absolute inset-0 flex items-center justify-center bg-surface z-10">
-                  <span className="text-dim" style={{ fontSize: '12px' }}>This site cannot be embedded. Use the external link button instead.</span>
+                  <span className="text-dim" style={{ fontSize: '13px' }}>This site cannot be embedded. Use the external link button instead.</span>
                 </div>
               )}
               <iframe
@@ -1295,7 +1295,7 @@ function MeetingsTab({ client, meetings }: { client: Client; meetings: any[] }) 
   const { setSelectedMeetingId, setCurrentPage } = useAppStore()
   const clientMeetings = useMemo(() => meetings.filter(m => m.client_id === client.id), [meetings, client.id])
 
-  if (clientMeetings.length === 0) return <p className="text-dim" style={{ fontSize: '12px' }}>No meetings for this client.</p>
+  if (clientMeetings.length === 0) return <p className="text-dim" style={{ fontSize: '13px' }}>No meetings for this client.</p>
 
   return (
     <div className="space-y-3">
@@ -1306,18 +1306,18 @@ function MeetingsTab({ client, meetings }: { client: Client; meetings: any[] }) 
           onClick={() => { setSelectedMeetingId(m.id); setCurrentPage('meetings') }}
         >
           <div className="flex items-center justify-between mb-1">
-            <span className="font-[700] text-polar" style={{ fontSize: '13px' }}>{m.title}</span>
-            <span className="mono text-dim" style={{ fontSize: '11px' }}>{relativeDate(m.date)}</span>
+            <span className="font-[700] text-polar" style={{ fontSize: '14px' }}>{m.title}</span>
+            <span className="mono text-dim" style={{ fontSize: '11.5px' }}>{relativeDate(m.date)}</span>
           </div>
-          <div className="flex gap-3 mb-2" style={{ fontSize: '11px' }}>
+          <div className="flex gap-3 mb-2" style={{ fontSize: '11.5px' }}>
             <span className="badge badge-neutral">{m.type}</span>
             {m.attendees && <span className="text-dim">{m.attendees}</span>}
           </div>
-          {m.notes && <p className="text-steel" style={{ fontSize: '12px' }}>{m.notes}</p>}
+          {m.notes && <p className="text-steel" style={{ fontSize: '13px' }}>{m.notes}</p>}
           {m.action_items && (
             <div className="mt-2">
               <span className="label text-dim">Action Items</span>
-              <p className="text-steel mt-1" style={{ fontSize: '12px' }}>{m.action_items}</p>
+              <p className="text-steel mt-1" style={{ fontSize: '13px' }}>{m.action_items}</p>
             </div>
           )}
         </div>
@@ -1434,7 +1434,7 @@ function FilesTab({ client }: { client: Client }) {
     }
   }
 
-  if (loading) return <p className="text-dim" style={{ fontSize: '12px' }}>Loading files...</p>
+  if (loading) return <p className="text-dim" style={{ fontSize: '13px' }}>Loading files...</p>
 
   return (
     <div
@@ -1450,7 +1450,7 @@ function FilesTab({ client }: { client: Client }) {
         onClick={() => fileInputRef.current?.click()}
       >
         <Upload size={18} className="text-dim" />
-        <span className="text-dim" style={{ fontSize: '12px' }}>
+        <span className="text-dim" style={{ fontSize: '13px' }}>
           {uploading ? 'Uploading...' : 'Click or drag files here to upload'}
         </span>
         <input
@@ -1465,11 +1465,11 @@ function FilesTab({ client }: { client: Client }) {
 
       {/* File list */}
       {files.length === 0 ? (
-        <p className="text-dim" style={{ fontSize: '12px' }}>No files for this client.</p>
+        <p className="text-dim" style={{ fontSize: '13px' }}>No files for this client.</p>
       ) : (
         <div className="space-y-1">
           {files.map(f => (
-            <div key={f.id} className="flex items-center gap-3 py-2 border-b border-border" style={{ fontSize: '12px' }}>
+            <div key={f.id} className="flex items-center gap-3 py-2 border-b border-border" style={{ fontSize: '13px' }}>
               {clientFileIcon(f.name)}
               <button
                 onClick={() => handlePreview(f)}
@@ -1533,7 +1533,7 @@ function NotesTab({
     <div>
       <div className="flex items-center justify-between mb-2">
         <span className="label text-dim">Client Notes</span>
-        <span className="text-dim" style={{ fontSize: '11px' }}>Auto-saves on blur</span>
+        <span className="text-dim" style={{ fontSize: '11.5px' }}>Auto-saves on blur</span>
       </div>
       <VoiceTextarea
         value={notes}
@@ -1541,7 +1541,7 @@ function NotesTab({
         onBlur={saveNotes}
         rows={10}
         className="w-full bg-surface border border-border px-4 py-3 text-polar font-sans outline-none focus:border-dim resize-y transition-colors"
-        style={{ fontSize: '13px', lineHeight: '1.6' }}
+        style={{ fontSize: '14px', lineHeight: '1.6' }}
         placeholder="Add notes about this client..."
       />
     </div>

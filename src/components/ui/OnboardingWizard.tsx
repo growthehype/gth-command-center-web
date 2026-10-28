@@ -102,10 +102,10 @@ export default function OnboardingWizard({ open, onComplete }: Props) {
       <div className="bg-surface border border-border w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="px-6 py-5 border-b border-border">
-          <h2 className="text-polar font-[800] uppercase" style={{ fontSize: '14px', letterSpacing: '0.1em' }}>
+          <h2 className="text-polar font-[800] uppercase" style={{ fontSize: '15px', letterSpacing: '0.1em' }}>
             Setup Your Command Center
           </h2>
-          <p className="text-dim mt-1" style={{ fontSize: '12px' }}>
+          <p className="text-dim mt-1" style={{ fontSize: '13px' }}>
             {step + 1} of {STEPS.length} — {STEPS[step].desc}
           </p>
           {/* Progress */}
@@ -125,32 +125,32 @@ export default function OnboardingWizard({ open, onComplete }: Props) {
           {/* Step indicator */}
           <div className="flex items-center gap-3 mb-2">
             {(() => { const Icon = STEPS[step].icon; return <Icon size={18} className="text-polar" /> })()}
-            <h3 className="text-polar font-[700]" style={{ fontSize: '15px' }}>{STEPS[step].title}</h3>
+            <h3 className="text-polar font-[700]" style={{ fontSize: '16px' }}>{STEPS[step].title}</h3>
           </div>
 
           {step === 0 && (
             <>
               <div>
                 <label className={labelClass}>Company / Business Name *</label>
-                <input type="text" value={companyName} onChange={e => setCompanyName(e.target.value)} className={inputClass} style={{ fontSize: '13px' }} placeholder="Acme Marketing Inc." autoFocus />
+                <input type="text" value={companyName} onChange={e => setCompanyName(e.target.value)} className={inputClass} style={{ fontSize: '14px' }} placeholder="Acme Marketing Inc." autoFocus />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>Email</label>
-                  <input type="email" value={companyEmail} onChange={e => setCompanyEmail(e.target.value)} className={inputClass} style={{ fontSize: '13px' }} placeholder="hello@company.com" />
+                  <input type="email" value={companyEmail} onChange={e => setCompanyEmail(e.target.value)} className={inputClass} style={{ fontSize: '14px' }} placeholder="hello@company.com" />
                 </div>
                 <div>
                   <label className={labelClass}>Phone</label>
-                  <input type="tel" value={companyPhone} onChange={e => setCompanyPhone(e.target.value)} className={inputClass} style={{ fontSize: '13px' }} placeholder="(555) 123-4567" />
+                  <input type="tel" value={companyPhone} onChange={e => setCompanyPhone(e.target.value)} className={inputClass} style={{ fontSize: '14px' }} placeholder="(555) 123-4567" />
                 </div>
               </div>
               <div>
                 <label className={labelClass}>Address</label>
-                <input type="text" value={companyAddress} onChange={e => setCompanyAddress(e.target.value)} className={inputClass} style={{ fontSize: '13px' }} placeholder="123 Main Street, City, Province/State, Postal Code, Country" />
+                <input type="text" value={companyAddress} onChange={e => setCompanyAddress(e.target.value)} className={inputClass} style={{ fontSize: '14px' }} placeholder="123 Main Street, City, Province/State, Postal Code, Country" />
               </div>
               <div>
                 <label className={labelClass}>Website</label>
-                <input type="text" value={companyWebsite} onChange={e => setCompanyWebsite(e.target.value)} className={inputClass} style={{ fontSize: '13px' }} placeholder="www.company.com" />
+                <input type="text" value={companyWebsite} onChange={e => setCompanyWebsite(e.target.value)} className={inputClass} style={{ fontSize: '14px' }} placeholder="www.company.com" />
               </div>
             </>
           )}
@@ -160,22 +160,22 @@ export default function OnboardingWizard({ open, onComplete }: Props) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className={labelClass}>Your Name (for email signature)</label>
-                  <input type="text" value={emailSigName} onChange={e => setEmailSigName(e.target.value)} className={inputClass} style={{ fontSize: '13px' }} placeholder="John Smith" autoFocus />
+                  <input type="text" value={emailSigName} onChange={e => setEmailSigName(e.target.value)} className={inputClass} style={{ fontSize: '14px' }} placeholder="John Smith" autoFocus />
                 </div>
                 <div>
                   <label className={labelClass}>Your Title</label>
-                  <input type="text" value={emailSigTitle} onChange={e => setEmailSigTitle(e.target.value)} className={inputClass} style={{ fontSize: '13px' }} placeholder="CEO / Founder / Director" />
+                  <input type="text" value={emailSigTitle} onChange={e => setEmailSigTitle(e.target.value)} className={inputClass} style={{ fontSize: '14px' }} placeholder="CEO / Founder / Director" />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className={labelClass}>Invoice Prefix</label>
-                  <input type="text" value={invoicePrefix} onChange={e => setInvoicePrefix(e.target.value.toUpperCase())} className={inputClass} style={{ fontSize: '13px' }} placeholder="INV" maxLength={6} />
-                  <span className="text-dim mt-1 block" style={{ fontSize: '10px' }}>e.g. {invoicePrefix || 'INV'}-001</span>
+                  <input type="text" value={invoicePrefix} onChange={e => setInvoicePrefix(e.target.value.toUpperCase())} className={inputClass} style={{ fontSize: '14px' }} placeholder="INV" maxLength={6} />
+                  <span className="text-dim mt-1 block" style={{ fontSize: '10.5px' }}>e.g. {invoicePrefix || 'INV'}-001</span>
                 </div>
                 <div>
                   <label className={labelClass}>Currency</label>
-                  <select value={currency} onChange={e => setCurrency(e.target.value)} className={inputClass} style={{ fontSize: '13px' }}>
+                  <select value={currency} onChange={e => setCurrency(e.target.value)} className={inputClass} style={{ fontSize: '14px' }}>
                     <option value="CAD">CAD</option>
                     <option value="USD">USD</option>
                     <option value="EUR">EUR</option>
@@ -185,16 +185,16 @@ export default function OnboardingWizard({ open, onComplete }: Props) {
                 </div>
                 <div>
                   <label className={labelClass}>Tax / GST Number</label>
-                  <input type="text" value={gstNumber} onChange={e => setGstNumber(e.target.value)} className={inputClass} style={{ fontSize: '13px' }} placeholder="Optional" />
+                  <input type="text" value={gstNumber} onChange={e => setGstNumber(e.target.value)} className={inputClass} style={{ fontSize: '14px' }} placeholder="Optional" />
                 </div>
               </div>
               <div>
                 <label className={labelClass}>Payment Instructions</label>
-                <input type="text" value={paymentInstructions} onChange={e => setPaymentInstructions(e.target.value)} className={inputClass} style={{ fontSize: '13px' }} placeholder="How clients should pay you" />
+                <input type="text" value={paymentInstructions} onChange={e => setPaymentInstructions(e.target.value)} className={inputClass} style={{ fontSize: '14px' }} placeholder="How clients should pay you" />
               </div>
               <div>
                 <label className={labelClass}>Invoice Terms & Conditions</label>
-                <textarea value={termsText} onChange={e => setTermsText(e.target.value)} className={inputClass} style={{ fontSize: '12px', minHeight: '80px' }} placeholder="Legal terms for your invoices..." />
+                <textarea value={termsText} onChange={e => setTermsText(e.target.value)} className={inputClass} style={{ fontSize: '13px', minHeight: '80px' }} placeholder="Legal terms for your invoices..." />
               </div>
             </>
           )}
@@ -203,24 +203,24 @@ export default function OnboardingWizard({ open, onComplete }: Props) {
             <>
               <div>
                 <label className={labelClass}>Tagline / Slogan</label>
-                <input type="text" value={tagline} onChange={e => setTagline(e.target.value)} className={inputClass} style={{ fontSize: '13px' }} placeholder="Strategic Marketing & Creative Services" autoFocus />
-                <span className="text-dim mt-1 block" style={{ fontSize: '10px' }}>Appears on invoices and the topbar</span>
+                <input type="text" value={tagline} onChange={e => setTagline(e.target.value)} className={inputClass} style={{ fontSize: '14px' }} placeholder="Strategic Marketing & Creative Services" autoFocus />
+                <span className="text-dim mt-1 block" style={{ fontSize: '10.5px' }}>Appears on invoices and the topbar</span>
               </div>
               <div>
                 <label className={labelClass}>Logo URL</label>
-                <input type="text" value={logoUrl} onChange={e => setLogoUrl(e.target.value)} className={inputClass} style={{ fontSize: '13px' }} placeholder="https://i.imgur.com/your-logo.png" />
-                <span className="text-dim mt-1 block" style={{ fontSize: '10px' }}>Direct link to your logo image (PNG recommended). Used in email signatures.</span>
+                <input type="text" value={logoUrl} onChange={e => setLogoUrl(e.target.value)} className={inputClass} style={{ fontSize: '14px' }} placeholder="https://i.imgur.com/your-logo.png" />
+                <span className="text-dim mt-1 block" style={{ fontSize: '10.5px' }}>Direct link to your logo image (PNG recommended). Used in email signatures.</span>
               </div>
               {logoUrl && (
                 <div className="flex items-center gap-4 mt-2">
                   <div className="bg-obsidian border border-border p-3 flex items-center justify-center" style={{ width: '80px', height: '80px' }}>
                     <img src={logoUrl} alt="Logo preview" className="max-w-full max-h-full" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                   </div>
-                  <span className="text-dim" style={{ fontSize: '11px' }}>Preview</span>
+                  <span className="text-dim" style={{ fontSize: '11.5px' }}>Preview</span>
                 </div>
               )}
               <div className="card bg-obsidian/50 mt-2">
-                <p className="text-dim" style={{ fontSize: '11px', lineHeight: '1.6' }}>
+                <p className="text-dim" style={{ fontSize: '11.5px', lineHeight: '1.6' }}>
                   The app icon (shield) in the topbar uses the local <code className="mono text-steel">/icon.png</code> file. To change it, replace that file in your public folder and redeploy.
                 </p>
               </div>
@@ -229,7 +229,7 @@ export default function OnboardingWizard({ open, onComplete }: Props) {
 
           {step === 3 && (
             <>
-              <p className="text-dim" style={{ fontSize: '12px' }}>
+              <p className="text-dim" style={{ fontSize: '13px' }}>
                 List the services you offer. These will appear as presets in your invoice builder and services page.
               </p>
               <div className="space-y-2">
@@ -244,7 +244,7 @@ export default function OnboardingWizard({ open, onComplete }: Props) {
                         setServiceList(next)
                       }}
                       className={inputClass}
-                      style={{ fontSize: '13px' }}
+                      style={{ fontSize: '14px' }}
                       placeholder={i === 0 ? 'e.g. Website Design' : i === 1 ? 'e.g. Social Media Management' : 'Add another service...'}
                       autoFocus={i === 0}
                     />
@@ -288,7 +288,7 @@ export default function OnboardingWizard({ open, onComplete }: Props) {
               <button
                 onClick={() => onComplete()}
                 className="text-dim hover:text-steel transition-colors cursor-pointer"
-                style={{ fontSize: '11px' }}
+                style={{ fontSize: '11.5px' }}
               >
                 Skip Setup
               </button>

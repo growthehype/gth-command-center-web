@@ -121,12 +121,12 @@ export default function Goals() {
     return (
       <div onClick={() => openEdit(g)} className="card cursor-pointer hover:translate-y-[-1px] hover:shadow-lg transition-all duration-200">
         <div className="flex items-start justify-between mb-3">
-          <h3 className="text-polar font-[700]" style={{ fontSize: '14px' }}>{g.title}</h3>
+          <h3 className="text-polar font-[700]" style={{ fontSize: '15px' }}>{g.title}</h3>
           <span className={STATUS_BADGE[g.status] || 'badge badge-neutral'}>{g.status}</span>
         </div>
 
         {g.description && (
-          <p className="text-steel mb-3" style={{ fontSize: '12px' }}>{g.description}</p>
+          <p className="text-steel mb-3" style={{ fontSize: '13px' }}>{g.description}</p>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
@@ -178,7 +178,7 @@ export default function Goals() {
       <div className="flex items-center justify-between">
         <div>
           <h1>Goals</h1>
-          <p className="text-steel mt-1" style={{ fontSize: '13px' }}>
+          <p className="text-steel mt-1" style={{ fontSize: '14px' }}>
             {activeGoals.length} active &middot; {achievedGoals.length} achieved
           </p>
         </div>
@@ -250,7 +250,7 @@ export default function Goals() {
               onChange={e => set('title', e.target.value)}
               placeholder="e.g. Hit $25K MRR"
               className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim transition-colors"
-              style={{ fontSize: '12px' }}
+              style={{ fontSize: '13px' }}
             />
           </div>
 
@@ -261,7 +261,7 @@ export default function Goals() {
               onChange={e => set('description', e.target.value)}
               rows={2}
               className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim resize-none transition-colors"
-              style={{ fontSize: '12px' }}
+              style={{ fontSize: '13px' }}
             />
           </div>
 
@@ -272,7 +272,7 @@ export default function Goals() {
                 value={form.metric_type}
                 onChange={e => set('metric_type', e.target.value)}
                 className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               >
                 {METRIC_TYPES.map(m => <option key={m} value={m}>{m}</option>)}
               </select>
@@ -283,7 +283,7 @@ export default function Goals() {
                 value={form.status}
                 onChange={e => set('status', e.target.value)}
                 className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               >
                 <option value="active">Active</option>
                 <option value="achieved">Achieved</option>
@@ -301,7 +301,7 @@ export default function Goals() {
                 value={form.current_value}
                 onChange={e => set('current_value', Number(e.target.value))}
                 className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim transition-colors"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               />
             </div>
             <div className="space-y-1">
@@ -311,7 +311,7 @@ export default function Goals() {
                 value={form.target_value}
                 onChange={e => set('target_value', Number(e.target.value))}
                 className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim transition-colors"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               />
             </div>
             <div className="space-y-1">
@@ -321,7 +321,7 @@ export default function Goals() {
                 value={form.target_date}
                 onChange={e => set('target_date', e.target.value)}
                 className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim transition-colors"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               />
             </div>
           </div>
@@ -337,7 +337,7 @@ export default function Goals() {
               <button
                 onClick={async () => { await deleteGoal(editingId); setModalOpen(false) }}
                 className="text-err font-sans cursor-pointer hover:underline"
-                style={{ fontSize: '11px' }}
+                style={{ fontSize: '11.5px' }}
               >
                 Delete
               </button>

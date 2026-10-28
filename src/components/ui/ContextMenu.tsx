@@ -71,7 +71,7 @@ export default function ContextMenu({ items, children }: ContextMenuProps) {
                 className={`w-full flex items-center gap-3 px-3 py-[7px] rounded-[5px] text-left transition-colors hover:bg-surface-2 ${
                   item.danger ? 'text-err hover:text-err' : 'text-steel hover:text-polar'
                 }`}
-                style={{ fontSize: '12.5px' }}
+                style={{ fontSize: '13.5px' }}
               >
                 {Icon && <Icon size={13} className={item.danger ? 'text-err' : 'text-dim'} />}
                 {item.label}

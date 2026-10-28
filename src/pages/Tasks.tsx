@@ -397,7 +397,7 @@ export default function Tasks() {
             ? 'text-ok hover:text-ok/80'
             : 'text-dim hover:text-steel'
         }`}
-        style={{ fontSize: '10px', fontWeight: 600, padding: compact ? '2px 4px' : '2px 6px' }}
+        style={{ fontSize: '10.5px', fontWeight: 600, padding: compact ? '2px 4px' : '2px 6px' }}
         title={isActive ? 'Stop timer' : 'Start timer'}
       >
         {isActive ? (
@@ -496,12 +496,12 @@ export default function Tasks() {
                 ? 'bg-polar text-obsidian border-polar'
                 : 'bg-transparent text-steel border-border-hard hover:border-dim hover:text-polar'
             }`}
-            style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}
+            style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}
           >
             {f.label}
             <span
               className={`ml-1.5 ${filter === f.key ? 'text-obsidian/60' : 'text-dim'}`}
-              style={{ fontSize: '10px' }}
+              style={{ fontSize: '10.5px' }}
             >
               {f.count}
             </span>
@@ -544,10 +544,10 @@ export default function Tasks() {
                     borderBottomWidth: '2px',
                   }}
                 >
-                  <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }} className="text-polar">
+                  <span style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }} className="text-polar">
                     {PRIORITY_COLUMN_LABELS[priority]}
                   </span>
-                  <span className="text-dim" style={{ fontSize: '10px', fontWeight: 700 }}>
+                  <span className="text-dim" style={{ fontSize: '10.5px', fontWeight: 700 }}>
                     {colTasks.length}
                   </span>
                 </div>
@@ -558,7 +558,7 @@ export default function Tasks() {
                   style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 320px)', paddingRight: '4px' }}
                 >
                   {colTasks.length === 0 && (
-                    <div className="text-dim text-center py-6" style={{ fontSize: '11px' }}>No tasks</div>
+                    <div className="text-dim text-center py-6" style={{ fontSize: '11.5px' }}>No tasks</div>
                   )}
                   {colTasks.map(task => {
                     const overdue = !task.done && isOverdue(task.due_date)
@@ -589,7 +589,7 @@ export default function Tasks() {
                           <div className="flex-1 min-w-0">
                             <div
                               className={`${task.done ? 'line-through text-steel' : 'text-polar'}`}
-                              style={{ fontSize: '12px', fontWeight: 600, lineHeight: 1.3 }}
+                              style={{ fontSize: '13px', fontWeight: 600, lineHeight: 1.3 }}
                             >
                               {task.text}
                             </div>
@@ -602,7 +602,7 @@ export default function Tasks() {
                         {/* Meta row */}
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
                           {task.client_name && (
-                            <span className="text-steel truncate" style={{ fontSize: '10px', maxWidth: '120px' }}>
+                            <span className="text-steel truncate" style={{ fontSize: '10.5px', maxWidth: '120px' }}>
                               {task.client_name}
                             </span>
                           )}
@@ -611,12 +611,12 @@ export default function Tasks() {
                               className={`mono flex items-center gap-1 ${
                                 task.done ? 'text-steel' : overdue ? 'text-err' : 'text-steel'
                               }`}
-                              style={{ fontSize: '10px' }}
+                              style={{ fontSize: '10.5px' }}
                             >
                               <CalIcon size={8} />
                               {friendlyDate(task.due_date)}
                               {overdue && !task.done && (
-                                <span className="inline-flex items-center gap-0.5 rounded-full bg-err/15 text-err px-1 py-0.5" style={{ fontSize: '8px', fontWeight: 700, lineHeight: 1 }}>
+                                <span className="inline-flex items-center gap-0.5 rounded-full bg-err/15 text-err px-1 py-0.5" style={{ fontSize: '8.5px', fontWeight: 700, lineHeight: 1 }}>
                                   OVERDUE
                                 </span>
                               )}
@@ -656,7 +656,7 @@ export default function Tasks() {
                 </svg>
               )}
             </button>
-            <span className="text-dim" style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            <span className="text-dim" style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
               {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Select all'}
             </span>
           </div>
@@ -722,12 +722,12 @@ export default function Tasks() {
                 <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openEdit(task)}>
                   <div
                     className={`truncate ${task.done ? 'line-through text-steel' : ''}`}
-                    style={{ fontSize: '13px', fontWeight: 600, transition: 'all 0.4s ease', opacity: recentlyCompleted.has(task.id) || task.done ? 0.5 : 1 }}
+                    style={{ fontSize: '14px', fontWeight: 600, transition: 'all 0.4s ease', opacity: recentlyCompleted.has(task.id) || task.done ? 0.5 : 1 }}
                   >
                     {task.text}
                   </div>
                   {task.description && !task.done && (
-                    <div className="text-steel truncate mt-0.5" style={{ fontSize: '11px' }}>
+                    <div className="text-steel truncate mt-0.5" style={{ fontSize: '11.5px' }}>
                       {task.description}
                     </div>
                   )}
@@ -738,7 +738,7 @@ export default function Tasks() {
 
                 {/* Client name */}
                 {task.client_name && (
-                  <span className="flex-shrink-0 text-steel" style={{ fontSize: '11px', maxWidth: '100px' }}>
+                  <span className="flex-shrink-0 text-steel" style={{ fontSize: '11.5px', maxWidth: '100px' }}>
                     <span className="truncate block">{task.client_name}</span>
                   </span>
                 )}
@@ -753,13 +753,13 @@ export default function Tasks() {
                     <CalIcon size={9} />
                     {friendlyDate(task.due_date)}
                     {overdue && !task.done && (
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-err/15 text-err px-1.5 py-0.5" style={{ fontSize: '9px', fontWeight: 700, lineHeight: 1 }}>
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-err/15 text-err px-1.5 py-0.5" style={{ fontSize: '9.5px', fontWeight: 700, lineHeight: 1 }}>
                         <AlertTriangle size={8} />
                         OVERDUE
                       </span>
                     )}
                     {todayTask && (
-                      <span className="inline-flex items-center gap-0.5 rounded-full bg-warn/15 text-warn px-1.5 py-0.5" style={{ fontSize: '9px', fontWeight: 700, lineHeight: 1 }}>
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-warn/15 text-warn px-1.5 py-0.5" style={{ fontSize: '9.5px', fontWeight: 700, lineHeight: 1 }}>
                         <Clock size={8} />
                         DUE TODAY
                       </span>
@@ -777,13 +777,13 @@ export default function Tasks() {
                       <span
                         key={i}
                         className="badge badge-neutral"
-                        style={{ fontSize: '9px', padding: '1px 5px' }}
+                        style={{ fontSize: '9.5px', padding: '1px 5px' }}
                       >
                         {tag}
                       </span>
                     ))}
                     {tags.length > 3 && (
-                      <span className="text-dim" style={{ fontSize: '9px' }}>+{tags.length - 3}</span>
+                      <span className="text-dim" style={{ fontSize: '9.5px' }}>+{tags.length - 3}</span>
                     )}
                   </div>
                 )}
@@ -832,7 +832,7 @@ export default function Tasks() {
               onChange={e => setForm(f => ({ ...f, text: e.target.value }))}
               placeholder="What needs to be done?"
               className="w-full bg-surface border border-border px-3 py-2 text-polar placeholder:text-dim focus:outline-none focus:border-dim transition-colors"
-              style={{ fontSize: '13px' }}
+              style={{ fontSize: '14px' }}
               autoFocus
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) (editingId ? handleUpdate : handleCreate)() }}
             />
@@ -847,7 +847,7 @@ export default function Tasks() {
               placeholder="Optional details..."
               rows={3}
               className="w-full bg-surface border border-border px-3 py-2 text-polar placeholder:text-dim focus:outline-none focus:border-dim transition-colors resize-none"
-              style={{ fontSize: '13px' }}
+              style={{ fontSize: '14px' }}
             />
           </div>
 
@@ -859,7 +859,7 @@ export default function Tasks() {
                 value={form.client_id}
                 onChange={e => setForm(f => ({ ...f, client_id: e.target.value }))}
                 className="w-full bg-surface border border-border px-3 py-2 text-polar focus:outline-none focus:border-dim transition-colors cursor-pointer"
-                style={{ fontSize: '13px' }}
+                style={{ fontSize: '14px' }}
               >
                 <option value="">No client</option>
                 {clients
@@ -876,7 +876,7 @@ export default function Tasks() {
                 value={form.priority}
                 onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}
                 className="w-full bg-surface border border-border px-3 py-2 text-polar focus:outline-none focus:border-dim transition-colors cursor-pointer"
-                style={{ fontSize: '13px' }}
+                style={{ fontSize: '14px' }}
               >
                 <option value="urgent">Urgent</option>
                 <option value="high">High</option>
@@ -896,7 +896,7 @@ export default function Tasks() {
                 value={form.due_date}
                 onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
                 className="w-full bg-surface border border-border px-3 py-2 text-polar focus:outline-none focus:border-dim transition-colors cursor-pointer"
-                style={{ fontSize: '13px' }}
+                style={{ fontSize: '14px' }}
               />
             </div>
             <div>
@@ -905,7 +905,7 @@ export default function Tasks() {
                 value={form.recurring}
                 onChange={e => setForm(f => ({ ...f, recurring: e.target.value }))}
                 className="w-full bg-surface border border-border px-3 py-2 text-polar focus:outline-none focus:border-dim transition-colors cursor-pointer"
-                style={{ fontSize: '13px' }}
+                style={{ fontSize: '14px' }}
               >
                 <option value="none">None</option>
                 <option value="daily">Daily</option>
@@ -925,9 +925,9 @@ export default function Tasks() {
               onChange={e => setForm(f => ({ ...f, tags: e.target.value }))}
               placeholder="design, website, seo (comma separated)"
               className="w-full bg-surface border border-border px-3 py-2 text-polar placeholder:text-dim focus:outline-none focus:border-dim transition-colors"
-              style={{ fontSize: '13px' }}
+              style={{ fontSize: '14px' }}
             />
-            <span className="text-dim mt-1 block" style={{ fontSize: '10px' }}>Separate with commas</span>
+            <span className="text-dim mt-1 block" style={{ fontSize: '10.5px' }}>Separate with commas</span>
           </div>
 
           {/* Actions */}
@@ -962,7 +962,7 @@ export default function Tasks() {
               width: '100%',
             }}
           >
-            <span className="text-polar font-semibold whitespace-nowrap" style={{ fontSize: '13px' }}>
+            <span className="text-polar font-semibold whitespace-nowrap" style={{ fontSize: '14px' }}>
               {selectedIds.size} task{selectedIds.size !== 1 ? 's' : ''} selected
             </span>
 
@@ -973,7 +973,7 @@ export default function Tasks() {
               disabled={bulkLoading}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded cursor-pointer transition-colors"
               style={{
-                fontSize: '12px',
+                fontSize: '13px',
                 fontWeight: 600,
                 background: 'var(--ok, #22c55e)',
                 color: '#fff',
@@ -989,7 +989,7 @@ export default function Tasks() {
               disabled={bulkLoading}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded cursor-pointer transition-colors"
               style={{
-                fontSize: '12px',
+                fontSize: '13px',
                 fontWeight: 600,
                 background: 'var(--err, #ef4444)',
                 color: '#fff',
@@ -1003,7 +1003,7 @@ export default function Tasks() {
             <button
               onClick={() => setSelectedIds(new Set())}
               className="flex items-center gap-1 px-2 py-1.5 rounded cursor-pointer text-steel hover:text-polar transition-colors"
-              style={{ fontSize: '11px', fontWeight: 600 }}
+              style={{ fontSize: '11.5px', fontWeight: 600 }}
             >
               <X size={12} />
               Clear

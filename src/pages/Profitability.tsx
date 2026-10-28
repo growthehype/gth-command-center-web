@@ -146,26 +146,26 @@ export default function Profitability() {
       {/* Header */}
       <div className="mb-6">
         <h1>Profitability</h1>
-        <p className="text-dim mt-1" style={{ fontSize: '13px' }}>Effective hourly rates across active retainer clients</p>
+        <p className="text-dim mt-1" style={{ fontSize: '14px' }}>Effective hourly rates across active retainer clients</p>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <div className="stat-card">
           <p className="label">Avg Effective Rate</p>
-          <p className="text-polar font-[800]" style={{ fontSize: '20px' }}>${summary.avgRate}/hr</p>
+          <p className="text-polar font-[800]" style={{ fontSize: '21.5px' }}>${summary.avgRate}/hr</p>
         </div>
         <div className="stat-card">
           <p className="label">Most Profitable</p>
-          <p className="text-ok font-[700] truncate" style={{ fontSize: '15px' }}>{summary.mostProfitable}</p>
+          <p className="text-ok font-[700] truncate" style={{ fontSize: '16px' }}>{summary.mostProfitable}</p>
         </div>
         <div className="stat-card">
           <p className="label">Least Profitable</p>
-          <p className="text-err font-[700] truncate" style={{ fontSize: '15px' }}>{summary.leastProfitable}</p>
+          <p className="text-err font-[700] truncate" style={{ fontSize: '16px' }}>{summary.leastProfitable}</p>
         </div>
         <div className="stat-card">
           <p className="label">Hours This Week</p>
-          <p className="text-polar font-[800]" style={{ fontSize: '20px' }}>{summary.hoursThisWeek}h</p>
+          <p className="text-polar font-[800]" style={{ fontSize: '21.5px' }}>{summary.hoursThisWeek}h</p>
         </div>
       </div>
 
@@ -178,7 +178,7 @@ export default function Profitability() {
         />
       ) : (
         <div className="card overflow-hidden overflow-x-auto">
-          <table className="w-full min-w-[600px]" style={{ fontSize: '13px' }}>
+          <table className="w-full min-w-[600px]" style={{ fontSize: '14px' }}>
             <thead>
               <tr className="border-b border-border text-left">
                 <th className="label px-4 py-3 cursor-pointer" onClick={() => handleSort('name')}>

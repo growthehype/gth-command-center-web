@@ -174,7 +174,7 @@ export default function Services() {
       <div className="flex items-center justify-between">
         <div>
           <h1>Services</h1>
-          <p className="text-steel mt-1" style={{ fontSize: '13px' }}>
+          <p className="text-steel mt-1" style={{ fontSize: '14px' }}>
             Service catalog and pricing
           </p>
         </div>
@@ -187,19 +187,19 @@ export default function Services() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="card" style={{ padding: '14px 16px' }}>
           <div className="label text-dim">TOTAL</div>
-          <div className="mono text-polar mt-1" style={{ fontSize: '20px', fontWeight: 700 }}>{stats.total}</div>
+          <div className="mono text-polar mt-1" style={{ fontSize: '21.5px', fontWeight: 700 }}>{stats.total}</div>
         </div>
         <div className="card" style={{ padding: '14px 16px' }}>
           <div className="label text-dim">ACTIVE</div>
-          <div className="mono mt-1" style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-ok)' }}>{stats.active}</div>
+          <div className="mono mt-1" style={{ fontSize: '21.5px', fontWeight: 700, color: 'var(--color-ok)' }}>{stats.active}</div>
         </div>
         <div className="card" style={{ padding: '14px 16px' }}>
           <div className="label text-dim">ARCHIVED</div>
-          <div className="mono text-dim mt-1" style={{ fontSize: '20px', fontWeight: 700 }}>{stats.archived}</div>
+          <div className="mono text-dim mt-1" style={{ fontSize: '21.5px', fontWeight: 700 }}>{stats.archived}</div>
         </div>
         <div className="card" style={{ padding: '14px 16px' }}>
           <div className="label text-dim">AVG PRICE</div>
-          <div className="mono text-polar mt-1" style={{ fontSize: '20px', fontWeight: 700 }}>
+          <div className="mono text-polar mt-1" style={{ fontSize: '21.5px', fontWeight: 700 }}>
             {stats.avgPrice ? formatCurrency(stats.avgPrice) : '--'}
           </div>
         </div>
@@ -216,7 +216,7 @@ export default function Services() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-surface border border-border pl-9 pr-8 py-2 text-polar outline-none focus:border-dim"
-            style={{ fontSize: '13px' }}
+            style={{ fontSize: '14px' }}
           />
           {search && (
             <button
@@ -230,13 +230,13 @@ export default function Services() {
         </div>
 
         {/* Sort dropdown */}
-        <div className="relative flex items-center gap-1.5 text-dim" style={{ fontSize: '12px' }}>
+        <div className="relative flex items-center gap-1.5 text-dim" style={{ fontSize: '13px' }}>
           <ArrowUpDown size={12} />
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as SortKey)}
             className="bg-surface border border-border px-2 py-2 text-polar outline-none focus:border-dim cursor-pointer"
-            style={{ fontSize: '12px' }}
+            style={{ fontSize: '13px' }}
           >
             <option value="name">Name (A-Z)</option>
             <option value="price-high">Price (High → Low)</option>
@@ -246,7 +246,7 @@ export default function Services() {
         </div>
 
         {/* Hide archived toggle */}
-        <label className="flex items-center gap-2 cursor-pointer text-steel" style={{ fontSize: '12px' }}>
+        <label className="flex items-center gap-2 cursor-pointer text-steel" style={{ fontSize: '13px' }}>
           <input
             type="checkbox"
             checked={hideArchived}
@@ -260,7 +260,7 @@ export default function Services() {
           <button
             onClick={() => { setFilter('All'); setSearch(''); setHideArchived(true) }}
             className="btn-ghost text-dim hover:text-polar"
-            style={{ fontSize: '11px', padding: '6px 12px' }}
+            style={{ fontSize: '11.5px', padding: '6px 12px' }}
           >
             Clear filters
           </button>
@@ -279,7 +279,7 @@ export default function Services() {
                 : 'bg-transparent text-steel border-border-hard hover:border-dim'
             }`}
           >
-            {cat} <span className="ml-1 mono" style={{ fontSize: '10px' }}>({counts[cat] ?? 0})</span>
+            {cat} <span className="ml-1 mono" style={{ fontSize: '10.5px' }}>({counts[cat] ?? 0})</span>
           </button>
         ))}
       </div>
@@ -296,14 +296,14 @@ export default function Services() {
       ) : visible.length === 0 ? (
         <div className="text-center py-16">
           <Search size={32} className="text-dim mx-auto mb-3 opacity-40" />
-          <p className="text-steel mb-2" style={{ fontSize: '14px', fontWeight: 600 }}>No services match your filters</p>
-          <p className="text-dim mb-4" style={{ fontSize: '12px' }}>
+          <p className="text-steel mb-2" style={{ fontSize: '15px', fontWeight: 600 }}>No services match your filters</p>
+          <p className="text-dim mb-4" style={{ fontSize: '13px' }}>
             Try adjusting your search or clearing filters to see all services.
           </p>
           <button
             onClick={() => { setFilter('All'); setSearch(''); setHideArchived(false) }}
             className="btn-ghost"
-            style={{ fontSize: '12px' }}
+            style={{ fontSize: '13px' }}
           >
             Clear all filters
           </button>
@@ -325,7 +325,7 @@ export default function Services() {
                     style={{
                       backgroundColor: 'rgba(217, 119, 6, 0.15)',
                       color: 'var(--color-warn)',
-                      fontSize: '9px',
+                      fontSize: '9.5px',
                       fontWeight: 700,
                       letterSpacing: '0.08em',
                     }}
@@ -335,7 +335,7 @@ export default function Services() {
                 )}
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0 pr-2">
-                    <h3 className="text-polar font-[700] truncate" style={{ fontSize: '14px' }}>{s.name}</h3>
+                    <h3 className="text-polar font-[700] truncate" style={{ fontSize: '15px' }}>{s.name}</h3>
                     {s.category && (
                       <span className={CATEGORY_BADGE[s.category] || 'badge badge-neutral'} style={{ marginTop: '4px' }}>
                         {s.category}
@@ -392,7 +392,7 @@ export default function Services() {
               onChange={e => set('name', e.target.value)}
               placeholder="Service name"
               className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim transition-colors"
-              style={{ fontSize: '12px' }}
+              style={{ fontSize: '13px' }}
             />
           </div>
 
@@ -403,7 +403,7 @@ export default function Services() {
                 value={form.category}
                 onChange={e => set('category', e.target.value)}
                 className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               >
                 {CATEGORIES.filter(c => c !== 'All').map(c => <option key={c} value={c}>{c}</option>)}
               </select>
@@ -414,7 +414,7 @@ export default function Services() {
                 value={form.pricing_model}
                 onChange={e => set('pricing_model', e.target.value)}
                 className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               >
                 {PRICING_MODELS.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
@@ -429,7 +429,7 @@ export default function Services() {
                 value={form.default_price}
                 onChange={e => set('default_price', Number(e.target.value))}
                 className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim transition-colors"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               />
             </div>
             <div className="space-y-1">
@@ -439,7 +439,7 @@ export default function Services() {
                 value={form.typical_hours}
                 onChange={e => set('typical_hours', Number(e.target.value))}
                 className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim transition-colors"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               />
             </div>
           </div>
@@ -451,7 +451,7 @@ export default function Services() {
               onChange={e => set('description', e.target.value)}
               rows={2}
               className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim resize-none transition-colors"
-              style={{ fontSize: '12px' }}
+              style={{ fontSize: '13px' }}
             />
           </div>
 
@@ -463,7 +463,7 @@ export default function Services() {
               rows={4}
               placeholder="Campaign setup&#10;Monthly reporting&#10;Ad creative"
               className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim resize-none transition-colors"
-              style={{ fontSize: '12px' }}
+              style={{ fontSize: '13px' }}
             />
           </div>
 
@@ -478,7 +478,7 @@ export default function Services() {
               <button
                 onClick={async () => { await deleteService(editingId); setModalOpen(false) }}
                 className="text-err font-sans cursor-pointer hover:underline"
-                style={{ fontSize: '11px' }}
+                style={{ fontSize: '11.5px' }}
               >
                 Delete
               </button>

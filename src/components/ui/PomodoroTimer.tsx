@@ -393,7 +393,7 @@ export default function PomodoroTimer({ onClose }: { onClose: () => void }) {
       {showSettings && (
         <div className="px-4 py-3 border-b border-border space-y-3">
           <div>
-            <label className="label text-dim text-[10px] uppercase tracking-wider">Work (min)</label>
+            <label className="label text-dim text-[10.5px] uppercase tracking-wider">Work (min)</label>
             <div className="flex gap-1 mt-1">
               {WORK_PRESETS.map(m => (
                 <button key={m} disabled={status !== 'idle'}
@@ -406,7 +406,7 @@ export default function PomodoroTimer({ onClose }: { onClose: () => void }) {
             </div>
           </div>
           <div>
-            <label className="label text-dim text-[10px] uppercase tracking-wider">Short Break (min)</label>
+            <label className="label text-dim text-[10.5px] uppercase tracking-wider">Short Break (min)</label>
             <div className="flex gap-1 mt-1">
               {SHORT_BREAK_PRESETS.map(m => (
                 <button key={m} disabled={status !== 'idle'}
@@ -419,7 +419,7 @@ export default function PomodoroTimer({ onClose }: { onClose: () => void }) {
             </div>
           </div>
           <div>
-            <label className="label text-dim text-[10px] uppercase tracking-wider">Long Break (min)</label>
+            <label className="label text-dim text-[10.5px] uppercase tracking-wider">Long Break (min)</label>
             <div className="flex gap-1 mt-1">
               {LONG_BREAK_PRESETS.map(m => (
                 <button key={m} disabled={status !== 'idle'}
@@ -448,12 +448,12 @@ export default function PomodoroTimer({ onClose }: { onClose: () => void }) {
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className={`font-mono text-4xl font-semibold tracking-tight ${phaseColor}`}>{display}</span>
             {status === 'running' && (
-              <span className="text-[10px] text-dim mt-1 uppercase tracking-wider">
+              <span className="text-[10.5px] text-dim mt-1 uppercase tracking-wider">
                 {phase === 'work' ? 'Focusing...' : 'Resting...'}
               </span>
             )}
             {status === 'paused' && (
-              <span className="text-[10px] text-warn mt-1 uppercase tracking-wider">Paused</span>
+              <span className="text-[10.5px] text-warn mt-1 uppercase tracking-wider">Paused</span>
             )}
           </div>
         </div>
@@ -471,7 +471,7 @@ export default function PomodoroTimer({ onClose }: { onClose: () => void }) {
             />
           ))}
           {completedPomodoros > 0 && (
-            <span className="text-[10px] text-dim ml-2">{completedPomodoros} done</span>
+            <span className="text-[10.5px] text-dim ml-2">{completedPomodoros} done</span>
           )}
         </div>
 
@@ -509,7 +509,7 @@ export default function PomodoroTimer({ onClose }: { onClose: () => void }) {
       <div className="px-4 pb-4 space-y-2.5 border-t border-border pt-3">
         {/* Project */}
         <div>
-          <label className="label text-dim text-[10px] uppercase tracking-wider">Project</label>
+          <label className="label text-dim text-[10.5px] uppercase tracking-wider">Project</label>
           <select
             value={selectedProjectId}
             onChange={e => setSelectedProjectId(e.target.value)}
@@ -525,7 +525,7 @@ export default function PomodoroTimer({ onClose }: { onClose: () => void }) {
 
         {/* Client */}
         <div>
-          <label className="label text-dim text-[10px] uppercase tracking-wider">Client</label>
+          <label className="label text-dim text-[10.5px] uppercase tracking-wider">Client</label>
           <select
             value={selectedClientId}
             onChange={e => setSelectedClientId(e.target.value)}
@@ -541,7 +541,7 @@ export default function PomodoroTimer({ onClose }: { onClose: () => void }) {
 
         {/* Notes */}
         <div>
-          <label className="label text-dim text-[10px] uppercase tracking-wider">Notes</label>
+          <label className="label text-dim text-[10.5px] uppercase tracking-wider">Notes</label>
           <input
             type="text"
             value={notes}
@@ -553,7 +553,7 @@ export default function PomodoroTimer({ onClose }: { onClose: () => void }) {
 
         {/* Billable toggle */}
         <div className="flex items-center justify-between">
-          <label className="label text-dim text-[10px] uppercase tracking-wider">Billable</label>
+          <label className="label text-dim text-[10.5px] uppercase tracking-wider">Billable</label>
           <button
             onClick={() => setBillable(!billable)}
             disabled={status === 'running'}

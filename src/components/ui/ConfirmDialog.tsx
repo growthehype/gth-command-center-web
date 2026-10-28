@@ -57,12 +57,12 @@ export default function ConfirmDialog({
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-border">
-          <h3 className="font-[800]" style={{ fontSize: '15px', letterSpacing: '-0.01em' }}>{title}</h3>
+          <h3 className="font-[800]" style={{ fontSize: '16px', letterSpacing: '-0.01em' }}>{title}</h3>
         </div>
 
         {/* Body */}
         <div className="px-6 py-5">
-          <p className="text-steel" style={{ fontSize: '13px', lineHeight: '1.6' }}>{message}</p>
+          <p className="text-steel" style={{ fontSize: '14px', lineHeight: '1.6' }}>{message}</p>
         </div>
 
         {/* Actions */}
@@ -70,7 +70,7 @@ export default function ConfirmDialog({
           <button
             onClick={onCancel}
             className="btn-ghost"
-            style={{ fontSize: '12px', padding: '6px 16px' }}
+            style={{ fontSize: '13px', padding: '6px 16px' }}
             disabled={loading}
           >
             Cancel
@@ -84,7 +84,7 @@ export default function ConfirmDialog({
                 ? 'btn-ghost text-err border-err/30 hover:border-err'
                 : 'btn-ghost text-polar border-border hover:border-steel'
             }
-            style={{ fontSize: '12px', padding: '6px 16px' }}
+            style={{ fontSize: '13px', padding: '6px 16px' }}
           >
             {loading ? 'Please wait...' : confirmLabel}
           </button>

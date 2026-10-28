@@ -495,7 +495,7 @@ export default function Outreach() {
             <h1>Outreach Pipeline</h1>
             <Target size={14} className="text-dim" />
           </div>
-          <p className="text-dim mt-1" style={{ fontSize: '13px' }}>
+          <p className="text-dim mt-1" style={{ fontSize: '14px' }}>
             {visibleLeads.length} of {leads.length} leads
             {agentFilter !== 'all' && (
               <span className="ml-1 text-amber-400">
@@ -512,7 +512,7 @@ export default function Outreach() {
               value={agentFilter}
               onChange={e => setAgentFilter(e.target.value)}
               className={`bg-cell border pl-8 pr-7 py-1.5 font-sans outline-none focus:border-dim transition-colors appearance-none ${agentFilter !== 'all' ? 'border-polar text-polar' : 'border-border text-polar'}`}
-              style={{ fontSize: '12px', minWidth: '200px' }}
+              style={{ fontSize: '13px', minWidth: '200px' }}
               title="Filter leads by which agent created them"
             >
               <option value="all">All Leads ({leads.length})</option>
@@ -541,7 +541,7 @@ export default function Outreach() {
                   ? 'bg-polar text-obsidian'
                   : 'bg-transparent text-dim hover:text-polar'
               }`}
-              style={{ fontSize: '12px' }}
+              style={{ fontSize: '13px' }}
             >
               <List size={13} />
               Table
@@ -553,7 +553,7 @@ export default function Outreach() {
                   ? 'bg-polar text-obsidian'
                   : 'bg-transparent text-dim hover:text-polar'
               }`}
-              style={{ fontSize: '12px' }}
+              style={{ fontSize: '13px' }}
             >
               <Columns3 size={13} />
               Pipeline
@@ -567,7 +567,7 @@ export default function Outreach() {
               placeholder="Search leads..."
               aria-label="Search leads"
               className="bg-cell border border-border text-polar pl-8 pr-3 py-1.5 font-sans outline-none focus:border-dim transition-colors w-full md:w-[200px]"
-              style={{ fontSize: '12px' }}
+              style={{ fontSize: '13px' }}
             />
           </div>
           <button
@@ -590,7 +590,7 @@ export default function Outreach() {
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-2">
             <p className="label">Pipeline Value Distribution</p>
-            <p className="mono text-dim" style={{ fontSize: '12px' }}>{formatCurrency(totalPipelineValue)}</p>
+            <p className="mono text-dim" style={{ fontSize: '13px' }}>{formatCurrency(totalPipelineValue)}</p>
           </div>
           <div className="flex w-full h-3 overflow-hidden border border-border">
             {STAGES.map(stage => {
@@ -614,7 +614,7 @@ export default function Outreach() {
             {STAGES.map(stage => {
               if (pipeline[stage].value === 0) return null
               return (
-                <div key={stage} className="flex items-center gap-1.5" style={{ fontSize: '11px' }}>
+                <div key={stage} className="flex items-center gap-1.5" style={{ fontSize: '11.5px' }}>
                   <div style={{ width: 8, height: 8, backgroundColor: STAGE_COLORS[stage] }} />
                   <span className="text-dim">{stage}</span>
                   <span className="mono text-steel">{formatCurrency(pipeline[stage].value)}</span>
@@ -635,8 +635,8 @@ export default function Outreach() {
               style={{ boxShadow: `inset 0 2px 0 ${STAGE_COLORS[stage]}, inset 0 1px 0 var(--edge-hi), var(--shadow-plate)` }}
             >
               <p className="label">{stage}</p>
-              <p className="text-polar font-[800]" style={{ fontSize: '20px' }}>{pipeline[stage].count}</p>
-              <p className="mono text-dim" style={{ fontSize: '12px' }}>{formatCurrency(pipeline[stage].value)}</p>
+              <p className="text-polar font-[800]" style={{ fontSize: '21.5px' }}>{pipeline[stage].count}</p>
+              <p className="mono text-dim" style={{ fontSize: '13px' }}>{formatCurrency(pipeline[stage].value)}</p>
             </div>
           ))}
         </div>
@@ -655,7 +655,7 @@ export default function Outreach() {
             />
           ) : (
             <div className="card overflow-hidden overflow-x-auto">
-              <table className="w-full min-w-[1200px]" style={{ fontSize: '13px' }}>
+              <table className="w-full min-w-[1200px]" style={{ fontSize: '14px' }}>
                 <thead>
                   <tr className="border-b border-border text-left">
                     <th className="label px-4 py-3 cursor-pointer" onClick={() => handleSort('name')}>
@@ -687,12 +687,12 @@ export default function Outreach() {
                         <div className="flex flex-col">
                           <span>{lead.name}</span>
                           {lead.contact_name && (
-                            <span className="text-blue-400 font-normal" style={{ fontSize: '11px' }}>
+                            <span className="text-blue-400 font-normal" style={{ fontSize: '11.5px' }}>
                               {lead.contact_name}{lead.enrichment_data?.decision_makers?.[0]?.title ? ` — ${lead.enrichment_data.decision_makers[0].title}` : ''}
                             </span>
                           )}
                           {lead.address && (
-                            <span className="text-dim font-normal" style={{ fontSize: '11px' }}>
+                            <span className="text-dim font-normal" style={{ fontSize: '11.5px' }}>
                               {lead.address}
                             </span>
                           )}
@@ -700,12 +700,12 @@ export default function Outreach() {
                       </td>
                       <td className="px-4 py-3">
                         {lead.agent_name ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-polar/10 text-polar" style={{ fontSize: '11px' }}>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-polar/10 text-polar" style={{ fontSize: '11.5px' }}>
                             <Bot size={10} />
                             {lead.agent_name}
                           </span>
                         ) : (
-                          <span className="text-dim" style={{ fontSize: '11px' }}>Manual</span>
+                          <span className="text-dim" style={{ fontSize: '11.5px' }}>Manual</span>
                         )}
                       </td>
                       <td className="px-4 py-3">
@@ -714,13 +714,13 @@ export default function Outreach() {
                           return (
                             <span
                               className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded ${c.bg} ${c.text}`}
-                              style={{ fontSize: '11px', fontWeight: 700, lineHeight: 1.4 }}
+                              style={{ fontSize: '11.5px', fontWeight: 700, lineHeight: 1.4 }}
                               title={lead.qualification_score != null ? `AI score: ${lead.qualification_score}/100` : 'Not yet scored — run agent to qualify'}
                             >
                               {lead.qualification_score != null ? (
                                 <>
                                   <span className="mono">{lead.qualification_score}</span>
-                                  <span style={{ fontSize: '9px' }}>{c.label}</span>
+                                  <span style={{ fontSize: '9.5px' }}>{c.label}</span>
                                 </>
                               ) : (
                                 <span className="text-dim">—</span>
@@ -745,7 +745,7 @@ export default function Outreach() {
                             {lead.email}
                           </a>
                         ) : (
-                          <span className="text-dim" style={{ fontSize: '11px' }}>—</span>
+                          <span className="text-dim" style={{ fontSize: '11.5px' }}>—</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-steel" onClick={(e) => e.stopPropagation()}>
@@ -847,11 +847,11 @@ export default function Outreach() {
                   }}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-polar font-semibold" style={{ fontSize: '12px' }}>{stage}</span>
+                    <span className="text-polar font-semibold" style={{ fontSize: '13px' }}>{stage}</span>
                     <span
                       className="mono text-dim"
                       style={{
-                        fontSize: '11px',
+                        fontSize: '11.5px',
                         backgroundColor: `${color}25`,
                         color: color,
                         padding: '1px 6px',
@@ -861,7 +861,7 @@ export default function Outreach() {
                       {stageLeads.length}
                     </span>
                   </div>
-                  <p className="mono text-dim mt-0.5" style={{ fontSize: '11px' }}>{formatCurrency(stageValue)}</p>
+                  <p className="mono text-dim mt-0.5" style={{ fontSize: '11.5px' }}>{formatCurrency(stageValue)}</p>
                 </div>
 
                 {/* Drop Zone / Cards Area */}
@@ -892,10 +892,10 @@ export default function Outreach() {
                       >
                         {/* Card: Name + Deal Value row */}
                         <div className="flex items-start justify-between gap-2">
-                          <p className="text-polar font-semibold truncate" style={{ fontSize: '13px' }}>
+                          <p className="text-polar font-semibold truncate" style={{ fontSize: '14px' }}>
                             {lead.name}
                           </p>
-                          <p className="mono text-steel flex-shrink-0" style={{ fontSize: '12px' }}>
+                          <p className="mono text-steel flex-shrink-0" style={{ fontSize: '13px' }}>
                             {formatCurrency(lead.deal_value)}
                           </p>
                         </div>
@@ -905,7 +905,7 @@ export default function Outreach() {
                           {lead.industry && (
                             <span
                               className="inline-block text-dim border border-border px-1.5 py-0.5"
-                              style={{ fontSize: '10px' }}
+                              style={{ fontSize: '10.5px' }}
                             >
                               {cleanIndustry(lead.industry)}
                             </span>
@@ -913,7 +913,7 @@ export default function Outreach() {
                           {lead.agent_name && (
                             <span
                               className="inline-flex items-center gap-1 text-polar bg-polar/10 px-1.5 py-0.5 rounded"
-                              style={{ fontSize: '10px' }}
+                              style={{ fontSize: '10.5px' }}
                             >
                               <Bot size={9} />
                               {lead.agent_name}
@@ -925,7 +925,7 @@ export default function Outreach() {
                         <div className="flex items-center justify-between mt-2 gap-2">
                           {/* Days since last contact */}
                           {days !== null && (
-                            <span className="text-dim" style={{ fontSize: '10px' }}>
+                            <span className="text-dim" style={{ fontSize: '10.5px' }}>
                               {days === 0 ? 'Today' : `${days}d ago`}
                             </span>
                           )}
@@ -934,7 +934,7 @@ export default function Outreach() {
                           {lead.next_follow_up && (
                             <span
                               className={`mono flex items-center gap-0.5 ${followUpOverdue ? 'text-warn' : 'text-dim'}`}
-                              style={{ fontSize: '10px' }}
+                              style={{ fontSize: '10.5px' }}
                             >
                               {followUpOverdue && <AlertTriangle size={8} />}
                               {friendlyDate(lead.next_follow_up)}
@@ -948,7 +948,7 @@ export default function Outreach() {
                   {stageLeads.length === 0 && (
                     <div
                       className="flex items-center justify-center text-dim border border-dashed border-border p-4"
-                      style={{ fontSize: '11px', minHeight: '60px' }}
+                      style={{ fontSize: '11.5px', minHeight: '60px' }}
                     >
                       {isDropTarget ? 'Drop here' : 'No leads'}
                     </div>
@@ -1069,7 +1069,7 @@ export default function Outreach() {
                     {form.qualification_score != null ? (
                       <>
                         <span className="mono font-semibold">{form.qualification_score}</span>
-                        <span style={{ fontSize: '10px' }}>{c.label}</span>
+                        <span style={{ fontSize: '10.5px' }}>{c.label}</span>
                       </>
                     ) : (
                       <span className="text-dim">Not yet scored</span>

@@ -233,7 +233,7 @@ export default function Notes() {
             <span
               className={`${statusConfig[status].color} font-sans uppercase font-bold transition-opacity duration-500`}
               style={{
-                fontSize: '12px',
+                fontSize: '13px',
                 letterSpacing: '0.14em',
                 opacity: statusVisible ? 1 : 0,
               }}
@@ -255,14 +255,14 @@ export default function Notes() {
             onChange={e => handleTitleChange(e.target.value)}
             placeholder="Note title..."
             className="w-full bg-transparent text-polar font-[800] outline-none border-b border-border pb-2"
-            style={{ fontSize: '18px' }}
+            style={{ fontSize: '19px' }}
           />
           <VoiceTextarea
             value={content}
             onChange={(val) => handleContentChange(val)}
             placeholder="Start writing..."
             className="w-full bg-cell border border-border text-polar placeholder:text-dim focus:outline-none focus:border-dim transition-colors px-4 py-3 font-mono"
-            style={{ fontSize: '15px', lineHeight: '1.8', minHeight: '400px', resize: 'vertical' }}
+            style={{ fontSize: '16px', lineHeight: '1.8', minHeight: '400px', resize: 'vertical' }}
           />
           <div className="flex items-center gap-3">
             {activeNote.status === 'done' ? (
@@ -277,7 +277,7 @@ export default function Notes() {
             <button
               onClick={() => deleteNote(activeNote.id)}
               className="text-err hover:underline cursor-pointer font-sans"
-              style={{ fontSize: '13px' }}
+              style={{ fontSize: '14px' }}
             >
               Delete Note
             </button>
@@ -312,15 +312,15 @@ export default function Notes() {
                       onClick={() => selectNote(note)}
                     >
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-polar font-[700] truncate" style={{ fontSize: '15px' }}>{note.title}</h3>
-                        <p className="text-dim mt-1 truncate" style={{ fontSize: '13px' }}>
+                        <h3 className="text-polar font-[700] truncate" style={{ fontSize: '16px' }}>{note.title}</h3>
+                        <p className="text-dim mt-1 truncate" style={{ fontSize: '14px' }}>
                           {note.content.slice(0, 100) || 'Empty note'}
                         </p>
                         <div className="flex items-center gap-3 mt-1">
-                          <span className="mono text-dim" style={{ fontSize: '12px' }}>
+                          <span className="mono text-dim" style={{ fontSize: '13px' }}>
                             {new Date(note.updated_at).toLocaleDateString()}
                           </span>
-                          <span className="mono text-dim" style={{ fontSize: '11px' }}>
+                          <span className="mono text-dim" style={{ fontSize: '11.5px' }}>
                             {wordCount} word{wordCount !== 1 ? 's' : ''}
                           </span>
                         </div>
@@ -358,8 +358,8 @@ export default function Notes() {
                       onClick={() => selectNote(note)}
                     >
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-steel font-[700] truncate line-through" style={{ fontSize: '15px' }}>{note.title}</h3>
-                        <p className="text-dim mt-1 truncate" style={{ fontSize: '13px' }}>
+                        <h3 className="text-steel font-[700] truncate line-through" style={{ fontSize: '16px' }}>{note.title}</h3>
+                        <p className="text-dim mt-1 truncate" style={{ fontSize: '14px' }}>
                           {note.content.slice(0, 100) || 'Empty note'}
                         </p>
                       </div>

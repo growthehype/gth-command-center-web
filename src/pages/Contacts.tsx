@@ -248,7 +248,7 @@ export default function Contacts() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1>Contacts</h1>
-          <p className="text-dim mt-1" style={{ fontSize: '13px' }}>{contacts.length} contacts across all clients</p>
+          <p className="text-dim mt-1" style={{ fontSize: '14px' }}>{contacts.length} contacts across all clients</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -292,7 +292,7 @@ export default function Contacts() {
               className={`px-3 py-1.5 font-sans uppercase font-bold transition-colors ${
                 filter === f ? 'bg-polar text-obsidian' : 'bg-surface text-dim hover:text-steel'
               }`}
-              style={{ fontSize: '11px', letterSpacing: '0.12em' }}
+              style={{ fontSize: '11.5px', letterSpacing: '0.12em' }}
             >
               {f === 'all' ? 'All' : 'Primary Contacts'}
             </button>
@@ -311,7 +311,7 @@ export default function Contacts() {
         />
       ) : (
         <div className="card overflow-hidden overflow-x-auto">
-          <table className="w-full min-w-[700px]" style={{ fontSize: '13px' }}>
+          <table className="w-full min-w-[700px]" style={{ fontSize: '14px' }}>
             <thead>
               <tr className="border-b border-border text-left">
                 <th className="label px-4 py-3 w-10">
@@ -380,7 +380,7 @@ export default function Contacts() {
                           borderRadius: '50%',
                           backgroundColor: `${avatarColor(c.name || '?')}20`,
                           color: avatarColor(c.name || '?'),
-                          fontSize: '9px',
+                          fontSize: '9.5px',
                           letterSpacing: '0.02em',
                         }}
                       >
@@ -480,12 +480,12 @@ export default function Contacts() {
         <div className="fixed inset-0 flex items-center justify-center z-[100] modal-backdrop" onClick={() => setDetailContact(null)}>
           <div className="modal-container bg-surface w-[95vw] max-w-[420px] max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <h3 className="font-[800]" style={{ fontSize: '15px', letterSpacing: '-0.01em' }}>{detailContact.name}</h3>
+              <h3 className="font-[800]" style={{ fontSize: '16px', letterSpacing: '-0.01em' }}>{detailContact.name}</h3>
               <button onClick={() => setDetailContact(null)} className="modal-close-btn cursor-pointer">
                 <X size={15} />
               </button>
             </div>
-            <div className="px-6 py-5 flex flex-col gap-3" style={{ fontSize: '13px' }}>
+            <div className="px-6 py-5 flex flex-col gap-3" style={{ fontSize: '14px' }}>
               {detailContact.role && (
                 <div><span className="label">Role</span><p className="text-steel mt-0.5">{detailContact.role}</p></div>
               )}
@@ -534,7 +534,7 @@ export default function Contacts() {
               placeholder="Full name"
             />
             {nameDupWarning && (
-              <p className="text-warn mt-1 font-sans" style={{ fontSize: '11px' }}>{nameDupWarning}</p>
+              <p className="text-warn mt-1 font-sans" style={{ fontSize: '11.5px' }}>{nameDupWarning}</p>
             )}
           </div>
           <div>
@@ -568,7 +568,7 @@ export default function Contacts() {
                 placeholder="email@example.com"
               />
               {emailDupWarning && (
-                <p className="text-err mt-1 font-sans" style={{ fontSize: '11px' }}>{emailDupWarning}</p>
+                <p className="text-err mt-1 font-sans" style={{ fontSize: '11.5px' }}>{emailDupWarning}</p>
               )}
             </div>
             <div>
@@ -588,7 +588,7 @@ export default function Contacts() {
               onChange={e => setForm(f => ({ ...f, is_primary: e.target.checked }))}
               className="accent-polar"
             />
-            <span className="text-steel" style={{ fontSize: '13px' }}>Primary contact</span>
+            <span className="text-steel" style={{ fontSize: '14px' }}>Primary contact</span>
           </label>
           <div>
             <p className="label mb-1">Notes</p>
@@ -624,7 +624,7 @@ export default function Contacts() {
               width: '100%',
             }}
           >
-            <span className="text-polar font-semibold whitespace-nowrap" style={{ fontSize: '13px' }}>
+            <span className="text-polar font-semibold whitespace-nowrap" style={{ fontSize: '14px' }}>
               {selectedIds.size} contact{selectedIds.size !== 1 ? 's' : ''} selected
             </span>
 
@@ -634,7 +634,7 @@ export default function Contacts() {
               onClick={handleBulkExport}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded cursor-pointer transition-colors"
               style={{
-                fontSize: '12px',
+                fontSize: '13px',
                 fontWeight: 600,
                 background: 'var(--polar, #e8e8e8)',
                 color: 'var(--obsidian, #0d0d0d)',
@@ -649,7 +649,7 @@ export default function Contacts() {
               disabled={bulkLoading}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded cursor-pointer transition-colors"
               style={{
-                fontSize: '12px',
+                fontSize: '13px',
                 fontWeight: 600,
                 background: 'var(--err, #ef4444)',
                 color: '#fff',
@@ -663,7 +663,7 @@ export default function Contacts() {
             <button
               onClick={() => setSelectedIds(new Set())}
               className="flex items-center gap-1 px-2 py-1.5 rounded cursor-pointer text-steel hover:text-polar transition-colors"
-              style={{ fontSize: '11px', fontWeight: 600 }}
+              style={{ fontSize: '11.5px', fontWeight: 600 }}
             >
               <X size={12} />
               Clear

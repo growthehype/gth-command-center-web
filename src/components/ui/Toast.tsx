@@ -59,14 +59,14 @@ export default function ToastContainer() {
           className={`bg-surface border border-border border-l-[3px] ${borderColors[toast.type]} px-5 py-3 flex items-center gap-4 shadow-lg`}
           style={{ minWidth: '280px' }}
         >
-          <span className={`${textColors[toast.type]} font-semibold`} style={{ fontSize: '11px' }}>
+          <span className={`${textColors[toast.type]} font-semibold`} style={{ fontSize: '11.5px' }}>
             {toast.message}
           </span>
           {toast.undoAction && (
             <button
               onClick={() => { toast.undoAction?.(); dismiss(toast.id) }}
               className="text-polar bg-border-hard px-3 py-1 font-sans uppercase font-bold rounded-sm hover:bg-dim transition-colors"
-              style={{ fontSize: '8px', letterSpacing: '0.14em' }}
+              style={{ fontSize: '8.5px', letterSpacing: '0.14em' }}
             >
               Undo
             </button>

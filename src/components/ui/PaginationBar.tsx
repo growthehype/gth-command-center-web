@@ -33,7 +33,7 @@ export default function PaginationBar({
   const end = Math.min(page * perPage, totalItems)
 
   return (
-    <div className="flex items-center justify-between gap-4 py-2 px-1" style={{ fontSize: '11px' }}>
+    <div className="flex items-center justify-between gap-4 py-2 px-1" style={{ fontSize: '11.5px' }}>
       <span className="text-dim">
         {start}–{end} of {totalItems} {noun}
       </span>
@@ -44,7 +44,7 @@ export default function PaginationBar({
             value={perPage}
             onChange={(e) => onPerPageChange(Number(e.target.value))}
             className="bg-surface border border-border rounded px-1.5 py-0.5 text-polar mr-2"
-            style={{ fontSize: '11px' }}
+            style={{ fontSize: '11.5px' }}
           >
             {[10, 25, 50, 100].map(n => (
               <option key={n} value={n}>{n}/page</option>
@@ -82,7 +82,7 @@ export default function PaginationBar({
                   ? 'bg-accent text-white font-semibold'
                   : 'text-dim hover:bg-surface hover:text-polar'
               }`}
-              style={{ fontSize: '11px' }}
+              style={{ fontSize: '11.5px' }}
             >
               {pageNum}
             </button>

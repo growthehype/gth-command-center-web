@@ -34,7 +34,7 @@ function PasswordStrength({ password }: { password: string }) {
       <p
         className="mt-1"
         style={{
-          fontSize: '9px',
+          fontSize: '9.5px',
           fontWeight: 700,
           letterSpacing: '0.22em',
           textTransform: 'uppercase' as const,
@@ -201,7 +201,7 @@ export default function Login() {
           <h1
             className="text-white mb-4"
             style={{
-              fontSize: '13px',
+              fontSize: '14px',
               fontWeight: 800,
               letterSpacing: '0.3em',
               textTransform: 'uppercase',
@@ -226,7 +226,7 @@ export default function Login() {
           <p
             className="text-white/40 mb-16"
             style={{
-              fontSize: '12px',
+              fontSize: '13px',
               fontWeight: 500,
               letterSpacing: '0.08em',
             }}
@@ -242,7 +242,7 @@ export default function Login() {
                 <span
                   className="text-white/35"
                   style={{
-                    fontSize: '9px',
+                    fontSize: '9.5px',
                     fontWeight: 700,
                     letterSpacing: '0.2em',
                     textTransform: 'uppercase',
@@ -259,7 +259,7 @@ export default function Login() {
         <p
           className="absolute bottom-8 text-white/15"
           style={{
-            fontSize: '9px',
+            fontSize: '9.5px',
             fontWeight: 600,
             letterSpacing: '0.2em',
             textTransform: 'uppercase',
@@ -282,7 +282,7 @@ export default function Login() {
             <p
               className="text-polar"
               style={{
-                fontSize: '10px',
+                fontSize: '10.5px',
                 fontWeight: 800,
                 letterSpacing: '0.3em',
                 textTransform: 'uppercase',
@@ -297,7 +297,7 @@ export default function Login() {
             <h2
               className="text-polar"
               style={{
-                fontSize: '22px',
+                fontSize: '23.5px',
                 fontWeight: 900,
                 letterSpacing: '-0.02em',
               }}
@@ -306,7 +306,7 @@ export default function Login() {
             </h2>
             <p
               className="text-dim mt-1"
-              style={{ fontSize: '12px', fontWeight: 500 }}
+              style={{ fontSize: '13px', fontWeight: 500 }}
             >
               {mode === 'login'
                 ? 'Enter your credentials to continue.'
@@ -322,7 +322,7 @@ export default function Login() {
                 htmlFor="email"
                 className="block text-polar mb-2"
                 style={{
-                  fontSize: '9px',
+                  fontSize: '9.5px',
                   fontWeight: 700,
                   letterSpacing: '0.22em',
                   textTransform: 'uppercase',
@@ -338,7 +338,7 @@ export default function Login() {
                 required
                 autoComplete="email"
                 className="w-full px-4 py-3 bg-surface border border-border text-polar placeholder-dim focus:border-info"
-                style={{ fontSize: '13px', fontWeight: 500 }}
+                style={{ fontSize: '14px', fontWeight: 500 }}
                 placeholder="you@example.com"
               />
             </div>
@@ -349,7 +349,7 @@ export default function Login() {
                 htmlFor="password"
                 className="block text-polar mb-2"
                 style={{
-                  fontSize: '9px',
+                  fontSize: '9.5px',
                   fontWeight: 700,
                   letterSpacing: '0.22em',
                   textTransform: 'uppercase',
@@ -366,7 +366,7 @@ export default function Login() {
                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 minLength={6}
                 className="w-full px-4 py-3 bg-surface border border-border text-polar placeholder-dim focus:border-info"
-                style={{ fontSize: '13px', fontWeight: 500 }}
+                style={{ fontSize: '14px', fontWeight: 500 }}
                 placeholder={mode === 'login' ? 'Your password' : 'Min. 6 characters'}
               />
 
@@ -395,7 +395,7 @@ export default function Login() {
                     onClick={handleForgotPassword}
                     className="text-dim hover:text-polar transition-colors mt-2 cursor-pointer bg-transparent border-none p-0"
                     style={{
-                      fontSize: '10px',
+                      fontSize: '10.5px',
                       fontWeight: 600,
                       letterSpacing: '0.04em',
                     }}
@@ -419,7 +419,7 @@ export default function Login() {
                   htmlFor="confirm-password"
                   className="block text-polar mb-2"
                   style={{
-                    fontSize: '9px',
+                    fontSize: '9.5px',
                     fontWeight: 700,
                     letterSpacing: '0.22em',
                     textTransform: 'uppercase',
@@ -436,7 +436,7 @@ export default function Login() {
                   autoComplete="new-password"
                   minLength={6}
                   className="w-full px-4 py-3 bg-surface border border-border text-polar placeholder-dim focus:border-info"
-                  style={{ fontSize: '13px', fontWeight: 500 }}
+                  style={{ fontSize: '14px', fontWeight: 500 }}
                   placeholder="Repeat your password"
                 />
               </div>
@@ -446,7 +446,7 @@ export default function Login() {
             {resetMsg && (
               <div
                 className="text-ok bg-ok/10 border border-ok/20 px-4 py-3"
-                style={{ fontSize: '11px', fontWeight: 600 }}
+                style={{ fontSize: '11.5px', fontWeight: 600 }}
               >
                 {resetMsg}
               </div>
@@ -456,7 +456,7 @@ export default function Login() {
             {error && (
               <div
                 className="text-err bg-err/10 border border-err/20 px-4 py-3"
-                style={{ fontSize: '11px', fontWeight: 600 }}
+                style={{ fontSize: '11.5px', fontWeight: 600 }}
               >
                 {error}
               </div>
@@ -467,7 +467,7 @@ export default function Login() {
               type="submit"
               disabled={loading}
               className="btn-primary w-full py-3 font-sans disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.14em' }}
+              style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '0.14em' }}
             >
               {loading ? (
                 <span className="inline-flex items-center gap-2">
@@ -507,7 +507,7 @@ export default function Login() {
                 type="button"
                 onClick={switchMode}
                 className="text-dim hover:text-polar transition-colors bg-transparent border-none cursor-pointer p-0"
-                style={{ fontSize: '11px', fontWeight: 600 }}
+                style={{ fontSize: '11.5px', fontWeight: 600 }}
               >
                 {mode === 'login' ? (
                   <>Don&apos;t have an account? <span className="text-polar" style={{ fontWeight: 700 }}>Sign Up</span></>
@@ -518,7 +518,7 @@ export default function Login() {
             </div>
           ) : (
             <div className="text-center mt-6 space-y-2">
-              <p className="text-dim" style={{ fontSize: '11px' }}>
+              <p className="text-dim" style={{ fontSize: '11.5px' }}>
                 Command Center is invite-only
               </p>
               <div className="flex items-center justify-center gap-3">
@@ -526,15 +526,15 @@ export default function Login() {
                   type="button"
                   onClick={() => enterDemoMode()}
                   className="text-polar hover:text-dim transition-colors bg-transparent border-none cursor-pointer p-0"
-                  style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em' }}
+                  style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '0.05em' }}
                 >
                   Try Live Demo →
                 </button>
-                <span className="text-dim" style={{ fontSize: '11px' }}>·</span>
+                <span className="text-dim" style={{ fontSize: '11.5px' }}>·</span>
                 <a
                   href="https://growthehype.ca/command-center"
                   className="text-polar hover:text-dim transition-colors"
-                  style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em' }}
+                  style={{ fontSize: '11.5px', fontWeight: 700, letterSpacing: '0.05em' }}
                 >
                   Request Access →
                 </a>
@@ -551,7 +551,7 @@ export default function Login() {
               <span
                 className="bg-obsidian px-3 text-dim"
                 style={{
-                  fontSize: '9px',
+                  fontSize: '9.5px',
                   fontWeight: 700,
                   letterSpacing: '0.22em',
                   textTransform: 'uppercase',
@@ -574,7 +574,7 @@ export default function Login() {
           <p
             className="lg:hidden text-center text-dim mt-8"
             style={{
-              fontSize: '9px',
+              fontSize: '9.5px',
               fontWeight: 600,
               letterSpacing: '0.2em',
               textTransform: 'uppercase',

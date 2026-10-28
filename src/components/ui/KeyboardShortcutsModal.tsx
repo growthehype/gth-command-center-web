@@ -57,7 +57,7 @@ function KeyBadge({ label }: { label: string }) {
     <kbd
       className="inline-flex items-center justify-center font-mono font-bold select-none"
       style={{
-        fontSize: '11px',
+        fontSize: '11.5px',
         minWidth: '28px',
         height: '26px',
         padding: '0 7px',
@@ -103,7 +103,7 @@ export default function KeyboardShortcutsModal({ open, onClose }: KeyboardShortc
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-2.5">
             <Keyboard size={15} className="text-dim" />
-            <h3 className="font-[800]" style={{ fontSize: '14px' }}>Keyboard Shortcuts</h3>
+            <h3 className="font-[800]" style={{ fontSize: '15px' }}>Keyboard Shortcuts</h3>
           </div>
           <button onClick={onClose} className="text-dim hover:text-steel transition-colors">
             <X size={16} />
@@ -116,7 +116,7 @@ export default function KeyboardShortcutsModal({ open, onClose }: KeyboardShortc
             <div key={section.title} className={sIdx > 0 ? 'mt-6' : ''}>
               <h4
                 className="text-dim font-sans uppercase mb-3"
-                style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.18em' }}
+                style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '0.18em' }}
               >
                 {section.title}
               </h4>
@@ -126,17 +126,17 @@ export default function KeyboardShortcutsModal({ open, onClose }: KeyboardShortc
                     key={idx}
                     className="flex items-center justify-between py-2 border-b border-border last:border-b-0"
                   >
-                    <span className="text-steel" style={{ fontSize: '13px' }}>
+                    <span className="text-steel" style={{ fontSize: '14px' }}>
                       {shortcut.description}
                     </span>
                     <div className="flex items-center gap-1.5 ml-4 flex-shrink-0">
                       {shortcut.keys.map((key, kIdx) => (
                         <span key={kIdx} className="flex items-center gap-1.5">
                           {kIdx > 0 && shortcut.keys.length > 1 && shortcut.keys[0] !== 'Ctrl' && shortcut.keys[0] !== 'Shift' && (
-                            <span className="text-dim" style={{ fontSize: '10px' }}>then</span>
+                            <span className="text-dim" style={{ fontSize: '10.5px' }}>then</span>
                           )}
                           {kIdx > 0 && (shortcut.keys[0] === 'Ctrl' || shortcut.keys[0] === 'Shift') && (
-                            <span className="text-dim" style={{ fontSize: '11px' }}>+</span>
+                            <span className="text-dim" style={{ fontSize: '11.5px' }}>+</span>
                           )}
                           <KeyBadge label={key} />
                         </span>
@@ -150,7 +150,7 @@ export default function KeyboardShortcutsModal({ open, onClose }: KeyboardShortc
 
           {/* Footer hint */}
           <div className="mt-6 pt-4 border-t border-border text-center">
-            <span className="text-dim" style={{ fontSize: '11px' }}>
+            <span className="text-dim" style={{ fontSize: '11.5px' }}>
               Press <KeyBadge label="?" /> anywhere to toggle this panel
             </span>
           </div>

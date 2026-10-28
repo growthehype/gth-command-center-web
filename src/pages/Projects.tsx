@@ -360,7 +360,7 @@ export default function Projects() {
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
               placeholder="Project title"
               className="w-full bg-surface border border-border px-3 py-2 text-polar placeholder:text-dim focus:outline-none focus:border-dim transition-colors"
-              style={{ fontSize: '13px' }}
+              style={{ fontSize: '14px' }}
               autoFocus
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) handleSave() }}
             />
@@ -375,7 +375,7 @@ export default function Projects() {
               placeholder="Project details..."
               rows={3}
               className="w-full bg-surface border border-border px-3 py-2 text-polar placeholder:text-dim focus:outline-none focus:border-dim transition-colors resize-none"
-              style={{ fontSize: '13px' }}
+              style={{ fontSize: '14px' }}
             />
           </div>
 
@@ -387,7 +387,7 @@ export default function Projects() {
                 value={form.client_id}
                 onChange={e => setForm(f => ({ ...f, client_id: e.target.value }))}
                 className="w-full bg-surface border border-border px-3 py-2 text-polar focus:outline-none focus:border-dim transition-colors cursor-pointer"
-                style={{ fontSize: '13px' }}
+                style={{ fontSize: '14px' }}
               >
                 <option value="">GTH Internal</option>
                 {clients
@@ -404,7 +404,7 @@ export default function Projects() {
                 value={form.priority}
                 onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}
                 className="w-full bg-surface border border-border px-3 py-2 text-polar focus:outline-none focus:border-dim transition-colors cursor-pointer"
-                style={{ fontSize: '13px' }}
+                style={{ fontSize: '14px' }}
               >
                 <option value="urgent">Urgent</option>
                 <option value="high">High</option>
@@ -423,7 +423,7 @@ export default function Projects() {
                 value={form.status}
                 onChange={e => setForm(f => ({ ...f, status: e.target.value as ColumnKey }))}
                 className="w-full bg-surface border border-border px-3 py-2 text-polar focus:outline-none focus:border-dim transition-colors cursor-pointer"
-                style={{ fontSize: '13px' }}
+                style={{ fontSize: '14px' }}
               >
                 {COLUMNS.map(col => (
                   <option key={col} value={col}>{COLUMN_META[col].label}</option>
@@ -437,7 +437,7 @@ export default function Projects() {
                 value={form.due_date}
                 onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))}
                 className="w-full bg-surface border border-border px-3 py-2 text-polar focus:outline-none focus:border-dim transition-colors cursor-pointer"
-                style={{ fontSize: '13px' }}
+                style={{ fontSize: '14px' }}
               />
             </div>
           </div>
@@ -452,7 +452,7 @@ export default function Projects() {
                 onChange={e => setForm(f => ({ ...f, hours: Number(e.target.value) }))}
                 min={0}
                 className="w-full bg-surface border border-border px-3 py-2 text-polar focus:outline-none focus:border-dim transition-colors"
-                style={{ fontSize: '13px' }}
+                style={{ fontSize: '14px' }}
               />
             </div>
             <div>
@@ -461,7 +461,7 @@ export default function Projects() {
                 value={form.recurring}
                 onChange={e => setForm(f => ({ ...f, recurring: e.target.value }))}
                 className="w-full bg-surface border border-border px-3 py-2 text-polar focus:outline-none focus:border-dim transition-colors cursor-pointer"
-                style={{ fontSize: '13px' }}
+                style={{ fontSize: '14px' }}
               >
                 <option value="none">None</option>
                 <option value="weekly">Weekly</option>
@@ -489,7 +489,7 @@ export default function Projects() {
                           type="button"
                           onClick={() => shell.openExternal(url)}
                           className="inline-flex items-center gap-1.5 text-polar hover:text-steel transition-colors cursor-pointer bg-transparent border-none p-0"
-                          style={{ fontSize: '12px' }}
+                          style={{ fontSize: '13px' }}
                           title={url}
                         >
                           <ExternalLink size={11} />
@@ -503,7 +503,7 @@ export default function Projects() {
                           }}
                           className="ml-1 text-dim hover:text-err transition-colors cursor-pointer bg-transparent border-none p-0 opacity-0 group-hover:opacity-100"
                           title="Remove link"
-                          style={{ fontSize: '10px' }}
+                          style={{ fontSize: '10.5px' }}
                         >
                           ✕
                         </button>
@@ -538,7 +538,7 @@ export default function Projects() {
               }}
               placeholder={form.links.includes('http') ? 'Add another URL...' : 'Paste a URL and press Enter...'}
               className="w-full bg-surface border border-border px-3 py-2 text-polar placeholder:text-dim focus:outline-none focus:border-dim transition-colors"
-              style={{ fontSize: '13px' }}
+              style={{ fontSize: '14px' }}
             />
           </div>
 
@@ -548,7 +548,7 @@ export default function Projects() {
               {editProject && (
                 <button
                   className="text-dim hover:text-err transition-colors cursor-pointer flex items-center gap-1.5"
-                  style={{ fontSize: '11px', fontWeight: 600 }}
+                  style={{ fontSize: '11.5px', fontWeight: 600 }}
                   onClick={() => handleDelete(editProject.id)}
                 >
                   <Trash2 size={12} />
@@ -598,7 +598,7 @@ export default function Projects() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-surface border border-border pl-9 pr-8 py-2 text-polar outline-none focus:border-dim"
-            style={{ fontSize: '13px' }}
+            style={{ fontSize: '14px' }}
           />
           {search && (
             <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-dim hover:text-polar p-1" aria-label="Clear search">
@@ -618,7 +618,7 @@ export default function Projects() {
                   ? 'bg-polar text-obsidian border-polar'
                   : 'bg-transparent text-steel border-border-hard hover:border-dim'
               }`}
-              style={{ fontSize: '11px', fontWeight: 600 }}
+              style={{ fontSize: '11.5px', fontWeight: 600 }}
             >
               {p === 'all' ? 'All' : p}
             </button>
@@ -631,7 +631,7 @@ export default function Projects() {
             value={clientFilter}
             onChange={(e) => setClientFilter(e.target.value)}
             className="bg-surface border border-border px-2 py-2 text-polar outline-none focus:border-dim cursor-pointer"
-            style={{ fontSize: '12px' }}
+            style={{ fontSize: '13px' }}
           >
             <option value="all">All clients</option>
             {clients.filter(c => c.status === 'active').map(c => (
@@ -646,7 +646,7 @@ export default function Projects() {
           className={`flex items-center gap-1.5 px-3 py-2 border transition-colors cursor-pointer ${
             hideDone ? 'bg-surface-2 text-polar border-border-hard' : 'bg-transparent text-steel border-border-hard hover:border-dim'
           }`}
-          style={{ fontSize: '11px', fontWeight: 600 }}
+          style={{ fontSize: '11.5px', fontWeight: 600 }}
           title={hideDone ? 'Show done column' : 'Hide done column'}
         >
           {hideDone ? <EyeOff size={12} /> : <Eye size={12} />}
@@ -658,7 +658,7 @@ export default function Projects() {
           <button
             onClick={() => { setSearch(''); setPriorityFilter('all'); setClientFilter('all') }}
             className="btn-ghost text-dim hover:text-polar"
-            style={{ fontSize: '11px', padding: '6px 12px' }}
+            style={{ fontSize: '11.5px', padding: '6px 12px' }}
           >
             Clear filters
           </button>
@@ -692,7 +692,7 @@ export default function Projects() {
                 <span
                   className="text-steel"
                   style={{
-                    fontSize: '10px',
+                    fontSize: '10.5px',
                     fontWeight: 700,
                     letterSpacing: '0.14em',
                     textTransform: 'uppercase',
@@ -703,7 +703,7 @@ export default function Projects() {
                 <span
                   className="text-dim font-mono"
                   style={{
-                    fontSize: '11px',
+                    fontSize: '11.5px',
                     background: 'rgba(0,0,0,0.04)',
                     padding: '1px 6px',
                   }}
@@ -754,7 +754,7 @@ export default function Projects() {
                       <div
                         className="text-steel mb-1"
                         style={{
-                          fontSize: '10px',
+                          fontSize: '10.5px',
                           fontWeight: 700,
                           letterSpacing: '0.14em',
                           textTransform: 'uppercase',
@@ -766,7 +766,7 @@ export default function Projects() {
                       {/* Title */}
                       <div
                         className="text-polar truncate"
-                        style={{ fontSize: '13px', fontWeight: 700 }}
+                        style={{ fontSize: '14px', fontWeight: 700 }}
                       >
                         {project.title}
                       </div>
@@ -776,7 +776,7 @@ export default function Projects() {
                         <div
                           className="text-steel mt-1"
                           style={{
-                            fontSize: '11px',
+                            fontSize: '11.5px',
                             lineHeight: '1.35',
                             display: '-webkit-box',
                             WebkitLineClamp: 2,
@@ -802,7 +802,7 @@ export default function Projects() {
                                   key={i}
                                   onClick={() => shell.openExternal(url)}
                                   className="inline-flex items-center gap-1 bg-surface border border-border px-2 py-0.5 text-steel hover:text-polar hover:border-dim transition-colors cursor-pointer"
-                                  style={{ fontSize: '10px', borderRadius: '3px' }}
+                                  style={{ fontSize: '10.5px', borderRadius: '3px' }}
                                   title={url}
                                 >
                                   <ExternalLink size={9} />
@@ -820,7 +820,7 @@ export default function Projects() {
                           {project.due_date && (
                             <span
                               className={`font-mono ${overdue ? 'text-err' : 'text-steel'}`}
-                              style={{ fontSize: '11px' }}
+                              style={{ fontSize: '11.5px' }}
                             >
                               {friendlyDate(project.due_date)}
                             </span>
@@ -863,7 +863,7 @@ export default function Projects() {
                         const prog = taskProgress[project.id]
                         if (!prog || prog.total === 0) {
                           return (
-                            <div className="text-dim mt-2" style={{ fontSize: '10px' }}>
+                            <div className="text-dim mt-2" style={{ fontSize: '10.5px' }}>
                               No tasks
                             </div>
                           )
@@ -872,7 +872,7 @@ export default function Projects() {
                         return (
                           <div className="mt-2">
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-steel" style={{ fontSize: '10px', fontWeight: 600 }}>
+                              <span className="text-steel" style={{ fontSize: '10.5px', fontWeight: 600 }}>
                                 {prog.done}/{prog.total} tasks
                               </span>
                             </div>

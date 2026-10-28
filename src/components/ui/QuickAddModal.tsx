@@ -154,7 +154,7 @@ export default function QuickAddModal({ open, onClose }: QuickAddModalProps) {
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '10px 12px',
-    fontSize: 13,
+    fontSize: 14,
     background: 'var(--color-surface)',
     border: '1px solid var(--color-border)',
     color: 'var(--color-text)',
@@ -164,7 +164,7 @@ export default function QuickAddModal({ open, onClose }: QuickAddModalProps) {
   }
 
   const labelStyle: React.CSSProperties = {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: 600,
     color: 'var(--color-dim)',
     textTransform: 'uppercase',
@@ -201,7 +201,7 @@ export default function QuickAddModal({ open, onClose }: QuickAddModalProps) {
       >
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 0' }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)' }}>Quick Add</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text)' }}>Quick Add</span>
           <button
             onClick={onClose}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-dim)', padding: 4 }}
@@ -223,7 +223,7 @@ export default function QuickAddModal({ open, onClose }: QuickAddModalProps) {
                 justifyContent: 'center',
                 gap: 6,
                 padding: '8px 0 10px',
-                fontSize: 12,
+                fontSize: 13,
                 fontWeight: 600,
                 color: tab === t.key ? 'var(--color-polar)' : 'var(--color-dim)',
                 background: 'none',
@@ -366,7 +366,7 @@ export default function QuickAddModal({ open, onClose }: QuickAddModalProps) {
               width: '100%',
               marginTop: 18,
               padding: '10px 0',
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 700,
               opacity: loading ? 0.6 : 1,
               cursor: loading ? 'not-allowed' : 'pointer',
@@ -382,7 +382,7 @@ export default function QuickAddModal({ open, onClose }: QuickAddModalProps) {
           </button>
 
           <div style={{ textAlign: 'center', marginTop: 10 }}>
-            <span className="mono" style={{ fontSize: 11, color: 'var(--color-dim)' }}>
+            <span className="mono" style={{ fontSize: 11.5, color: 'var(--color-dim)' }}>
               Ctrl+N to toggle &middot; Esc to close
             </span>
           </div>

@@ -33,14 +33,14 @@ export default function PageHint({ id, title, tips, shortcut }: Props) {
       <Lightbulb size={14} className="text-warn mt-0.5 shrink-0" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-polar font-[700]" style={{ fontSize: '12px' }}>{title}</span>
+          <span className="text-polar font-[700]" style={{ fontSize: '13px' }}>{title}</span>
           {shortcut && (
-            <span className="mono text-dim" style={{ fontSize: '10px' }}>({shortcut})</span>
+            <span className="mono text-dim" style={{ fontSize: '10.5px' }}>({shortcut})</span>
           )}
         </div>
         <ul className="mt-1 space-y-0.5">
           {tips.map((tip, i) => (
-            <li key={i} className="text-dim" style={{ fontSize: '11px', lineHeight: '1.5' }}>
+            <li key={i} className="text-dim" style={{ fontSize: '11.5px', lineHeight: '1.5' }}>
               {tip}
             </li>
           ))}
@@ -63,14 +63,14 @@ export function HelpTip({ text }: { text: string }) {
         onMouseLeave={() => setShow(false)}
         onClick={() => setShow(!show)}
         className="text-dim hover:text-steel transition-colors cursor-help"
-        style={{ fontSize: '10px' }}
+        style={{ fontSize: '10.5px' }}
         title={text}
       >
         ?
       </button>
       {show && (
         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2.5 py-1.5 bg-obsidian border border-border text-dim z-50 whitespace-nowrap"
-          style={{ fontSize: '10px', maxWidth: '220px', whiteSpace: 'normal' }}>
+          style={{ fontSize: '10.5px', maxWidth: '220px', whiteSpace: 'normal' }}>
           {text}
         </div>
       )}

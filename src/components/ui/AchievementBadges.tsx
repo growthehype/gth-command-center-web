@@ -98,7 +98,7 @@ export default function AchievementBadges({ streak }: { streak: number }) {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <h3 className="section-header" style={{ marginBottom: 0 }}>Achievements</h3>
-        <span className="mono text-dim" style={{ fontSize: 12 }}>
+        <span className="mono text-dim" style={{ fontSize: 13 }}>
           {unlockedCount}/{TOTAL_BADGES} unlocked
         </span>
       </div>
@@ -185,7 +185,7 @@ export default function AchievementBadges({ streak }: { streak: number }) {
                 <span
                   className="mono"
                   style={{
-                    fontSize: 10,
+                    fontSize: 10.5,
                     marginTop: 6,
                     textAlign: 'center',
                     lineHeight: 1.3,

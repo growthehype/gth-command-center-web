@@ -35,7 +35,7 @@ export default function VoiceTextarea({ value, onChange, placeholder, rows = 4, 
       {isListening && (
         <div className="absolute bottom-2 left-3 flex items-center gap-1.5">
           <div className="w-1.5 h-1.5 rounded-full bg-err animate-pulse" />
-          <span className="text-err" style={{ fontSize: '10px', fontWeight: 600 }}>Listening...</span>
+          <span className="text-err" style={{ fontSize: '10.5px', fontWeight: 600 }}>Listening...</span>
         </div>
       )}
     </div>

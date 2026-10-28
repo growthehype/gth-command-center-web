@@ -45,7 +45,7 @@ export default function FilePreview({ open, onClose, url, fileName }: FilePrevie
       <div className="flex items-center justify-between px-4 py-3 flex-shrink-0" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
         <div className="flex items-center gap-3 min-w-0">
           <FileText size={16} className="text-white/60 flex-shrink-0" />
-          <span className="text-white font-semibold truncate" style={{ fontSize: '14px' }}>
+          <span className="text-white font-semibold truncate" style={{ fontSize: '15px' }}>
             {fileName}
           </span>
         </div>
@@ -53,7 +53,7 @@ export default function FilePreview({ open, onClose, url, fileName }: FilePrevie
           <button
             onClick={handleDownload}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-            style={{ fontSize: '12px', fontWeight: 600 }}
+            style={{ fontSize: '13px', fontWeight: 600 }}
             title="Download file"
             aria-label="Download file"
           >
@@ -63,7 +63,7 @@ export default function FilePreview({ open, onClose, url, fileName }: FilePrevie
           <button
             onClick={handleOpenExternal}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-            style={{ fontSize: '12px', fontWeight: 600 }}
+            style={{ fontSize: '13px', fontWeight: 600 }}
             title="Open in new tab"
             aria-label="Open in new tab"
           >
@@ -102,8 +102,8 @@ export default function FilePreview({ open, onClose, url, fileName }: FilePrevie
           /* Fallback for non-previewable files or failed iframe */
           <div className="flex flex-col items-center gap-4 text-center">
             <FileText size={48} className="text-white/30" />
-            <p className="text-white font-semibold" style={{ fontSize: '16px' }}>{fileName}</p>
-            <p className="text-white/50" style={{ fontSize: '13px' }}>
+            <p className="text-white font-semibold" style={{ fontSize: '17px' }}>{fileName}</p>
+            <p className="text-white/50" style={{ fontSize: '14px' }}>
               {fileType === 'pdf' ? 'PDF preview not supported on this device.' : 'This file type cannot be previewed in the browser.'}
             </p>
             <div className="flex items-center gap-3 mt-2">

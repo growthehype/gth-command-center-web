@@ -118,7 +118,7 @@ function RevenueAreaChart({ data, year }: { data: number[]; year: number }) {
         return (
           <g key={i}>
             <line x1={PAD_L} y1={y} x2={W - PAD_R} y2={y} stroke="#333" strokeWidth="0.5" />
-            <text x={PAD_L - 8} y={y + 4} textAnchor="end" fill="var(--color-dim)" fontSize="10" fontFamily="Geist, sans-serif">
+            <text x={PAD_L - 8} y={y + 4} textAnchor="end" fill="var(--color-dim)" fontSize="10.5" fontFamily="Geist, sans-serif">
               {val >= 1000 ? `$${(val / 1000).toFixed(0)}k` : `$${val}`}
             </text>
           </g>
@@ -127,7 +127,7 @@ function RevenueAreaChart({ data, year }: { data: number[]; year: number }) {
 
       {/* X labels */}
       {MONTHS.map((m, i) => (
-        <text key={m} x={xForIdx(i)} y={H - 6} textAnchor="middle" fill="var(--color-dim)" fontSize="10" fontFamily="Geist, sans-serif">
+        <text key={m} x={xForIdx(i)} y={H - 6} textAnchor="middle" fill="var(--color-dim)" fontSize="10.5" fontFamily="Geist, sans-serif">
           {m}
         </text>
       ))}
@@ -160,7 +160,7 @@ function RevenueAreaChart({ data, year }: { data: number[]; year: number }) {
           {hoverIdx === i && p.val > 0 && (
             <g>
               <rect x={p.x - 38} y={p.y - 28} width="76" height="20" fill="#111" stroke="#333" strokeWidth="0.5" />
-              <text x={p.x} y={p.y - 14} textAnchor="middle" fill="var(--color-polar)" fontSize="11" fontFamily="Geist, sans-serif">
+              <text x={p.x} y={p.y - 14} textAnchor="middle" fill="var(--color-polar)" fontSize="11.5" fontFamily="Geist, sans-serif">
                 {formatCurrency(p.val)}
               </text>
             </g>
@@ -185,7 +185,7 @@ function InvoiceAging({ buckets, grandTotal }: { buckets: AgingBucket[]; grandTo
           <div key={b.label}>
             <div className="flex items-center justify-between mb-1">
               <span className="label">{b.label}</span>
-              <span className="mono text-dim" style={{ fontSize: '12px' }}>
+              <span className="mono text-dim" style={{ fontSize: '13px' }}>
                 {b.count} inv &middot; {formatCurrency(b.total)}
               </span>
             </div>
@@ -221,20 +221,20 @@ function TopClientsTable({ clients }: { clients: { name: string; revenue: number
         <button
           onClick={() => setSortBy('revenue')}
           className={`px-2 py-1 font-sans font-bold transition-colors ${sortBy === 'revenue' ? 'bg-polar text-obsidian' : 'bg-surface text-dim hover:text-steel'}`}
-          style={{ fontSize: '10px', letterSpacing: '0.08em' }}
+          style={{ fontSize: '10.5px', letterSpacing: '0.08em' }}
         >
           BY REVENUE
         </button>
         <button
           onClick={() => setSortBy('count')}
           className={`px-2 py-1 font-sans font-bold transition-colors ${sortBy === 'count' ? 'bg-polar text-obsidian' : 'bg-surface text-dim hover:text-steel'}`}
-          style={{ fontSize: '10px', letterSpacing: '0.08em' }}
+          style={{ fontSize: '10.5px', letterSpacing: '0.08em' }}
         >
           BY COUNT
         </button>
       </div>
       {sorted.length === 0 ? (
-        <p className="text-dim" style={{ fontSize: '13px' }}>No client data for this year</p>
+        <p className="text-dim" style={{ fontSize: '14px' }}>No client data for this year</p>
       ) : (
         <div className="flex flex-col gap-2">
           {sorted.map((c, i) => {
@@ -242,8 +242,8 @@ function TopClientsTable({ clients }: { clients: { name: string; revenue: number
             return (
               <div key={c.name + i}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-polar font-semibold" style={{ fontSize: '13px' }}>{c.name || 'Unknown'}</span>
-                  <span className="mono text-dim" style={{ fontSize: '12px' }}>
+                  <span className="text-polar font-semibold" style={{ fontSize: '14px' }}>{c.name || 'Unknown'}</span>
+                  <span className="mono text-dim" style={{ fontSize: '13px' }}>
                     {formatCurrency(c.revenue)} &middot; {c.count} inv
                   </span>
                 </div>
@@ -431,16 +431,16 @@ export default function Financials() {
   const outstandingTrend = pctChange(stats.outstandingAmt, stats.prevOutstandingAmt)
 
   const TrendIndicator = ({ value }: { value: number | null }) => {
-    if (value === null) return <span className="text-dim" style={{ fontSize: '11px' }}>--</span>
+    if (value === null) return <span className="text-dim" style={{ fontSize: '11.5px' }}>--</span>
     const isUp = value > 0
     const isDown = value < 0
     const color = isUp ? 'text-ok' : isDown ? 'text-err' : 'text-dim'
     const Icon = isUp ? TrendingUp : isDown ? TrendingDown : Minus
     return (
-      <span className={`inline-flex items-center gap-1 ${color}`} style={{ fontSize: '12px' }}>
+      <span className={`inline-flex items-center gap-1 ${color}`} style={{ fontSize: '13px' }}>
         <Icon size={12} />
         <span className="mono">{isUp ? '+' : ''}{value}%</span>
-        <span className="text-dim" style={{ fontSize: '10px' }}>vs {selectedYear - 1}</span>
+        <span className="text-dim" style={{ fontSize: '10.5px' }}>vs {selectedYear - 1}</span>
       </span>
     )
   }
@@ -471,7 +471,7 @@ export default function Financials() {
           <h1>Financials</h1>
           <DollarSign size={14} className="text-dim" />
         </div>
-        <p className="text-dim mt-1" style={{ fontSize: '13px' }}>Revenue tracking and tax filing status</p>
+        <p className="text-dim mt-1" style={{ fontSize: '14px' }}>Revenue tracking and tax filing status</p>
       </div>
 
       {/* Year Tabs */}
@@ -483,7 +483,7 @@ export default function Financials() {
             className={`px-3 py-1.5 font-sans font-bold transition-colors ${
               selectedYear === y ? 'bg-polar text-obsidian' : 'bg-surface text-dim hover:text-steel'
             }`}
-            style={{ fontSize: '12px', letterSpacing: '0.08em' }}
+            style={{ fontSize: '13px', letterSpacing: '0.08em' }}
           >
             {y}
           </button>
@@ -497,23 +497,23 @@ export default function Financials() {
         {/* Revenue Paid */}
         <div className="stat-card">
           <p className="label">Revenue Paid</p>
-          <p className="text-ok font-[800]" style={{ fontSize: '20px' }}>{formatCurrency(stats.revenuePaid)}</p>
+          <p className="text-ok font-[800]" style={{ fontSize: '21.5px' }}>{formatCurrency(stats.revenuePaid)}</p>
           <div className="mt-1"><TrendIndicator value={revenueTrend} /></div>
         </div>
 
         {/* Outstanding */}
         <div className="stat-card">
           <p className="label">Outstanding</p>
-          <p className="text-warn font-[800]" style={{ fontSize: '20px' }}>{formatCurrency(stats.outstandingAmt)}</p>
+          <p className="text-warn font-[800]" style={{ fontSize: '21.5px' }}>{formatCurrency(stats.outstandingAmt)}</p>
           <div className="mt-1">
             {outstandingTrend !== null ? (
-              <span className={`inline-flex items-center gap-1 ${outstandingTrend > 0 ? 'text-err' : outstandingTrend < 0 ? 'text-ok' : 'text-dim'}`} style={{ fontSize: '12px' }}>
+              <span className={`inline-flex items-center gap-1 ${outstandingTrend > 0 ? 'text-err' : outstandingTrend < 0 ? 'text-ok' : 'text-dim'}`} style={{ fontSize: '13px' }}>
                 {outstandingTrend > 0 ? <ArrowUp size={12} /> : outstandingTrend < 0 ? <ArrowDown size={12} /> : <Minus size={12} />}
                 <span className="mono">{outstandingTrend > 0 ? '+' : ''}{outstandingTrend}%</span>
-                <span className="text-dim" style={{ fontSize: '10px' }}>vs {selectedYear - 1}</span>
+                <span className="text-dim" style={{ fontSize: '10.5px' }}>vs {selectedYear - 1}</span>
               </span>
             ) : (
-              <span className="text-dim" style={{ fontSize: '11px' }}>--</span>
+              <span className="text-dim" style={{ fontSize: '11.5px' }}>--</span>
             )}
           </div>
         </div>
@@ -526,23 +526,23 @@ export default function Financials() {
           </div>
           {paymentVelocity.avg !== null ? (
             <>
-              <p className="text-polar font-[800]" style={{ fontSize: '20px' }}>
-                {paymentVelocity.avg}<span className="text-dim font-normal" style={{ fontSize: '13px' }}> days</span>
+              <p className="text-polar font-[800]" style={{ fontSize: '21.5px' }}>
+                {paymentVelocity.avg}<span className="text-dim font-normal" style={{ fontSize: '14px' }}> days</span>
               </p>
               <div className="mt-1">
                 {prevPaymentVelocity.avg !== null ? (
-                  <span className={`inline-flex items-center gap-1 ${paymentVelocity.avg < prevPaymentVelocity.avg ? 'text-ok' : paymentVelocity.avg > prevPaymentVelocity.avg ? 'text-err' : 'text-dim'}`} style={{ fontSize: '12px' }}>
+                  <span className={`inline-flex items-center gap-1 ${paymentVelocity.avg < prevPaymentVelocity.avg ? 'text-ok' : paymentVelocity.avg > prevPaymentVelocity.avg ? 'text-err' : 'text-dim'}`} style={{ fontSize: '13px' }}>
                     {paymentVelocity.avg < prevPaymentVelocity.avg ? <ArrowDown size={12} /> : paymentVelocity.avg > prevPaymentVelocity.avg ? <ArrowUp size={12} /> : <Minus size={12} />}
                     <span className="mono">{prevPaymentVelocity.avg}d</span>
-                    <span className="text-dim" style={{ fontSize: '10px' }}>prev yr</span>
+                    <span className="text-dim" style={{ fontSize: '10.5px' }}>prev yr</span>
                   </span>
                 ) : (
-                  <span className="text-dim" style={{ fontSize: '11px' }}>No prior data</span>
+                  <span className="text-dim" style={{ fontSize: '11.5px' }}>No prior data</span>
                 )}
               </div>
             </>
           ) : (
-            <p className="text-dim" style={{ fontSize: '14px' }}>No data</p>
+            <p className="text-dim" style={{ fontSize: '15px' }}>No data</p>
           )}
         </div>
 
@@ -568,18 +568,18 @@ export default function Financials() {
           <p className="label mb-3">Year-over-Year Comparison</p>
           <div className="flex items-center gap-6 flex-wrap">
             <div>
-              <span className="text-dim" style={{ fontSize: '12px' }}>{selectedYear} Revenue</span>
-              <p className="text-polar font-[800] mono" style={{ fontSize: '16px' }}>{formatCurrency(stats.revenuePaid)}</p>
+              <span className="text-dim" style={{ fontSize: '13px' }}>{selectedYear} Revenue</span>
+              <p className="text-polar font-[800] mono" style={{ fontSize: '17px' }}>{formatCurrency(stats.revenuePaid)}</p>
             </div>
-            <div className="text-dim" style={{ fontSize: '18px' }}>vs</div>
+            <div className="text-dim" style={{ fontSize: '19px' }}>vs</div>
             <div>
-              <span className="text-dim" style={{ fontSize: '12px' }}>{selectedYear - 1} Revenue</span>
-              <p className="text-steel font-[800] mono" style={{ fontSize: '16px' }}>{formatCurrency(yoy.prevRevenue)}</p>
+              <span className="text-dim" style={{ fontSize: '13px' }}>{selectedYear - 1} Revenue</span>
+              <p className="text-steel font-[800] mono" style={{ fontSize: '17px' }}>{formatCurrency(yoy.prevRevenue)}</p>
             </div>
             <div className="ml-auto">
               <div className={`flex items-center gap-2 px-3 py-2 ${yoy.change >= 0 ? 'bg-ok/10' : 'bg-err/10'}`}>
                 {yoy.change >= 0 ? <TrendingUp size={16} className="text-ok" /> : <TrendingDown size={16} className="text-err" />}
-                <span className={`font-[800] mono ${yoy.change >= 0 ? 'text-ok' : 'text-err'}`} style={{ fontSize: '16px' }}>
+                <span className={`font-[800] mono ${yoy.change >= 0 ? 'text-ok' : 'text-err'}`} style={{ fontSize: '17px' }}>
                   {yoy.change >= 0 ? '+' : ''}{yoy.change}%
                 </span>
               </div>
@@ -594,7 +594,7 @@ export default function Financials() {
       <div className="card p-5 mb-6">
         <p className="label mb-4">Revenue Trend ({selectedYear})</p>
         {yearInvoices.length === 0 ? (
-          <p className="text-dim text-center py-8" style={{ fontSize: '13px' }}>No invoice data for {selectedYear}</p>
+          <p className="text-dim text-center py-8" style={{ fontSize: '14px' }}>No invoice data for {selectedYear}</p>
         ) : (
           <RevenueAreaChart data={monthlyRevenue} year={selectedYear} />
         )}
@@ -606,14 +606,14 @@ export default function Financials() {
       <div className="card p-5 mb-6">
         <p className="label mb-4">Monthly Revenue ({selectedYear})</p>
         {yearInvoices.length === 0 ? (
-          <p className="text-dim text-center py-8" style={{ fontSize: '13px' }}>No invoice data for {selectedYear}</p>
+          <p className="text-dim text-center py-8" style={{ fontSize: '14px' }}>No invoice data for {selectedYear}</p>
         ) : (
           <div className="flex items-end gap-2" style={{ height: '180px' }}>
             {monthlyRevenue.map((amount, i) => {
               const height = maxMonthly > 0 ? (amount / maxMonthly) * 100 : 0
               return (
                 <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="mono text-dim" style={{ fontSize: '10px' }}>
+                  <span className="mono text-dim" style={{ fontSize: '10.5px' }}>
                     {amount > 0 ? formatCurrency(amount) : ''}
                   </span>
                   <div className="w-full flex items-end" style={{ height: '140px' }}>
@@ -626,7 +626,7 @@ export default function Financials() {
                       }}
                     />
                   </div>
-                  <span className="label" style={{ fontSize: '10px' }}>{MONTHS[i]}</span>
+                  <span className="label" style={{ fontSize: '10.5px' }}>{MONTHS[i]}</span>
                 </div>
               )
             })}
@@ -644,7 +644,7 @@ export default function Financials() {
           {agingData.grandTotal > 0 ? (
             <InvoiceAging buckets={agingData.buckets} grandTotal={agingData.grandTotal} />
           ) : (
-            <p className="text-dim" style={{ fontSize: '13px' }}>No outstanding invoices</p>
+            <p className="text-dim" style={{ fontSize: '14px' }}>No outstanding invoices</p>
           )}
         </div>
 
@@ -668,7 +668,7 @@ export default function Financials() {
             const status = record?.status || 'not-filed'
             return (
               <div key={y} className="flex items-center justify-between px-4 py-2.5 border-b border-border last:border-b-0">
-                <span className="text-polar font-semibold mono" style={{ fontSize: '14px' }}>{y}</span>
+                <span className="text-polar font-semibold mono" style={{ fontSize: '15px' }}>{y}</span>
                 <button
                   onClick={() => cycleTaxStatus(y)}
                   className={TAX_BADGE[status] || 'badge badge-neutral'}

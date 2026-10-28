@@ -270,7 +270,7 @@ export default function Credentials() {
             <h1>Credential Vault</h1>
             <Shield size={15} className="text-ok" />
           </div>
-          <p className="text-steel mt-1" style={{ fontSize: '13px' }}>
+          <p className="text-steel mt-1" style={{ fontSize: '14px' }}>
             {stats.total} credential{stats.total !== 1 ? 's' : ''} across {stats.uniquePlatforms} platform{stats.uniquePlatforms !== 1 ? 's' : ''}
             {stats.aging > 0 && (
               <span className="text-warn ml-2">
@@ -296,7 +296,7 @@ export default function Credentials() {
             placeholder="Search platforms or clients..."
             aria-label="Search credentials"
             className="input pl-8 w-full"
-            style={{ fontSize: '13px' }}
+            style={{ fontSize: '14px' }}
           />
         </div>
         {credentialClients.length > 0 && (
@@ -304,7 +304,7 @@ export default function Credentials() {
             value={filterClient}
             onChange={e => setFilterClient(e.target.value)}
             className="input"
-            style={{ fontSize: '13px', minWidth: '160px' }}
+            style={{ fontSize: '14px', minWidth: '160px' }}
           >
             <option value="">All Clients</option>
             {credentialClients.map(c => (
@@ -321,10 +321,10 @@ export default function Credentials() {
       >
         <Shield size={14} className="text-ok flex-shrink-0 mt-0.5" />
         <div>
-          <p className="text-polar" style={{ fontSize: '12px', fontWeight: 700 }}>
+          <p className="text-polar" style={{ fontSize: '13px', fontWeight: 700 }}>
             Encrypted at rest
           </p>
-          <p className="text-dim mt-0.5" style={{ fontSize: '11px', lineHeight: 1.5 }}>
+          <p className="text-dim mt-0.5" style={{ fontSize: '11.5px', lineHeight: 1.5 }}>
             Credentials are stored in your private Supabase database with row-level security. Only you can access them. Click a card to reveal fields, or use the copy button for quick access.
           </p>
         </div>
@@ -377,7 +377,7 @@ export default function Credentials() {
                     >
                       <span
                         className="font-[800]"
-                        style={{ fontSize: '14px', color: meta.color }}
+                        style={{ fontSize: '15px', color: meta.color }}
                       >
                         {meta.icon}
                       </span>
@@ -385,16 +385,16 @@ export default function Credentials() {
                     <div className="min-w-0">
                       <h3
                         className="text-polar font-[700] truncate"
-                        style={{ fontSize: '14px' }}
+                        style={{ fontSize: '15px' }}
                       >
                         {cred.platform}
                       </h3>
                       {clientName ? (
-                        <span className="text-steel truncate block" style={{ fontSize: '12px' }}>
+                        <span className="text-steel truncate block" style={{ fontSize: '13px' }}>
                           {clientName}
                         </span>
                       ) : (
-                        <span className="text-dim" style={{ fontSize: '12px' }}>Personal</span>
+                        <span className="text-dim" style={{ fontSize: '13px' }}>Personal</span>
                       )}
                     </div>
                   </div>
@@ -429,14 +429,14 @@ export default function Credentials() {
                       <div key={idx} className="group">
                         <span
                           className="text-dim block mb-0.5"
-                          style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}
+                          style={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}
                         >
                           {field.label}
                         </span>
                         <div className="flex items-center gap-1.5">
                           <span
                             className="text-polar mono flex-1 truncate"
-                            style={{ fontSize: '12px' }}
+                            style={{ fontSize: '13px' }}
                           >
                             {isSensitive && !isRevealed ? MASK : field.value}
                           </span>
@@ -452,7 +452,7 @@ export default function Credentials() {
                     )
                   })}
                   {credFields.length === 0 && (
-                    <span className="text-dim" style={{ fontSize: '11px' }}>No fields stored</span>
+                    <span className="text-dim" style={{ fontSize: '11.5px' }}>No fields stored</span>
                   )}
                 </div>
 
@@ -462,7 +462,7 @@ export default function Credentials() {
                     <button
                       onClick={() => shell.openExternal(urlField.value.startsWith('http') ? urlField.value : `https://${urlField.value}`)}
                       className="inline-flex items-center gap-1 bg-surface border border-border px-2 py-0.5 text-steel hover:text-polar hover:border-dim transition-colors cursor-pointer"
-                      style={{ fontSize: '10px', borderRadius: '3px' }}
+                      style={{ fontSize: '10.5px', borderRadius: '3px' }}
                       title={urlField.value}
                     >
                       <ExternalLink size={9} />
@@ -476,7 +476,7 @@ export default function Credentials() {
                   <button
                     onClick={() => toggleRevealCard(cred.id)}
                     className="flex items-center gap-1.5 text-dim hover:text-polar transition-colors cursor-pointer"
-                    style={{ fontSize: '11px', fontWeight: 600 }}
+                    style={{ fontSize: '11.5px', fontWeight: 600 }}
                   >
                     {isRevealed ? <EyeOff size={11} /> : <Eye size={11} />}
                     {isRevealed ? 'Hide' : 'Reveal'}
@@ -491,7 +491,7 @@ export default function Credentials() {
                     )}
                     <span
                       className={`mono ${age.color === 'ok' ? 'text-dim' : age.color === 'warn' ? 'text-warn' : 'text-err'}`}
-                      style={{ fontSize: '10px' }}
+                      style={{ fontSize: '10.5px' }}
                       title={`Created: ${cred.created_at ? format(parseISO(cred.created_at), 'MMM d, yyyy') : 'Unknown'}`}
                     >
                       {age.label}
@@ -535,7 +535,7 @@ export default function Credentials() {
               onChange={e => setFormPlatform(e.target.value)}
               placeholder="e.g. Google Ads, Shopify"
               className="input w-full"
-              style={{ fontSize: '13px' }}
+              style={{ fontSize: '14px' }}
               autoFocus
             />
             {/* Quick-pick platforms */}
@@ -546,7 +546,7 @@ export default function Credentials() {
                     key={p}
                     onClick={() => setFormPlatform(p)}
                     className="px-2.5 py-1 border border-border text-dim hover:text-polar hover:border-dim transition-colors cursor-pointer"
-                    style={{ fontSize: '10px', fontWeight: 600, borderRadius: '4px' }}
+                    style={{ fontSize: '10.5px', fontWeight: 600, borderRadius: '4px' }}
                   >
                     {p}
                   </button>
@@ -562,7 +562,7 @@ export default function Credentials() {
               value={formClientId}
               onChange={e => setFormClientId(e.target.value)}
               className="input w-full cursor-pointer"
-              style={{ fontSize: '13px' }}
+              style={{ fontSize: '14px' }}
             >
               <option value="">Personal / Internal</option>
               {clients
@@ -585,7 +585,7 @@ export default function Credentials() {
                     onChange={e => updateField(idx, 'label', e.target.value)}
                     placeholder="Label (e.g. Email)"
                     className="input flex-1"
-                    style={{ fontSize: '13px' }}
+                    style={{ fontSize: '14px' }}
                   />
                   <input
                     type="text"
@@ -593,7 +593,7 @@ export default function Credentials() {
                     onChange={e => updateField(idx, 'value', e.target.value)}
                     placeholder="Value"
                     className="input flex-1"
-                    style={{ fontSize: '13px' }}
+                    style={{ fontSize: '14px' }}
                   />
                   {formFields.length > 1 && (
                     <button
@@ -609,7 +609,7 @@ export default function Credentials() {
             <button
               onClick={addField}
               className="text-dim hover:text-polar transition-colors cursor-pointer mt-2 flex items-center gap-1"
-              style={{ fontSize: '11px', fontWeight: 600 }}
+              style={{ fontSize: '11.5px', fontWeight: 600 }}
             >
               <Plus size={10} /> Add Field
             </button>
@@ -624,7 +624,7 @@ export default function Credentials() {
               onChange={e => setFormUrl(e.target.value)}
               placeholder="https://ads.google.com"
               className="input w-full"
-              style={{ fontSize: '13px' }}
+              style={{ fontSize: '14px' }}
             />
           </div>
 
@@ -637,7 +637,7 @@ export default function Credentials() {
               placeholder="e.g. 2FA enabled, recovery email is..."
               className="input w-full"
               rows={2}
-              style={{ fontSize: '13px', resize: 'vertical' }}
+              style={{ fontSize: '14px', resize: 'vertical' }}
             />
           </div>
 
@@ -661,7 +661,7 @@ export default function Credentials() {
       {/* ── Delete Confirmation Modal ── */}
       <Modal open={!!deleteId} onClose={() => setDeleteId(null)} title="Delete Credential">
         <div className="space-y-4">
-          <p className="text-steel" style={{ fontSize: '13px', lineHeight: 1.6 }}>
+          <p className="text-steel" style={{ fontSize: '14px', lineHeight: 1.6 }}>
             Are you sure you want to permanently delete this credential? This action cannot be undone and the stored login information will be lost.
           </p>
           <div className="flex items-center justify-end gap-3">
@@ -670,7 +670,7 @@ export default function Credentials() {
             </button>
             <button
               className="px-4 py-2 bg-err text-white font-sans uppercase font-bold cursor-pointer hover:bg-err/80 transition-colors"
-              style={{ fontSize: '10px', letterSpacing: '0.14em', borderRadius: '4px' }}
+              style={{ fontSize: '10.5px', letterSpacing: '0.14em', borderRadius: '4px' }}
               onClick={handleDelete}
             >
               Delete Credential

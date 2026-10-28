@@ -69,7 +69,7 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
         title="Search (Ctrl+K)"
       >
         <Search size={13} />
-        <span style={{ fontSize: '12px', minWidth: 120, textAlign: 'left' }}>Search</span>
+        <span style={{ fontSize: '13px', minWidth: 120, textAlign: 'left' }}>Search</span>
         <span className="topbar-kbd">Ctrl K</span>
       </button>
 
@@ -77,13 +77,13 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
       {connectionStatus === 'offline' && (
         <div className="flex items-center gap-1.5 text-err">
           <WifiOff size={12} />
-          <span className="font-semibold" style={{ fontSize: '11px' }}>Offline</span>
+          <span className="font-semibold" style={{ fontSize: '11.5px' }}>Offline</span>
         </div>
       )}
       {connectionStatus === 'reconnected' && (
         <div className="flex items-center gap-1.5 text-ok" style={{ animation: 'fadeIn 0.2s ease-out' }}>
           <Wifi size={12} />
-          <span className="font-semibold" style={{ fontSize: '11px' }}>Back online</span>
+          <span className="font-semibold" style={{ fontSize: '11.5px' }}>Back online</span>
         </div>
       )}
 
@@ -95,7 +95,7 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
           title="Open Pomodoro Timer"
         >
           <Flame size={12} />
-          <span className="tabular-nums font-semibold" style={{ fontSize: '12px' }}>{pomodoroDisplay}</span>
+          <span className="tabular-nums font-semibold" style={{ fontSize: '13px' }}>{pomodoroDisplay}</span>
         </button>
       ) : runningTimer && elapsed ? (
         <button
@@ -114,9 +114,9 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
             <Timer size={12} className="group-hover:hidden" />
             <Square size={12} className="hidden group-hover:block text-err" fill="currentColor" />
           </div>
-          <span className="tabular-nums font-semibold" style={{ fontSize: '12px' }}>{elapsed}</span>
+          <span className="tabular-nums font-semibold" style={{ fontSize: '13px' }}>{elapsed}</span>
           {runningTimer.notes && (
-            <span className="hidden md:inline text-dim" style={{ fontSize: '10px', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span className="hidden md:inline text-dim" style={{ fontSize: '10.5px', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {runningTimer.notes}
             </span>
           )}
@@ -130,7 +130,7 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
         title="Pomodoro Timer"
       >
         <Clock size={13} />
-        <span className="hidden md:inline" style={{ fontSize: '11px', fontWeight: 600 }}>Focus</span>
+        <span className="hidden md:inline" style={{ fontSize: '11.5px', fontWeight: 600 }}>Focus</span>
       </button>
 
       {/* AI Panel toggle */}
@@ -140,7 +140,7 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
         title="AI Assistant (Ctrl+J)"
       >
         <Sparkles size={13} />
-        <span style={{ fontSize: '11px', fontWeight: 600 }}>AI</span>
+        <span style={{ fontSize: '11.5px', fontWeight: 600 }}>AI</span>
       </button>
 
       {/* Focus Mode toggle */}
@@ -175,17 +175,17 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
 
       {/* Time */}
       <span className="hidden md:inline w-px h-4 bg-white/10 mx-1" aria-hidden="true" />
-      <span className="hidden md:inline tabular-nums" style={{ fontSize: '11.5px', fontWeight: 500, color: 'rgba(236,233,227,0.5)' }}>
+      <span className="hidden md:inline tabular-nums" style={{ fontSize: '12px', fontWeight: 500, color: 'rgba(236,233,227,0.5)' }}>
         {format(currentTime, 'h:mm a')}
       </span>
 
       {/* User */}
       <div className="flex items-center gap-2.5 ml-1">
-        <span className="hidden md:inline" style={{ fontSize: '12px', fontWeight: 550, color: 'rgba(236,233,227,0.85)' }}>
+        <span className="hidden md:inline" style={{ fontSize: '13px', fontWeight: 550, color: 'rgba(236,233,227,0.85)' }}>
           {displayName}
         </span>
         <div className="topbar-avatar w-7 h-7 flex items-center justify-center" title="Profile">
-          <span className="font-display" style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', color: '#ECE9E3' }}>
+          <span className="font-display" style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '0.06em', color: '#ECE9E3' }}>
             {initials}
           </span>
         </div>

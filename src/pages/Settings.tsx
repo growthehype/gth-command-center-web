@@ -24,7 +24,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   return (
     <div className="border border-border bg-surface">
       <div className="px-5 py-3 border-b border-border">
-        <h3 className="font-[800] uppercase" style={{ fontSize: '11px', letterSpacing: '0.14em' }}>{title}</h3>
+        <h3 className="font-[800] uppercase" style={{ fontSize: '11.5px', letterSpacing: '0.14em' }}>{title}</h3>
       </div>
       <div className="px-5 py-4 space-y-4">{children}</div>
     </div>
@@ -241,7 +241,7 @@ export default function Settings() {
       {/* ── Appearance ── */}
       <Section title="Appearance">
         <div className="flex items-center justify-between">
-          <span className="text-steel" style={{ fontSize: '12px' }}>Dark Mode</span>
+          <span className="text-steel" style={{ fontSize: '13px' }}>Dark Mode</span>
           <button
             onClick={() => setStoreTheme(storeTheme === 'dark' ? 'light' : 'dark')}
             className={`w-9 h-5 flex items-center px-0.5 transition-colors cursor-pointer ${storeTheme === 'dark' ? 'bg-ok' : 'bg-border-hard'}`}
@@ -259,35 +259,35 @@ export default function Settings() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="label text-steel block mb-1.5">Company Name</label>
-            <input type="text" value={companyName} onChange={e => setCompanyName(e.target.value)} onBlur={() => saveSetting('company_name', companyName)} className={inputClass} style={{ fontSize: '13px' }} placeholder="Your Business Name" />
+            <input type="text" value={companyName} onChange={e => setCompanyName(e.target.value)} onBlur={() => saveSetting('company_name', companyName)} className={inputClass} style={{ fontSize: '14px' }} placeholder="Your Business Name" />
           </div>
           <div>
             <label className="label text-steel block mb-1.5">Email</label>
-            <input type="email" value={companyEmail} onChange={e => setCompanyEmail(e.target.value)} onBlur={() => saveSetting('company_email', companyEmail)} className={inputClass} style={{ fontSize: '13px' }} placeholder="hello@company.com" />
+            <input type="email" value={companyEmail} onChange={e => setCompanyEmail(e.target.value)} onBlur={() => saveSetting('company_email', companyEmail)} className={inputClass} style={{ fontSize: '14px' }} placeholder="hello@company.com" />
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="label text-steel block mb-1.5">Phone</label>
-            <input type="tel" value={companyPhone} onChange={e => setCompanyPhone(e.target.value)} onBlur={() => saveSetting('company_phone', companyPhone)} className={inputClass} style={{ fontSize: '13px' }} placeholder="(555) 123-4567" />
+            <input type="tel" value={companyPhone} onChange={e => setCompanyPhone(e.target.value)} onBlur={() => saveSetting('company_phone', companyPhone)} className={inputClass} style={{ fontSize: '14px' }} placeholder="(555) 123-4567" />
           </div>
           <div>
             <label className="label text-steel block mb-1.5">Website</label>
-            <input type="text" value={companyWebsite} onChange={e => setCompanyWebsite(e.target.value)} onBlur={() => saveSetting('company_website', companyWebsite)} className={inputClass} style={{ fontSize: '13px' }} placeholder="www.company.com" />
+            <input type="text" value={companyWebsite} onChange={e => setCompanyWebsite(e.target.value)} onBlur={() => saveSetting('company_website', companyWebsite)} className={inputClass} style={{ fontSize: '14px' }} placeholder="www.company.com" />
           </div>
         </div>
         <div>
           <label className="label text-steel block mb-1.5">Address</label>
-          <input type="text" value={companyAddress} onChange={e => setCompanyAddress(e.target.value)} onBlur={() => saveSetting('company_address', companyAddress)} className={inputClass} style={{ fontSize: '13px' }} placeholder="123 Main St, City, Province, Postal Code, Country" />
+          <input type="text" value={companyAddress} onChange={e => setCompanyAddress(e.target.value)} onBlur={() => saveSetting('company_address', companyAddress)} className={inputClass} style={{ fontSize: '14px' }} placeholder="123 Main St, City, Province, Postal Code, Country" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="label text-steel block mb-1.5">Tagline</label>
-            <input type="text" value={companyTagline} onChange={e => setCompanyTagline(e.target.value)} onBlur={() => saveSetting('company_tagline', companyTagline)} className={inputClass} style={{ fontSize: '13px' }} placeholder="Strategic Marketing & Creative" />
+            <input type="text" value={companyTagline} onChange={e => setCompanyTagline(e.target.value)} onBlur={() => saveSetting('company_tagline', companyTagline)} className={inputClass} style={{ fontSize: '14px' }} placeholder="Strategic Marketing & Creative" />
           </div>
           <div>
             <label className="label text-steel block mb-1.5">Logo URL (for email signature)</label>
-            <input type="text" value={companyLogoUrl} onChange={e => setCompanyLogoUrl(e.target.value)} onBlur={() => saveSetting('company_logo_url', companyLogoUrl)} className={inputClass} style={{ fontSize: '13px' }} placeholder="https://i.imgur.com/logo.png" />
+            <input type="text" value={companyLogoUrl} onChange={e => setCompanyLogoUrl(e.target.value)} onBlur={() => saveSetting('company_logo_url', companyLogoUrl)} className={inputClass} style={{ fontSize: '14px' }} placeholder="https://i.imgur.com/logo.png" />
           </div>
         </div>
       </Section>
@@ -297,27 +297,27 @@ export default function Settings() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="label text-steel block mb-1.5">Invoice Prefix</label>
-            <input type="text" value={invoicePrefix} onChange={e => setInvoicePrefix(e.target.value.toUpperCase())} onBlur={() => saveSetting('invoice_prefix', invoicePrefix)} className={inputClass} style={{ fontSize: '13px' }} placeholder="INV" maxLength={6} />
-            <span className="text-dim mt-1 block" style={{ fontSize: '10px' }}>e.g. {invoicePrefix || 'INV'}-001</span>
+            <input type="text" value={invoicePrefix} onChange={e => setInvoicePrefix(e.target.value.toUpperCase())} onBlur={() => saveSetting('invoice_prefix', invoicePrefix)} className={inputClass} style={{ fontSize: '14px' }} placeholder="INV" maxLength={6} />
+            <span className="text-dim mt-1 block" style={{ fontSize: '10.5px' }}>e.g. {invoicePrefix || 'INV'}-001</span>
           </div>
           <div>
             <label className="label text-steel block mb-1.5">Tax / GST Number</label>
-            <input type="text" value={gstNumberSetting} onChange={e => setGstNumberSetting(e.target.value)} onBlur={() => saveSetting('gst_number', gstNumberSetting)} className={inputClass} style={{ fontSize: '13px' }} placeholder="Optional" />
+            <input type="text" value={gstNumberSetting} onChange={e => setGstNumberSetting(e.target.value)} onBlur={() => saveSetting('gst_number', gstNumberSetting)} className={inputClass} style={{ fontSize: '14px' }} placeholder="Optional" />
           </div>
           <div>
             <label className="label text-steel block mb-1.5">Default Currency</label>
-            <select value={currency} onChange={e => { setCurrency(e.target.value); saveSetting('currency', e.target.value) }} className={selectClass} style={{ fontSize: '13px' }}>
+            <select value={currency} onChange={e => { setCurrency(e.target.value); saveSetting('currency', e.target.value) }} className={selectClass} style={{ fontSize: '14px' }}>
               {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
         </div>
         <div>
           <label className="label text-steel block mb-1.5">Payment Instructions</label>
-          <input type="text" value={invoicePaymentInstructions} onChange={e => setInvoicePaymentInstructions(e.target.value)} onBlur={() => saveSetting('invoice_payment_instructions', invoicePaymentInstructions)} className={inputClass} style={{ fontSize: '13px' }} placeholder="e.g. Payments can be made via e-transfer or credit card" />
+          <input type="text" value={invoicePaymentInstructions} onChange={e => setInvoicePaymentInstructions(e.target.value)} onBlur={() => saveSetting('invoice_payment_instructions', invoicePaymentInstructions)} className={inputClass} style={{ fontSize: '14px' }} placeholder="e.g. Payments can be made via e-transfer or credit card" />
         </div>
         <div>
           <label className="label text-steel block mb-1.5">Terms & Conditions</label>
-          <textarea value={invoiceTermsText} onChange={e => setInvoiceTermsText(e.target.value)} onBlur={() => saveSetting('invoice_terms_text', invoiceTermsText)} className={inputClass} style={{ fontSize: '12px', minHeight: '80px' }} placeholder="Invoice legal terms..." />
+          <textarea value={invoiceTermsText} onChange={e => setInvoiceTermsText(e.target.value)} onBlur={() => saveSetting('invoice_terms_text', invoiceTermsText)} className={inputClass} style={{ fontSize: '13px', minHeight: '80px' }} placeholder="Invoice legal terms..." />
         </div>
       </Section>
 
@@ -326,14 +326,14 @@ export default function Settings() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="label text-steel block mb-1.5">Sender Name</label>
-            <input type="text" value={emailSigName} onChange={e => setEmailSigName(e.target.value)} onBlur={() => saveSetting('email_sig_name', emailSigName)} className={inputClass} style={{ fontSize: '13px' }} placeholder="Your Name" />
+            <input type="text" value={emailSigName} onChange={e => setEmailSigName(e.target.value)} onBlur={() => saveSetting('email_sig_name', emailSigName)} className={inputClass} style={{ fontSize: '14px' }} placeholder="Your Name" />
           </div>
           <div>
             <label className="label text-steel block mb-1.5">Title</label>
-            <input type="text" value={emailSigTitle} onChange={e => setEmailSigTitle(e.target.value)} onBlur={() => saveSetting('email_sig_title', emailSigTitle)} className={inputClass} style={{ fontSize: '13px' }} placeholder="CEO / Founder / Director" />
+            <input type="text" value={emailSigTitle} onChange={e => setEmailSigTitle(e.target.value)} onBlur={() => saveSetting('email_sig_title', emailSigTitle)} className={inputClass} style={{ fontSize: '14px' }} placeholder="CEO / Founder / Director" />
           </div>
         </div>
-        <p className="text-dim" style={{ fontSize: '10px', lineHeight: '1.6' }}>
+        <p className="text-dim" style={{ fontSize: '10.5px', lineHeight: '1.6' }}>
           Your email signature uses your Company Profile info (email, phone, website, logo, tagline). Update those fields above to change your signature.
         </p>
       </Section>
@@ -342,12 +342,12 @@ export default function Settings() {
         {/* ── System Info ── */}
         <Section title="System Info">
           <div className="flex items-center justify-between">
-            <span className="text-steel" style={{ fontSize: '12px' }}>App Version</span>
-            <span className="text-polar mono" style={{ fontSize: '12px' }}>1.0.0</span>
+            <span className="text-steel" style={{ fontSize: '13px' }}>App Version</span>
+            <span className="text-polar mono" style={{ fontSize: '13px' }}>1.0.0</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-steel" style={{ fontSize: '12px' }}>Database</span>
-            <span className="text-dim mono truncate ml-4" style={{ fontSize: '11px', maxWidth: '220px' }}>
+            <span className="text-steel" style={{ fontSize: '13px' }}>Database</span>
+            <span className="text-dim mono truncate ml-4" style={{ fontSize: '11.5px', maxWidth: '220px' }}>
               {settings.db_path || '~/gth-command-center/data.db'}
             </span>
           </div>
@@ -362,7 +362,7 @@ export default function Settings() {
               value={currentPw}
               onChange={e => setCurrentPw(e.target.value)}
               className={inputClass}
-              style={{ fontSize: '13px' }}
+              style={{ fontSize: '14px' }}
               placeholder="Current password"
             />
           </div>
@@ -374,7 +374,7 @@ export default function Settings() {
                 value={newPw}
                 onChange={e => setNewPw(e.target.value)}
                 className={inputClass}
-                style={{ fontSize: '13px' }}
+                style={{ fontSize: '14px' }}
                 placeholder="New password"
               />
             </div>
@@ -385,7 +385,7 @@ export default function Settings() {
                 value={confirmPw}
                 onChange={e => setConfirmPw(e.target.value)}
                 className={inputClass}
-                style={{ fontSize: '13px' }}
+                style={{ fontSize: '14px' }}
                 placeholder="Confirm password"
               />
             </div>
@@ -410,7 +410,7 @@ export default function Settings() {
               onChange={e => setDisplayName(e.target.value)}
               onBlur={() => saveSetting('display_name', displayName)}
               className={inputClass}
-              style={{ fontSize: '13px' }}
+              style={{ fontSize: '14px' }}
               placeholder="Your name"
             />
           </div>
@@ -422,7 +422,7 @@ export default function Settings() {
               onChange={e => setAvatarInitials(e.target.value.toUpperCase().slice(0, 3))}
               onBlur={() => saveSetting('avatar_initials', avatarInitials)}
               className={inputClass}
-              style={{ fontSize: '13px', maxWidth: '80px' }}
+              style={{ fontSize: '14px', maxWidth: '80px' }}
               placeholder="OM"
               maxLength={3}
             />
@@ -433,7 +433,7 @@ export default function Settings() {
               value={autoLock}
               onChange={e => { setAutoLock(e.target.value); saveSetting('auto_lock_timeout', e.target.value) }}
               className={selectClass}
-              style={{ fontSize: '13px' }}
+              style={{ fontSize: '14px' }}
             >
               {AUTO_LOCK_OPTIONS.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -445,7 +445,7 @@ export default function Settings() {
         {/* ── AI Assist ── */}
         <Section title="AI Assist">
           <div className="flex items-center justify-between">
-            <span className="text-steel" style={{ fontSize: '12px' }}>Enable AI</span>
+            <span className="text-steel" style={{ fontSize: '13px' }}>Enable AI</span>
             <button
               onClick={() => { const v = !aiEnabled; setAiEnabled(v); saveSetting('ai_enabled', String(v)) }}
               className={`w-9 h-5 flex items-center px-0.5 transition-colors cursor-pointer ${aiEnabled ? 'bg-ok' : 'bg-border-hard'}`}
@@ -465,7 +465,7 @@ export default function Settings() {
                 onChange={e => setAiKey(e.target.value)}
                 onBlur={() => { saveSetting('ai_api_key', aiKey) }}
                 className={inputClass}
-                style={{ fontSize: '13px', paddingRight: '36px' }}
+                style={{ fontSize: '14px', paddingRight: '36px' }}
                 placeholder="sk-ant-..."
               />
               <button
@@ -482,14 +482,14 @@ export default function Settings() {
               value={aiModel}
               onChange={e => { setAiModel(e.target.value); saveSetting('ai_model', e.target.value) }}
               className={selectClass}
-              style={{ fontSize: '13px' }}
+              style={{ fontSize: '14px' }}
             >
               <option value="claude-opus-4-6">claude-opus-4-6</option>
               <option value="claude-sonnet-4-20250514">claude-sonnet-4-20250514</option>
               <option value="claude-haiku-4-20250414">claude-haiku-4-20250414</option>
             </select>
           </div>
-          <p className="text-dim" style={{ fontSize: '10px', lineHeight: '1.6' }}>
+          <p className="text-dim" style={{ fontSize: '10.5px', lineHeight: '1.6' }}>
             When enabled, your questions and data context are sent to Anthropic's API. Vault credentials are never sent.
           </p>
         </Section>
@@ -498,11 +498,11 @@ export default function Settings() {
         <Section title="Integrations">
           <div className="flex items-center justify-between">
             <div>
-              <span className="text-polar block" style={{ fontSize: '13px', fontWeight: 600 }}>Google Drive</span>
-              <span className="text-dim" style={{ fontSize: '10px' }}>Sync files and documents</span>
+              <span className="text-polar block" style={{ fontSize: '14px', fontWeight: 600 }}>Google Drive</span>
+              <span className="text-dim" style={{ fontSize: '10.5px' }}>Sync files and documents</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-dim" style={{ fontSize: '10px', fontStyle: 'italic' }}>Coming in v1.1</span>
+              <span className="text-dim" style={{ fontSize: '10.5px', fontStyle: 'italic' }}>Coming in v1.1</span>
               <button className="btn-ghost" disabled style={{ opacity: 0.3 }}>
                 Connect
               </button>
@@ -520,8 +520,8 @@ export default function Settings() {
           ] as const).map((item) => (
             <div key={item.key} className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <span className="text-polar block" style={{ fontSize: '13px', fontWeight: 600 }}>{item.label}</span>
-                <span className="text-dim block" style={{ fontSize: '11px', lineHeight: '1.4' }}>{item.desc}</span>
+                <span className="text-polar block" style={{ fontSize: '14px', fontWeight: 600 }}>{item.label}</span>
+                <span className="text-dim block" style={{ fontSize: '11.5px', lineHeight: '1.4' }}>{item.desc}</span>
               </div>
               <button
                 onClick={() => toggleNotif(item.key, item.value, item.setter)}
@@ -534,7 +534,7 @@ export default function Settings() {
               </button>
             </div>
           ))}
-          <p className="text-dim" style={{ fontSize: '10px', lineHeight: '1.6' }}>
+          <p className="text-dim" style={{ fontSize: '10.5px', lineHeight: '1.6' }}>
             Notification delivery will be available once email integration is configured.
           </p>
         </Section>
@@ -548,7 +548,7 @@ export default function Settings() {
                 value={weekStart}
                 onChange={e => { setWeekStart(e.target.value); saveSetting('week_start', e.target.value) }}
                 className={selectClass}
-                style={{ fontSize: '13px' }}
+                style={{ fontSize: '14px' }}
               >
                 {WEEK_STARTS.map(w => (
                   <option key={w.value} value={w.value}>{w.label}</option>
@@ -561,7 +561,7 @@ export default function Settings() {
                 value={dateFormat}
                 onChange={e => { setDateFormat(e.target.value); saveSetting('date_format', e.target.value) }}
                 className={selectClass}
-                style={{ fontSize: '13px' }}
+                style={{ fontSize: '14px' }}
               >
                 {DATE_FORMATS.map(f => (
                   <option key={f} value={f}>{f}</option>
@@ -576,7 +576,7 @@ export default function Settings() {
                 value={currency}
                 onChange={e => { setCurrency(e.target.value); saveSetting('currency', e.target.value) }}
                 className={selectClass}
-                style={{ fontSize: '13px' }}
+                style={{ fontSize: '14px' }}
               >
                 {CURRENCIES.map(c => (
                   <option key={c} value={c}>{c}</option>
@@ -589,7 +589,7 @@ export default function Settings() {
                 value={theme}
                 onChange={e => { setTheme(e.target.value); saveSetting('theme', e.target.value) }}
                 className={selectClass}
-                style={{ fontSize: '13px' }}
+                style={{ fontSize: '14px' }}
               >
                 <option value="dark">Dark</option>
                 <option value="light">Light</option>
@@ -605,8 +605,8 @@ export default function Settings() {
               <HardDrive size={18} className="text-ok" />
             </div>
             <div className="flex-1">
-              <p className="text-polar font-[600]" style={{ fontSize: '13px' }}>Export All Data</p>
-              <p className="text-dim mt-1" style={{ fontSize: '11px', lineHeight: '1.6' }}>
+              <p className="text-polar font-[600]" style={{ fontSize: '14px' }}>Export All Data</p>
+              <p className="text-dim mt-1" style={{ fontSize: '11.5px', lineHeight: '1.6' }}>
                 Download a full backup of all your CRM data — clients, contacts, tasks, projects, invoices, campaigns, goals, credentials, and more — as a single JSON file.
               </p>
               <button
@@ -639,7 +639,7 @@ export default function Settings() {
           <div className="border-t border-border pt-4">
             <button
               className="px-4 py-2 border border-err text-err font-sans uppercase font-bold cursor-pointer hover:bg-err/10 transition-colors"
-              style={{ fontSize: '10px', letterSpacing: '0.14em' }}
+              style={{ fontSize: '10.5px', letterSpacing: '0.14em' }}
               onClick={handleReset}
             >
               <div className="flex items-center gap-2">
@@ -647,7 +647,7 @@ export default function Settings() {
                 {resetCount === 0 ? 'Reset Dashboard' : resetCount === 1 ? 'Confirm Reset?' : 'Final Confirm -- DELETE ALL'}
               </div>
             </button>
-            <p className="text-dim mt-2" style={{ fontSize: '10px' }}>
+            <p className="text-dim mt-2" style={{ fontSize: '10.5px' }}>
               This will permanently delete all data. Click 3 times to confirm.
             </p>
           </div>

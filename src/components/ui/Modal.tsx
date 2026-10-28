@@ -87,7 +87,7 @@ export default function Modal({ open, onClose, title, children, width = '480px' 
         style={{ maxWidth: width, maxHeight: '85vh' }}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <h3 className="font-[800]" style={{ fontSize: '15px', letterSpacing: '-0.01em' }}>{title}</h3>
+          <h3 className="font-[800]" style={{ fontSize: '16px', letterSpacing: '-0.01em' }}>{title}</h3>
           <button onClick={() => onCloseRef.current()} className="modal-close-btn cursor-pointer" aria-label="Close modal">
             <X size={15} />
           </button>

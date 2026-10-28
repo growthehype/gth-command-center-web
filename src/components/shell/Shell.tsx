@@ -241,7 +241,7 @@ export default function Shell({ onLock }: ShellProps) {
         <CommandStage />
         <main className={`shell-main flex-1 min-w-0 overflow-y-auto p-3 md:p-6 ${focusMode ? 'focus-vignette' : ''}`}>
           {demoMode && (
-            <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-border-hard bg-surface px-4 py-2 text-steel" style={{ fontSize: 12 }}>
+            <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-border-hard bg-surface px-4 py-2 text-steel" style={{ fontSize: 13 }}>
               <span className="flex items-center gap-2.5 font-medium"><span className="brf-light" data-tone="warn" aria-hidden="true" />Demo mode. You are looking at sample data.</span>
               <button
                 onClick={exitDemoMode}
@@ -266,7 +266,7 @@ export default function Shell({ onLock }: ShellProps) {
           <button
             onClick={() => setFocusMode(false)}
             className="flex items-center gap-2 px-4 py-2 bg-surface/90 border border-border rounded-full text-dim hover:text-polar transition-colors backdrop-blur-sm shadow-lg"
-            style={{ fontSize: '11px', fontWeight: 600 }}
+            style={{ fontSize: '11.5px', fontWeight: 600 }}
           >
             <Eye size={12} />
             Exit Focus Mode

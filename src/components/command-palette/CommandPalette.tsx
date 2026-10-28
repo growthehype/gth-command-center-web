@@ -294,15 +294,15 @@ export default function CommandPalette() {
             onKeyDown={handleKeyDown}
             placeholder="Search clients, contacts, tasks, projects, invoices..."
             className="flex-1 bg-transparent text-polar outline-none placeholder:text-dim"
-            style={{ fontSize: '15px' }}
+            style={{ fontSize: '16px' }}
           />
-          <kbd className="text-dim font-mono border border-border-hard px-1.5 py-0.5" style={{ fontSize: '11px' }}>ESC</kbd>
+          <kbd className="text-dim font-mono border border-border-hard px-1.5 py-0.5" style={{ fontSize: '11.5px' }}>ESC</kbd>
         </div>
 
         {/* Results */}
         <div ref={listRef} className="overflow-y-auto" style={{ maxHeight: 'calc(60vh - 50px)' }}>
           {flatList.length === 0 && (
-            <div className="px-4 py-8 text-center text-dim" style={{ fontSize: '13px' }}>
+            <div className="px-4 py-8 text-center text-dim" style={{ fontSize: '14px' }}>
               No results found
             </div>
           )}
@@ -311,7 +311,7 @@ export default function CommandPalette() {
               {/* Section header */}
               <div
                 className="px-4 py-1.5 text-dim font-mono uppercase sticky top-0 bg-surface border-b border-border"
-                style={{ fontSize: '10px', letterSpacing: '0.1em' }}
+                style={{ fontSize: '10.5px', letterSpacing: '0.1em' }}
               >
                 {section.category}
               </div>
@@ -330,11 +330,11 @@ export default function CommandPalette() {
                   >
                     <Icon size={14} className={isSelected ? 'text-polar' : 'text-dim'} />
                     <div className="flex-1 min-w-0">
-                      <span style={{ fontSize: '14px' }}>
+                      <span style={{ fontSize: '15px' }}>
                         <HighlightMatch text={item.label} query={query} />
                       </span>
                       {item.sublabel && (
-                        <span className="text-dim ml-2" style={{ fontSize: '12px' }}>
+                        <span className="text-dim ml-2" style={{ fontSize: '13px' }}>
                           <HighlightMatch text={item.sublabel} query={query} />
                         </span>
                       )}

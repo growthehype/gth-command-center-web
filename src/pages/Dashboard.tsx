@@ -89,7 +89,7 @@ function PeriodBadge({ current, previous, label = 'vs last month' }: { current: 
   return (
     <span
       className={isUp ? 'text-ok' : 'text-err'}
-      style={{ fontSize: '10px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '2px' }}
+      style={{ fontSize: '10.5px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '2px' }}
     >
       {isUp ? '\u2191' : '\u2193'}{Math.abs(pctChange)}%
       <span className="text-dim" style={{ fontWeight: 400 }}>{label}</span>
@@ -148,7 +148,7 @@ function RevenueTrendChart({
               x={padLeft - 8}
               y={y + 3}
               fill="var(--color-dim)"
-              fontSize="9"
+              fontSize="9.5"
               fontFamily="Geist, sans-serif"
               textAnchor="end"
             >
@@ -186,7 +186,7 @@ function RevenueTrendChart({
                 x={x + barW / 2}
                 y={y - 5}
                 fill={m.isCurrent ? 'var(--color-polar)' : 'var(--color-dim)'}
-                fontSize="9"
+                fontSize="9.5"
                 fontFamily="Geist, sans-serif"
                 textAnchor="middle"
                 fontWeight={m.isCurrent ? 700 : 400}
@@ -199,7 +199,7 @@ function RevenueTrendChart({
               x={x + barW / 2}
               y={chartH - 6}
               fill={m.isCurrent ? 'var(--color-polar)' : 'var(--color-dim)'}
-              fontSize="9"
+              fontSize="9.5"
               fontFamily="Geist, sans-serif"
               textAnchor="middle"
               fontWeight={m.isCurrent ? 700 : 400}
@@ -235,7 +235,7 @@ function CashFlowBar({ collected, total }: { collected: number; total: number })
 
 function ClientHealthBar({ distribution }: { distribution: { label: string; count: number; color: string }[] }) {
   const total = distribution.reduce((s, d) => s + d.count, 0)
-  if (total === 0) return <p className="text-dim" style={{ fontSize: '12px' }}>No active clients.</p>
+  if (total === 0) return <p className="text-dim" style={{ fontSize: '13px' }}>No active clients.</p>
 
   return (
     <div>
@@ -260,8 +260,8 @@ function ClientHealthBar({ distribution }: { distribution: { label: string; coun
         {distribution.map((d) => (
           <div key={d.label} className="flex items-center gap-1.5">
             <div style={{ width: '8px', height: '8px', backgroundColor: d.color }} />
-            <span className="text-dim" style={{ fontSize: '11px' }}>{d.label}</span>
-            <span className="mono text-steel" style={{ fontSize: '11px' }}>{d.count}</span>
+            <span className="text-dim" style={{ fontSize: '11.5px' }}>{d.label}</span>
+            <span className="mono text-steel" style={{ fontSize: '11.5px' }}>{d.count}</span>
           </div>
         ))}
       </div>
@@ -714,7 +714,7 @@ export default function Dashboard() {
     const isGood = positive ? isUp : !isUp
     return (
       <span
-        style={{ fontSize: '11px', marginLeft: '4px', fontWeight: 700 }}
+        style={{ fontSize: '11.5px', marginLeft: '4px', fontWeight: 700 }}
         className={isGood ? 'text-ok' : 'text-err'}
       >
         {isUp ? '\u2191' : '\u2193'}
@@ -811,10 +811,8 @@ export default function Dashboard() {
               <div className="stat-value">
                 <CountUp value={openTasks.length} />
               </div>
-              <div className="stat-label">
-                Open tasks
-                {overdueTaskCount > 0 && <span className="text-err"> · {overdueTaskCount} overdue</span>}
-              </div>
+              <div className="stat-label">Open tasks</div>
+              {overdueTaskCount > 0 && <div className="text-err" style={{ fontSize: '12px', fontWeight: 600, marginTop: '4px' }}>{overdueTaskCount} overdue</div>}
               <div style={{ marginTop: '2px' }}>
                 <PeriodBadge current={currentMonthTasksCompleted} previous={prevMonthTasksCompleted} label="completed vs last mo" />
               </div>
@@ -862,7 +860,7 @@ export default function Dashboard() {
         <div className="card lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <h3 className="section-header" style={{ marginBottom: 0 }}>Revenue Trend &mdash; Last 6 Months</h3>
-            <span className="text-dim" style={{ fontSize: '11px' }}>
+            <span className="text-dim" style={{ fontSize: '11.5px' }}>
               Total: {formatCurrency(revenueTrendMonths.reduce((s, m) => s + m.value, 0))}
             </span>
           </div>
@@ -876,30 +874,30 @@ export default function Dashboard() {
             <h3 className="section-header" style={{ marginBottom: 8 }}>Cash Flow &mdash; {format(now, 'MMM yyyy')}</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-dim" style={{ fontSize: '12px' }}>Invoiced</span>
-                <span className="mono text-polar" style={{ fontSize: '13px', fontWeight: 600 }}>
+                <span className="text-dim" style={{ fontSize: '13px' }}>Invoiced</span>
+                <span className="mono text-polar" style={{ fontSize: '14px', fontWeight: 600 }}>
                   {formatCurrency(cashFlow.invoicedTotal)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-dim" style={{ fontSize: '12px' }}>Collected</span>
-                <span className="mono text-ok" style={{ fontSize: '13px', fontWeight: 600 }}>
+                <span className="text-dim" style={{ fontSize: '13px' }}>Collected</span>
+                <span className="mono text-ok" style={{ fontSize: '14px', fontWeight: 600 }}>
                   {formatCurrency(cashFlow.collectedTotal)}
                 </span>
               </div>
               <CashFlowBar collected={cashFlow.collectedTotal} total={cashFlow.invoicedTotal} />
               <div className="flex items-center justify-between">
-                <span className="text-dim" style={{ fontSize: '12px' }}>Outstanding</span>
-                <span className="mono text-warn" style={{ fontSize: '13px', fontWeight: 600 }}>
+                <span className="text-dim" style={{ fontSize: '13px' }}>Outstanding</span>
+                <span className="mono text-warn" style={{ fontSize: '14px', fontWeight: 600 }}>
                   {formatCurrency(cashFlow.outstanding)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-dim" style={{ fontSize: '12px' }}>Collection Rate</span>
+                <span className="text-dim" style={{ fontSize: '13px' }}>Collection Rate</span>
                 <span
                   className="mono"
                   style={{
-                    fontSize: '13px',
+                    fontSize: '14px',
                     fontWeight: 700,
                     color: cashFlow.collectionRate >= 80 ? '#22C55E' : cashFlow.collectionRate >= 50 ? '#F59E0B' : '#FF3333',
                   }}
@@ -914,7 +912,7 @@ export default function Dashboard() {
           <div className="card">
             <div className="flex items-center justify-between mb-3">
               <h3 className="section-header" style={{ marginBottom: 0 }}>Client Health</h3>
-              <span className="text-dim" style={{ fontSize: '11px' }}>
+              <span className="text-dim" style={{ fontSize: '11.5px' }}>
                 {clients.filter((c) => c.status === 'active').length} active
               </span>
             </div>
@@ -929,10 +927,10 @@ export default function Dashboard() {
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <h3 className="section-header" style={{ marginBottom: 0 }}>Revenue by Client</h3>
-            <span className="text-dim" style={{ fontSize: '11px' }}>{revenueByClient.length} clients</span>
+            <span className="text-dim" style={{ fontSize: '11.5px' }}>{revenueByClient.length} clients</span>
           </div>
           {revenueByClient.length === 0 ? (
-            <p className="text-dim" style={{ fontSize: '12px' }}>No active clients with MRR.</p>
+            <p className="text-dim" style={{ fontSize: '13px' }}>No active clients with MRR.</p>
           ) : (
             <div className="space-y-2">
               {revenueByClient.map((client) => (
@@ -940,12 +938,12 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2 min-w-0">
                       <ClientAvatar name={client.name} size="sm" />
-                      <span className="text-polar truncate" style={{ fontSize: '12px', fontWeight: 600 }}>{client.name}</span>
+                      <span className="text-polar truncate" style={{ fontSize: '13px', fontWeight: 600 }}>{client.name}</span>
                       {client.service && (
-                        <span className="text-dim truncate" style={{ fontSize: '10px' }}>{client.service}</span>
+                        <span className="text-dim truncate" style={{ fontSize: '10.5px' }}>{client.service}</span>
                       )}
                     </div>
-                    <span className="font-mono text-steel flex-shrink-0" style={{ fontSize: '12px' }}>${client.mrr.toLocaleString()}/mo</span>
+                    <span className="font-mono text-steel flex-shrink-0" style={{ fontSize: '13px' }}>${client.mrr.toLocaleString()}/mo</span>
                   </div>
                   <div className="h-2 bg-surface-2 rounded-full overflow-hidden">
                     <div
@@ -969,11 +967,11 @@ export default function Dashboard() {
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 bg-ok rounded-full" />
-                <span className="text-dim" style={{ fontSize: '10px' }}>Completed ({totalCompletedWeek})</span>
+                <span className="text-dim" style={{ fontSize: '10.5px' }}>Completed ({totalCompletedWeek})</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-2 h-2 bg-border-hard rounded-full" />
-                <span className="text-dim" style={{ fontSize: '10px' }}>Created ({totalCreatedWeek})</span>
+                <span className="text-dim" style={{ fontSize: '10.5px' }}>Created ({totalCreatedWeek})</span>
               </div>
             </div>
           </div>
@@ -998,13 +996,13 @@ export default function Dashboard() {
                       }}
                     />
                   </div>
-                  <span className="text-dim font-mono" style={{ fontSize: '9px' }}>{day.label}</span>
+                  <span className="text-dim font-mono" style={{ fontSize: '9.5px' }}>{day.label}</span>
                 </div>
               )
             })}
           </div>
           {totalCompletedWeek === 0 && totalCreatedWeek === 0 && (
-            <p className="text-dim text-center mt-3" style={{ fontSize: '11px' }}>No task activity in the last 7 days.</p>
+            <p className="text-dim text-center mt-3" style={{ fontSize: '11.5px' }}>No task activity in the last 7 days.</p>
           )}
         </div>
       </div>
@@ -1038,7 +1036,7 @@ export default function Dashboard() {
                   <span
                     className="font-mono"
                     style={{
-                      fontSize: '9px',
+                      fontSize: '9.5px',
                       color: isToday ? 'var(--color-polar, #fff)' : 'var(--color-dim, #666)',
                       fontWeight: isToday ? 700 : 400,
                     }}
@@ -1048,7 +1046,7 @@ export default function Dashboard() {
                   <span
                     className="font-mono"
                     style={{
-                      fontSize: '14px',
+                      fontSize: '15px',
                       fontWeight: 700,
                       color: isBusy
                         ? 'var(--color-warn, #EBCB8B)'
@@ -1059,7 +1057,7 @@ export default function Dashboard() {
                   >
                     {total}
                   </span>
-                  <span className="text-dim" style={{ fontSize: '8px' }}>{day.dateFmt}</span>
+                  <span className="text-dim" style={{ fontSize: '8.5px' }}>{day.dateFmt}</span>
                 </div>
               )
             })}
@@ -1067,11 +1065,11 @@ export default function Dashboard() {
 
           <div className="flex-1 overflow-y-auto -mx-4 px-4" style={{ maxHeight: '260px' }}>
             {upcomingItems.length === 0 ? (
-              <p className="text-steel" style={{ fontSize: '13px' }}>
+              <p className="text-steel" style={{ fontSize: '14px' }}>
                 Nothing scheduled in the next 7 days.
               </p>
             ) : (
-              <table className="w-full" style={{ fontSize: '13px' }}>
+              <table className="w-full" style={{ fontSize: '14px' }}>
                 <tbody>
                   {upcomingItems.map((item, i) => (
                     <tr key={i} className="table-row">
@@ -1092,7 +1090,7 @@ export default function Dashboard() {
                           {item.label}
                         </span>
                         {item.clientName && (
-                          <span className="text-steel ml-2" style={{ fontSize: '11px' }}>
+                          <span className="text-steel ml-2" style={{ fontSize: '11.5px' }}>
                             {item.clientName}
                           </span>
                         )}
@@ -1126,7 +1124,7 @@ export default function Dashboard() {
 
           <div className="flex-1 overflow-y-auto -mx-4 px-4">
             {topPriorityTasks.length === 0 ? (
-              <p className="text-steel" style={{ fontSize: '13px' }}>
+              <p className="text-steel" style={{ fontSize: '14px' }}>
                 No open tasks.
               </p>
             ) : (
@@ -1136,13 +1134,13 @@ export default function Dashboard() {
                     <div className="flex-1 min-w-0">
                       <div
                         className={`truncate ${isOverdue(t.due_date) ? 'text-err' : ''}`}
-                        style={{ fontSize: '13px' }}
+                        style={{ fontSize: '14px' }}
                       >
                         {t.text}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
                         {t.client_name && (
-                          <span className="text-steel" style={{ fontSize: '11px' }}>
+                          <span className="text-steel" style={{ fontSize: '11.5px' }}>
                             {t.client_name}
                           </span>
                         )}
@@ -1173,7 +1171,7 @@ export default function Dashboard() {
             </div>
 
             {needsCheckIn.length === 0 ? (
-              <p className="text-ok" style={{ fontSize: '13px' }}>
+              <p className="text-ok" style={{ fontSize: '14px' }}>
                 All clients recently active.
               </p>
             ) : (
@@ -1191,7 +1189,7 @@ export default function Dashboard() {
                     >
                       <ClientAvatar name={c.name} size="sm" />
                       <div className="min-w-0 flex-1">
-                        <div className="truncate" style={{ fontSize: '13px' }}>
+                        <div className="truncate" style={{ fontSize: '14px' }}>
                           {c.name}
                         </div>
                         <div className="mono text-steel">
@@ -1228,7 +1226,7 @@ export default function Dashboard() {
             </div>
 
             {recentActivity.length === 0 ? (
-              <p className="text-steel" style={{ fontSize: '13px' }}>
+              <p className="text-steel" style={{ fontSize: '14px' }}>
                 No recent activity.
               </p>
             ) : (
@@ -1237,14 +1235,14 @@ export default function Dashboard() {
                   <div key={a.id} className="flex items-start gap-2 py-1.5">
                     <span
                       className="flex-shrink-0 text-steel mt-0.5"
-                      style={{ fontSize: '13px', width: '14px', textAlign: 'center' }}
+                      style={{ fontSize: '14px', width: '14px', textAlign: 'center' }}
                     >
                       {activityIcon(a.type)}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div
                         className="truncate"
-                        style={{ fontSize: '13px' }}
+                        style={{ fontSize: '14px' }}
                         dangerouslySetInnerHTML={{
                           __html: sanitizeActivityHtml(a.description),
                         }}
@@ -1274,7 +1272,7 @@ export default function Dashboard() {
         </div>
 
         {totalPipelineProjects === 0 ? (
-          <p className="text-dim" style={{ fontSize: '12px' }}>No projects yet.</p>
+          <p className="text-dim" style={{ fontSize: '13px' }}>No projects yet.</p>
         ) : (
           <>
             {/* Pipeline bar */}
@@ -1290,7 +1288,7 @@ export default function Dashboard() {
                       minWidth: '32px',
                     }}
                   >
-                    <span className="font-mono" style={{ fontSize: '11px', color: '#fff', fontWeight: 700 }}>
+                    <span className="font-mono" style={{ fontSize: '11.5px', color: '#fff', fontWeight: 700 }}>
                       {stage.count}
                     </span>
                   </div>
@@ -1306,10 +1304,10 @@ export default function Dashboard() {
                     className="rounded-full"
                     style={{ width: '8px', height: '8px', backgroundColor: stage.color }}
                   />
-                  <span className="text-dim" style={{ fontSize: '11px' }}>
+                  <span className="text-dim" style={{ fontSize: '11.5px' }}>
                     {stage.label}
                   </span>
-                  <span className="font-mono text-steel" style={{ fontSize: '11px' }}>
+                  <span className="font-mono text-steel" style={{ fontSize: '11.5px' }}>
                     {stage.count}
                   </span>
                 </div>

@@ -55,13 +55,13 @@ export default function FilterChips({ options, value, onChange, className = '' }
                 ? 'bg-polar text-obsidian border-polar'
                 : 'bg-transparent text-steel border-border-hard hover:border-dim hover:text-polar'
             }`}
-            style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}
+            style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}
           >
             {opt.label}
             {opt.count !== undefined && (
               <span
                 className={`ml-1.5 ${isActive ? 'text-obsidian/60' : 'text-dim'}`}
-                style={{ fontSize: '10px' }}
+                style={{ fontSize: '10.5px' }}
               >
                 {opt.count}
               </span>

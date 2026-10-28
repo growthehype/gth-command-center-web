@@ -76,7 +76,7 @@ export default function WelcomeModal() {
                   <h2 className="text-xl font-bold text-polar mb-2" style={{ letterSpacing: '-0.01em' }}>
                     Welcome to your Command Center
                   </h2>
-                  <p className="text-steel" style={{ fontSize: '13px' }}>
+                  <p className="text-steel" style={{ fontSize: '14px' }}>
                     Your AI-powered CRM is ready. Here's a quick tour.
                   </p>
                 </div>
@@ -87,8 +87,8 @@ export default function WelcomeModal() {
                         <f.icon size={16} className="text-polar" />
                       </div>
                       <div className="min-w-0">
-                        <div className="text-polar font-semibold" style={{ fontSize: '13px' }}>{f.label}</div>
-                        <div className="text-dim" style={{ fontSize: '11px' }}>{f.desc}</div>
+                        <div className="text-polar font-semibold" style={{ fontSize: '14px' }}>{f.label}</div>
+                        <div className="text-dim" style={{ fontSize: '11.5px' }}>{f.desc}</div>
                       </div>
                     </div>
                   ))}
@@ -103,21 +103,21 @@ export default function WelcomeModal() {
               <>
                 <div className="text-center mb-6">
                   <h2 className="text-xl font-bold text-polar mb-2">Quick Tips</h2>
-                  <p className="text-steel" style={{ fontSize: '13px' }}>
+                  <p className="text-steel" style={{ fontSize: '14px' }}>
                     A few things to help you move fast.
                   </p>
                 </div>
                 <div className="space-y-4">
                   {/* Keyboard shortcuts */}
                   <div className="px-4 py-3 border border-border rounded bg-surface-2/40">
-                    <div className="text-polar font-semibold mb-2" style={{ fontSize: '13px' }}>Keyboard Shortcuts</div>
+                    <div className="text-polar font-semibold mb-2" style={{ fontSize: '14px' }}>Keyboard Shortcuts</div>
                     <div className="flex flex-wrap gap-3">
                       {tips.map((t) => (
                         <div key={t.kbd} className="flex items-center gap-1.5">
-                          <kbd className="px-1.5 py-0.5 border border-border rounded text-polar font-mono" style={{ fontSize: '11px', backgroundColor: 'var(--color-surface-2, #1a1a2e)' }}>
+                          <kbd className="px-1.5 py-0.5 border border-border rounded text-polar font-mono" style={{ fontSize: '11.5px', backgroundColor: 'var(--color-surface-2, #1a1a2e)' }}>
                             {t.kbd}
                           </kbd>
-                          <span className="text-dim" style={{ fontSize: '11px' }}>{t.text}</span>
+                          <span className="text-dim" style={{ fontSize: '11.5px' }}>{t.text}</span>
                         </div>
                       ))}
                     </div>
@@ -126,12 +126,12 @@ export default function WelcomeModal() {
                   {/* Tips list */}
                   <div className="space-y-2 px-1">
                     <div className="flex items-start gap-3">
-                      <span className="text-ok mt-0.5" style={{ fontSize: '14px' }}>&#x2713;</span>
-                      <p className="text-steel" style={{ fontSize: '13px' }}>Your sidebar has everything organized by category</p>
+                      <span className="text-ok mt-0.5" style={{ fontSize: '15px' }}>&#x2713;</span>
+                      <p className="text-steel" style={{ fontSize: '14px' }}>Your sidebar has everything organized by category</p>
                     </div>
                     <div className="flex items-start gap-3">
-                      <span className="text-ok mt-0.5" style={{ fontSize: '14px' }}>&#x2713;</span>
-                      <p className="text-steel" style={{ fontSize: '13px' }}>Try the Daily Briefing each morning for a productivity boost</p>
+                      <span className="text-ok mt-0.5" style={{ fontSize: '15px' }}>&#x2713;</span>
+                      <p className="text-steel" style={{ fontSize: '14px' }}>Try the Daily Briefing each morning for a productivity boost</p>
                     </div>
                   </div>
                 </div>
@@ -146,16 +146,16 @@ export default function WelcomeModal() {
               <>
                 <div className="text-center mb-6">
                   <h2 className="text-xl font-bold text-polar mb-2">You're all set!</h2>
-                  <p className="text-steel" style={{ fontSize: '13px' }}>
+                  <p className="text-steel" style={{ fontSize: '14px' }}>
                     Start by adding your first client, or explore the demo data.
                   </p>
                 </div>
                 <div className="flex items-center justify-center" style={{ minHeight: '140px' }}>
                   <div className="text-center">
                     <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-full" style={{ backgroundColor: 'var(--color-surface-2, #1a1a2e)', border: '2px solid var(--color-ok, #A3BE8C)' }}>
-                      <span style={{ fontSize: '28px' }}>&#x2713;</span>
+                      <span style={{ fontSize: '30px' }}>&#x2713;</span>
                     </div>
-                    <p className="text-dim" style={{ fontSize: '12px' }}>Your Command Center is ready to go.</p>
+                    <p className="text-dim" style={{ fontSize: '13px' }}>Your Command Center is ready to go.</p>
                   </div>
                 </div>
                 <div className="mt-6 flex justify-center gap-3">

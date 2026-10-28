@@ -90,7 +90,7 @@ export default function SOPs() {
       <div className="flex items-center justify-between">
         <div>
           <h1>SOPs</h1>
-          <p className="text-steel mt-1" style={{ fontSize: '13px' }}>
+          <p className="text-steel mt-1" style={{ fontSize: '14px' }}>
             {sops.length} procedures &middot; {sops.filter(s => s.status === 'active').length} active
           </p>
         </div>
@@ -119,7 +119,7 @@ export default function SOPs() {
           </div>
           {sorted.map(sop => (
             <div key={sop.id} className="table-row grid grid-cols-12 gap-4 px-4 py-3 items-center min-w-[700px]">
-              <span className="col-span-4 text-polar font-[600] truncate" style={{ fontSize: '13px' }}>
+              <span className="col-span-4 text-polar font-[600] truncate" style={{ fontSize: '14px' }}>
                 {sop.title}
               </span>
               <span className="col-span-2 mono text-steel">{sop.area || '--'}</span>
@@ -167,7 +167,7 @@ export default function SOPs() {
               onChange={e => set('title', e.target.value)}
               placeholder="SOP title"
               className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim transition-colors"
-              style={{ fontSize: '12px' }}
+              style={{ fontSize: '13px' }}
             />
           </div>
 
@@ -179,7 +179,7 @@ export default function SOPs() {
                 onChange={e => set('area', e.target.value)}
                 placeholder="e.g. Onboarding, Reporting"
                 className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim transition-colors"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               />
             </div>
             <div className="space-y-1">
@@ -188,7 +188,7 @@ export default function SOPs() {
                 value={form.status}
                 onChange={e => set('status', e.target.value)}
                 className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim"
-                style={{ fontSize: '12px' }}
+                style={{ fontSize: '13px' }}
               >
                 {STATUS_CYCLE.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
@@ -202,7 +202,7 @@ export default function SOPs() {
                 <button
                   onClick={() => shell.openExternal(form.url)}
                   className="inline-flex items-center gap-1 bg-surface border border-border px-2 py-0.5 text-steel hover:text-polar hover:border-dim transition-colors cursor-pointer"
-                  style={{ fontSize: '10px', borderRadius: '3px' }}
+                  style={{ fontSize: '10.5px', borderRadius: '3px' }}
                   title={form.url}
                 >
                   <ExternalLink size={9} />
@@ -215,7 +215,7 @@ export default function SOPs() {
               onChange={e => set('url', e.target.value)}
               placeholder="https://docs.google.com/..."
               className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim transition-colors"
-              style={{ fontSize: '12px' }}
+              style={{ fontSize: '13px' }}
             />
           </div>
 

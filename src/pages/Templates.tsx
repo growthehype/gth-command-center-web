@@ -162,7 +162,7 @@ export default function Templates() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3"><h1>File Templates</h1><FileText size={14} className="text-dim" /></div>
-            <p className="text-steel mt-1" style={{ fontSize: '13px' }}>Loading templates...</p>
+            <p className="text-steel mt-1" style={{ fontSize: '14px' }}>Loading templates...</p>
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -180,7 +180,7 @@ export default function Templates() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3"><h1>File Templates</h1><FileText size={14} className="text-dim" /></div>
-          <p className="text-steel mt-1" style={{ fontSize: '13px' }}>
+          <p className="text-steel mt-1" style={{ fontSize: '14px' }}>
             {templates.length} template{templates.length !== 1 ? 's' : ''} uploaded
           </p>
         </div>
@@ -209,7 +209,7 @@ export default function Templates() {
             placeholder="Search templates..."
             aria-label="Search templates"
             className="bg-cell border border-border text-polar pl-8 pr-3 py-1.5 font-sans outline-none focus:border-dim transition-colors"
-            style={{ fontSize: '12px', width: '200px' }}
+            style={{ fontSize: '13px', width: '200px' }}
           />
         </div>
       </div>
@@ -224,7 +224,7 @@ export default function Templates() {
           onAction={() => setUploadModalOpen(true)}
         />
       ) : visible.length === 0 ? (
-        <p className="text-dim text-center py-12" style={{ fontSize: '13px' }}>No templates match your filter.</p>
+        <p className="text-dim text-center py-12" style={{ fontSize: '14px' }}>No templates match your filter.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {visible.map(doc => {
@@ -257,7 +257,7 @@ export default function Templates() {
 
                   {/* File name */}
                   <div className="min-w-0">
-                    <p className="text-polar font-[600] truncate" style={{ fontSize: '13px' }} title={doc.name}>
+                    <p className="text-polar font-[600] truncate" style={{ fontSize: '14px' }} title={doc.name}>
                       {doc.name}
                     </p>
                   </div>
@@ -267,13 +267,13 @@ export default function Templates() {
                     <span className={BADGE_COLORS[catSlug] || 'badge badge-neutral'}>
                       {dbToLabel(doc.category)}
                     </span>
-                    <span className="mono text-dim" style={{ fontSize: '10px' }}>
+                    <span className="mono text-dim" style={{ fontSize: '10.5px' }}>
                       {formatSize(doc.size || 0)}
                     </span>
                   </div>
 
                   {/* Upload date */}
-                  <p className="mono text-dim" style={{ fontSize: '10px' }}>
+                  <p className="mono text-dim" style={{ fontSize: '10.5px' }}>
                     Uploaded {formatDate(doc.uploaded_at, 'MMM d, yyyy')}
                   </p>
                 </div>
@@ -292,7 +292,7 @@ export default function Templates() {
               value={uploadCategory}
               onChange={e => setUploadCategory(e.target.value as Category)}
               className="w-full bg-surface border border-border px-3 py-2 text-polar font-sans outline-none focus:border-dim"
-              style={{ fontSize: '12px' }}
+              style={{ fontSize: '13px' }}
             >
               {CATEGORIES.filter(c => c !== 'All').map(c => (
                 <option key={c} value={c}>{c}</option>
@@ -300,7 +300,7 @@ export default function Templates() {
             </select>
           </div>
 
-          <p className="text-dim" style={{ fontSize: '11px' }}>
+          <p className="text-dim" style={{ fontSize: '11.5px' }}>
             Supported: PDF, Word, Excel, PowerPoint, images, text files.
           </p>
 

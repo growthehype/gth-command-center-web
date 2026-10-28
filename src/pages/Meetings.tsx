@@ -197,7 +197,7 @@ export default function Meetings() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1>Meeting Notes</h1>
-          <p className="text-dim mt-1" style={{ fontSize: '13px' }}>{meetings.length} meetings logged</p>
+          <p className="text-dim mt-1" style={{ fontSize: '14px' }}>{meetings.length} meetings logged</p>
         </div>
         <button onClick={openCreate} className="btn-primary flex items-center gap-2">
           <Plus size={14} /> New Meeting Note
@@ -210,7 +210,7 @@ export default function Meetings() {
           className="input w-full md:w-auto"
           value={filterClient}
           onChange={e => setFilterClient(e.target.value)}
-          style={{ fontSize: '13px', minWidth: '160px' }}
+          style={{ fontSize: '14px', minWidth: '160px' }}
         >
           <option value="">All Clients</option>
           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -219,7 +219,7 @@ export default function Meetings() {
           className="input w-full md:w-auto"
           value={filterType}
           onChange={e => setFilterType(e.target.value)}
-          style={{ fontSize: '13px', minWidth: '140px' }}
+          style={{ fontSize: '14px', minWidth: '140px' }}
         >
           <option value="">All Types</option>
           {TYPES.map(t => <option key={t} value={t}>{t}</option>)}
@@ -251,8 +251,8 @@ export default function Meetings() {
                     ? <ChevronRight size={13} className="text-dim" />
                     : <ChevronDown size={13} className="text-dim" />
                   }
-                  <span className="label" style={{ fontSize: '12px', fontWeight: 800 }}>{group.label}</span>
-                  <span className="text-dim ml-auto" style={{ fontSize: '12px' }}>{group.meetings.length} meeting{group.meetings.length !== 1 ? 's' : ''}</span>
+                  <span className="label" style={{ fontSize: '13px', fontWeight: 800 }}>{group.label}</span>
+                  <span className="text-dim ml-auto" style={{ fontSize: '13px' }}>{group.meetings.length} meeting{group.meetings.length !== 1 ? 's' : ''}</span>
                 </button>
 
                 {/* Entries */}
@@ -266,10 +266,10 @@ export default function Meetings() {
                     >
                       {/* Date */}
                       <div className="flex-shrink-0 w-14 text-center">
-                        <p className="text-polar font-[700]" style={{ fontSize: '14px' }}>
+                        <p className="text-polar font-[700]" style={{ fontSize: '15px' }}>
                           {formatDate(m.date, 'MMM d')}
                         </p>
-                        <p className="text-dim" style={{ fontSize: '11px' }}>
+                        <p className="text-dim" style={{ fontSize: '11.5px' }}>
                           {formatDate(m.date, 'EEE')}
                         </p>
                       </div>
@@ -277,14 +277,14 @@ export default function Meetings() {
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-polar font-semibold" style={{ fontSize: '14px' }}>{m.title}</span>
+                          <span className="text-polar font-semibold" style={{ fontSize: '15px' }}>{m.title}</span>
                           <span className={TYPE_BADGE[m.type] || 'badge badge-neutral'}>{m.type}</span>
                         </div>
                         {m.client_name && (
-                          <p className="text-steel" style={{ fontSize: '12px' }}>{m.client_name}</p>
+                          <p className="text-steel" style={{ fontSize: '13px' }}>{m.client_name}</p>
                         )}
                         {m.notes && (
-                          <p className="text-dim mt-1 truncate" style={{ fontSize: '12px', maxWidth: '500px' }}>
+                          <p className="text-dim mt-1 truncate" style={{ fontSize: '13px', maxWidth: '500px' }}>
                             {m.notes}
                           </p>
                         )}
@@ -293,7 +293,7 @@ export default function Meetings() {
                       {/* Action items count + delete */}
                       <div className="flex items-center gap-3 flex-shrink-0">
                         {actionItems.length > 0 && (
-                          <span className="text-dim" style={{ fontSize: '12px' }}>
+                          <span className="text-dim" style={{ fontSize: '13px' }}>
                             {actionItems.length} action item{actionItems.length !== 1 ? 's' : ''}
                           </span>
                         )}
@@ -392,7 +392,7 @@ export default function Meetings() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <p className="label">Action Items</p>
-              <button onClick={addActionItem} className="text-polar hover:text-polar transition-colors" style={{ fontSize: '12px' }}>
+              <button onClick={addActionItem} className="text-polar hover:text-polar transition-colors" style={{ fontSize: '13px' }}>
                 + Add Item
               </button>
             </div>
@@ -409,7 +409,7 @@ export default function Meetings() {
                     <button
                       onClick={() => removeActionItem(idx)}
                       className="text-dim hover:text-err transition-colors"
-                      style={{ fontSize: '12px' }}
+                      style={{ fontSize: '13px' }}
                     >
                       x
                     </button>
