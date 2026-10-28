@@ -97,6 +97,17 @@ async function savePreviewState(leadId: string, patch: Partial<PreviewState>) {
   return preview as PreviewState
 }
 
+function within<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([p.catch(() => fallback), new Promise<T>(r => setTimeout(() => r(fallback), ms))])
+}
+
+/** Close Chrome without hanging: serverless Chrome sometimes never answers close() */
+export async function closeBrowser(browser: any) {
+  if (!browser) return
+  await within(browser.close(), 5_000, undefined)
+  try { browser.process()?.kill('SIGKILL') } catch { /* already gone */ }
+}
+
 async function progress(leadId: string, step: string) {
   try { await savePreviewState(leadId, { step, step_at: new Date().toISOString() } as any) } catch { /* best effort */ }
 }
@@ -245,9 +256,11 @@ export async function buildKit(lead: any, slug: string, deadline: number): Promi
   const extraPages: { url: string; text: string }[] = []
   let desktopShot: Buffer | null = null
   let mobileShot: Buffer | null = null
-  const hardStop = setTimeout(() => { browser.close().catch(() => {}) }, 120_000)
+  const hardStop = setTimeout(() => { closeBrowser(browser) }, 120_000)
   try {
     const page = await browser.newPage()
+    page.on('dialog', (d: any) => d.dismiss().catch(() => {}))
+    page.setDefaultTimeout(20_000)
     await page.setViewport({ width: 1440, height: 900 })
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36')
     try { await page.goto(target, { waitUntil: 'networkidle2', timeout: 30_000 }) }
@@ -262,8 +275,9 @@ export async function buildKit(lead: any, slug: string, deadline: number): Promi
       new Promise(r => setTimeout(r, 9000)),
     ])
     await new Promise(r => setTimeout(r, 1200))
-    desktopShot = Buffer.from(await page.screenshot({ type: 'jpeg', quality: 70 }))
-    raw = await page.evaluate(EXTRACT)
+    desktopShot = await within(page.screenshot({ type: 'jpeg', quality: 70 }).then((b: any) => Buffer.from(b)), 15_000, null)
+    raw = await within(page.evaluate(EXTRACT), 20_000, null)
+    if (!raw) throw new Error('could not read the page')
     await progress(lead.id, 'homepage read')
 
     for (const href of (raw.internal || []).slice(0, 3)) {
@@ -271,24 +285,26 @@ export async function buildKit(lead: any, slug: string, deadline: number): Promi
       try {
         await page.goto(href, { waitUntil: 'domcontentloaded', timeout: 15_000 })
         await new Promise(r => setTimeout(r, 900))
-        const t = await page.evaluate(PAGE_TEXT)
-        extraPages.push({ url: href, text: t.text })
-        const more = await page.evaluate(`(() => [...document.images].filter(i => i.naturalWidth >= 480 && i.naturalHeight >= 280).map(i => ({ src: i.currentSrc || i.src, w: i.naturalWidth, h: i.naturalHeight, alt: i.alt || '', area: 0, top: 99999 })))()`)
+        const t: any = await within(page.evaluate(PAGE_TEXT), 8_000, null)
+        if (t?.text) extraPages.push({ url: href, text: t.text })
+        const more: any[] = await within(page.evaluate(`(() => [...document.images].filter(i => i.naturalWidth >= 480 && i.naturalHeight >= 280).map(i => ({ src: i.currentSrc || i.src, w: i.naturalWidth, h: i.naturalHeight, alt: i.alt || '', area: 0, top: 99999 })))()`), 8_000, [] as any[])
         raw.images.push(...more)
       } catch { /* skip page */ }
     }
 
     const m = await browser.newPage()
+    m.on('dialog', (d: any) => d.dismiss().catch(() => {}))
+    m.setDefaultTimeout(20_000)
     await m.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 1 })
     await m.setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1')
     try { await m.goto(target, { waitUntil: 'networkidle2', timeout: 20_000 }) } catch { /* use what loaded */ }
     await new Promise(r => setTimeout(r, 800))
-    mobileShot = Buffer.from(await m.screenshot({ type: 'jpeg', quality: 70 }))
+    mobileShot = await within(m.screenshot({ type: 'jpeg', quality: 70 }).then((b: any) => Buffer.from(b)), 15_000, null)
   } catch (err: any) {
     if (!raw) throw new Error(`Could not read their website: ${String(err?.message || err).slice(0, 120)}`)
   } finally {
     clearTimeout(hardStop)
-    await browser.close().catch(() => {})
+    await closeBrowser(browser)
   }
   if (!raw) throw new Error('Could not read their website')
   await progress(lead.id, 'site read, collecting logo and photos')
@@ -649,10 +665,12 @@ async function renderChecks(html: string, slug: string) {
   const base = publicUrl(`${slug}/`).replace(/\/?$/, '/')
   const withBase = html.replace(/<head([^>]*)>/i, `<head$1><base href="${base}">`)
   const browser: any = await launch()
+  const renderStop = setTimeout(() => { closeBrowser(browser) }, 100_000)
   const shots: { label: string; data: string }[] = []
   const problems: string[] = []
   try {
     const page = await browser.newPage()
+    page.setDefaultTimeout(30_000)
     const errors: string[] = []
     const failed: string[] = []
     page.on('pageerror', (e: any) => errors.push(String(e?.message || e).slice(0, 200)))
@@ -687,6 +705,8 @@ async function renderChecks(html: string, slug: string) {
     if (failed.length) problems.push(`Files that failed to load: ${failed.slice(0, 5).join(', ')}`)
 
     const m = await browser.newPage()
+    m.on('dialog', (d: any) => d.dismiss().catch(() => {}))
+    m.setDefaultTimeout(20_000)
     await m.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 1 })
     await m.setContent(withBase, { waitUntil: 'networkidle0', timeout: 45_000 }).catch(() => {})
     await new Promise(r => setTimeout(r, 2200))
@@ -700,7 +720,8 @@ async function renderChecks(html: string, slug: string) {
       shots.push({ label: `Phone 390, view ${i + 1}`, data: Buffer.from(b).toString('base64') })
     }
   } finally {
-    await browser.close().catch(() => {})
+    clearTimeout(renderStop)
+    await closeBrowser(browser)
   }
   return { shots, problems }
 }
@@ -803,6 +824,17 @@ export async function advancePreview(leadId: string, opts: { deadline: number; r
     state = await savePreviewState(leadId, { status: 'kit', attempts: 0, errors: 0, partial: false, parts: 0, error: null, started_at: new Date().toISOString(), feedback: opts.feedback || [] } as any)
   }
   if ((state.status === 'ready' || state.status === 'failed') && !opts.rebuild) return state
+  // Another call is already working on this lead (the background builder or another tab)
+  const busySince = (state as any).step_at ? Date.parse((state as any).step_at) : 0
+  if (!opts.rebuild && (state as any).step && !/^(done|stopped)/.test((state as any).step) && Date.now() - busySince < 280_000) {
+    return { ...state, busy: true } as any
+  }
+  if ((state as any).step && !/^(done|stopped)/.test((state as any).step) && busySince) {
+    // The last call ran out of time mid-step
+    const errors = ((state as any).errors || 0) + 1
+    state = await savePreviewState(leadId, { errors, step: 'stopped', error: `Ran out of time while ${(state as any).step}`, status: errors >= 3 ? 'failed' : state.status } as any)
+    if (state.status === 'failed') return state
+  }
   const slug = state.slug
   try {
     // Stage 1 → kit
@@ -810,7 +842,7 @@ export async function advancePreview(leadId: string, opts: { deadline: number; r
     if (!kitText) {
       await progress(leadId, 'opening their site')
       await buildKit(lead, slug, opts.deadline)
-      return await savePreviewState(leadId, { status: 'kit', error: null })
+      return await savePreviewState(leadId, { status: 'kit', error: null, step: 'done' } as any)
     }
     const kit = JSON.parse(kitText) as SiteKit
 
@@ -824,13 +856,13 @@ export async function advancePreview(leadId: string, opts: { deadline: number; r
       if (!g.html) {
         const parts = ((state as any).parts || 0) + 1
         if (parts >= 4) {
-          return await savePreviewState(leadId, { partial: false, parts: 0, attempts: (state.attempts || 0) + 1, error: 'The page took too long to write; starting over' } as any)
+          return await savePreviewState(leadId, { partial: false, parts: 0, attempts: (state.attempts || 0) + 1, error: 'The page took too long to write; starting over', step: 'done' } as any)
         }
         await put(`${slug}/partial.txt`, g.partial, 'text/plain; charset=utf-8')
-        return await savePreviewState(leadId, { partial: true, parts, error: null } as any)
+        return await savePreviewState(leadId, { partial: true, parts, error: null, step: 'done' } as any)
       }
       await put(`${slug}/draft.html`, g.html, 'text/html; charset=utf-8')
-      return await savePreviewState(leadId, { status: 'generated', partial: false, parts: 0, attempts: (state.attempts || 0) + 1, error: null } as any)
+      return await savePreviewState(leadId, { status: 'generated', partial: false, parts: 0, attempts: (state.attempts || 0) + 1, error: null, step: 'done' } as any)
     }
 
     // Stage 2b → behaviour
@@ -838,7 +870,7 @@ export async function advancePreview(leadId: string, opts: { deadline: number; r
       await progress(leadId, 'writing the motion')
       const js = await generateScript(draft, opts.deadline)
       await put(`${slug}/draft.html`, insertScript(draft, js), 'text/html; charset=utf-8')
-      return await savePreviewState(leadId, { status: 'scripted', error: null })
+      return await savePreviewState(leadId, { status: 'scripted', error: null, step: 'done' } as any)
     }
 
     // Stage 3 → review, fix, publish
@@ -846,7 +878,7 @@ export async function advancePreview(leadId: string, opts: { deadline: number; r
     const r = await reviewPage(lead, slug, draft, kit, opts.deadline)
     if (r.verdict === 'rebuild' && (state.attempts || 0) < 3) {
       await sb.storage.from(BUCKET).remove([`${slug}/draft.html`])
-      return await savePreviewState(leadId, { status: 'kit', feedback: r.issues.slice(0, 15), review: { score: r.score, notes: r.issues.slice(0, 15) }, error: null })
+      return await savePreviewState(leadId, { status: 'kit', feedback: r.issues.slice(0, 15), review: { score: r.score, notes: r.issues.slice(0, 15) }, error: null, step: 'done' } as any)
     }
     await put(`${slug}/index.html`, r.html, 'text/html; charset=utf-8')
     return await savePreviewState(leadId, {
@@ -855,11 +887,12 @@ export async function advancePreview(leadId: string, opts: { deadline: number; r
       built_at: new Date().toISOString(),
       review: { score: r.score, notes: r.issues.slice(0, 15) },
       error: null,
-    })
+      step: 'done',
+    } as any)
   } catch (err: any) {
     const msg = String(err?.message || err).slice(0, 300)
     const errors = ((state as any).errors || 0) + 1
-    return await savePreviewState(leadId, { error: msg, status: errors >= 3 ? 'failed' : state.status, errors } as any)
+    return await savePreviewState(leadId, { error: msg, status: errors >= 3 ? 'failed' : state.status, errors, step: 'stopped' } as any)
   }
 }
 

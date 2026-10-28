@@ -58,6 +58,7 @@ export default function ConceptPanel({ lead, canRewriteEmails, onRewriteEmails }
           first = false
           fails = 0
           if (p) setPreview(p)
+          if (p?.busy) { await new Promise(r => setTimeout(r, 20_000)); i--; continue }
           if (!p || p.status === 'ready' || p.status === 'failed') {
             if (p?.status === 'ready') showToast(`Homepage concept for ${lead.name} is live`, 'success')
             if (p?.status === 'failed') showToast(p.error || 'The concept did not reach the bar', 'error')

@@ -28,7 +28,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       for (const l of leads) {
         // A page draft takes several minutes; only start a stage with room left
         if (done.length) break // each stage can use most of one call
-        const s = await advancePreview(l.id, { deadline })
+        const s: any = await advancePreview(l.id, { deadline })
+        if (s.busy) continue
         done.push({ lead: l.name, status: s.status, error: s.error || null })
         if (s.status !== 'ready' && s.status !== 'failed') break // one lead at a time
       }
