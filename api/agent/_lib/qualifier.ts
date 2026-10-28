@@ -1,7 +1,7 @@
 // Lead qualification engine using Claude AI
 import { getAdminClient } from './supabase-admin'
 import { askClaude, extractToolUse, LEAD_QUALIFIER_PROMPT, LEAD_QUALIFIER_TOOLS } from './claude'
-import { isValidEmail, normalizeIndustryLabel, scrapeEmailDetailed, fetchReviewCount } from './scraper'
+import { isValidEmail, normalizeIndustryLabel, scrapeEmailDetailed, fetchReviewCount, scrapeRotation } from './scraper'
 import { analyzeWebsite, type WebsiteIntel } from './website-analyzer'
 import { captureSite, auditVisually, type VisualAudit } from './visual-audit'
 import { buildLearnedPatterns } from './feedback-engine'
@@ -362,7 +362,7 @@ export async function qualifyLeads(params: QualifyParams): Promise<QualifyResult
 //  GTH v2: measured checks + points + one Claude review per lead
 // ════════════════════════════════════════════════════════════════
 
-const PER_LEAD_WORST_MS = 95_000
+const PER_LEAD_WORST_MS = 60_000
 
 let bucketReady: Promise<void> | null = null
 function ensureScreenshotBucket(): Promise<void> {
@@ -722,4 +722,44 @@ export async function rescoreLeads(p: { userId: string; agentConfig: any; deadli
     remaining: notStarted + results.filter(r => !r.ok).length,
     ...(errors.length ? { errors: errors.slice(0, 3) } : {}),
   }
+}
+
+
+// ─── Hunt: "Find leads now" ─────────────────────────────────────
+// Screen businesses the agent hasn't looked at yet; when there are none,
+// search for new ones. Stop when a few qualify (60+) or time runs out.
+
+async function pendingLeads(userId: string, cfg: any, n: number): Promise<any[]> {
+  const sb = getAdminClient()
+  const { data } = await sb.from('outreach_leads').select('*')
+    .eq('user_id', userId).eq('agent_config_id', cfg.id)
+    .order('created_at', { ascending: false }).limit(1000)
+  const todo = (data || []).filter(l => !isV2(l) && l.enrichment_data?.user_feedback !== 'bad')
+  return todo.slice(0, n)
+}
+
+export async function huntLeads(p: { userId: string; agentConfig: any; deadlineMs?: number; target?: number }) {
+  const deadline = Date.now() + (p.deadlineMs ?? 255_000)
+  const target = p.target ?? 3
+  let screened = 0, qualified = 0, searches = 0, newFound = 0, dryRuns = 0
+  const errors: string[] = []
+  while (Date.now() + PER_LEAD_WORST_MS < deadline && qualified < target) {
+    const todo = await pendingLeads(p.userId, p.agentConfig, 6)
+    if (!todo.length) {
+      if (dryRuns >= 3) break
+      const r: any = await scrapeRotation({ userId: p.userId, agentRunId: null as any, agentConfig: p.agentConfig, deadlineMs: 45_000 })
+      searches++
+      newFound += r?.leadsNew || 0
+      if (!r?.leadsNew) dryRuns++
+      if (r?.note && /quota/i.test(r.note)) { errors.push(r.note); break }
+      continue
+    }
+    const { results } = await deadlinePool(todo, 3, deadline, l => qualifyGthLead(l, p.agentConfig, null))
+    if (!results.length) break
+    screened += results.length
+    qualified += results.filter(r => r.ok && r.score >= 60).length
+    for (const r of results) if (!r.ok && r.error) errors.push(r.error)
+  }
+  const left = (await pendingLeads(p.userId, p.agentConfig, 1000)).length
+  return { screened, qualified, searches, newFound, remaining: left, errors: errors.slice(0, 3) }
 }

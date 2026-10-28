@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Play, Plus, Settings2, Loader2, Pause } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { showToast } from '@/components/ui/Toast'
@@ -48,6 +48,8 @@ export function useLeadAgents() {
   const [agents, setAgents] = useState<LeadAgent[]>([])
   const [loading, setLoading] = useState(true)
   const [running, setRunning] = useState<Set<string>>(new Set())
+  const [progress, setProgress] = useState<Record<string, { screened: number; qualified: number }>>({})
+  const onProgressRef = useRef<(() => void) | null>(null)
 
   const reload = useCallback(async () => {
     if (useAppStore.getState().demoMode) {
@@ -74,6 +76,41 @@ export function useLeadAgents() {
     showToast(`${agent.agent_name || 'Agent'} is searching for ${agentFor(agent)} leads…`, 'info')
     try {
       const { data: { session } } = await supabase.auth.getSession()
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+      }
+      // GTH: hunt until a few businesses qualify at 60+ (each round is up to ~4 minutes)
+      if (agent.config?.profile === 'gth') {
+        let screened = 0, qualified = 0
+        setProgress(prev => { const n = { ...prev }; delete n[agent.id]; return n })
+        for (let round = 0; round < 4 && qualified < 3; round++) {
+          const r = await fetch('/api/agent/run', { method: 'POST', headers, body: JSON.stringify({ mode: 'hunt', agentType: agent.agent_type, configId: agent.id }) })
+          const b = await r.json().catch(() => ({}))
+          if (!r.ok) throw new Error(b?.error || `Search failed (${r.status})`)
+          const h = b?.results?.hunt || {}
+          screened += h.screened || 0
+          qualified += h.qualified || 0
+          setProgress(prev => ({ ...prev, [agent.id]: { screened, qualified } }))
+          onProgressRef.current?.()
+          if (h.errors?.some((e: string) => /quota/i.test(e))) { showToast(h.errors[0], 'warn'); break }
+          if (!h.screened && !h.newFound) break
+        }
+        if (qualified > 0) {
+          showToast(`Found ${qualified} lead${qualified === 1 ? '' : 's'} at 60+ out of ${screened} checked. Writing their emails now…`, 'success')
+          for (let i = 0; i < 3; i++) {
+            const d = await fetch('/api/agent/run', { method: 'POST', headers, body: JSON.stringify({ mode: 'draft_batch', agentType: agent.agent_type, configId: agent.id }) })
+            const db = await d.json().catch(() => ({}))
+            if (!db?.results?.generate_emails?.sequencesCreated) break
+          }
+          showToast('Emails are ready in AI Agents → Ready to send', 'success')
+        } else {
+          showToast(`Checked ${screened} businesses. None reached 60 yet, so nothing was added. Run it again to search further.`, 'info')
+        }
+        await reload()
+        return true
+      }
+
       const res = await fetch('/api/agent/run', {
         method: 'POST',
         headers: {
@@ -144,7 +181,7 @@ export function useLeadAgents() {
     await reload()
   }, [reload])
 
-  return { agents, loading, running, reload, run, save, setEnabled, remove }
+  return { agents, loading, running, progress, onProgressRef, reload, run, save, setEnabled, remove }
 }
 
 /* ========================================

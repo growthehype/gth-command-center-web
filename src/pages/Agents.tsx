@@ -300,6 +300,7 @@ export default function Agents() {
   const pick = (id: string) => { setAgentId(id); try { localStorage.setItem('gth_lead_agent', id) } catch { /* private */ } }
 
   const ws = useAgentWorkspace(agent)
+  useEffect(() => { la.onProgressRef.current = () => { refreshLeads(); ws.reload() } }, [la.onProgressRef, refreshLeads, ws.reload])
   const [tab, setTab] = useState<Tab>('ready')
   const [openLead, setOpenLead] = useState<OutreachLead | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -412,6 +413,18 @@ export default function Agents() {
         </div>
       </header>
 
+      {busy && la.progress[agent.id] && !rescoring && (
+        <div className="ah-banner" role="status">
+          <Loader2 size={14} className="animate-spin" />
+          <span>Searching and checking sites in a real browser: {la.progress[agent.id].screened} checked, {la.progress[agent.id].qualified} qualified at 60+ so far. Keep this page open.</span>
+        </div>
+      )}
+      {busy && !la.progress[agent.id] && !rescoring && (
+        <div className="ah-banner" role="status">
+          <Loader2 size={14} className="animate-spin" />
+          <span>Searching Google Maps and opening each site in a real browser. The first update takes a few minutes. Keep this page open.</span>
+        </div>
+      )}
       {rescoring && (
         <div className="ah-banner" role="status">
           <Loader2 size={14} className="animate-spin" />

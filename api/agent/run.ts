@@ -5,7 +5,7 @@ import { getAdminClient, getAgentConfig, getAgentConfigById, updateAgentRun } fr
 import { runAgentTick } from './_lib/orchestrator'
 import { runActions, summariseRun } from './_lib/actions'
 import { sendScheduledEmails, draftStepToGmail, syncGmailDrafts } from './_lib/sender'
-import { rescoreLeads } from './_lib/qualifier'
+import { rescoreLeads, huntLeads } from './_lib/qualifier'
 import { isGthAgent } from './_lib/gth-profile'
 import { draftForLead, generateOutreach } from './_lib/email-generator'
 import { diagnoseCapture } from './_lib/visual-audit'
@@ -82,6 +82,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!stepId) return res.status(400).json({ error: 'Missing stepId', step })
       const r = await draftStepToGmail({ userId, stepId, cfgInner: cfg?.config || {} })
       return res.status(200).json({ status: 'completed', results: { gmail_draft: r } })
+    }
+
+    // Find leads now (GTH): screen pending businesses, search for more, stop at a few 60+
+    if (mode === 'hunt') {
+      step = 'hunt'
+      if (!configId) return res.status(400).json({ error: 'Missing configId', step })
+      const cfg = await getAgentConfigById(configId)
+      if (!cfg) return res.status(404).json({ error: 'Agent config not found', step })
+      if (cfg.user_id !== userId) return res.status(403).json({ error: 'Config does not belong to this user', step })
+      const r = await huntLeads({ userId, agentConfig: cfg, deadlineMs: 250_000 })
+      await getAdminClient().from('agent_configs').update({ last_run_at: new Date().toISOString(), last_run_status: 'completed', last_run_summary: `Checked ${r.screened} businesses, ${r.qualified} qualified at 60+` }).eq('id', cfg.id)
+      return res.status(200).json({ status: 'completed', results: { hunt: r } })
     }
 
     // Self-test: can we actually open and screenshot a site from here?
