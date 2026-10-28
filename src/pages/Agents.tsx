@@ -197,7 +197,7 @@ function LeadsBoard({ leads, drafted, sentIds, onOpen, onRescore, rescoring }: {
             <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search leads" aria-label="Search leads" />
           </div>
           <button className="btn-ghost" onClick={onRescore} disabled={rescoring} title="Check every lead again with the current scoring">
-            {rescoring ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Rescore all leads
+            {rescoring ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Recheck leads
           </button>
         </div>
       </div>
@@ -303,21 +303,39 @@ export default function Agents() {
   const rescore = async () => {
     if (!agent) return
     setRescoring(true)
-    showToast('Rechecking every lead. This takes a few minutes.', 'info')
+    showToast('Checking leads against their live websites. This takes a few minutes.', 'info')
     try {
       let total = 0
       for (let i = 0; i < 6; i++) {
         const r = await callAgent({ mode: 'rescore', agentType: agent.agent_type, configId: agent.id })
         const res = r?.results?.rescore || {}
         total += res.rescored || 0
-        if (!res.remaining) break
+        await refreshLeads()
+        if (!res.remaining || !res.rescored) break
       }
       await refreshLeads()
-      showToast(`Rechecked ${total} lead${total === 1 ? '' : 's'}`, 'success')
+      showToast(`Checked ${total} lead${total === 1 ? '' : 's'} against their live sites. Writing emails for the hot and warm ones…`, 'success')
+      // Then write emails for the leads worth contacting
+      for (let i = 0; i < 4; i++) {
+        const d = await callAgent({ mode: 'draft_batch', agentType: agent.agent_type, configId: agent.id }).catch(() => null)
+        if (!d?.results?.generate_emails?.sequencesCreated) break
+      }
+      await ws.reload()
     } catch (err: any) {
       showToast(err?.message || 'Rescore failed', 'error')
     } finally { setRescoring(false) }
   }
+
+  // Leads not yet looked at on screen get checked automatically, once per visit
+  const unchecked = useMemo(() => mine.filter(l => !l.enrichment_data?.qual?.visual).length, [mine])
+  const [autoStarted, setAutoStarted] = useState<string | null>(null)
+  useEffect(() => {
+    if (!agent || agent.config?.profile !== 'gth' || rescoring || unchecked === 0 || autoStarted === agent.id) return
+    if (useAppStore.getState().demoMode) return
+    setAutoStarted(agent.id)
+    rescore()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agent?.id, unchecked, rescoring, autoStarted])
 
   const busy = agent ? la.running.has(agent.id) : false
   const exportOnly = isExportAgent(agent)
@@ -364,6 +382,13 @@ export default function Agents() {
           </button>
         </div>
       </header>
+
+      {rescoring && (
+        <div className="ah-banner" role="status">
+          <Loader2 size={14} className="animate-spin" />
+          <span>{unchecked > 0 ? `Checking ${unchecked} lead${unchecked === 1 ? "" : "s"} against their live websites: screenshots, footer, booking, then a fresh score.` : "Writing emails for the hot and warm leads."} You can keep working; this page updates as it goes.</span>
+        </div>
+      )}
 
       {/* Funnel */}
       <div className="ah-funnel">

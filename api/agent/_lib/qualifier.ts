@@ -608,8 +608,10 @@ export async function qualifyGthLead(lead: any, agentConfig: any, agentRunId: st
   }
 }
 
+// "Current" means scored with points AND looked at on screen (or tried to)
 function isV2(lead: any): boolean {
-  return lead?.enrichment_data?.qual?.version === 2
+  const q = lead?.enrichment_data?.qual
+  return q?.version === 2 && !!q?.visual
 }
 
 /** Normal run: new leads first, then older leads scored the old way (not yet emailed). */

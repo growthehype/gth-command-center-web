@@ -3461,3 +3461,5 @@ button.brf-goal:hover { border-color: var(--color-border-hard); }
 .ld-fact { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; width: fit-content; }
 .ld-fact--ok { color: #4ADE80; border: 1px solid rgba(74,222,128,.3); background: rgba(74,222,128,.06); }
 .ld-fact--warn { color: #FBBF24; border: 1px solid rgba(251,191,36,.3); background: rgba(251,191,36,.06); }
+.ah-banner { display: flex; align-items: center; gap: 10px; margin: -6px 0 18px; padding: 12px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; color: var(--color-steel, #B5B5B5); border: 1px solid rgba(255,255,255,.12); background: linear-gradient(90deg, rgba(255,255,255,.05), rgba(255,255,255,.015)); }
+.ah-banner svg { flex: none; color: var(--color-polar); }

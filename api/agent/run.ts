@@ -7,7 +7,7 @@ import { runActions, summariseRun } from './_lib/actions'
 import { sendScheduledEmails, draftStepToGmail, syncGmailDrafts } from './_lib/sender'
 import { rescoreLeads } from './_lib/qualifier'
 import { isGthAgent } from './_lib/gth-profile'
-import { draftForLead } from './_lib/email-generator'
+import { draftForLead, generateOutreach } from './_lib/email-generator'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // ------ Step tracker so the response tells us WHERE it blew up ----
@@ -81,6 +81,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!stepId) return res.status(400).json({ error: 'Missing stepId', step })
       const r = await draftStepToGmail({ userId, stepId, cfgInner: cfg?.config || {} })
       return res.status(200).json({ status: 'completed', results: { gmail_draft: r } })
+    }
+
+    // Write emails for every hot/warm lead that doesn't have them yet (no scraping)
+    if (mode === 'draft_batch') {
+      step = 'draft_batch'
+      if (!configId) return res.status(400).json({ error: 'Missing configId', step })
+      const cfg = await getAgentConfigById(configId)
+      if (!cfg) return res.status(404).json({ error: 'Agent config not found', step })
+      if (cfg.user_id !== userId) return res.status(403).json({ error: 'Config does not belong to this user', step })
+      const r = await generateOutreach({ userId, agentRunId: null as any, agentType: cfg.agent_type, agentConfig: cfg })
+      return res.status(200).json({ status: 'completed', results: { generate_emails: r } })
     }
 
     // Write (or rewrite) the emails for one lead, straight from its lead file
