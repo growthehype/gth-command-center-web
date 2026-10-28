@@ -283,13 +283,16 @@ export function scoreGthLead(input: GthScoreInput): GthScore {
 }
 
 /** Apply Claude's adjustment, the need gate and the tier rules. */
-export function finaliseGthScore(s: GthScore, adjustment: number, extraDisqualifier?: string | null): { score: number; tier: QualTier; adjustment: number; disqualifier: string | null } {
+export function finaliseGthScore(s: GthScore, adjustment: number, extraDisqualifier?: string | null, seenOnScreen = true): { score: number; tier: QualTier; adjustment: number; disqualifier: string | null } {
   const adj = Math.max(-8, Math.min(8, Math.round(Number(adjustment) || 0)))
   const disq = s.disqualifier || (extraDisqualifier ? extraDisqualifier.trim() || null : null)
   let score = Math.max(0, Math.min(100, s.base + adj))
   if (disq) return { score: Math.min(score, 15), tier: 'skip', adjustment: adj, disqualifier: disq }
-  if (!s.hasStrongNeed) score = Math.min(score, 54)
-  const tier: QualTier = score >= 70 ? 'hot' : score >= 55 ? 'warm' : 'cold'
+  if (!s.hasStrongNeed) score = Math.min(score, 59)
+  // Omar's rule: nothing under 60 is worth an email, and nothing is hot or warm
+  // unless we have actually seen the site with our own eyes.
+  if (!seenOnScreen) score = Math.min(score, 59)
+  const tier: QualTier = score >= 70 ? 'hot' : score >= 60 ? 'warm' : 'cold'
   return { score, tier, adjustment: adj, disqualifier: null }
 }
 

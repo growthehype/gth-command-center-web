@@ -3,6 +3,7 @@
 // agent says about a site must be visible here first.
 import { askClaude, extractToolUse } from './claude'
 import { getAdminClient } from './supabase-admin'
+import { captureWithBrowser, type BrowserCapture } from './browser'
 
 export interface SiteShots {
   mobileTop: string | null      // data URI
@@ -13,6 +14,13 @@ export interface SiteShots {
   perfDesktop: number | null
   seo: number | null
   accessibility: number | null
+  /** What a real browser saw (null if it couldn't start) */
+  browser: BrowserCapture | null
+  /** True when at least one method actually rendered the page */
+  loaded: boolean
+  /** True only when every method tried and the page would not load */
+  confirmedDown: boolean
+  source: 'browser' | 'pagespeed' | 'none'
 }
 
 export interface VisualFinding {
@@ -85,8 +93,30 @@ export async function sliceFullPage(dataUri: string): Promise<{ top: string | nu
 }
 
 export async function captureSite(url: string, timeoutMs = 40_000): Promise<SiteShots> {
-  const [mob, desk] = await Promise.all([psi(url, 'mobile', timeoutMs), psi(url, 'desktop', timeoutMs)])
   const pct = (v: any) => (typeof v === 'number' ? Math.round(v * 100) : null)
+  // Real browser first (accurate), PageSpeed alongside for speed scores and as a backup view
+  const [browser, mob] = await Promise.all([
+    captureWithBrowser(url).catch((err: any) => ({ ok: false, loaded: false, error: String(err?.message || err) } as BrowserCapture)),
+    psi(url, 'mobile', timeoutMs),
+  ])
+  const psiLoaded = !!mob?.audits?.['final-screenshot']?.details?.data
+
+  if (browser?.loaded) {
+    return {
+      mobileTop: browser.mobileTop || mob?.audits?.['final-screenshot']?.details?.data || null,
+      desktopTop: browser.desktopTop,
+      desktopMiddle: browser.desktopMiddle,
+      desktopFooter: browser.desktopFooter,
+      perfMobile: pct(mob?.categories?.performance?.score),
+      perfDesktop: null,
+      seo: pct(mob?.categories?.seo?.score),
+      accessibility: pct(mob?.categories?.accessibility?.score),
+      browser, loaded: true, confirmedDown: false, source: 'browser',
+    }
+  }
+
+  // Browser couldn't render it: fall back to PageSpeed's own render
+  const desk = psiLoaded ? await psi(url, 'desktop', timeoutMs) : null
   const full = desk?.fullPageScreenshot?.screenshot?.data || null
   const slices = full ? await sliceFullPage(full) : { top: null, middle: null, footer: null }
   return {
@@ -96,8 +126,13 @@ export async function captureSite(url: string, timeoutMs = 40_000): Promise<Site
     desktopFooter: slices.footer,
     perfMobile: pct(mob?.categories?.performance?.score),
     perfDesktop: pct(desk?.categories?.performance?.score),
-    seo: pct((mob || desk)?.categories?.seo?.score),
-    accessibility: pct((mob || desk)?.categories?.accessibility?.score),
+    seo: pct(mob?.categories?.seo?.score),
+    accessibility: pct(mob?.categories?.accessibility?.score),
+    browser: browser?.ok ? browser : null,
+    loaded: psiLoaded,
+    // Only call a site down when a real browser opened it and failed twice AND Google couldn't render it either
+    confirmedDown: !!browser?.ok && !browser.loaded && !psiLoaded,
+    source: psiLoaded ? 'pagespeed' : 'none',
   }
 }
 

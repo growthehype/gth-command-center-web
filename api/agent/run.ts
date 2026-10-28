@@ -64,7 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!cfg) return res.status(404).json({ error: 'Agent config not found', step })
       if (cfg.user_id !== userId) return res.status(403).json({ error: 'Config does not belong to this user', step })
       if (!isGthAgent(cfg)) return res.status(400).json({ error: 'Rescore is available for the GTH agent', step })
-      const result = await rescoreLeads({ userId, agentConfig: cfg, deadlineMs: 250_000, pool: 4 })
+      const result = await rescoreLeads({ userId, agentConfig: cfg, deadlineMs: 250_000, pool: 3 })
       return res.status(200).json({ status: 'completed', results: { rescore: result } })
     }
 

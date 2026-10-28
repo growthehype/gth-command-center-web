@@ -66,7 +66,7 @@ export function leadTier(lead: OutreachLead): Tier {
   const s = lead.qualification_score
   if (s == null) return 'unchecked'
   if (s >= 70) return 'hot'
-  if (s >= 55) return 'warm'
+  if (s >= 60) return 'warm'
   if (s < 20) return 'skip'
   return 'cold'
 }

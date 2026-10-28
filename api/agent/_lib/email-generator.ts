@@ -400,7 +400,8 @@ export async function generateOutreach(params: GenerateParams): Promise<Generate
   const sb = getAdminClient()
   const inner = agentConfig?.config || {}
   const gth = isGthAgent(agentConfig)
-  const minScore = Number(inner.min_score) || params.minScore || 60
+  // Never below 60, whatever the settings say
+  const minScore = Math.max(60, Number(inner.min_score) || params.minScore || 60)
   const batchSize = gth ? Math.max(1, Math.min(12, Number(inner.drafts_per_run) || 8)) : (params.batchSize || 10)
 
   // 1. Qualified leads for THIS agent that have an email and no sequence yet

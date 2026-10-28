@@ -249,7 +249,7 @@ function HowItWorks({ agent }: { agent: LeadAgent }) {
             <div><b>Fit · 30</b><span>An independent local business with a real customer base: 15 to 400 Google reviews, strong rating, our core industries, inside our area. Chains and franchises are ruled out.</span></div>
             <div><b>Reach · 20</b><span>A real email on their site, the owner’s name, a phone number.</span></div>
           </div>
-          <p>Hot is 70 and up, warm is 55 to 69. A lead can only be hot or warm if it has a real problem we can see, so a modern, well-run site stays cold even with great reviews.</p>
+          <p>Hot is 70 and up, warm is 60 to 69, and nothing under 60 gets an email. A lead can only be hot or warm if the agent actually opened the site and saw a real problem, so a modern, well-run site stays cold even with great reviews.</p>
         </li>
         <li><b>4. Write</b><p>For hot and warm leads it writes three emails in your voice: polite, specific, grateful for their time, never pushy. It may only mention things it actually verified on their site, and every draft is checked against your rules (no dashes, no hype words, no made-up numbers) before you see it.</p></li>
         <li><b>5. You send</b><p>{isExportAgent(agent) ? 'Client agents never send. You copy each email and hand it to the client.' : `You read the first email in Ready to send and hit Send now. It goes from your Gmail with your signature. ${autoFollow ? 'The follow-up and final note then go out on their own three and five days later, unless they reply or say no thanks, which stops everything.' : 'Follow-ups come back to Ready to send for your approval.'}`}</p></li>
@@ -327,7 +327,11 @@ export default function Agents() {
   }
 
   // Leads not yet looked at on screen get checked automatically, once per visit
-  const unchecked = useMemo(() => mine.filter(l => !l.enrichment_data?.qual?.visual).length, [mine])
+  const unchecked = useMemo(() => mine.filter(l => {
+    const q = l.enrichment_data?.qual
+    if (q?.version !== 2 || !q?.visual) return true
+    return !(q.visual.checked || !l.website || (Number(q.visual.attempts) || 0) >= 3)
+  }).length, [mine])
   const [autoStarted, setAutoStarted] = useState<string | null>(null)
   useEffect(() => {
     if (!agent || agent.config?.profile !== 'gth' || rescoring || unchecked === 0 || autoStarted === agent.id) return

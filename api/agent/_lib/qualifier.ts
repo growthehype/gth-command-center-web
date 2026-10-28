@@ -446,11 +446,39 @@ export async function qualifyGthLead(lead: any, agentConfig: any, agentRunId: st
     const decisionMaker = intel?.decisionMakers?.[0]?.name || lead.contact_name || null
     // What we saw on screen beats what the HTML suggests. Never claim a
     // footer year we didn't read, and trust a visible booking button.
-    const audit = intel?.audit ? { ...intel.audit } : null
+    const b = psi?.browser?.loaded ? psi.browser : null
+    let audit: any = intel?.audit ? { ...intel.audit } : null
+    if (psi?.loaded && (!audit || !audit.reachable)) {
+      // Our plain fetch was blocked but a real browser (or Google) saw the page
+      audit = {
+        ...(audit || {}),
+        reachable: true,
+        https: (b?.finalUrl || lead.website || '').startsWith('https'),
+        mobileReady: b ? b.viewportMeta : true,
+        hasOnlineBooking: !!b?.bookingWidget,
+        bookingTool: b?.bookingWidget ? 'online booking' : null,
+        builder: audit?.builder || null,
+        copyrightYear: null,
+        ctaWithoutAction: null,
+        hasForm: (b?.forms || 0) > 0,
+        issues: [],
+      }
+    }
+    if (audit && !psi?.loaded && psi?.confirmedDown === false && audit.reachable === false) {
+      // Not proven down: don't score it as a dead site
+      audit = null
+    }
+    if (audit && psi?.confirmedDown) audit.reachable = false
     if (audit) {
-      audit.copyrightYear = visual?.checked && visual.footer_year ? String(visual.footer_year) : null
-      if (visual?.booking_visible === 'yes') audit.hasOnlineBooking = true
-      if (visual?.checked && visual.form_visible === 'yes' && audit.ctaWithoutAction === true) audit.ctaWithoutAction = null
+      // Footer year: the rendered footer text first, then what Claude read on screen. Never the raw HTML.
+      const seenYear = b?.copyrightYear || (visual?.checked ? visual.footer_year : null)
+      audit.copyrightYear = seenYear ? String(seenYear) : null
+      if (b?.bookingWidget || visual?.booking_visible === 'yes') audit.hasOnlineBooking = true
+      if (b && b.forms > 0) audit.hasForm = true
+      if ((b && (b.forms > 0 || b.bookingWidget)) || (visual?.checked && visual.form_visible === 'yes')) {
+        if (audit.ctaWithoutAction === true) audit.ctaWithoutAction = null
+      }
+      if (b) audit.mobileReady = b.viewportMeta
     }
 
     // 3. Points
@@ -526,7 +554,7 @@ export async function qualifyGthLead(lead: any, agentConfig: any, agentRunId: st
     }
     if (!failed.length) { observation = ''; observationKey = '' }
 
-    const fin = finaliseGthScore(pts, adjustment, extraDisq)
+    const fin = finaliseGthScore(pts, adjustment, extraDisq, !lead.website || !!visual?.checked)
     if (fin.adjustment === 0) adjustmentReason = ''
     if (!summary) {
       summary = fin.disqualifier
@@ -557,7 +585,7 @@ export async function qualifyGthLead(lead: any, agentConfig: any, agentRunId: st
         seo: psi?.seo ?? null,
         accessibility: psi?.accessibility ?? null,
       },
-      visual: visual ? { checked: visual.checked, footer_text: visual.footer_text, footer_year: visual.footer_year, booking_visible: visual.booking_visible, form_visible: visual.form_visible, main_cta: visual.main_cta, findings: visual.findings, urls: visual.urls, checked_at: visual.checked_at } : { checked: false },
+      visual: visual ? { attempts: visual.checked ? 0 : (Number(prev.qual?.visual?.attempts) || 0) + 1, source: psi?.source || 'none', error: psi?.browser?.error || null, checked: visual.checked, footer_text: visual.footer_text, footer_year: visual.footer_year, booking_visible: visual.booking_visible, form_visible: visual.form_visible, main_cta: visual.main_cta, findings: visual.findings, urls: visual.urls, checked_at: visual.checked_at } : { checked: false, attempts: (Number(prev.qual?.visual?.attempts) || 0) + 1, source: psi?.source || 'none', error: psi?.browser?.error || null },
       observation,
       observation_key: observationKey || null,
       pitch_angle: pts.pitchAngle,
@@ -609,9 +637,12 @@ export async function qualifyGthLead(lead: any, agentConfig: any, agentRunId: st
 }
 
 // "Current" means scored with points AND looked at on screen (or tried to)
+// Current = scored with points AND actually seen on screen. A site we
+// couldn't open gets two more tries before we stop retrying it.
 function isV2(lead: any): boolean {
   const q = lead?.enrichment_data?.qual
-  return q?.version === 2 && !!q?.visual
+  if (q?.version !== 2 || !q?.visual) return false
+  return !!q.visual.checked || !lead.website || (Number(q.visual.attempts) || 0) >= 3
 }
 
 /** Normal run: new leads first, then older leads scored the old way (not yet emailed). */
@@ -640,7 +671,7 @@ async function qualifyGthBatch(p: { userId: string; agentRunId: string; agentCon
   }
   if (!leads.length) return { qualified: 0, avgScore: 0, attempted: 0 }
 
-  const { results } = await deadlinePool(leads, 8, deadline, l => qualifyGthLead(l, p.agentConfig, p.agentRunId))
+  const { results } = await deadlinePool(leads, 3, deadline, l => qualifyGthLead(l, p.agentConfig, p.agentRunId))
   const ok = results.filter(r => r.ok)
   const errors = results.filter(r => !r.ok && r.error).map(r => r.error!)
   return {
@@ -677,7 +708,7 @@ export async function rescoreLeads(p: { userId: string; agentConfig: any; deadli
   const emailed = new Set((seqs || []).map((s: any) => s.lead_id))
   todo.sort((a, b) => Number(emailed.has(a.id)) - Number(emailed.has(b.id)))
 
-  const { results, notStarted } = await deadlinePool(todo, p.pool ?? 4, deadline, l => qualifyGthLead(l, p.agentConfig, null))
+  const { results, notStarted } = await deadlinePool(todo, p.pool ?? 3, deadline, l => qualifyGthLead(l, p.agentConfig, null))
   const count = (t: QualTier) => results.filter(r => r.ok && r.tier === t).length
   const errors = results.filter(r => !r.ok && r.error).map(r => r.error!)
   return {

@@ -78,7 +78,7 @@ function SiteViewer({ q, name, website }: { q: ReturnType<typeof leadQual>; name
     return (
       <div className="ld-shot ld-shot--empty">
         <Globe size={20} />
-        <p>{website ? 'Not looked at yet. Rescore or Write emails and the agent will screenshot the live site first.' : 'No website on their Google listing.'}</p>
+        <p>{!website ? 'No website on their Google listing.' : q?.visual && !q.visual.checked ? `The agent couldn't open this site${(q.visual as any).error ? ` (${(q.visual as any).error})` : ''}. It will try again; until it sees the site, this lead can't score above 59.` : 'Not looked at yet. The agent screenshots the live site before scoring.'}</p>
       </div>
     )
   }

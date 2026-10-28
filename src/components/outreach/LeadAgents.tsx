@@ -317,7 +317,7 @@ export function AgentSettingsModal({ open, agent, clients, leadCount, onClose, o
       search_terms: terms,
       search_areas: lines(f.areas).length ? lines(f.areas) : ['Edmonton, AB'],
       daily_lead_quota: Math.max(1, Math.min(100, Number(f.daily_lead_quota) || 25)),
-      min_score: Math.max(0, Math.min(100, Number(f.min_score) || 60)),
+      min_score: Math.max(60, Math.min(100, Number(f.min_score) || 60)),
       timezone: prev.timezone || 'America/Edmonton',
       working_hours_start: prev.working_hours_start || '08:00',
       working_hours_end: prev.working_hours_end || '18:00',
@@ -414,7 +414,7 @@ export function AgentSettingsModal({ open, agent, clients, leadCount, onClose, o
             <input className="cw-input" type="number" min={1} max={100} value={f.daily_lead_quota} onChange={e => set('daily_lead_quota', e.target.value)} />
           </label>
           <label><span>Min. lead score</span>
-            <input className="cw-input" type="number" min={0} max={100} value={f.min_score} onChange={e => set('min_score', e.target.value)} />
+            <input className="cw-input" type="number" min={60} max={100} value={f.min_score} onChange={e => set('min_score', e.target.value)} />
           </label>
           <label className="la-toggle">
             <span>Daily run</span>
