@@ -111,7 +111,12 @@ function SendDesk({ items, exportOnly, onSend, onCopy, onGmail, onSave, onSkip, 
               </p>
               {obs && <p className="ah-context-obs">Opens with: “{obs}”</p>}
             </div>
-            <button className="ah-linkbtn" onClick={() => onOpenLead(lead)}>Lead file <ArrowUpRight size={13} /></button>
+            <div className="flex items-center gap-3">
+              {(lead.enrichment_data as any)?.preview?.status === 'ready' && (lead.enrichment_data as any)?.preview?.url && (
+                <a className="ah-linkbtn" href={(lead.enrichment_data as any).preview.url} target="_blank" rel="noreferrer">Their homepage concept <ArrowUpRight size={13} /></a>
+              )}
+              <button className="ah-linkbtn" onClick={() => onOpenLead(lead)}>Lead file <ArrowUpRight size={13} /></button>
+            </div>
           </div>
 
           {active.step_number === 1 && <FactBadge fc={active.metadata?.factcheck} />}
