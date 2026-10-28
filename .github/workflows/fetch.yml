@@ -1,0 +1,29 @@
+name: concept-lab-fetch
+on:
+  push:
+    branches: [concept-lab]
+    paths: ['lab/fetch.txt']
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download assets listed in lab/fetch.txt (one "path url" per line)
+        run: |
+          mkdir -p lab/assets
+          while read -r path url; do
+            [ -z "$path" ] && continue
+            case "$path" in \#*) continue;; esac
+            mkdir -p "$(dirname "lab/assets/$path")"
+            curl -sSL -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131 Safari/537.36" -m 60 -o "lab/assets/$path" "$url" || echo "failed $url"
+          done < lab/fetch.txt
+          ls -la lab/assets | head -80
+      - name: Commit
+        run: |
+          git config user.name "concept-lab"
+          git config user.email "concept-lab@users.noreply.github.com"
+          git add lab/assets
+          git commit -m "Fetched assets" || echo "nothing new"
+          git push
