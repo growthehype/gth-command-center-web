@@ -30,6 +30,12 @@ async function launch() {
   if (process.env.CHROME_PATH) {
     return puppeteer.launch({ executablePath: process.env.CHROME_PATH, headless: true, args: ['--no-sandbox'] })
   }
+  // Vercel runs on Amazon Linux 2023 but doesn't set the Lambda env vars
+  // @sparticuz/chromium looks for, so it never unpacks the shared libraries
+  // Chrome needs (libnss3 etc). Tell it, before the module loads.
+  if (!process.env.AWS_LAMBDA_JS_RUNTIME && !process.env.AWS_EXECUTION_ENV?.includes('nodejs')) {
+    process.env.AWS_LAMBDA_JS_RUNTIME = 'nodejs22.x'
+  }
   const chromium = (await import('@sparticuz/chromium')).default
   return puppeteer.launch({
     args: chromium.args,
