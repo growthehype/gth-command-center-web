@@ -55,15 +55,26 @@ interface SendEmailParams {
   body: string
   replyToMessageId?: string
   threadId?: string
+  /** Extra HTML appended after the signature (e.g. CASL opt-out line) */
+  footerHtml?: string
 }
 
-export async function sendEmail(userId: string, params: SendEmailParams): Promise<{ id: string; threadId: string }> {
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+/** RFC 2047 encode a header value if it contains non-ASCII characters */
+function encodeHeader(v: string): string {
+  return /[^\x20-\x7E]/.test(v) ? `=?UTF-8?B?${Buffer.from(v, 'utf-8').toString('base64')}?=` : v
+}
+
+export async function sendEmail(userId: string, params: SendEmailParams): Promise<{ id: string; threadId: string; rfcMessageId: string | null }> {
   const token = await getAccessToken(userId)
-  const htmlBody = params.body.replace(/\n/g, '<br>')
+  const htmlBody = escapeHtml(params.body).replace(/\n/g, '<br>')
 
   const headers = [
     `To: ${params.to}`,
-    `Subject: ${params.subject}`,
+    `Subject: ${encodeHeader(params.subject)}`,
     'Content-Type: text/html; charset="UTF-8"',
     'MIME-Version: 1.0',
   ]
@@ -75,7 +86,7 @@ export async function sendEmail(userId: string, params: SendEmailParams): Promis
   const mimeMessage = [
     ...headers,
     '',
-    `<html><body style="font-family: Arial, sans-serif; color: #333;">${htmlBody}${GTH_EMAIL_SIGNATURE}</body></html>`,
+    `<html><body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #222;">${htmlBody}${GTH_EMAIL_SIGNATURE}${params.footerHtml || ''}</body></html>`,
   ].join('\r\n')
 
   const encoded = Buffer.from(mimeMessage, 'utf-8').toString('base64url')
@@ -95,7 +106,22 @@ export async function sendEmail(userId: string, params: SendEmailParams): Promis
   }
 
   const result = await res.json()
-  return { id: result.id, threadId: result.threadId }
+
+  // Look up the RFC Message-ID so follow-ups thread for the recipient too
+  let rfcMessageId: string | null = null
+  try {
+    const meta = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${result.id}?format=metadata&metadataHeaders=Message-ID`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    )
+    if (meta.ok) {
+      const m = await meta.json()
+      const h = (m.payload?.headers || []).find((x: any) => String(x.name).toLowerCase() === 'message-id')
+      rfcMessageId = h?.value || null
+    }
+  } catch { /* threading still works in Omar's mailbox via threadId */ }
+
+  return { id: result.id, threadId: result.threadId, rfcMessageId }
 }
 
 // ─── List New Messages ──────────────────────────────────────────

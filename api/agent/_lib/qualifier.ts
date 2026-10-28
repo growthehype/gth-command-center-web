@@ -4,6 +4,7 @@ import { askClaude, extractToolUse, LEAD_QUALIFIER_PROMPT, LEAD_QUALIFIER_TOOLS 
 import { isValidEmail, normalizeIndustryLabel, scrapeEmailFromWebsitePublic } from './scraper'
 import { analyzeWebsite, type WebsiteIntel } from './website-analyzer'
 import { buildLearnedPatterns } from './feedback-engine'
+import { isGthAgent, GTH_QUALIFIER_PROMPT, GTH_QUALIFIER_TOOLS } from './gth-profile'
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -29,6 +30,7 @@ interface QualifyResult {
 // actually knows what the CLIENT sells, who the ideal customer is, and
 // what to skip.
 function buildQualifierPrompt(cfg?: any): string {
+  if (isGthAgent(cfg)) return GTH_QUALIFIER_PROMPT
   const c = cfg?.config || {}
   const parts: string[] = []
 
@@ -70,10 +72,12 @@ export async function qualifyLeads(params: QualifyParams): Promise<QualifyResult
     //    websites for any lead with no email but a valid website. All in
     //    parallel so it's cheap (~5s for 50 leads).
     try {
-      const { data: allLeads } = await sb
+      let cleanupQuery = sb
         .from('outreach_leads')
         .select('id, email, website, industry')
         .eq('user_id', userId)
+      if (agentConfig?.id) cleanupQuery = cleanupQuery.eq('agent_config_id', agentConfig.id)
+      const { data: allLeads } = await cleanupQuery
 
       if (allLeads && allLeads.length > 0) {
         // Stage 1: pure string-level fixes (industry normalize + bad-email nullify)
@@ -132,11 +136,13 @@ export async function qualifyLeads(params: QualifyParams): Promise<QualifyResult
     }
 
     // 1. Fetch unqualified leads for this user
-    const { data: leads, error: fetchErr } = await sb
+    let leadQuery = sb
       .from('outreach_leads')
       .select('*')
       .eq('user_id', userId)
       .is('qualification_score', null)
+    if (agentConfig?.id) leadQuery = leadQuery.eq('agent_config_id', agentConfig.id)
+    const { data: leads, error: fetchErr } = await leadQuery
       .order('created_at', { ascending: false })
       .limit(batchSize)
 
@@ -206,16 +212,30 @@ export async function qualifyLeads(params: QualifyParams): Promise<QualifyResult
             if (intel.copyrightYear) leadInfoParts.push(`Established: ~${intel.copyrightYear}`)
             leadInfoParts.push(`\nWebsite Content Excerpt:\n${intel.contentSnippet.slice(0, 800)}`)
           }
+          if (intel?.audit) {
+            const a = intel.audit
+            leadInfoParts.push(`\nWEBSITE CHECK (measured by us just now):`)
+            leadInfoParts.push(`Loads: ${a.reachable ? 'yes' : 'no'}; HTTPS: ${a.https ? 'yes' : 'no'}; Set up for phones: ${a.mobileReady ? 'yes' : 'no'}`)
+            if (a.loadMs) leadInfoParts.push(`Homepage response time: ${a.loadMs} ms`)
+            if (a.builder) leadInfoParts.push(`Built with: ${a.builder}`)
+            leadInfoParts.push(`Online booking: ${a.hasOnlineBooking ? (a.bookingTool || 'yes') : 'none found'}; Quote form: ${a.hasQuoteForm ? 'yes' : 'no'}; Chat: ${a.chatWidget ? 'yes' : 'no'}`)
+            if (a.issues.length) leadInfoParts.push(`Gaps found: ${a.issues.join('; ')}`)
+          } else if (!lead.website) {
+            leadInfoParts.push(`\nWEBSITE CHECK: this business has no website listed on Google.`)
+          }
 
           const leadInfo = leadInfoParts.join('\n')
 
+          const gth = isGthAgent(agentConfig)
           const response = await askClaude({
             systemPrompt,
             messages: [{
               role: 'user',
               content: `Please qualify this lead and use the score_lead tool to provide your assessment:\n\n${leadInfo}`,
             }],
-            tools: LEAD_QUALIFIER_TOOLS,
+            tools: gth ? GTH_QUALIFIER_TOOLS : LEAD_QUALIFIER_TOOLS,
+            tier: 'fast',
+            maxTokens: 600,
           })
 
           const toolResult = extractToolUse(response)
@@ -223,12 +243,16 @@ export async function qualifyLeads(params: QualifyParams): Promise<QualifyResult
           let reason = 'Unable to parse qualification response'
           let recommendedAction = 'add_to_nurture'
           let signals: string[] = []
+          let observation = ''
+          let pitchAngle: string | null = null
 
           if (toolResult && toolResult.name === 'score_lead') {
             score = typeof toolResult.input.score === 'number' ? toolResult.input.score : 50
             reason = toolResult.input.reasoning || reason
             recommendedAction = toolResult.input.recommended_action || recommendedAction
             signals = toolResult.input.signals || []
+            observation = (toolResult.input.observation || '').trim()
+            pitchAngle = toolResult.input.pitch_angle || null
           }
 
           score = Math.max(0, Math.min(100, score))
@@ -247,6 +271,7 @@ export async function qualifyLeads(params: QualifyParams): Promise<QualifyResult
             has_blog: intel.hasBlog,
             has_contact_form: intel.hasContactForm,
             copyright_year: intel.copyrightYear,
+            website_audit: intel.audit || null,
             website_analyzed_at: new Date().toISOString(),
           } : {}
 
@@ -254,6 +279,8 @@ export async function qualifyLeads(params: QualifyParams): Promise<QualifyResult
             ...existingEnrichment,
             ...websiteData,
             qualification_signals: signals,
+            observation,
+            pitch_angle: pitchAngle,
             recommended_action: recommendedAction,
             qualified_at: new Date().toISOString(),
             agent_run_id: agentRunId,

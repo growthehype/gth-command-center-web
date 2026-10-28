@@ -8,6 +8,14 @@ import {
   COLD_EMAIL_TOOLS,
   SALES_EMAIL_TOOLS,
 } from './claude'
+import {
+  isGthAgent,
+  GTH_WRITER_PROMPT,
+  GTH_WRITER_TOOLS,
+  validateSequence,
+  repairSequence,
+  type SequenceDraft,
+} from './gth-profile'
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -118,106 +126,212 @@ async function generateEmailsForLead(
   return drafts
 }
 
+// ─── Grow The Hype sequence writer ─────────────────────────────
+
+function firstName(full?: string | null): string | null {
+  if (!full) return null
+  const cleaned = full.replace(/^(dr\.?|mr\.?|mrs\.?|ms\.?)\s+/i, '').trim()
+  const first = cleaned.split(/\s+/)[0]
+  return first && /^[A-Za-z'-]{2,}$/.test(first) ? first : null
+}
+
+function gthLeadBrief(lead: any): string {
+  const e = lead.enrichment_data || {}
+  const a = e.website_audit || null
+  const dm = e.decision_makers?.[0]
+  const contact = lead.contact_name || dm?.name || null
+  const parts = [
+    `Business: ${lead.name}`,
+    `Type: ${lead.industry || 'local business'}`,
+    `Area: ${lead.location || lead.address || 'Edmonton area'}`,
+    `Contact first name: ${firstName(contact) || 'unknown (use "Hi there,")'}`,
+    `Website: ${lead.website || 'none listed on Google'}`,
+    `Google rating: ${lead.rating ?? 'n/a'}`,
+  ]
+  if (e.website_summary) parts.push(`What their site says about them: ${String(e.website_summary).slice(0, 280)}`)
+  if (e.services_found?.length) parts.push(`Services they list: ${e.services_found.slice(0, 6).join(', ')}`)
+  if (a) {
+    parts.push(`Website check: HTTPS ${a.https ? 'yes' : 'no'}, phone-ready ${a.mobileReady ? 'yes' : 'no'}, online booking ${a.hasOnlineBooking ? (a.bookingTool || 'yes') : 'none'}, builder ${a.builder || 'unknown'}`)
+    if (a.issues?.length) parts.push(`Gaps we found: ${a.issues.join('; ')}`)
+  }
+  parts.push(`Observation to build the email on: ${e.observation || lead.qualification_reason || 'none, keep it general but honest'}`)
+  parts.push(`Best angle: ${e.pitch_angle || 'website'}`)
+  return parts.join('\n')
+}
+
+async function writeGthSequence(lead: any): Promise<{ draft: SequenceDraft; issues: string[]; repaired: boolean }> {
+  const brief = gthLeadBrief(lead)
+  const ask = async (extra?: string) => {
+    const response = await askClaude({
+      systemPrompt: GTH_WRITER_PROMPT,
+      messages: [{
+        role: 'user',
+        content: `Write the sequence for this business using compose_sequence.\n\n${brief}${extra ? `\n\n${extra}` : ''}`,
+      }],
+      tools: GTH_WRITER_TOOLS,
+      tier: 'write',
+      maxTokens: 1200,
+      temperature: 0.7,
+    })
+    const tool = extractToolUse(response)
+    return (tool?.input || {}) as SequenceDraft
+  }
+
+  let draft = await ask()
+  let issues = validateSequence(draft)
+  if (issues.length === 0) return { draft, issues, repaired: false }
+
+  // One rewrite with the exact problems listed
+  draft = await ask(`Your previous draft broke these rules, rewrite all three emails and fix every one:\n- ${issues.join('\n- ')}`)
+  issues = validateSequence(draft)
+  if (issues.length === 0) return { draft, issues, repaired: false }
+
+  const repaired = repairSequence(draft)
+  return { draft: repaired, issues: validateSequence(repaired), repaired: true }
+}
+
+async function runPool<T, R>(items: T[], size: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length)
+  let next = 0
+  const workers = Array.from({ length: Math.min(size, items.length) }, async () => {
+    while (next < items.length) {
+      const i = next++
+      out[i] = await fn(items[i])
+    }
+  })
+  await Promise.all(workers)
+  return out
+}
+
 // ─── Main Export ────────────────────────────────────────────────
 
-export async function generateOutreach(params: GenerateParams): Promise<GenerateResult> {
-  const { userId, agentRunId, agentType, minScore = 60, batchSize = 10, agentConfig } = params
+export async function generateOutreach(params: GenerateParams): Promise<GenerateResult & { skippedNoEmail?: number; flaggedForReview?: number; errors?: string[] }> {
+  const { userId, agentRunId, agentType, agentConfig } = params
   const sb = getAdminClient()
+  const inner = agentConfig?.config || {}
+  const gth = isGthAgent(agentConfig)
+  const minScore = Number(inner.min_score) || params.minScore || 60
+  const batchSize = gth ? Math.max(1, Math.min(12, Number(inner.drafts_per_run) || 8)) : (params.batchSize || 10)
 
-  try {
-    // 1. Fetch qualified leads without an existing sequence
-    //    Join check: leads with score >= minScore that have no outreach_sequences row
-    const { data: allQualified, error: fetchErr } = await sb
-      .from('outreach_leads')
-      .select('*')
-      .eq('user_id', userId)
-      .gte('qualification_score', minScore)
-      .order('qualification_score', { ascending: false })
-      .limit(batchSize * 2) // fetch extra to filter
+  // 1. Qualified leads for THIS agent that have an email and no sequence yet
+  let q = sb
+    .from('outreach_leads')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('qualification_score', minScore)
+    .not('email', 'is', null)
+  if (agentConfig?.id) q = q.eq('agent_config_id', agentConfig.id)
+  const { data: allQualified, error: fetchErr } = await q
+    .order('qualification_score', { ascending: false })
+    .limit(batchSize * 4)
 
-    if (fetchErr) throw fetchErr
-    if (!allQualified || allQualified.length === 0) {
-      return { sequencesCreated: 0, emailsDrafted: 0 }
-    }
+  if (fetchErr) throw fetchErr
+  if (!allQualified || allQualified.length === 0) {
+    return { sequencesCreated: 0, emailsDrafted: 0 }
+  }
 
-    // 2. Check which leads already have sequences
-    const leadIds = allQualified.map((l: any) => l.id)
-    const { data: existingSequences } = await sb
-      .from('outreach_sequences')
-      .select('lead_id')
-      .in('lead_id', leadIds)
+  const leadIds = allQualified.map((l: any) => l.id)
+  const { data: existingSequences } = await sb
+    .from('outreach_sequences')
+    .select('lead_id')
+    .in('lead_id', leadIds)
+  const hasSequence = new Set((existingSequences || []).map((s: any) => s.lead_id))
+  const eligible = allQualified
+    .filter((l: any) => !hasSequence.has(l.id))
+    .filter((l: any) => !['contacted', 'interested', 'not_interested', 'objection', 'skipped', 'closed', 'lost'].includes(String(l.stage || '').toLowerCase()))
+    .slice(0, batchSize)
 
-    const leadsWithSequences = new Set((existingSequences || []).map((s: any) => s.lead_id))
-    const eligibleLeads = allQualified
-      .filter((l: any) => !leadsWithSequences.has(l.id))
-      .slice(0, batchSize)
+  if (eligible.length === 0) return { sequencesCreated: 0, emailsDrafted: 0 }
 
-    if (eligibleLeads.length === 0) {
-      return { sequencesCreated: 0, emailsDrafted: 0 }
-    }
+  const errors: string[] = []
+  let flagged = 0
 
-    // 3. Generate emails and create sequences for ALL eligible leads IN PARALLEL.
-    //    Was serial: 25 leads × 3 sequential Claude calls = 75 round-trips
-    //    blowing the 60s function budget. Now parallel: ~3s total.
-    const results = await Promise.all(eligibleLeads.map(async (lead: any) => {
-      try {
-        const drafts = await generateEmailsForLead(lead, agentType, agentConfig)
+  // 2. Write and store, three leads at a time (keeps us well inside the
+  //    function budget and under API rate limits)
+  const results = await runPool(eligible, 3, async (lead: any) => {
+    try {
+      let steps: { subject: string; body: string }[]
+      let meta: Record<string, any> = {}
 
-        const { data: sequence, error: seqErr } = await sb
-          .from('outreach_sequences')
-          .insert({
-            user_id: userId,
-            lead_id: lead.id,
-            agent_run_id: agentRunId,
-            agent_type: agentType,
-            status: 'draft',
-            total_steps: SEQUENCE_STEPS.length,
-            created_at: new Date().toISOString(),
-          })
-          .select('id')
-          .single()
-
-        if (seqErr || !sequence) {
-          console.error(`Error creating sequence for lead ${lead.id}:`, seqErr)
-          return { ok: false, drafts: 0 }
+      if (gth) {
+        const { draft, issues, repaired } = await writeGthSequence(lead)
+        const subject = (draft.subject || '').trim()
+        steps = [
+          { subject, body: draft.email_1 },
+          { subject: `Re: ${subject}`, body: draft.follow_up_1 },
+          { subject: `Re: ${subject}`, body: draft.follow_up_2 },
+        ]
+        meta = {
+          angle: draft.angle_used || lead.enrichment_data?.pitch_angle || null,
+          validator_issues: issues,
+          repaired,
+          email_source: lead.enrichment_data?.email_source || null,
         }
+        if (issues.length > 0 || repaired) flagged++
+      } else {
+        steps = await generateEmailsForLead(lead, agentType, agentConfig)
+      }
 
-        const steps = SEQUENCE_STEPS.map((step, i) => ({
-          sequence_id: sequence.id,
+      const { data: sequence, error: seqErr } = await sb
+        .from('outreach_sequences')
+        .insert({
           user_id: userId,
           lead_id: lead.id,
-          step_number: step.stepNumber,
-          type: step.type,
-          label: step.label,
-          delay_hours: step.delayHours,
-          subject: drafts[i]?.subject || '',
-          body: drafts[i]?.body || '',
-          status: 'pending',
-          created_at: new Date().toISOString(),
-        }))
+          agent_run_id: agentRunId,
+          agent_config_id: agentConfig?.id || null,
+          agent_type: agentType,
+          sequence_name: gth ? 'GTH intro' : 'Outreach',
+          status: 'draft',
+          total_steps: SEQUENCE_STEPS.length,
+          max_steps: SEQUENCE_STEPS.length,
+          current_step: 1,
+        })
+        .select('id')
+        .single()
 
-        const { error: stepsErr } = await sb
-          .from('outreach_steps')
-          .insert(steps)
-
-        if (stepsErr) {
-          console.error(`Error creating steps for sequence ${sequence.id}:`, stepsErr)
-          return { ok: false, drafts: 0 }
-        }
-
-        return { ok: true, drafts: drafts.length }
-      } catch (leadErr) {
-        console.error(`Error processing lead ${lead.id} (${lead.name}):`, leadErr)
+      if (seqErr || !sequence) {
+        errors.push(`sequence ${lead.name}: ${seqErr?.message || 'insert failed'}`)
         return { ok: false, drafts: 0 }
       }
-    }))
 
-    const sequencesCreated = results.filter(r => r.ok).length
-    const emailsDrafted = results.reduce((sum, r) => sum + r.drafts, 0)
+      const now = new Date().toISOString()
+      const rows = SEQUENCE_STEPS.map((step, i) => ({
+        sequence_id: sequence.id,
+        user_id: userId,
+        lead_id: lead.id,
+        step_number: step.stepNumber,
+        step_type: 'email',
+        label: step.label,
+        delay_hours: step.delayHours,
+        subject: steps[i]?.subject || '',
+        body: steps[i]?.body || '',
+        status: 'pending',
+        approval_status: 'pending',
+        // Only the first email is ready for review now; follow-ups become
+        // due once the previous email has actually been sent.
+        scheduled_at: i === 0 ? now : null,
+        metadata: meta,
+      }))
 
-    return { sequencesCreated, emailsDrafted }
-  } catch (error) {
-    console.error('generateOutreach failed:', error)
-    throw error
+      const { error: stepsErr } = await sb.from('outreach_steps').insert(rows)
+      if (stepsErr) {
+        errors.push(`steps ${lead.name}: ${stepsErr.message}`)
+        await sb.from('outreach_sequences').delete().eq('id', sequence.id)
+        return { ok: false, drafts: 0 }
+      }
+      return { ok: true, drafts: rows.length }
+    } catch (err: any) {
+      errors.push(`${lead.name}: ${String(err?.message || err).slice(0, 200)}`)
+      return { ok: false, drafts: 0 }
+    }
+  })
+
+  const sequencesCreated = results.filter(r => r.ok).length
+  const emailsDrafted = results.reduce((sum, r) => sum + r.drafts, 0)
+  return {
+    sequencesCreated,
+    emailsDrafted,
+    ...(flagged ? { flaggedForReview: flagged } : {}),
+    ...(errors.length ? { errors: errors.slice(0, 3) } : {}),
   }
 }

@@ -159,7 +159,7 @@ export async function runAgentTick(
   }
 
   // 3. Check rate limits
-  const emailLimit = await checkRateLimit(userId, 'email_send', agentConfig.max_emails_per_day ?? DEFAULT_LIMITS.email_send)
+  const emailLimit = await checkRateLimit(userId, 'email_send', Number(agentConfig.config?.daily_email_limit) || agentConfig.max_emails_per_day || DEFAULT_LIMITS.email_send)
   const claudeLimit = await checkRateLimit(userId, 'claude_call', agentConfig.max_claude_calls_per_day ?? DEFAULT_LIMITS.claude_call)
 
   if (!claudeLimit.allowed) {

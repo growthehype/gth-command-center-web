@@ -58,7 +58,9 @@ export async function classifyInbox(params: ClassifyParams): Promise<ClassifyRes
     // 1. Get recent unread messages — gracefully skip if Gmail not connected
     let messages: any[] = []
     try {
-      messages = await listNewMessages(userId, 'is:unread')
+      // Read state doesn't matter: Omar may open a reply before the agent runs.
+      // Already-classified messages are skipped below.
+      messages = await listNewMessages(userId, 'in:inbox newer_than:14d -from:me')
     } catch (gmailErr: any) {
       const msg = String(gmailErr?.message || gmailErr || '')
       // Gmail not linked is NOT a real failure for a lead-gen agent;
@@ -106,8 +108,20 @@ export async function classifyInbox(params: ClassifyParams): Promise<ClassifyRes
         const content = await getMessageContent(userId, msg.id)
         const senderEmail = extractEmail(content.from)
 
-        // Check if sender matches any outreach lead
-        const matchedLead = leadsByEmail.get(senderEmail)
+        // Match the sender to a lead: exact address first, then the thread
+        // (people often reply from a different address than the one we found)
+        let matchedLead = leadsByEmail.get(senderEmail)
+        if (!matchedLead && content.threadId) {
+          const { data: threadStep } = await sb
+            .from('outreach_steps')
+            .select('lead_id, outreach_sequences(lead_id)')
+            .eq('user_id', userId)
+            .eq('gmail_thread_id', content.threadId)
+            .limit(1)
+            .maybeSingle()
+          const tl = (threadStep as any)?.lead_id || (threadStep as any)?.outreach_sequences?.lead_id
+          if (tl) matchedLead = (leads || []).find((l: any) => l.id === tl) || { id: tl, name: senderEmail, email: senderEmail }
+        }
 
         if (!matchedLead) {
           // Not from a known outreach lead — skip classification
@@ -127,6 +141,8 @@ export async function classifyInbox(params: ClassifyParams): Promise<ClassifyRes
             },
           ],
           tools: REPLY_CLASSIFIER_TOOLS,
+          tier: 'fast',
+          maxTokens: 700,
         })
 
         const toolResult = extractToolUse(response)
@@ -153,15 +169,15 @@ export async function classifyInbox(params: ClassifyParams): Promise<ClassifyRes
             agent_run_id: agentRunId,
             gmail_message_id: msg.id,
             gmail_thread_id: content.threadId,
-            lead_id: matchedLead.id,
-            sender_email: senderEmail,
+            linked_lead_id: matchedLead.id,
+            from_email: senderEmail,
             subject: content.subject,
             classification,
             confidence,
             summary,
             suggested_action: suggestedAction,
             draft_response: draftResponse,
-            classified_at: new Date().toISOString(),
+            processed_at: new Date().toISOString(),
           })
 
         if (insertErr) {
@@ -176,20 +192,33 @@ export async function classifyInbox(params: ClassifyParams): Promise<ClassifyRes
           meetings++
         }
 
-        // Update linked outreach_sequences status to 'replied'
-        const { data: sequences } = await sb
-          .from('outreach_sequences')
-          .select('id')
-          .eq('lead_id', matchedLead.id)
-          .eq('user_id', userId)
-          .in('status', ['active', 'draft'])
-
-        if (sequences && sequences.length > 0) {
-          const seqIds = sequences.map((s: any) => s.id)
-          await sb
+        // Any real reply ends the automated sequence. Out-of-office and spam
+        // don't count. "Not interested" is treated as an opt-out (CASL).
+        if (classification !== 'out_of_office' && classification !== 'spam') {
+          const { data: sequences } = await sb
             .from('outreach_sequences')
-            .update({ status: 'replied', replied_at: new Date().toISOString() })
-            .in('id', seqIds)
+            .select('id')
+            .eq('lead_id', matchedLead.id)
+            .eq('user_id', userId)
+            .in('status', ['active', 'draft', 'paused'])
+
+          if (sequences && sequences.length > 0) {
+            const seqIds = sequences.map((s: any) => s.id)
+            const stamp = new Date().toISOString()
+            await sb
+              .from('outreach_sequences')
+              .update({
+                status: classification === 'not_interested' ? 'unsubscribed' : 'replied',
+                replied_at: stamp,
+                updated_at: stamp,
+              })
+              .in('id', seqIds)
+            await sb
+              .from('outreach_steps')
+              .update({ status: 'skipped', updated_at: stamp })
+              .in('sequence_id', seqIds)
+              .in('status', ['pending', 'scheduled', 'approved', 'draft'])
+          }
         }
 
         // Update lead stage based on classification

@@ -9,7 +9,7 @@ export const COLD_EMAIL_WRITER_PROMPT =
   "You are a cold email specialist for GTH. Write short, personalized, non-spammy cold emails. Reference the prospect's specific business. Keep it under 150 words. No generic templates. The tone should be professional but warm — like a local business owner reaching out to another."
 
 export const REPLY_CLASSIFIER_PROMPT =
-  'Classify this email reply into one of: positive_interest, objection, not_interested, out_of_office, spam, other. Also suggest a next action.'
+  'Classify this reply to a cold email from Omar at Grow The Hype into one of: positive_interest, objection, not_interested, out_of_office, spam, other. Any request to stop, unsubscribe, be removed, or a plain "no thanks" is not_interested. Questions about price, timing or how it works are positive_interest. Suggest a next action and, for positive replies or objections, a short plain draft response in Omar\'s voice (no em dashes, no exclamation marks, signed Omar).'
 
 export const SALES_EMAIL_WRITER_PROMPT =
   'You are selling GTH Command Center, a CRM built for agencies and freelancers. Highlight features: client management, invoicing, AI assistant, Gmail/Calendar integration, pipeline tracking. Keep emails short and value-focused.'
@@ -124,23 +124,18 @@ interface AskClaudeParams {
   messages: ClaudeMessage[]
   tools?: any[]
   maxTokens?: number
+  /** 'write' = best writer, 'fast' = cheap scoring/classification */
+  tier?: 'write' | 'fast'
+  temperature?: number
 }
 
-export async function askClaude(params: AskClaudeParams): Promise<any> {
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured')
+// Current models. If an account can't reach one (404 / not_found), we fall
+// back to a long-lived model so the agent never stalls on a model rename.
+export const MODEL_WRITE = 'claude-sonnet-5-5'
+export const MODEL_FAST = 'claude-haiku-5-5'
+const MODEL_FALLBACK = 'claude-sonnet-4-20250514'
 
-  const body: any = {
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: params.maxTokens || 1024,
-    system: params.systemPrompt,
-    messages: params.messages,
-  }
-
-  if (params.tools && params.tools.length > 0) {
-    body.tools = params.tools
-  }
-
+async function callMessages(apiKey: string, body: any): Promise<{ ok: boolean; status: number; data: any }> {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -150,14 +145,45 @@ export async function askClaude(params: AskClaudeParams): Promise<any> {
     },
     body: JSON.stringify(body),
   })
+  const data = await res.json().catch(() => ({}))
+  return { ok: res.ok, status: res.status, data }
+}
 
-  const data = await res.json()
+export async function askClaude(params: AskClaudeParams): Promise<any> {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured')
 
-  if (!res.ok) {
-    throw new Error(`Claude API error (${res.status}): ${JSON.stringify(data)}`)
+  const body: any = {
+    model: params.tier === 'fast' ? MODEL_FAST : MODEL_WRITE,
+    max_tokens: params.maxTokens || 1024,
+    system: params.systemPrompt,
+    messages: params.messages,
+  }
+  if (typeof params.temperature === 'number') body.temperature = params.temperature
+
+  if (params.tools && params.tools.length > 0) {
+    body.tools = params.tools
+    // Force the structured tool so we always get parseable output
+    if (params.tools.length === 1) body.tool_choice = { type: 'tool', name: params.tools[0].name }
   }
 
-  return data
+  let r = await callMessages(apiKey, body)
+
+  const modelMissing = !r.ok && (r.status === 404 || JSON.stringify(r.data).includes('not_found'))
+  if (modelMissing) {
+    r = await callMessages(apiKey, { ...body, model: MODEL_FALLBACK })
+  }
+  // One retry on overload / rate limit
+  if (!r.ok && (r.status === 429 || r.status === 529 || r.status >= 500)) {
+    await new Promise(res => setTimeout(res, 1500))
+    r = await callMessages(apiKey, body)
+  }
+
+  if (!r.ok) {
+    throw new Error(`Claude API error (${r.status}): ${JSON.stringify(r.data).slice(0, 400)}`)
+  }
+
+  return r.data
 }
 
 // ─── Helpers ────────────────────────────────────────────────────

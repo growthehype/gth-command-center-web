@@ -41,6 +41,11 @@ export interface OutreachQueueItem {
   subject: string | null
   body: string | null
   created_at: string
+  step_number?: number
+  label?: string | null
+  scheduled_at?: string | null
+  metadata?: Record<string, any> | null
+  sequence_id?: string
   sequence: {
     id: string
     lead: {
@@ -53,8 +58,25 @@ export interface OutreachQueueItem {
       location: string | null
       score: number | null
       source: string | null
+      reason?: string | null
+      rating?: number | null
+      phone?: string | null
+      email_source?: string | null
+      observation?: string | null
+      issues?: string[]
+      agent_config_id?: string | null
     }
   } | null
+}
+
+export interface TodayStats {
+  leadsToday: number
+  scoredToday: number
+  awaitingReview: number
+  sentToday: number
+  repliesWeek: number
+  interestedWeek: number
+  totalLeads: number
 }
 
 export interface AgentMetrics {
@@ -111,6 +133,9 @@ export function useAgentDashboard() {
     replyRate: 0,
   })
   const [activity, setActivity] = useState<ActivityItem[]>([])
+  const [today, setToday] = useState<TodayStats>({
+    leadsToday: 0, scoredToday: 0, awaitingReview: 0, sentToday: 0, repliesWeek: 0, interestedWeek: 0, totalLeads: 0,
+  })
   const [loading, setLoading] = useState(true)
   const [runningAgents, setRunningAgents] = useState<Set<string>>(new Set())
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -215,51 +240,119 @@ export function useAgentDashboard() {
         ])
       }
 
-      // Fetch recent runs
-      const { data: runsData } = await supabase
+      // Fetch recent runs (DB shape → UI shape)
+      const { data: runsRaw } = await supabase
         .from('agent_runs')
         .select('*')
         .eq('user_id', userId)
         .order('started_at', { ascending: false })
         .limit(20)
 
-      if (runsData) setRuns(runsData as AgentRun[])
+      const runsData: AgentRun[] = (runsRaw || []).map((r: any) => ({
+        id: r.id,
+        agent_key: r.agent_type === 'lead_gen' ? 'lead_generator' : r.agent_type === 'sales' ? 'sales_agent' : (r.summary?.agent_name || 'client'),
+        status: r.status,
+        started_at: r.started_at,
+        ended_at: r.completed_at,
+        duration_ms: r.completed_at ? new Date(r.completed_at).getTime() - new Date(r.started_at).getTime() : null,
+        result_summary: typeof r.summary?.text === 'string' ? r.summary.text : null,
+        error_message: r.error_log || null,
+        leads_found: r.summary?.scrape_leads?.leadsNew ?? 0,
+        emails_sent: r.summary?.send_emails?.sent ?? 0,
+        replies_received: r.summary?.classify_inbox?.replies ?? 0,
+      }))
+      setRuns(runsData)
 
-      // Fetch outreach queue
-      const { data: queueData } = await supabase
+      // Review queue: emails that are due for Omar's decision now
+      const nowIso = new Date().toISOString()
+      const { data: queueRaw } = await supabase
         .from('outreach_steps')
         .select('*, sequence:outreach_sequences(*, lead:outreach_leads(*))')
         .eq('user_id', userId)
         .eq('status', 'pending')
-        .order('created_at', { ascending: true })
+        .not('scheduled_at', 'is', null)
+        .lte('scheduled_at', nowIso)
+        .order('scheduled_at', { ascending: true })
+        .limit(100)
 
-      if (queueData) setQueue(queueData as OutreachQueueItem[])
+      const mappedQueue: OutreachQueueItem[] = (queueRaw || [])
+        .filter((q: any) => q.sequence && !['replied', 'stopped', 'unsubscribed', 'completed', 'bounced'].includes(q.sequence.status))
+        .map((q: any) => {
+          const l = q.sequence?.lead || {}
+          const e = l.enrichment_data || {}
+          return {
+            id: q.id,
+            step_type: q.step_type,
+            status: q.status,
+            subject: q.subject,
+            body: q.body,
+            created_at: q.created_at,
+            step_number: q.step_number,
+            label: q.label,
+            scheduled_at: q.scheduled_at,
+            metadata: q.metadata || {},
+            sequence_id: q.sequence_id,
+            sequence: {
+              id: q.sequence.id,
+              lead: {
+                id: l.id,
+                name: l.name,
+                company: l.name,
+                industry: l.industry,
+                email: l.email,
+                website: l.website,
+                location: l.location || l.address || null,
+                score: l.qualification_score ?? null,
+                source: l.source,
+                reason: l.qualification_reason || null,
+                rating: l.rating ?? null,
+                phone: l.phone || null,
+                email_source: e.email_source || null,
+                observation: e.observation || null,
+                issues: e.website_audit?.issues || [],
+                agent_config_id: l.agent_config_id || null,
+              },
+            },
+          }
+        })
+      setQueue(mappedQueue)
 
-      // Fetch metrics
+      // Metrics
       const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+      const dayStart = new Date()
+      dayStart.setHours(0, 0, 0, 0)
+      const dayIso = dayStart.toISOString()
+      const prospector = (configData || []).find((d: any) => d.config?.profile === 'gth')
+      const scope = (qb: any) => (prospector ? qb.eq('agent_config_id', prospector.id) : qb)
 
-      // NOTE: We let RLS scope these queries by tenant_id rather than
-      // filtering by user_id. This means team members of the same agency
-      // see the agency-wide dashboard, not just their own activity — which
-      // is the expected behavior for a shared operations dashboard.
-      const [leadsRes, emailsRes, repliesRes, meetingsRes] = await Promise.all([
-        supabase.from('outreach_leads').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo),
-        supabase.from('outreach_steps').select('*', { count: 'exact', head: true }).eq('step_type', 'email').eq('status', 'sent').gte('created_at', weekAgo),
-        supabase.from('outreach_steps').select('*', { count: 'exact', head: true }).eq('status', 'replied').gte('created_at', weekAgo),
-        supabase.from('outreach_steps').select('*', { count: 'exact', head: true }).eq('step_type', 'meeting').eq('status', 'booked').gte('created_at', weekAgo),
+      const [leadsRes, emailsRes, repliesRes, interestedRes, leadsTodayRes, scoredTodayRes, sentTodayRes, totalLeadsRes] = await Promise.all([
+        supabase.from('outreach_leads').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', weekAgo),
+        supabase.from('outreach_steps').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'sent').gte('executed_at', weekAgo),
+        supabase.from('agent_inbox_classifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('processed_at', weekAgo).not('classification', 'in', '(out_of_office,spam)'),
+        supabase.from('agent_inbox_classifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('processed_at', weekAgo).eq('classification', 'positive_interest'),
+        scope(supabase.from('outreach_leads').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', dayIso)),
+        scope(supabase.from('outreach_leads').select('id', { count: 'exact', head: true }).eq('user_id', userId).gte('created_at', dayIso).not('qualification_score', 'is', null)),
+        supabase.from('outreach_steps').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'sent').gte('executed_at', dayIso),
+        scope(supabase.from('outreach_leads').select('id', { count: 'exact', head: true }).eq('user_id', userId)),
       ])
 
-      const leads = leadsRes.count ?? 0
       const emails = emailsRes.count ?? 0
       const replies = repliesRes.count ?? 0
-      const meetings = meetingsRes.count ?? 0
-
       setMetrics({
-        leadsThisWeek: leads,
+        leadsThisWeek: leadsRes.count ?? 0,
         emailsSentThisWeek: emails,
         repliesThisWeek: replies,
-        meetingsBooked: meetings,
+        meetingsBooked: interestedRes.count ?? 0,
         replyRate: emails > 0 ? Math.round((replies / emails) * 100) : 0,
+      })
+      setToday({
+        leadsToday: leadsTodayRes.count ?? 0,
+        scoredToday: scoredTodayRes.count ?? 0,
+        awaitingReview: mappedQueue.length,
+        sentToday: sentTodayRes.count ?? 0,
+        repliesWeek: replies,
+        interestedWeek: interestedRes.count ?? 0,
+        totalLeads: totalLeadsRes.count ?? 0,
       })
 
       // Build activity feed from runs + queue actions
@@ -270,7 +363,7 @@ export function useAgentDashboard() {
           activityItems.push({
             id: `run-${run.id}`,
             type: run.status === 'error' ? 'error' : 'agent_run',
-            description: run.result_summary || `${run.agent_key === 'lead_generator' ? 'Sarah' : 'Selina'} run ${run.status}`,
+            description: run.result_summary || `Run ${run.status}`,
             timestamp: run.started_at,
             status: run.status === 'error' ? 'error' : run.status === 'completed' ? 'success' : 'info',
             agent_key: run.agent_key,
@@ -345,7 +438,7 @@ export function useAgentDashboard() {
         }
       }
 
-      const label = existing?.agent_name || (agentKey === 'lead_generator' ? 'Sarah' : 'Selina')
+      const label = existing?.agent_name || (agentKey === 'lead_generator' ? 'Prospector' : 'Sales agent')
       showToast(`${label} ${enabled ? 'enabled' : 'disabled'}`, 'success')
     } catch (err: any) {
       showToast(err?.message || 'Failed to update agent', 'error')
@@ -385,12 +478,15 @@ export function useAgentDashboard() {
     )
 
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch('/api/agent/run', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({
           agentType: dbAgentType,
-          userId,
           configId: agentCfg.id || null,
         }),
       })
@@ -418,7 +514,7 @@ export function useAgentDashboard() {
         )
       )
 
-      const label = agentCfg.agent_name || (agentKey === 'lead_generator' ? 'Sarah' : 'Selina')
+      const label = agentCfg.agent_name || (agentKey === 'lead_generator' ? 'Prospector' : 'Sales agent')
       if (result.status === 'skipped') {
         showToast(`${label}: ${result.reason || 'skipped'}`, 'info')
       } else {
@@ -445,8 +541,9 @@ export function useAgentDashboard() {
                 actionErrors.push(`qualify_leads silent fail: ${payload.firstError}`)
               }
             } else if (action === 'generate_emails') {
-              const n = payload.generated ?? payload.drafts ?? payload.processed ?? 0
-              actionSummary.push(`drafted ${n}`)
+              const n = payload.sequencesCreated ?? payload.generated ?? payload.drafts ?? 0
+              actionSummary.push(`${n} drafts ready`)
+              if (payload.errors?.length && n === 0) actionErrors.push(`drafting: ${payload.errors[0]}`)
             } else if (action === 'send_emails') {
               const n = payload.sent ?? payload.delivered ?? payload.processed ?? 0
               actionSummary.push(`sent ${n}`)
@@ -534,46 +631,96 @@ export function useAgentDashboard() {
   }, [configs, getUserId])
 
   // ---- Queue Actions ----
-  const approveStep = useCallback(async (stepId: string) => {
+  const sendNow = useCallback(async (): Promise<{ sent: number; error?: string } | null> => {
     try {
-      await supabase
-        .from('outreach_steps')
-        .update({ status: 'approved', updated_at: new Date().toISOString() })
-        .eq('id', stepId)
-      setQueue(prev => prev.filter(q => q.id !== stepId))
-      showToast('Email approved for sending', 'success')
+      const { data: { session } } = await supabase.auth.getSession()
+      const prospector = configs.find(c => c.config?.profile === 'gth') || configs.find(c => c.agent_key === 'lead_generator')
+      const res = await fetch('/api/agent/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ mode: 'send_approved', agentType: 'lead_gen', configId: prospector?.id || null }),
+      })
+      const raw = await res.json().catch(() => ({}))
+      if (!res.ok) return { sent: 0, error: raw?.error || `Send failed (${res.status})` }
+      const r = raw?.results?.send_emails || {}
+      return { sent: r.sent ?? 0, error: r.firstError }
     } catch (err: any) {
-      showToast(err?.message || 'Failed to approve', 'error')
+      return { sent: 0, error: err?.message || 'Send failed' }
     }
-  }, [])
+  }, [configs])
+
+  const approveStep = useCallback(async (stepId: string) => {
+    const item = queue.find(q => q.id === stepId)
+    const now = new Date().toISOString()
+    const { error } = await supabase
+      .from('outreach_steps')
+      .update({
+        status: 'scheduled',
+        approval_status: item?.metadata?.edited ? 'edited' : 'approved',
+        scheduled_at: now,
+        updated_at: now,
+      })
+      .eq('id', stepId)
+    if (error) {
+      showToast(error.message || 'Failed to approve', 'error')
+      return
+    }
+    if (item?.sequence_id) {
+      await supabase.from('outreach_sequences').update({ status: 'active', updated_at: now }).eq('id', item.sequence_id).eq('status', 'draft')
+    }
+    setQueue(prev => prev.filter(q => q.id !== stepId))
+    setToday(prev => ({ ...prev, awaitingReview: Math.max(0, prev.awaitingReview - 1) }))
+    const to = item?.sequence?.lead?.name || 'lead'
+    showToast(`Approved. Sending to ${to}...`, 'info')
+    const result = await sendNow()
+    if (result?.sent) {
+      showToast(`Sent to ${to}`, 'success')
+      setToday(prev => ({ ...prev, sentToday: prev.sentToday + result.sent }))
+    } else if (result?.error) {
+      showToast(`Approved, but not sent yet: ${result.error}`, 'error')
+    } else {
+      showToast('Approved. It will go out on the next run (daily limit or Gmail check).', 'info')
+    }
+  }, [queue, sendNow])
 
   const skipStep = useCallback(async (stepId: string) => {
-    try {
-      await supabase
-        .from('outreach_steps')
-        .update({ status: 'skipped', updated_at: new Date().toISOString() })
-        .eq('id', stepId)
-      setQueue(prev => prev.filter(q => q.id !== stepId))
-      showToast('Email skipped', 'info')
-    } catch (err: any) {
-      showToast(err?.message || 'Failed to skip', 'error')
+    const item = queue.find(q => q.id === stepId)
+    const now = new Date().toISOString()
+    const { error } = await supabase
+      .from('outreach_steps')
+      .update({ status: 'skipped', approval_status: 'rejected', updated_at: now })
+      .eq('id', stepId)
+    if (error) {
+      showToast(error.message || 'Failed to skip', 'error')
+      return
     }
-  }, [])
+    // Skipping the first email drops the lead from this sequence entirely
+    if (item?.sequence_id && (item.step_number ?? 1) === 1) {
+      await supabase.from('outreach_sequences').update({ status: 'stopped', updated_at: now }).eq('id', item.sequence_id)
+      await supabase.from('outreach_steps').update({ status: 'skipped', updated_at: now }).eq('sequence_id', item.sequence_id).eq('status', 'pending')
+    }
+    setQueue(prev => prev.filter(q => q.id !== stepId))
+    setToday(prev => ({ ...prev, awaitingReview: Math.max(0, prev.awaitingReview - 1) }))
+    showToast('Skipped', 'info')
+  }, [queue])
 
   const updateStepContent = useCallback(async (stepId: string, subject: string, body: string) => {
-    try {
-      await supabase
-        .from('outreach_steps')
-        .update({ subject, body, updated_at: new Date().toISOString() })
-        .eq('id', stepId)
-      setQueue(prev =>
-        prev.map(q => (q.id === stepId ? { ...q, subject, body } : q))
-      )
-      showToast('Email updated', 'success')
-    } catch (err: any) {
-      showToast(err?.message || 'Failed to update', 'error')
+    const item = queue.find(q => q.id === stepId)
+    const metadata = { ...(item?.metadata || {}), edited: true }
+    const { error } = await supabase
+      .from('outreach_steps')
+      .update({ subject, body, approval_status: 'edited', metadata, updated_at: new Date().toISOString() })
+      .eq('id', stepId)
+    if (error) {
+      showToast(error.message || 'Failed to save', 'error')
+      return
     }
-  }, [])
+    setQueue(prev => prev.map(q => (q.id === stepId ? { ...q, subject, body, metadata } : q)))
+    showToast('Saved', 'success')
+  }, [queue])
 
   // Helper to get a specific config
   const getConfig = useCallback(
@@ -670,6 +817,7 @@ export function useAgentDashboard() {
     runs,
     queue,
     metrics,
+    today,
     activity,
     loading,
     runningAgents,
@@ -682,6 +830,7 @@ export function useAgentDashboard() {
     approveStep,
     skipStep,
     updateStepContent,
+    sendNow,
     getConfig,
     refresh: () => fetchAll(false),
   }

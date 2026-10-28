@@ -1,72 +1,10 @@
-// Manual trigger — POST to run an agent on demand
+// Manual trigger: POST to run an agent on demand, or to send approved emails now
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
-import { getAgentConfig, getAgentConfigById, updateAgentRun } from './_lib/supabase-admin'
-import { runAgentTick, type AgentAction } from './_lib/orchestrator'
-import { scrapeLeads } from './_lib/scraper'
-import { qualifyLeads } from './_lib/qualifier'
-import { generateOutreach } from './_lib/email-generator'
+import { getAdminClient, getAgentConfig, getAgentConfigById, updateAgentRun } from './_lib/supabase-admin'
+import { runAgentTick } from './_lib/orchestrator'
+import { runActions, summariseRun } from './_lib/actions'
 import { sendScheduledEmails } from './_lib/sender'
-import { classifyInbox } from './_lib/inbox-classifier'
-
-// ─── Action Executor ───────────────────────────────────────────
-
-async function executeAction(
-  action: AgentAction,
-  userId: string,
-  runId: string,
-  config: any,
-): Promise<any> {
-  switch (action.type) {
-    case 'classify_inbox':
-      return classifyInbox({ userId, agentRunId: runId })
-
-    case 'scrape_leads':
-      return scrapeLeads({
-        userId,
-        agentRunId: runId,
-        query:
-          action.params?.query ||
-          config?.config?.target_industries ||
-          config?.config?.target_niche ||
-          config?.target_niche ||
-          'local businesses',
-        location:
-          action.params?.location ||
-          config?.config?.target_location ||
-          config?.target_location ||
-          'Edmonton, AB',
-        agentName: config?.agent_name || null,
-        agentType: config?.agent_type || null,
-        agentConfigId: config?.id || null,
-        agentConfig: config,
-      })
-
-    case 'qualify_leads':
-      return qualifyLeads({
-        userId,
-        agentRunId: runId,
-        agentType: config?.agent_type || 'lead_gen',
-        batchSize: 25,
-        agentConfig: config,
-      })
-
-    case 'generate_emails':
-      return generateOutreach({
-        userId,
-        agentRunId: runId,
-        agentType: config?.agent_type || 'lead_gen',
-        batchSize: 25,
-        agentConfig: config,
-      })
-
-    case 'send_emails':
-      return sendScheduledEmails({ userId, agentRunId: runId })
-
-    default:
-      return { skipped: true, reason: `Unknown action: ${action.type}` }
-  }
-}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // ------ Step tracker so the response tells us WHERE it blew up ----
@@ -98,8 +36,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     step = 'parse_body'
-    const { agentType, configId } = (req.body ?? {}) as any
+    const { agentType, configId, mode } = (req.body ?? {}) as any
     const userId = user.id
+
+    // Fast path: Omar approved an email in the queue, send what's due now
+    if (mode === 'send_approved') {
+      step = 'send_approved'
+      const cfg = configId ? await getAgentConfigById(configId) : await getAgentConfig(userId, agentType || 'lead_gen')
+      if (cfg && cfg.user_id !== userId) return res.status(403).json({ error: 'Config does not belong to this user', step })
+      const inner = cfg?.config || {}
+      const result = await sendScheduledEmails({
+        userId,
+        dailyLimit: Number(inner.daily_email_limit) || undefined,
+        cfgInner: inner,
+      })
+      return res.status(200).json({ status: 'completed', results: { send_emails: result } })
+    }
 
     if (!agentType) {
       return res.status(400).json({ error: 'Missing agentType', step })
@@ -151,61 +103,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.error('stamp_manual failed (non-fatal):', stampErr)
     }
 
-    // 4. Execute each action in order, with a HARD per-action timeout
-    //    so one hanging action (e.g. a website that never responds) can't
-    //    blow the whole Vercel function budget.
+    // 4. Execute actions with per-action timeouts and an overall deadline
     step = 'execute_actions'
-    const actionResults: Record<string, any> = {}
-    const actionTimings: Record<string, number> = {}
+    const { results: actionResults, timings: actionTimings } = await runActions(tick.actions, userId, runId, cfg, 270_000)
 
-    const HARD_TIMEOUT_MS: Record<string, number> = {
-      classify_inbox: 20_000,
-      scrape_leads: 60_000,
-      qualify_leads: 60_000,
-      generate_emails: 60_000,
-      send_emails: 30_000,
-    }
-
-    for (const action of tick.actions) {
-      const t0 = Date.now()
-      const budget = HARD_TIMEOUT_MS[action.type] ?? 30_000
-      try {
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error(`action ${action.type} exceeded ${budget}ms hard timeout`)), budget)
-        )
-        const result = await Promise.race([
-          executeAction(action, userId, runId, cfg),
-          timeoutPromise,
-        ])
-        actionResults[action.type] = result
-      } catch (actionErr: any) {
-        console.error(`Action ${action.type} failed:`, actionErr)
-        actionResults[action.type] = {
-          error: (actionErr.message || String(actionErr)).slice(0, 500),
-        }
-      }
-      actionTimings[action.type] = Date.now() - t0
-    }
-
-    // 5. Mark run as completed
+    // 5. Mark run as completed and stamp the agent
     step = 'finalize_run'
-    const summary = Object.entries(actionResults)
-      .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
-      .join('; ')
-
+    const summaryText = summariseRun(actionResults)
+    const hadErrors = Object.values(actionResults).some((v: any) => v?.error)
     try {
       await updateAgentRun(runId, {
-        status: 'completed',
-        summary: summary.slice(0, 2000),
+        status: hadErrors ? 'partial' : 'completed',
+        summary: summaryText,
         metadata: actionResults,
       })
+      await getAdminClient()
+        .from('agent_configs')
+        .update({
+          last_run_at: new Date().toISOString(),
+          last_run_status: hadErrors ? 'partial' : 'completed',
+          last_run_summary: summaryText.slice(0, 500),
+          last_run_duration_ms: Object.values(actionTimings).reduce((a, b) => a + b, 0),
+          last_run_metadata: { ...(cfg.last_run_metadata || {}), last_scrape: actionResults.scrape_leads && !actionResults.scrape_leads.error ? new Date().toISOString() : (cfg.last_run_metadata?.last_scrape || null) },
+        })
+        .eq('id', cfg.id)
     } catch (finErr: any) {
       console.error('finalize_run failed (non-fatal):', finErr)
     }
 
     return res.status(200).json({
       runId,
-      status: 'completed',
+      summary: summaryText,
+      status: hadErrors ? 'partial' : 'completed',
       actions: tick.actions.map(a => a.type),
       results: actionResults,
       timings: actionTimings,

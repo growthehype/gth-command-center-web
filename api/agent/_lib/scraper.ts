@@ -1,9 +1,11 @@
 // Lead scraping engine using Google Places API (New) Text Search
 import { getAdminClient } from './supabase-admin'
+import { nextRotation } from './gth-profile'
 
 // ─── Types ──────────────────────────────────────────────────────
 
 interface ScrapeParams {
+  maxNew?: number
   userId: string
   agentRunId: string
   query: string
@@ -332,13 +334,38 @@ async function fetchHtml(url: string): Promise<string | null> {
  * Vercel function timeouts).
  */
 export async function scrapeEmailFromWebsitePublic(websiteUrl: string): Promise<string | null> {
-  return scrapeEmailFromWebsite(websiteUrl)
+  return (await scrapeEmailDetailed(websiteUrl)).email
 }
 
-async function scrapeEmailFromWebsite(websiteUrl: string): Promise<string | null> {
-  if (!websiteUrl) return null
+// Role inboxes small businesses actually read, best first
+const PREFERRED_LOCAL_PARTS = [
+  'info', 'office', 'hello', 'contact', 'admin', 'reception', 'frontdesk',
+  'appointments', 'bookings', 'booking', 'inquiries', 'enquiries', 'clinic', 'team', 'mail',
+]
+const AVOID_LOCAL_PARTS = ['careers', 'jobs', 'hr', 'billing', 'accounts', 'privacy', 'support', 'marketing', 'media', 'press']
 
-  // Normalise + validate URL
+function rankEmail(email: string, rootDomain: string | null): number {
+  const [local, domain] = email.split('@')
+  let score = 0
+  if (rootDomain && (domain === rootDomain || domain.endsWith('.' + rootDomain))) score += 100
+  else if (/gmail|outlook|hotmail|yahoo|shaw|telus|icloud/.test(domain)) score += 40
+  const pref = PREFERRED_LOCAL_PARTS.indexOf(local)
+  if (pref >= 0) score += 30 - pref
+  // A person's name on the business domain is great (owner/manager inbox)
+  else if (/^[a-z]+(\.[a-z]+)?$/.test(local) && local.length <= 20) score += 25
+  if (AVOID_LOCAL_PARTS.includes(local)) score -= 50
+  return score
+}
+
+export interface EmailLookup {
+  email: string | null
+  source: 'website' | 'guessed' | null
+}
+
+/** Scan homepage + common contact/about/team pages in parallel and pick the best inbox. */
+export async function scrapeEmailDetailed(websiteUrl: string): Promise<EmailLookup> {
+  if (!websiteUrl) return { email: null, source: null }
+
   let baseUrl: string
   let rootDomain: string | null
   try {
@@ -346,36 +373,32 @@ async function scrapeEmailFromWebsite(websiteUrl: string): Promise<string | null
     new URL(baseUrl)
     rootDomain = extractRootDomain(baseUrl)
   } catch {
-    return null
+    return { email: null, source: null }
   }
 
-  // Top 5 highest-hit paths only — covers ~90% of small business sites
-  const candidatePaths = ['', '/contact', '/contact-us', '/about', '/about-us']
-
-  // Fetch ALL candidate pages in parallel (not serial) — total time = max(fetch)
-  // instead of sum(fetches).
+  const candidatePaths = ['', '/contact', '/contact-us', '/about', '/about-us', '/team', '/our-team']
   const urls = candidatePaths.map(p => {
     try { return new URL(p, baseUrl).toString() } catch { return null }
   }).filter((u): u is string => u !== null)
 
   const htmlBlobs = await Promise.all(urls.map(fetchHtml))
-  const validBlobs = htmlBlobs.filter((h): h is string => h !== null)
-
-  // Scan every successfully-fetched page for emails, prefer domain-matched ones
-  for (const html of validBlobs) {
-    const emails = extractEmailsFromHtml(html, rootDomain)
-    if (emails.length > 0) return emails[0]
+  const all = new Set<string>()
+  for (const html of htmlBlobs) {
+    if (!html) continue
+    for (const e of extractEmailsFromHtml(html, rootDomain)) all.add(e)
   }
 
-  // Fallback: construct `info@<root_domain>` — the universal small-business
-  // catch-all alias. This isn't verified, but on Edmonton home services
-  // businesses ~70% of these actually deliver. The user can clean up bounces
-  // later.
-  if (rootDomain) {
-    return `info@${rootDomain}`
+  if (all.size > 0) {
+    const best = Array.from(all).sort((a, b) => rankEmail(b, rootDomain) - rankEmail(a, rootDomain))[0]
+    return { email: best, source: 'website' }
   }
 
-  return null
+  // Fallback: the common catch-all on the business domain. Flagged as a
+  // guess so the approval queue can show it and Omar can decide.
+  if (rootDomain && !/wix|squarespace|godaddy|facebook|instagram|google|linktr/.test(rootDomain)) {
+    return { email: `info@${rootDomain}`, source: 'guessed' }
+  }
+  return { email: null, source: null }
 }
 
 // ─── Google Places Text Search ──────────────────────────────────
@@ -461,19 +484,25 @@ export async function scrapeLeads(params: ScrapeParams): Promise<ScrapeResult> {
     // 2. Fetch existing leads for deduplication (by name + website)
     const { data: existingLeads } = await sb
       .from('outreach_leads')
-      .select('name, website')
+      .select('name, website, google_place_id')
       .eq('user_id', userId)
 
-    const existingSet = new Set(
-      (existingLeads || []).map((l: any) => `${(l.name || '').toLowerCase()}|${(l.website || '').toLowerCase()}`)
-    )
+    // Dedupe on place id, website domain and business name: the same business
+    // must never be contacted twice, whichever agent found it first.
+    const existingSet = new Set<string>()
+    for (const l of existingLeads || []) {
+      if (l.google_place_id) existingSet.add(`pid:${l.google_place_id}`)
+      const dom = l.website ? extractRootDomain(l.website) : null
+      if (dom) existingSet.add(`dom:${dom}`)
+      if (l.name) existingSet.add(`name:${l.name.toLowerCase().trim()}`)
+    }
 
     // 3. Filter and prepare new leads
     const newLeads: any[] = []
 
     // Build exclusion / filtering rules from agent config
     const cfgInner = params.agentConfig?.config || {}
-    const excludedNames = new Set(
+    const excludedNames = new Set<string>(
       (cfgInner.excluded_businesses || '')
         .split(',')
         .map((s: string) => s.trim().toLowerCase())
@@ -485,9 +514,16 @@ export async function scrapeLeads(params: ScrapeParams): Promise<ScrapeResult> {
     for (const place of places) {
       const name = place.displayName?.text || ''
       const website = place.websiteUri || ''
-      const dedupeKey = `${name.toLowerCase()}|${website.toLowerCase()}`
+      const domain = website ? extractRootDomain(website) : null
+      const keys = [
+        place.id ? `pid:${place.id}` : null,
+        domain && !/facebook|instagram|google|linktr/.test(domain) ? `dom:${domain}` : null,
+        name ? `name:${name.toLowerCase().trim()}` : null,
+      ].filter(Boolean) as string[]
 
-      if (existingSet.has(dedupeKey)) continue
+      if (keys.some(k => existingSet.has(k))) continue
+      if (place.businessStatus && place.businessStatus !== 'OPERATIONAL') continue
+      if (typeof params.maxNew === 'number' && newLeads.length >= params.maxNew) break
 
       // Skip excluded businesses (case-insensitive substring match)
       const nameLower = name.toLowerCase()
@@ -502,7 +538,7 @@ export async function scrapeLeads(params: ScrapeParams): Promise<ScrapeResult> {
       // Skip businesses below minimum rating
       if (minRating > 0 && place.rating && place.rating < minRating) continue
 
-      existingSet.add(dedupeKey)
+      keys.forEach(k => existingSet.add(k))
 
       newLeads.push({
         user_id: userId,
@@ -524,6 +560,8 @@ export async function scrapeLeads(params: ScrapeParams): Promise<ScrapeResult> {
         agent_config_id: agentConfigId,
         // Match the existing UI / hyphenated CHECK style
         stage: 'new-lead',
+        location: location,
+        enrichment_data: { search_query: query, search_area: location },
         created_at: new Date().toISOString(),
       })
     }
@@ -536,8 +574,11 @@ export async function scrapeLeads(params: ScrapeParams): Promise<ScrapeResult> {
       newLeads.map(async (lead) => {
         if (!lead.website) return
         try {
-          const found = await scrapeEmailFromWebsite(lead.website)
-          if (found) lead.email = found
+          const found = await scrapeEmailDetailed(lead.website)
+          if (found.email) {
+            lead.email = found.email
+            lead.enrichment_data = { ...lead.enrichment_data, email_source: found.source }
+          }
         } catch (err) {
           console.warn(`Email enrichment failed for ${lead.name}:`, err instanceof Error ? err.message : err)
         }
@@ -605,4 +646,80 @@ export async function scrapeLeads(params: ScrapeParams): Promise<ScrapeResult> {
 
     throw error
   }
+}
+
+
+// ─── Rotation scrape (works through a long list of searches over time) ──
+
+interface RotationParams {
+  userId: string
+  agentRunId: string
+  agentConfig: any
+  deadlineMs?: number
+}
+
+export async function scrapeRotation(params: RotationParams) {
+  const { userId, agentRunId, agentConfig } = params
+  const sb = getAdminClient()
+  const inner = agentConfig?.config || {}
+  const deadline = Date.now() + (params.deadlineMs ?? 60_000)
+
+  // Daily quota: leads this agent has already added today
+  const startOfDay = new Date()
+  startOfDay.setUTCHours(0, 0, 0, 0)
+  const { count: todayCount } = await sb
+    .from('outreach_leads')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('agent_config_id', agentConfig.id)
+    .gte('created_at', startOfDay.toISOString())
+  const quota = Number(inner.daily_lead_quota) || 25
+  let remaining = Math.max(0, quota - (todayCount || 0))
+  if (remaining === 0) {
+    return { leadsFound: 0, leadsNew: 0, searches: [], note: `Daily quota of ${quota} reached` }
+  }
+
+  const perRun = Math.max(1, Math.min(10, Number(inner.queries_per_run) || 5))
+  const { picks } = nextRotation(inner, perRun)
+  const searches: { query: string; area: string; found: number; added: number; error?: string }[] = []
+  let leadsFound = 0
+  let leadsNew = 0
+  let used = 0
+
+  for (const pick of picks) {
+    if (remaining <= 0 || Date.now() > deadline - 8_000) break
+    used++
+    try {
+      const r = await scrapeLeads({
+        userId,
+        agentRunId,
+        query: pick.term,
+        location: pick.area,
+        agentName: agentConfig.agent_name || null,
+        agentType: agentConfig.agent_type || null,
+        agentConfigId: agentConfig.id || null,
+        agentConfig,
+        maxNew: remaining,
+      })
+      leadsFound += r.leadsFound
+      leadsNew += r.leadsNew
+      remaining -= r.leadsNew
+      searches.push({ query: pick.term, area: pick.area, found: r.leadsFound, added: r.leadsNew })
+    } catch (err: any) {
+      searches.push({ query: pick.term, area: pick.area, found: 0, added: 0, error: String(err?.message || err).slice(0, 160) })
+    }
+  }
+
+  // Advance the rotation by however many searches actually ran
+  const total = (Array.isArray(inner.search_terms) && inner.search_terms.length ? inner.search_terms.length : 30) *
+    (Array.isArray(inner.search_areas) && inner.search_areas.length ? inner.search_areas.length : 7)
+  const nextIndex = ((Number(inner.rotation_index) || 0) + used) % total
+  await sb
+    .from('agent_configs')
+    .update({ config: { ...inner, rotation_index: nextIndex }, updated_at: new Date().toISOString() })
+    .eq('id', agentConfig.id)
+  // keep the in-memory copy in step for later actions in this run
+  agentConfig.config = { ...inner, rotation_index: nextIndex }
+
+  return { leadsFound, leadsNew, searches, rotationIndex: nextIndex }
 }
