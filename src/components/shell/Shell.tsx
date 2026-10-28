@@ -14,6 +14,8 @@ import OnboardingWizard from '@/components/ui/OnboardingWizard'
 import { syncEmailSignatureCache } from '@/lib/email-sig-cache'
 import PomodoroTimer from '@/components/ui/PomodoroTimer'
 import ErrorBoundary from '@/components/ui/ErrorBoundary'
+import CommandStage from './CommandStage'
+import BootSequence from './BootSequence'
 
 // Page imports
 import DailyBriefing from '@/pages/DailyBriefing'
@@ -28,25 +30,27 @@ import Invoices from '@/pages/Invoices'
 import Financials from '@/pages/Financials'
 import Profitability from '@/pages/Profitability'
 import Outreach from '@/pages/Outreach'
-import Campaigns from '@/pages/Campaigns'
 import Services from '@/pages/Services'
 import Templates from '@/pages/Templates'
 import Goals from '@/pages/Goals'
 import Credentials from '@/pages/Credentials'
-import BrandAssets from '@/pages/BrandAssets'
 import Documents from '@/pages/Documents'
 import SOPs from '@/pages/SOPs'
 import Notes from '@/pages/Notes'
-import ActivityPage from '@/pages/Activity'
 import SettingsPage from '@/pages/Settings'
 import ClientDetail from '@/pages/ClientDetail'
-import HelpPage from '@/pages/Help'
 import EmailTemplatesPage from '@/pages/EmailTemplates'
-import TeamManagement from '@/pages/TeamManagement'
 import IntegrationsPage from '@/pages/Integrations'
 import GmailInbox from '@/pages/GmailInbox'
 import GoogleDrive from '@/pages/GoogleDrive'
 import Agents from '@/pages/Agents'
+import TabbedPage from '@/components/ui/TabbedPage'
+import { PAGE_ALIASES } from '@/lib/store'
+
+const tabbed = (tabs: React.ComponentProps<typeof TabbedPage>['tabs']) => {
+  const Page = () => <TabbedPage tabs={tabs} />
+  return Page
+}
 
 interface ShellProps {
   onLock?: () => void
@@ -55,34 +59,41 @@ interface ShellProps {
 const pageMap: Record<string, React.ComponentType> = {
   briefing: DailyBriefing,
   dashboard: Dashboard,
-  calendar: CalendarPage,
-  clients: Clients,
-  contacts: Contacts,
+  calendar: tabbed([
+    { id: 'calendar', label: 'Calendar', component: CalendarPage },
+    { id: 'meetings', label: 'Meeting notes', component: Meetings },
+  ]),
+  clients: tabbed([
+    { id: 'clients', label: 'Clients', component: Clients },
+    { id: 'contacts', label: 'Contacts', component: Contacts },
+  ]),
   projects: Projects,
   tasks: Tasks,
-  meetings: Meetings,
   invoices: Invoices,
-  financials: Financials,
-  profitability: Profitability,
+  financials: tabbed([
+    { id: 'overview', label: 'Overview', component: Financials },
+    { id: 'profitability', label: 'Profitability', component: Profitability },
+  ]),
   outreach: Outreach,
-  campaigns: Campaigns,
   services: Services,
-  templates: Templates,
+  templates: tabbed([
+    { id: 'documents', label: 'Proposal & document templates', component: Templates },
+    { id: 'email', label: 'Email templates', component: EmailTemplatesPage },
+  ]),
   goals: Goals,
   credentials: Credentials,
-  'brand-assets': BrandAssets,
-  documents: Documents,
-  sops: SOPs,
-  notes: Notes,
-  activity: ActivityPage,
+  notes: tabbed([
+    { id: 'notes', label: 'Notes', component: Notes },
+    { id: 'sops', label: 'SOPs', component: SOPs },
+  ]),
   settings: SettingsPage,
   'client-detail': ClientDetail,
-  help: HelpPage,
-  'email-templates': EmailTemplatesPage,
-  'team': TeamManagement,
   'integrations-settings': IntegrationsPage,
   'gmail': GmailInbox,
-  'drive': GoogleDrive,
+  'drive': tabbed([
+    { id: 'drive', label: 'Google Drive', component: GoogleDrive },
+    { id: 'documents', label: 'Documents', component: Documents },
+  ]),
   'agents': Agents,
 }
 
@@ -185,16 +196,17 @@ export default function Shell({ onLock }: ShellProps) {
   useEffect(() => {
     // On mount, check if URL hash contains a valid page (e.g. after OAuth redirect)
     const hashPage = window.location.hash?.replace('#', '')
-    if (hashPage && pageMap[hashPage] && hashPage !== currentPage) {
+    if (hashPage && (pageMap[hashPage] || PAGE_ALIASES[hashPage]) && hashPage !== currentPage) {
       setCurrentPage(hashPage, false)
-      window.history.replaceState({ page: hashPage }, '', `#${hashPage}`)
+      const resolved = PAGE_ALIASES[hashPage]?.[0] ?? hashPage
+      window.history.replaceState({ page: resolved }, '', `#${resolved}`)
     } else if (!window.history.state?.page) {
       window.history.replaceState({ page: currentPage }, '', `#${currentPage}`)
     }
 
     const handlePopState = (e: PopStateEvent) => {
       const page = e.state?.page
-      if (page && pageMap[page]) {
+      if (page && (pageMap[page] || PAGE_ALIASES[page])) {
         // Use pushHistory=false to avoid pushing again during back navigation
         setCurrentPage(page, false)
       }
@@ -226,7 +238,7 @@ export default function Shell({ onLock }: ShellProps) {
           </>
         )}
         <div className="hud-stage flex-1 flex min-w-0">
-        <div className="hud-bg" aria-hidden="true"><div className="hud-scan" /></div>
+        <CommandStage />
         <main className={`shell-main flex-1 min-w-0 overflow-y-auto p-3 md:p-6 ${focusMode ? 'focus-vignette' : ''}`}>
           {demoMode && (
             <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-border-hard bg-surface px-4 py-2 text-steel" style={{ fontSize: 12 }}>
@@ -277,6 +289,7 @@ export default function Shell({ onLock }: ShellProps) {
         }}
       />
       <ToastContainer />
+      <BootSequence />
     </div>
   )
 }

@@ -1,10 +1,10 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
+import { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useAppStore } from '@/lib/store'
 import {
-  Sparkles, LayoutDashboard, Calendar, Building2, Users, Kanban,
-  CheckSquare, MessageSquare, Receipt, TrendingUp, LineChart,
-  Send, Megaphone, Package, Mail, Target, KeyRound, Palette,
-  FileText, BookOpen, Pencil, Activity, Settings, HelpCircle, Link2,
+  Sparkles, LayoutDashboard, Calendar, Building2, Kanban,
+  CheckSquare, Receipt, TrendingUp,
+  Send, Package, Mail, Target, KeyRound,
+  Pencil, Settings, Link2,
   Inbox, HardDrive, Bot, ChevronDown, Search, Pin, PinOff, Clock,
   PanelLeftClose, PanelLeft, Plus, ChevronRight, X, Shield, LogOut
 } from 'lucide-react'
@@ -33,16 +33,29 @@ const navGroups: NavGroup[] = [
       { id: 'briefing', label: 'Briefing', icon: Sparkles, shortcut: 'b' },
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, shortcut: 'd' },
       { id: 'calendar', label: 'Calendar', icon: Calendar, shortcut: 'c' },
-      { id: 'clients', label: 'Clients', icon: Building2, badgeKey: 'activeClients', shortcut: 'l' },
-      { id: 'contacts', label: 'Contacts', icon: Users, shortcut: 'n' },
-      { id: 'projects', label: 'Projects', icon: Kanban, badgeKey: 'openProjects', shortcut: 'p' },
-      { id: 'tasks', label: 'Tasks', icon: CheckSquare, badgeKey: 'openTasks', shortcut: 't' },
-      { id: 'meetings', label: 'Meetings', icon: MessageSquare, shortcut: 'm' },
-      { id: 'gmail', label: 'Gmail', icon: Inbox, shortcut: 'e' },
-      { id: 'drive', label: 'Google Drive', icon: HardDrive },
-      { id: 'agents', label: 'AI Agents', icon: Bot, shortcut: 'a' },
+      { id: 'gmail', label: 'Inbox', icon: Inbox, shortcut: 'e' },
     ],
     quickCreateAction: 'quickAdd',
+  },
+  {
+    key: 'clients',
+    label: 'Clients',
+    items: [
+      { id: 'clients', label: 'Clients', icon: Building2, badgeKey: 'activeClients', shortcut: 'l' },
+      { id: 'projects', label: 'Projects', icon: Kanban, badgeKey: 'openProjects', shortcut: 'p' },
+      { id: 'tasks', label: 'Tasks', icon: CheckSquare, badgeKey: 'openTasks', shortcut: 't' },
+    ],
+  },
+  {
+    key: 'growth',
+    label: 'Growth',
+    items: [
+      { id: 'agents', label: 'AI Agents', icon: Bot, shortcut: 'a' },
+      { id: 'outreach', label: 'Leads & Outreach', icon: Send, badgeKey: 'openLeads', shortcut: 'o' },
+      { id: 'services', label: 'Services', icon: Package },
+      { id: 'templates', label: 'Templates', icon: Mail },
+      { id: 'goals', label: 'Goals', icon: Target, shortcut: 'g' },
+    ],
   },
   {
     key: 'revenue',
@@ -50,42 +63,24 @@ const navGroups: NavGroup[] = [
     items: [
       { id: 'invoices', label: 'Invoices', icon: Receipt, badgeKey: 'unpaidInvoices', shortcut: 'i' },
       { id: 'financials', label: 'Financials', icon: TrendingUp },
-      { id: 'profitability', label: 'Profitability', icon: LineChart },
     ],
     quickCreateAction: 'newInvoice',
-  },
-  {
-    key: 'growth',
-    label: 'Growth',
-    items: [
-      { id: 'outreach', label: 'Outreach', icon: Send, badgeKey: 'openLeads', shortcut: 'o' },
-      { id: 'campaigns', label: 'Campaigns', icon: Megaphone },
-      { id: 'services', label: 'Services', icon: Package },
-      { id: 'templates', label: 'Templates', icon: Mail },
-      { id: 'email-templates', label: 'Email Templates', icon: Mail },
-      { id: 'goals', label: 'Goals', icon: Target, shortcut: 'g' },
-    ],
   },
   {
     key: 'vault',
     label: 'Vault',
     items: [
       { id: 'credentials', label: 'Credentials', icon: KeyRound, shortcut: 'k' },
-      { id: 'brand-assets', label: 'Brand Assets', icon: Palette },
-      { id: 'documents', label: 'Documents', icon: FileText },
+      { id: 'drive', label: 'Files', icon: HardDrive },
+      { id: 'notes', label: 'Notes & SOPs', icon: Pencil },
     ],
   },
   {
-    key: 'operations',
-    label: 'Operations',
+    key: 'system',
+    label: 'System',
     items: [
-      { id: 'sops', label: 'SOPs', icon: BookOpen },
-      { id: 'notes', label: 'Notes', icon: Pencil },
-      { id: 'activity', label: 'Activity', icon: Activity },
-      { id: 'team', label: 'Team', icon: Users },
       { id: 'integrations-settings', label: 'Integrations', icon: Link2 },
       { id: 'settings', label: 'Settings', icon: Settings, shortcut: 's' },
-      { id: 'help', label: 'Help & Guide', icon: HelpCircle, shortcut: '?' },
     ],
   },
   // Admin-only section — only rendered for users whose email is in
@@ -162,6 +157,8 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 
   const searchInputRef = useRef<HTMLInputElement>(null)
   const sidebarRef = useRef<HTMLElement>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const gliderRef = useRef<HTMLSpanElement>(null)
 
   // ── Persist on change ──
   useEffect(() => { localStorage.setItem(LS_PINNED, JSON.stringify(pinned)) }, [pinned])
@@ -408,6 +405,18 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     )
   }
 
+  // Light glider that slides to the active item
+  useLayoutEffect(() => {
+    const body = bodyRef.current
+    const glider = gliderRef.current
+    if (!body || !glider) return
+    const active = body.querySelector<HTMLElement>('.sb-group-items:not(.sb-group-items--collapsed) .sb-item--active')
+    if (!active) { glider.style.opacity = '0'; return }
+    const top = active.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop
+    glider.style.opacity = '1'
+    glider.style.transform = `translateY(${top + active.offsetHeight / 2 - 11}px)`
+  })
+
   return (
     <nav
       ref={sidebarRef}
@@ -456,7 +465,8 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       {/* ── Scrollable body ── */}
-      <div className="sb-body">
+      <div className="sb-body" ref={bodyRef}>
+        <span className="sb-glider" ref={gliderRef} aria-hidden="true" />
         {/* ── Search results ── */}
         {searchMatches && (
           <div className="sb-group">
@@ -489,7 +499,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         )}
 
         {/* ── Recently visited ── */}
-        {!searchMatches && !minimized && recents.filter(r => r !== currentPage && !pinned.includes(r)).length > 0 && (
+        {false && !searchMatches && !minimized && recents.filter(r => r !== currentPage && !pinned.includes(r)).length > 0 && (
           <div className="sb-group">
             <div className="sb-group-header sb-group-header--static">
               <Clock size={10} className="sb-group-icon" />

@@ -2118,3 +2118,293 @@ textarea[class*="border-none"]:focus { box-shadow: none !important; border-color
   .hud-scan, .beam { animation: none; }
   .rv { animation: none; }
 }
+
+/* ==========================================================================
+   COMMAND STAGE — the environment behind every page
+   ========================================================================== */
+
+.stage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% 120%, #0B0B0B 0%, #000 60%);
+}
+[data-theme="light"] .stage { background: radial-gradient(ellipse 120% 80% at 50% 120%, #E9E6E1 0%, var(--color-obsidian) 60%); }
+.stage-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* Searchlight cone from above */
+.stage-light {
+  position: absolute;
+  left: 50%;
+  top: -30%;
+  width: 120%;
+  height: 90%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse 45% 60% at 50% 30%, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 45%, transparent 70%);
+  animation: lightBreathe 9s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+[data-theme="light"] .stage-light { background: radial-gradient(ellipse 45% 60% at 50% 30%, rgba(255, 255, 255, 0.9) 0%, transparent 70%); }
+@keyframes lightBreathe {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+
+/* Radar rings under the searchlight */
+.stage-radar {
+  position: absolute;
+  left: 50%;
+  top: -340px;
+  width: 1100px;
+  height: 1100px;
+  transform: translateX(-50%);
+  mask-image: radial-gradient(circle, #000 0%, #000 45%, transparent 70%);
+  -webkit-mask-image: radial-gradient(circle, #000 0%, #000 45%, transparent 70%);
+}
+.stage-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.045);
+}
+.stage-ring:nth-child(2) { inset: 18%; border-color: rgba(255, 255, 255, 0.055); }
+.stage-ring:nth-child(3) { inset: 34%; border-color: rgba(255, 255, 255, 0.065); border-style: dashed; }
+.stage-sweep {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0deg, transparent 290deg, rgba(255, 255, 255, 0.018) 335deg, rgba(255, 255, 255, 0.045) 359deg, transparent 360deg);
+  filter: blur(6px);
+  animation: radarSweep 12s linear infinite;
+}
+[data-theme="light"] .stage-ring { border-color: rgba(0, 0, 0, 0.05); }
+[data-theme="light"] .stage-sweep { background: conic-gradient(from 0deg, transparent 0deg, transparent 300deg, rgba(0, 0, 0, 0.03) 345deg, rgba(0, 0, 0, 0.06) 359deg, transparent 360deg); }
+@keyframes radarSweep { to { transform: rotate(360deg); } }
+
+/* Perspective grid floor running to a lit horizon */
+.stage-floor {
+  position: absolute;
+  left: -50%;
+  right: -50%;
+  bottom: 0;
+  height: 46%;
+  perspective: 420px;
+  perspective-origin: 50% 0%;
+  mask-image: linear-gradient(180deg, transparent 0%, #000 35%, #000 100%);
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 35%, #000 100%);
+}
+.stage-floor-grid {
+  position: absolute;
+  inset: -100% 0 0 0;
+  transform: rotateX(72deg);
+  transform-origin: 50% 100%;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.075) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.075) 1px, transparent 1px);
+  background-size: 64px 64px;
+  animation: floorRun 3.2s linear infinite;
+}
+[data-theme="light"] .stage-floor-grid {
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+}
+@keyframes floorRun { to { background-position: 0 64px; } }
+.stage-horizon {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 46%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22) 30%, rgba(255, 255, 255, 0.35) 50%, rgba(255, 255, 255, 0.22) 70%, transparent);
+  box-shadow: 0 0 30px 6px rgba(255, 255, 255, 0.05);
+}
+[data-theme="light"] .stage-horizon { background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.12) 50%, transparent); box-shadow: none; }
+.stage-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 90% 80% at 50% 40%, transparent 55%, rgba(0, 0, 0, 0.75) 100%);
+}
+[data-theme="light"] .stage-vignette { display: none; }
+
+/* Content reads cleanly over the stage */
+.hud-stage > .shell-main { background: transparent; }
+
+@media (max-width: 767px) {
+  .stage-radar { width: 700px; height: 700px; top: -260px; }
+  .stage-floor { height: 32%; }
+  .stage-horizon { bottom: 32%; }
+}
+
+/* ── Boot sequence ── */
+.boot {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: grid;
+  place-items: center;
+  background: #000;
+  clip-path: circle(150% at 50% 50%);
+  transition: clip-path 0.8s cubic-bezier(0.7, 0, 0.2, 1), opacity 0.8s ease;
+  cursor: pointer;
+}
+.boot--out { clip-path: circle(0% at 50% 45%); }
+.boot-core { width: 260px; text-align: center; }
+.boot-logo {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 18px;
+  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.45));
+  animation: bootLogo 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes bootLogo {
+  from { opacity: 0; transform: scale(0.85); filter: blur(8px) drop-shadow(0 0 0 transparent); }
+  to { opacity: 1; transform: scale(1); }
+}
+.boot-title {
+  margin: 0 0 22px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: #F2F0EB;
+  animation: rvIn 0.8s 0.15s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.boot-bar { height: 1px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.boot-bar span {
+  display: block;
+  height: 100%;
+  background: #fff;
+  box-shadow: 0 0 12px #fff;
+  transform-origin: left center;
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.boot-checks {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+.boot-checks li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(242, 240, 235, 0.3);
+  transition: color 0.3s;
+}
+.boot-checks li[data-on] { color: #F2F0EB; }
+.boot-light { width: 5px; height: 5px; border-radius: 1px; background: rgba(255, 255, 255, 0.2); transition: background 0.3s, box-shadow 0.3s; }
+.boot-checks li[data-on] .boot-light { background: var(--color-ok); box-shadow: 0 0 8px var(--color-ok); }
+
+/* ── Tabs for merged pages ── */
+.tabbar {
+  position: relative;
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  margin-bottom: 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+[data-theme="light"] .tabbar { border-color: var(--color-border); background: var(--color-surface); }
+.tabbar-indicator {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #DCDAD5 100%);
+  box-shadow: 0 0 18px -4px rgba(255, 255, 255, 0.5);
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-theme="light"] .tabbar-indicator { background: #0A0B0D; box-shadow: none; }
+.tabbar-tab {
+  position: relative;
+  z-index: 1;
+  padding: 7px 16px;
+  border: none;
+  background: none;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 550;
+  white-space: nowrap;
+  color: var(--color-dim);
+  cursor: pointer;
+}
+.tabbar-tab:hover { color: var(--color-polar); }
+.tabbar-tab--active, .tabbar-tab--active:hover { color: #000; }
+[data-theme="light"] .tabbar-tab--active { color: #F2F0EB; }
+.tab-enter { animation: rvIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* ── Sidebar glider ── */
+.sb-body { position: relative; }
+.sb-glider {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2px;
+  height: 22px;
+  border-radius: 0 2px 2px 0;
+  background: #fff;
+  box-shadow: 0 0 14px 2px rgba(255, 255, 255, 0.55), 0 0 2px #fff;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.2s;
+  opacity: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+[data-theme="light"] .sb-glider { background: #000; box-shadow: none; }
+.sb-item--active::before { display: none; }
+
+/* ── Top bar: a signal pulse travels the edge ── */
+.topbar-header::after {
+  background:
+    linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.9) 50%, transparent 100%) no-repeat,
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.16) 50%, rgba(255, 255, 255, 0.04) 100%);
+  background-size: 160px 1px, 100% 1px;
+  background-position: -200px 0, 0 0;
+  animation: signalRun 6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes signalRun {
+  0% { background-position: -200px 0, 0 0; }
+  60%, 100% { background-position: calc(100% + 200px) 0, 0 0; }
+}
+
+/* ── Panels boot in on every page ── */
+.page-enter .stat-card,
+.page-enter .card,
+.page-enter .card-interactive {
+  animation: rvIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.page-enter :is(.stat-card, .card, .card-interactive):nth-child(2) { animation-delay: 50ms; }
+.page-enter :is(.stat-card, .card, .card-interactive):nth-child(3) { animation-delay: 100ms; }
+.page-enter :is(.stat-card, .card, .card-interactive):nth-child(4) { animation-delay: 150ms; }
+.page-enter :is(.stat-card, .card, .card-interactive):nth-child(5) { animation-delay: 200ms; }
+.page-enter :is(.stat-card, .card, .card-interactive):nth-child(6) { animation-delay: 250ms; }
+.page-enter :is(.stat-card, .card, .card-interactive):nth-child(n + 7) { animation-delay: 300ms; }
+
+/* Chart bars rise, lines draw */
+.page-enter svg rect { transform-box: fill-box; transform-origin: 50% 100%; animation: barRise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes barRise { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.page-enter svg path[stroke]:not([stroke="none"]) { stroke-dasharray: 2400; stroke-dashoffset: 2400; animation: lineDraw 1.6s 0.2s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+@keyframes lineDraw { to { stroke-dashoffset: 0; } }
+.page-enter svg.lucide rect, .page-enter svg.lucide path { animation: none; stroke-dasharray: none; stroke-dashoffset: 0; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-sweep, .stage-floor-grid, .stage-light, .topbar-header::after { animation: none; }
+  .page-enter svg path[stroke] { stroke-dashoffset: 0; }
+}

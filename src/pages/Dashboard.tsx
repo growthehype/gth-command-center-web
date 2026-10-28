@@ -1227,12 +1227,6 @@ export default function Dashboard() {
           <div className="card flex flex-col">
             <div className="flex items-center justify-between mb-3">
               <h3 className="section-header" style={{ marginBottom: 0 }}>Recent Activity</h3>
-              <button
-                className="label text-steel hover:text-polar transition-colors cursor-pointer"
-                onClick={() => setCurrentPage('activity')}
-              >
-                View All
-              </button>
             </div>
 
             {recentActivity.length === 0 ? (

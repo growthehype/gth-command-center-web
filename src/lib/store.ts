@@ -129,6 +129,7 @@ interface AppStore {
 
   // UI state
   currentPage: string
+  pageTab: string | null
   selectedClientId: string | null
   selectedProjectId: string | null
   selectedTaskId: string | null
@@ -150,6 +151,7 @@ interface AppStore {
 
   // Actions
   setCurrentPage: (page: string, pushHistory?: boolean) => void
+  setPageTab: (tab: string | null) => void
   setSelectedClientId: (id: string | null) => void
   setSelectedProjectId: (id: string | null) => void
   setSelectedTaskId: (id: string | null) => void
@@ -184,6 +186,21 @@ interface AppStore {
   refreshRunningTimer: () => Promise<void>
 }
 
+/** Merged pages open inside their new home; retired pages fall back to the closest one. */
+export const PAGE_ALIASES: Record<string, [string, string | null]> = {
+  contacts: ['clients', 'contacts'],
+  meetings: ['calendar', 'meetings'],
+  profitability: ['financials', 'profitability'],
+  'email-templates': ['templates', 'email'],
+  sops: ['notes', 'sops'],
+  documents: ['drive', 'documents'],
+  campaigns: ['outreach', null],
+  activity: ['dashboard', null],
+  'brand-assets': ['settings', null],
+  team: ['settings', null],
+  help: ['briefing', null],
+}
+
 export const useAppStore = create<AppStore>((set) => ({
   user: null,
   setUser: (user) => set({ user }),
@@ -200,7 +217,7 @@ export const useAppStore = create<AppStore>((set) => ({
       clients: [], tasks: [], projects: [], invoices: [], leads: [], events: [],
       campaigns: [], contacts: [], meetings: [], services: [], templates: [],
       goals: [], activity: [], credentials: [], sops: [], timeEntries: [],
-      settings: {}, runningTimer: null, currentPage: 'briefing',
+      settings: {}, runningTimer: null, currentPage: 'briefing', pageTab: null,
     })
   },
 
@@ -232,7 +249,7 @@ export const useAppStore = create<AppStore>((set) => ({
   settings: {},
   dataLoaded: false,
 
-  currentPage: 'briefing',
+  currentPage: 'briefing', pageTab: null,
   selectedClientId: null,
   selectedProjectId: null,
   selectedTaskId: null,
@@ -256,14 +273,22 @@ export const useAppStore = create<AppStore>((set) => ({
     set({ theme })
   },
 
-  setCurrentPage: (page, pushHistory = true) => {
+  setCurrentPage: (rawPage, pushHistory = true) => {
+    // Merged and retired pages resolve to their new home (and tab)
+    const alias = PAGE_ALIASES[rawPage]
+    const page = alias ? alias[0] : rawPage
+    const tab = alias ? alias[1] : null
     const prev = useAppStore.getState().currentPage
-    if (page === prev) return
+    if (page === prev) {
+      if (tab !== useAppStore.getState().pageTab) set({ pageTab: tab })
+      return
+    }
     if (pushHistory) {
       window.history.pushState({ page }, '', `#${page}`)
     }
-    set({ currentPage: page })
+    set({ currentPage: page, pageTab: tab })
   },
+  setPageTab: (tab) => set({ pageTab: tab }),
   setSelectedClientId: (id) => set({ selectedClientId: id }),
   setSelectedProjectId: (id) => set({ selectedProjectId: id }),
   setSelectedTaskId: (id) => set({ selectedTaskId: id }),
