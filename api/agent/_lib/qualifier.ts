@@ -560,7 +560,10 @@ export async function qualifyGthLead(lead: any, agentConfig: any, agentRunId: st
     }
     if (!failed.length) { observation = ''; observationKey = '' }
 
-    const fin = finaliseGthScore(pts, adjustment, extraDisq, !lead.website || !!visual?.checked)
+    // 60+ needs proof: a dated design, a problem seen on the page, or a hard technical fail
+    const hasEvidence = !lead.website || design?.verdict === 'dated' || (visual?.findings?.length || 0) > 0 ||
+      pts.breakdown.some(c => c.group === 'need' && c.status === 'fail' && c.points >= 10 && ['https', 'mobile', 'no_website'].includes(c.key))
+    const fin = finaliseGthScore(pts, adjustment, extraDisq, (!lead.website || !!visual?.checked) && hasEvidence)
     if (fin.adjustment === 0) adjustmentReason = ''
     if (!summary) {
       summary = fin.disqualifier
