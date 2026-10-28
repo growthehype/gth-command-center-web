@@ -584,7 +584,7 @@ export async function generatePage(lead: any, slug: string, kit: SiteKit, findin
   ])
   const labels = ['Their current homepage, desktop', 'Their current homepage, phone', 'Their logo (shown on grey)', ...kit.photos.map(p => p.path)]
   shots.forEach((b, i) => { if (b) content.push({ type: 'text', text: labels[i] }, b) })
-  content.push({ type: 'text', text: `Build the homepage concept for ${lead.name} now. Return only the HTML in one code block.` })
+  content.push({ type: 'text', text: `Build the homepage concept for ${lead.name} now. Return only the HTML in one code block.`, cache_control: { type: 'ephemeral' } })
   const system = [
     { type: 'text', text: DESIGN_SYSTEM },
     ...(refs ? [{ type: 'text', text: `SOURCE OF A HOMEPAGE GROW THE HYPE SHIPPED (the bar, not a template):\n\n${refs}`, cache_control: { type: 'ephemeral' } }] : []),

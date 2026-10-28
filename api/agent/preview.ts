@@ -34,6 +34,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (s.status !== 'ready' && s.status !== 'failed') break // one lead at a time
       }
     }
+    // Keep going straight into the next stage instead of waiting for the next cron tick
+    const hop = Number(req.headers['x-chain'] || 0)
+    if (done.length && hop < 16) {
+      const self = `https://${req.headers.host}/api/agent/preview`
+      await fetch(self, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-agent-token': agentToken, 'x-chain': String(hop + 1) },
+        body: '{}',
+        signal: AbortSignal.timeout(2500),
+      }).catch(() => { /* the next call carries on without us */ })
+    }
     return res.status(200).json({ ok: true, done })
   }
 
