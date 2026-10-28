@@ -1,1 +1,14 @@
 # path url
+omna/kit.json https://lihziucupctxwayijeoc.supabase.co/storage/v1/object/public/lead-previews/omna-tax-and-accounting/kit.json
+omna/logo.png https://lihziucupctxwayijeoc.supabase.co/storage/v1/object/public/lead-previews/omna-tax-and-accounting/assets/logo.png
+omna/photo-1.jpg https://lihziucupctxwayijeoc.supabase.co/storage/v1/object/public/lead-previews/omna-tax-and-accounting/assets/photo-1.jpg
+omna/photo-2.jpg https://lihziucupctxwayijeoc.supabase.co/storage/v1/object/public/lead-previews/omna-tax-and-accounting/assets/photo-2.jpg
+omna/photo-3.jpg https://lihziucupctxwayijeoc.supabase.co/storage/v1/object/public/lead-previews/omna-tax-and-accounting/assets/photo-3.jpg
+omna/photo-4.jpg https://lihziucupctxwayijeoc.supabase.co/storage/v1/object/public/lead-previews/omna-tax-and-accounting/assets/photo-4.jpg
+omna/photo-5.jpg https://lihziucupctxwayijeoc.supabase.co/storage/v1/object/public/lead-previews/omna-tax-and-accounting/assets/photo-5.jpg
+omna/photo-6.jpg https://lihziucupctxwayijeoc.supabase.co/storage/v1/object/public/lead-previews/omna-tax-and-accounting/assets/photo-6.jpg
+omna/photo-7.jpg https://lihziucupctxwayijeoc.supabase.co/storage/v1/object/public/lead-previews/omna-tax-and-accounting/assets/photo-7.jpg
+omna/photo-8.jpg https://lihziucupctxwayijeoc.supabase.co/storage/v1/object/public/lead-previews/omna-tax-and-accounting/assets/photo-8.jpg
+trehan/kit.json https://lihziucupctxwayijeoc.supabase.co/storage/v1/object/public/lead-previews/trehan-and-company-accountants-and-tax-consultants/kit.json
+trehan/logo.png https://lihziucupctxwayijeoc.supabase.co/storage/v1/object/public/lead-previews/trehan-and-company-accountants-and-tax-consultants/assets/logo.png
+trehan/photo-1.jpg https://lihziucupctxwayijeoc.supabase.co/storage/v1/object/public/lead-previews/trehan-and-company-accountants-and-tax-consultants/assets/photo-1.jpg
