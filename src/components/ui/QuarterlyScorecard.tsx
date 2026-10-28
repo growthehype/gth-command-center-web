@@ -2,10 +2,12 @@ import { useMemo } from 'react'
 import { startOfQuarter, endOfQuarter, isWithinInterval, parseISO, format, differenceInCalendarDays } from 'date-fns'
 import { useAppStore } from '@/lib/store'
 import { formatCurrency } from '@/lib/utils'
+import CountUp from '@/components/ui/CountUp'
 
 interface StatBlock {
   label: string
-  value: string | number
+  value: number
+  format?: (n: number) => string
   isNonZero: boolean
 }
 
@@ -55,11 +57,11 @@ export default function QuarterlyScorecard() {
     const activitiesLogged = activity.filter((a) => inRange(a.timestamp, qStart, qEnd)).length
 
     return [
-      { label: 'Revenue collected', value: formatCurrency(revenueCollected), isNonZero: revenueCollected > 0 },
+      { label: 'Revenue collected', value: revenueCollected, format: (n: number) => formatCurrency(n), isNonZero: revenueCollected > 0 },
       { label: 'Invoices sent', value: invoicesSent, isNonZero: invoicesSent > 0 },
       { label: 'New clients', value: newClients, isNonZero: newClients > 0 },
       { label: 'Tasks completed', value: tasksCompleted, isNonZero: tasksCompleted > 0 },
-      { label: 'Hours logged', value: hoursLogged > 0 ? hoursLogged.toFixed(1) : '0', isNonZero: hoursLogged > 0 },
+      { label: 'Hours logged', value: Math.round(hoursLogged * 10) / 10, isNonZero: hoursLogged > 0 },
       { label: 'Activities logged', value: activitiesLogged, isNonZero: activitiesLogged > 0 },
     ]
   }, [tasks, invoices, timeEntries, clients, activity, qStart, qEnd])
@@ -70,6 +72,8 @@ export default function QuarterlyScorecard() {
 
   return (
     <section id="quarterly-scorecard" className="qs" aria-labelledby="qs-title">
+      <span className="beam" aria-hidden="true" style={{ animationDuration: '11s' }} />
+      <span className="edge-spot" aria-hidden="true" />
       <header className="qs-head">
         <div>
           <h3 id="qs-title" className="qs-title">{qLabel} Scorecard</h3>
@@ -94,7 +98,7 @@ export default function QuarterlyScorecard() {
         {stats.map((stat) => (
           <div key={stat.label} className="qs-cell" data-live={stat.isNonZero || undefined}>
             <dt className="qs-label">{stat.label}</dt>
-            <dd className="qs-value">{stat.value}</dd>
+            <dd className="qs-value"><CountUp value={stat.value} format={stat.format} /></dd>
           </div>
         ))}
       </dl>

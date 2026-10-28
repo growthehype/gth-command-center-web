@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import CountUp from '@/components/ui/CountUp'
 import Skeleton from '@/components/ui/Skeleton'
 import { format, parseISO, addDays, isWithinInterval, startOfDay, subMonths, startOfMonth, endOfMonth } from 'date-fns'
 import { useAppStore } from '@/lib/store'
@@ -756,7 +757,7 @@ export default function Dashboard() {
           <div className="flex items-end justify-between gap-2">
             <div>
               <div className="stat-value">
-                {formatCurrency(mrr)}
+                <CountUp value={mrr} format={(n) => formatCurrency(n)} />
               </div>
               <div className="stat-label">MRR</div>
               <div style={{ marginTop: '2px' }}>
@@ -777,7 +778,7 @@ export default function Dashboard() {
           <div className="stat-card-accent stat-card-accent--cyan" />
           <div className="flex items-end justify-between gap-2">
             <div>
-              <div className="stat-value">{invoiceCount}</div>
+              <div className="stat-value"><CountUp value={invoiceCount} /></div>
               <div className="stat-label">Invoices</div>
               <div style={{ marginTop: '2px' }}>
                 <PeriodBadge current={currentMonthInvoices.length} previous={prevMonthInvoices.length} />
@@ -793,7 +794,7 @@ export default function Dashboard() {
         >
           <div className="stat-card-accent stat-card-accent--amber" />
           <div className="stat-value">
-            {formatCurrency(invoicePipelineValue + pipelineValue)}
+            <CountUp value={invoicePipelineValue + pipelineValue} format={(n) => formatCurrency(n)} />
             {trendArrow(invoices.filter((i) => i.status !== 'paid').length + leads.filter((l) => l.stage !== 'closed' && l.stage !== 'lost').length)}
           </div>
           <div className="stat-label">Pipeline</div>
@@ -808,7 +809,7 @@ export default function Dashboard() {
           <div className="flex items-end justify-between gap-2">
             <div>
               <div className="stat-value">
-                {openTasks.length}
+                <CountUp value={openTasks.length} />
                 {overdueTaskCount > 0 && (
                   <span className="text-err" style={{ fontSize: '15px', fontWeight: 700, marginLeft: '6px' }}>
                     {overdueTaskCount} overdue
@@ -833,7 +834,7 @@ export default function Dashboard() {
         >
           <div className="stat-card-accent stat-card-accent--purple" />
           <div className="stat-value">
-            {activeProjects.length}
+            <CountUp value={activeProjects.length} />
             {trendArrow(activeProjects.length)}
           </div>
           <div className="stat-label">Active Projects</div>
@@ -848,9 +849,9 @@ export default function Dashboard() {
           <div className="stat-card-accent stat-card-accent--red" />
           <div
             className="stat-value"
-            style={staleClients.length > 0 ? { color: '#FF3333' } : undefined}
+            style={staleClients.length > 0 ? { color: 'var(--color-err)' } : undefined}
           >
-            {staleClients.length}
+            <CountUp value={staleClients.length} />
             {staleClients.length > 0 && trendArrow(-1, true)}
           </div>
           <div className="stat-label">Needs Attention</div>

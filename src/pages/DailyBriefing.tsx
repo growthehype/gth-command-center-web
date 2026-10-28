@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { format, parseISO, isToday, isYesterday, startOfDay } from 'date-fns'
 import { useAppStore } from '@/lib/store'
 import { getGreeting, formatCurrency, isOverdue, daysSince, relativeDate } from '@/lib/utils'
@@ -6,6 +6,7 @@ import { useRelativeTime } from '@/hooks/useRelativeTime'
 import { Plus, ArrowRight, Check } from 'lucide-react'
 import AchievementBadges from '@/components/ui/AchievementBadges'
 import QuarterlyScorecard from '@/components/ui/QuarterlyScorecard'
+import CountUp from '@/components/ui/CountUp'
 import Skeleton from '@/components/ui/Skeleton'
 
 function BriefingSkeleton() {
@@ -87,6 +88,26 @@ const DAILY_QUOTES: { text: string; author: string }[] = [
   { text: 'Entrepreneurs are the only people who will work 80 hours a week to avoid working 40 hours a week.', author: 'Lori Greiner' },
   { text: 'If opportunity doesn\'t knock, build a door.', author: 'Milton Berle' },
 ]
+
+/* Live command-deck clock */
+function LiveClock() {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(t)
+  }, [])
+  return (
+    <div className="brf-clock" aria-label={`Current time ${format(now, 'h:mm a')}`}>
+      <div className="brf-clock-time">
+        {format(now, 'h:mm')}
+        <span className="brf-clock-sec">{format(now, 'ss')}</span>
+      </div>
+      <span className="brf-clock-ampm">
+        {format(now, 'a')} · {new Intl.DateTimeFormat(undefined, { timeZoneName: 'short' }).formatToParts(now).find((p) => p.type === 'timeZoneName')?.value}
+      </span>
+    </div>
+  )
+}
 
 /* Inline component for live-updating relative timestamps */
 function RelativeTime({ date, className, style }: { date: string | null; className?: string; style?: React.CSSProperties }) {
@@ -261,43 +282,67 @@ export default function DailyBriefing() {
 
   const displayName = settings.display_name || 'Omar'
   const quarter = Math.floor(now.getMonth() / 3) + 1
-  const dateLine = `${format(now, 'EEEE, MMMM d')} · Q${quarter} · Week ${format(now, 'I')}`
+  const dateLine = `${format(now, 'EEEE, MMMM d, yyyy')} · Q${quarter} · Week ${format(now, 'I')}`
+  const overdueInvoiceCount = invoices.filter((i) => i.status !== 'paid' && i.due_date && isOverdue(i.due_date)).length
+  const attentionCount = overdueTasks.length + overdueInvoiceCount
 
   return (
     <div className="brf">
-      {/* ---- HEADER ---- */}
-      <header className="brf-head">
-        <p className="brf-date">{dateLine}</p>
-        <h1 className="briefing-greeting">
-          {getGreeting()}, {displayName}.
-        </h1>
-        <div className="brf-sub">
-          {streak > 0 ? (
-            <span className={`streak-badge ${streak >= 7 ? 'streak-badge--hot streak-glow' : 'streak-badge--active'}`}>
-              <span className="brf-light" data-tone={streak >= 7 ? 'warn' : 'info'} aria-hidden="true" />
-              {streak}-day streak
-            </span>
-          ) : (
-            <span className="streak-badge streak-badge--inactive">
-              <span className="brf-light" data-tone="off" aria-hidden="true" />
-              No streak yet. Close a task today to start one.
-            </span>
-          )}
+      {/* ---- COMMAND DECK ---- */}
+      <header className="brf-deck rv" style={{ ['--i' as string]: 0 }}>
+        <span className="beam" aria-hidden="true" />
+        <span className="hud-corners" aria-hidden="true" />
+        <span className="edge-spot" aria-hidden="true" />
+        <div className="brf-deck-top">
+          <span className="brf-live"><span className="brf-live-dot" aria-hidden="true" />Live</span>
+          <span className="brf-deck-meta">{dateLine}</span>
         </div>
-        <blockquote className="brf-quote">
-          <p>&ldquo;{dailyQuote.text}&rdquo;</p>
-          <cite>{dailyQuote.author}</cite>
-        </blockquote>
+        <div className="brf-deck-main">
+          <div>
+            <h1 className="briefing-greeting">
+              {getGreeting()}, {displayName}.
+            </h1>
+            <div className="brf-status">
+              <span className="brf-status-item">
+                <span className="brf-light" data-tone={attentionCount > 0 ? 'err' : 'ok'} aria-hidden="true" />
+                {attentionCount > 0 ? (
+                  <span><strong>{attentionCount}</strong> {attentionCount === 1 ? 'item needs' : 'items need'} your attention</span>
+                ) : (
+                  <span>All clear. Nothing overdue.</span>
+                )}
+              </span>
+              {streak > 0 ? (
+                <span className={`streak-badge ${streak >= 7 ? 'streak-badge--hot streak-glow' : 'streak-badge--active'}`}>
+                  <span className="brf-light" data-tone={streak >= 7 ? 'warn' : 'info'} aria-hidden="true" />
+                  {streak}-day streak
+                </span>
+              ) : (
+                <span className="streak-badge streak-badge--inactive">
+                  <span className="brf-light" data-tone="off" aria-hidden="true" />
+                  No streak yet. Close a task today to start one.
+                </span>
+              )}
+            </div>
+          </div>
+          <LiveClock />
+        </div>
       </header>
+
+      <blockquote className="brf-quote rv" style={{ ['--i' as string]: 1 }}>
+        <p>&ldquo;{dailyQuote.text}&rdquo;</p>
+        <cite>{dailyQuote.author}</cite>
+      </blockquote>
 
       {/* ---- THE SIGNAL: one thing that needs you ---- */}
       {oneThingCard && (
         <section
-          className={`brf-signal ${oneThingCard.tone === 'err' ? 'one-thing-urgent' : ''}`}
+          className={`brf-signal rv ${oneThingCard.tone === 'err' ? 'one-thing-urgent' : ''}`}
+          style={{ ['--i' as string]: 2 }}
           data-tone={oneThingCard.tone}
           aria-label="Needs your attention"
         >
           <span className="brf-signal-beam" aria-hidden="true" />
+          <span className="beam" data-tone={oneThingCard.tone === 'err' ? 'err' : undefined} aria-hidden="true" />
           <div className="brf-signal-body">
             <p className="brf-signal-label">
               <span className="brf-light" data-tone={oneThingCard.tone} aria-hidden="true" />
@@ -319,7 +364,7 @@ export default function DailyBriefing() {
       )}
 
       {/* ---- TODAY'S FOCUS ---- */}
-      <section className="brf-section">
+      <section className="brf-section rv" style={{ ['--i' as string]: 3 }}>
         <div className="brf-section-head">
           <h3 className="section-header" style={{ marginBottom: 0 }}>Today&apos;s focus</h3>
           <div className="brf-actions">
@@ -335,6 +380,7 @@ export default function DailyBriefing() {
         </div>
 
         <div className="brf-board">
+          <span className="edge-spot" aria-hidden="true" />
           {/* Due Today */}
           <div className="brf-col">
             <div className="brf-col-head">
@@ -342,7 +388,7 @@ export default function DailyBriefing() {
                 <span className="brf-light" data-tone={tasksDueToday.length > 0 ? 'info' : 'off'} aria-hidden="true" />
                 Due today
               </span>
-              <span className="brf-count">{tasksDueToday.length}</span>
+              <CountUp className="brf-count" value={tasksDueToday.length} />
             </div>
             <ul className="brf-list">
               {tasksDueToday.length === 0 && <li className="brf-empty">Nothing due today.</li>}
@@ -365,7 +411,7 @@ export default function DailyBriefing() {
                 <span className="brf-light" data-tone={overdueTasks.length > 0 ? 'err' : 'off'} aria-hidden="true" />
                 Overdue
               </span>
-              <span className="brf-count">{overdueTasks.length}</span>
+              <CountUp className="brf-count" value={overdueTasks.length} />
             </div>
             <ul className="brf-list">
               {overdueTasks.length === 0 && <li className="brf-empty">All clear.</li>}
@@ -388,7 +434,7 @@ export default function DailyBriefing() {
                 <span className="brf-light" data-tone={meetingsToday.length > 0 ? 'info' : 'off'} aria-hidden="true" />
                 Meetings today
               </span>
-              <span className="brf-count">{meetingsToday.length}</span>
+              <CountUp className="brf-count" value={meetingsToday.length} />
             </div>
             <ul className="brf-list">
               {meetingsToday.length === 0 && <li className="brf-empty">No meetings scheduled.</li>}
@@ -407,13 +453,13 @@ export default function DailyBriefing() {
       </section>
 
       {/* ---- QUARTERLY SCORECARD ---- */}
-      <section className="brf-section">
+      <section className="brf-section rv" style={{ ['--i' as string]: 4 }}>
         <QuarterlyScorecard />
       </section>
 
       {/* ---- YESTERDAY'S WINS ---- */}
       {yesterdayWins.length > 0 && (
-        <section className="brf-section">
+        <section className="brf-section rv" style={{ ['--i' as string]: 5 }}>
           <div className="brf-section-head">
             <h3 className="section-header" style={{ marginBottom: 0 }}>Yesterday&apos;s wins</h3>
           </div>
@@ -431,7 +477,7 @@ export default function DailyBriefing() {
 
       {/* ---- GOALS PROGRESS ---- */}
       {activeGoals.length > 0 && (
-        <section className="brf-section">
+        <section className="brf-section rv" style={{ ['--i' as string]: 6 }}>
           <div className="brf-section-head">
             <h3 className="section-header" style={{ marginBottom: 0 }}>Goals</h3>
             <button className="brf-link" onClick={() => setCurrentPage('goals')}>
@@ -463,12 +509,12 @@ export default function DailyBriefing() {
       )}
 
       {/* ---- ACHIEVEMENTS ---- */}
-      <section className="brf-section">
+      <section className="brf-section rv" style={{ ['--i' as string]: 7 }}>
         <AchievementBadges streak={streak} />
       </section>
 
       {/* ---- CTA ---- */}
-      <div className="brf-cta">
+      <div className="brf-cta rv" style={{ ['--i' as string]: 8 }}>
         <button className="btn-primary brf-cta-btn" onClick={() => setCurrentPage('dashboard')}>
           Enter Command Center
           <span className="brf-cta-icon" aria-hidden="true"><ArrowRight size={13} /></span>
