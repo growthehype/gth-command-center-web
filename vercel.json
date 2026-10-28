@@ -13,6 +13,10 @@
     "api/agent/cron/tick.ts": {
       "maxDuration": 300,
       "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
+    },
+    "api/agent/cron/hunt.ts": {
+      "maxDuration": 300,
+      "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
     }
   }
 }
