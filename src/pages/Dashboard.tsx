@@ -810,13 +810,11 @@ export default function Dashboard() {
             <div>
               <div className="stat-value">
                 <CountUp value={openTasks.length} />
-                {overdueTaskCount > 0 && (
-                  <span className="text-err" style={{ fontSize: '15px', fontWeight: 700, marginLeft: '6px' }}>
-                    {overdueTaskCount} overdue
-                  </span>
-                )}
               </div>
-              <div className="stat-label">Open Tasks</div>
+              <div className="stat-label">
+                Open tasks
+                {overdueTaskCount > 0 && <span className="text-err"> · {overdueTaskCount} overdue</span>}
+              </div>
               <div style={{ marginTop: '2px' }}>
                 <PeriodBadge current={currentMonthTasksCompleted} previous={prevMonthTasksCompleted} label="completed vs last mo" />
               </div>

@@ -18,7 +18,7 @@ interface Star {
 }
 
 const STAR_COUNT = 150
-const MESH_COUNT = 46
+const MESH_COUNT = 58
 const LINK_DIST = 150
 
 export default function CommandStage() {
@@ -56,7 +56,7 @@ export default function CommandStage() {
       }))
       mesh = Array.from({ length: MESH_COUNT }, () => ({
         x: Math.random() * w,
-        y: Math.random() * h * 0.7,
+        y: Math.random() * h,
         z: 0.5 + Math.random() * 0.5,
         vx: (Math.random() - 0.5) * 0.12,
         vy: (Math.random() - 0.5) * 0.08,
@@ -103,8 +103,8 @@ export default function CommandStage() {
           m.y += m.vy
           if (m.x < -20) m.x = w + 20
           if (m.x > w + 20) m.x = -20
-          if (m.y < -20) m.y = h * 0.7
-          if (m.y > h * 0.7) m.y = -20
+          if (m.y < -20) m.y = h + 20
+          if (m.y > h + 20) m.y = -20
         }
       }
       ctx.lineWidth = 0.6
@@ -175,10 +175,6 @@ export default function CommandStage() {
         <span className="stage-ring" />
         <span className="stage-sweep" />
       </div>
-      <div className="stage-floor">
-        <div className="stage-floor-grid" />
-      </div>
-      <div className="stage-horizon" />
       <div className="stage-light" />
       <div className="stage-vignette" />
     </div>

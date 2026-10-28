@@ -7,7 +7,9 @@ import {
 import { useAppStore } from '@/lib/store'
 import ClientAvatar from '@/components/ui/ClientAvatar'
 import { formatCurrency, relativeDate, daysSince, clientHealth } from '@/lib/utils'
-import { portalTokens } from '@/lib/api'
+import { portalTokens, clients as clientsApi } from '@/lib/api'
+import StatusMenu from '@/components/ui/StatusMenu'
+import { CLIENT_STATUS_OPTIONS } from '@/lib/statuses'
 import { showToast } from '@/components/ui/Toast'
 
 /* ========================================
@@ -244,9 +246,20 @@ export default function ClientDetail() {
               <h1 className="text-polar" style={{ fontSize: '24px', fontWeight: 800, lineHeight: 1.2 }}>
                 {client.name}
               </h1>
-              <span className={STATUS_BADGE[client.status] || 'badge badge-neutral'}>
-                {client.status}
-              </span>
+              <StatusMenu
+                label={`${client.name} status`}
+                value={client.status}
+                options={CLIENT_STATUS_OPTIONS}
+                onChange={async (v) => {
+                  try {
+                    await clientsApi.update(client.id, { status: v })
+                    await useAppStore.getState().refreshClients()
+                    showToast(`${client.name} is now ${(CLIENT_STATUS_OPTIONS.find(o => o.value === v)?.label || v).toLowerCase()}`, 'success')
+                  } catch (err: any) {
+                    showToast(err?.message || 'Failed to update status', 'error')
+                  }
+                }}
+              />
               <span
                 className="inline-block w-2.5 h-2.5 rounded-full"
                 style={{ backgroundColor: health.color }}

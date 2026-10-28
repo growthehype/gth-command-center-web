@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { usePagination } from '@/hooks/usePagination'
 import PaginationBar from '@/components/ui/PaginationBar'
-import { Receipt, Upload, Trash2, ExternalLink, FolderOpen, Pencil, Search, FileText, FileSpreadsheet, Image, Archive, File, Download, DollarSign, Eye, Plus, Send, X, Mail } from 'lucide-react'
+import { Receipt, Upload, Trash2, ExternalLink, FolderOpen, Pencil, Search, FileText, FileSpreadsheet, Image, Archive, File, Download, DollarSign, Eye, Plus, Send, X, Mail, Check, ChevronDown, RotateCcw } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
+import StatusMenu, { type StatusOption } from '@/components/ui/StatusMenu'
 import type { Invoice } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import { formatDate, isValidEmail } from '@/lib/utils'
@@ -89,23 +90,50 @@ function fileIcon(name: string) {
   return <span className={`${base} bg-dim/10`}><File size={14} className="text-dim" /></span>
 }
 
-function getInvoiceStatus(inv: Invoice): { label: string; badgeClass: string } {
-  if (inv.status === 'paid') return { label: 'Paid', badgeClass: 'badge badge-ok' }
-  if (inv.status === 'sent') return { label: 'Sent', badgeClass: 'badge badge-warn' }
-  if (inv.status === 'draft') return { label: 'Draft', badgeClass: 'badge' }
-  if (inv.due_date && new Date(inv.due_date) < new Date()) return { label: 'Overdue', badgeClass: 'badge badge-err' }
-  return { label: 'Pending', badgeClass: 'badge badge-warn' }
+type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue'
+
+const STATUS_OPTIONS: { value: InvoiceStatus; label: string; tone: 'off' | 'warn' | 'ok' | 'err'; hint: string }[] = [
+  { value: 'draft', label: 'Draft', tone: 'off', hint: 'Not sent yet' },
+  { value: 'sent', label: 'Unpaid', tone: 'warn', hint: 'Sent, waiting on payment' },
+  { value: 'paid', label: 'Paid', tone: 'ok', hint: 'Payment received' },
+]
+
+/** Dropdown options for one invoice; an unpaid invoice past its due date reads as Overdue. */
+function statusMenuOptions(inv: Invoice): StatusOption[] {
+  const pastDue = isPastDue(inv)
+  return STATUS_OPTIONS.map(o => ({
+    value: o.value,
+    label: o.value === 'sent' && pastDue ? 'Overdue' : o.label,
+    hint: o.value === 'sent' && pastDue ? 'Unpaid and past due' : o.hint,
+    tone: (o.value === 'sent' && pastDue ? 'err' : o.tone === 'off' ? 'neutral' : o.tone) as StatusOption['tone'],
+  }))
+}
+
+/** Unpaid and past its due date. Matches how Dashboard and Briefing count overdue. */
+function isPastDue(inv: Invoice): boolean {
+  return inv.status !== 'paid' && !!inv.due_date && new Date(inv.due_date) < new Date()
+}
+
+function getInvoiceStatus(inv: Invoice): { label: string; badgeClass: string; tone: 'off' | 'warn' | 'ok' | 'err' } {
+  if (inv.status === 'paid') return { label: 'Paid', badgeClass: 'badge badge-ok', tone: 'ok' }
+  if (inv.status === 'overdue' || (inv.status === 'sent' && isPastDue(inv))) return { label: 'Overdue', badgeClass: 'badge badge-err', tone: 'err' }
+  if (inv.status === 'sent') return { label: 'Unpaid', badgeClass: 'badge badge-warn', tone: 'warn' }
+  if (inv.status === 'draft') return { label: 'Draft', badgeClass: 'badge badge-neutral', tone: 'off' }
+  if (isPastDue(inv)) return { label: 'Overdue', badgeClass: 'badge badge-err', tone: 'err' }
+  return { label: 'Unpaid', badgeClass: 'badge badge-warn', tone: 'warn' }
 }
 
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount)
+  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount)
 }
 
 const todayStr = () => format(new Date(), 'yyyy-MM-dd')
 const defaultDueStr = () => format(addDays(new Date(), 30), 'yyyy-MM-dd')
 
 export default function Invoices() {
-  const { clients, invoices, selectedInvoiceId, setSelectedInvoiceId, refreshInvoices, settings, services, templates: emailTemplates } = useAppStore()
+  const { clients, invoices, selectedInvoiceId, setSelectedInvoiceId, refreshInvoices, settings, services, templates: emailTemplates, demoMode, setSelectedClientId, setCurrentPage } = useAppStore()
+  const [statusFilter, setStatusFilter] = useState<'all' | 'unpaid' | 'overdue' | 'paid' | 'draft'>('all')
+  const [savingStatusIds, setSavingStatusIds] = useState<Set<string>>(new Set())
   const { confirm, ConfirmDialog } = useConfirm()
 
   const [files, setFiles] = useState<InvoiceFile[]>([])
@@ -289,9 +317,24 @@ export default function Invoices() {
   }
 
   /* ── Invoice records (from store) ── */
+  const clientInvoices = useMemo(() => (
+    activeClient === 'all' ? invoices : invoices.filter(i => i.client_id === activeClient)
+  ), [invoices, activeClient])
+
+  const statusCounts = useMemo(() => ({
+    all: clientInvoices.length,
+    unpaid: clientInvoices.filter(i => i.status !== 'paid' && i.status !== 'draft').length,
+    overdue: clientInvoices.filter(i => isPastDue(i) || i.status === 'overdue').length,
+    paid: clientInvoices.filter(i => i.status === 'paid').length,
+    draft: clientInvoices.filter(i => i.status === 'draft').length,
+  }), [clientInvoices])
+
   const filteredInvoices = useMemo(() => {
-    let list = invoices
-    if (activeClient !== 'all') list = list.filter(i => i.client_id === activeClient)
+    let list = clientInvoices
+    if (statusFilter === 'unpaid') list = list.filter(i => i.status !== 'paid' && i.status !== 'draft')
+    else if (statusFilter === 'overdue') list = list.filter(i => isPastDue(i) || i.status === 'overdue')
+    else if (statusFilter === 'paid') list = list.filter(i => i.status === 'paid')
+    else if (statusFilter === 'draft') list = list.filter(i => i.status === 'draft')
     if (debouncedSearch.trim()) {
       const q = debouncedSearch.toLowerCase()
       list = list.filter(i =>
@@ -301,17 +344,79 @@ export default function Invoices() {
       )
     }
     return list
-  }, [invoices, activeClient, debouncedSearch])
+  }, [clientInvoices, statusFilter, debouncedSearch])
+
+  /* ── Status changes: optimistic, undoable, works on one or many ── */
+  const applyStatus = useCallback(async (ids: string[], status: InvoiceStatus) => {
+    if (ids.length === 0) return
+    const before = useAppStore.getState().invoices
+    const nowIso = new Date().toISOString()
+    const patchFor = (inv: Invoice) => ({
+      status,
+      // Keep the original payment date if it was already paid; clear it when un-paying
+      paid_at: status === 'paid' ? (inv.status === 'paid' && inv.paid_at ? inv.paid_at : nowIso) : null,
+      ...(status === 'sent' && !inv.sent_date ? { sent_date: todayStr() } : {}),
+    })
+    const targets = before.filter(i => ids.includes(i.id))
+    const snapshot = targets.map(i => ({ id: i.id, status: i.status, paid_at: i.paid_at ?? null, sent_date: i.sent_date ?? null }))
+
+    useAppStore.setState({ invoices: before.map(i => (ids.includes(i.id) ? { ...i, ...patchFor(i) } : i)) })
+    setSavingStatusIds(prev => new Set([...prev, ...ids]))
+    try {
+      if (!demoMode) {
+        await Promise.all(targets.map(inv => invoicesApi.update(inv.id, patchFor(inv))))
+        await refreshInvoices()
+      }
+      const label = STATUS_OPTIONS.find(o => o.value === status)?.label.toLowerCase() || status
+      showToast(
+        `${ids.length === 1 ? `Invoice ${targets[0]?.num || ''}`.trim() : `${ids.length} invoices`} marked ${label}`,
+        'success',
+        async () => {
+          const current = useAppStore.getState().invoices
+          useAppStore.setState({
+            invoices: current.map(i => {
+              const snap = snapshot.find(sn => sn.id === i.id)
+              return snap ? { ...i, status: snap.status, paid_at: snap.paid_at, sent_date: snap.sent_date } : i
+            }),
+          })
+          try {
+            if (!demoMode) {
+              await Promise.all(snapshot.map(sn => invoicesApi.update(sn.id, { status: sn.status, paid_at: sn.paid_at, sent_date: sn.sent_date })))
+              await refreshInvoices()
+            }
+            showToast('Status change undone', 'info')
+          } catch (err: any) {
+            showToast(err?.message || 'Could not undo the status change', 'error')
+          }
+        },
+      )
+    } catch (err: any) {
+      useAppStore.setState({ invoices: before })
+      showToast(err?.message || 'Failed to update status', 'error')
+    } finally {
+      setSavingStatusIds(prev => {
+        const next = new Set(prev)
+        ids.forEach(id => next.delete(id))
+        return next
+      })
+    }
+  }, [demoMode, refreshInvoices])
+
+  const openClient = (clientId: string | null) => {
+    if (!clientId) return
+    setSelectedClientId(clientId)
+    setCurrentPage('client-detail')
+  }
 
   const invoicePagination = usePagination(filteredInvoices, 25)
 
   const totalOutstanding = useMemo(() =>
-    invoices.filter(i => i.status !== 'paid').reduce((sum, i) => sum + (i.amount || 0), 0),
-  [invoices])
+    clientInvoices.filter(i => i.status !== 'paid').reduce((sum, i) => sum + (i.amount || 0), 0),
+  [clientInvoices])
 
   const totalOverdue = useMemo(() =>
-    invoices.filter(i => i.status !== 'paid' && i.due_date && new Date(i.due_date) < new Date()).reduce((sum, i) => sum + (i.amount || 0), 0),
-  [invoices])
+    clientInvoices.filter(i => isPastDue(i)).reduce((sum, i) => sum + (i.amount || 0), 0),
+  [clientInvoices])
 
   const activeClientName = activeClient === 'all'
     ? 'All Clients'
@@ -783,6 +888,37 @@ export default function Invoices() {
         ))}
       </div>
 
+      {/* Status filter */}
+      {clientInvoices.length > 0 && (
+        <div className="inv-filters" role="tablist" aria-label="Filter invoices by status">
+          {([
+            ['all', 'All'],
+            ['unpaid', 'Unpaid'],
+            ['overdue', 'Overdue'],
+            ['paid', 'Paid'],
+            ['draft', 'Drafts'],
+          ] as const).map(([key, label]) => (
+            <button
+              key={key}
+              role="tab"
+              aria-selected={statusFilter === key}
+              className={`inv-filter ${statusFilter === key ? 'inv-filter--on' : ''} ${key === 'overdue' && statusCounts.overdue > 0 ? 'inv-filter--alert' : ''}`}
+              onClick={() => setStatusFilter(key)}
+            >
+              {label}
+              <span className="inv-filter-count">{statusCounts[key]}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {clientInvoices.length > 0 && filteredInvoices.length === 0 && (
+        <div className="card text-center" style={{ padding: '28px 16px' }}>
+          <p className="text-steel" style={{ fontSize: '13px' }}>No invoices match this filter.</p>
+          <button className="btn-ghost mt-3" onClick={() => setStatusFilter('all')}>Show all invoices</button>
+        </div>
+      )}
+
       {/* Invoice Records */}
       {filteredInvoices.length > 0 && (
         <div className="space-y-3">
@@ -859,9 +995,20 @@ export default function Invoices() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="text-steel truncate block" style={{ fontSize: '12px' }}>
-                      {inv.client_name || '---'}
-                    </span>
+                    {inv.client_id ? (
+                      <button
+                        className="text-steel hover:text-polar hover:underline underline-offset-4 truncate block text-left"
+                        style={{ fontSize: '12px', maxWidth: '100%' }}
+                        onClick={(e) => { e.stopPropagation(); openClient(inv.client_id) }}
+                        title="Open client"
+                      >
+                        {inv.client_name || 'Client'}
+                      </button>
+                    ) : (
+                      <span className="text-steel truncate block" style={{ fontSize: '12px' }}>
+                        {inv.client_name || '---'}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <span className="text-polar font-[600] mono" style={{ fontSize: '13px' }}>
@@ -869,23 +1016,13 @@ export default function Invoices() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-center" onClick={e => e.stopPropagation()}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          if (statusDropdownId === inv.id) {
-                            setStatusDropdownId(null)
-                            setStatusDropdownPos(null)
-                          } else {
-                            const rect = (e.target as HTMLElement).getBoundingClientRect()
-                            setStatusDropdownPos({ top: rect.bottom + 4, left: rect.left + rect.width / 2 - 70 })
-                            setStatusDropdownId(inv.id)
-                          }
-                        }}
-                        className={`${st.badgeClass} cursor-pointer hover:opacity-80 transition-opacity`}
-                        title="Click to change status"
-                      >
-                        {st.label}
-                      </button>
+                    <StatusMenu
+                      label={`Invoice ${inv.num || ''} status`}
+                      value={inv.status === 'overdue' ? 'sent' : inv.status}
+                      options={statusMenuOptions(inv)}
+                      disabled={savingStatusIds.has(inv.id)}
+                      onChange={(v) => applyStatus([inv.id], v as InvoiceStatus)}
+                    />
                   </td>
                   <td className="px-4 py-3">
                     <span className="mono text-dim" style={{ fontSize: '12px' }}>
@@ -898,7 +1035,28 @@ export default function Invoices() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end items-center gap-2">
+                    {inv.status !== 'paid' ? (
+                      <button
+                        onClick={() => applyStatus([inv.id], 'paid')}
+                        className="inv-quick inv-quick--paid"
+                        title="Mark paid"
+                        aria-label={`Mark invoice ${inv.num || ''} paid`}
+                        disabled={savingStatusIds.has(inv.id)}
+                      >
+                        <Check size={12} /> Paid
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => applyStatus([inv.id], 'sent')}
+                        className="inv-quick"
+                        title="Mark unpaid"
+                        aria-label={`Mark invoice ${inv.num || ''} unpaid`}
+                        disabled={savingStatusIds.has(inv.id)}
+                      >
+                        <RotateCcw size={12} /> Unpaid
+                      </button>
+                    )}
                     <button
                       onClick={() => handleDownloadPDF(inv)}
                       className="text-dim hover:text-polar transition-colors"

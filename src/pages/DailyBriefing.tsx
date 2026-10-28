@@ -3,8 +3,7 @@ import { format, parseISO, isToday, isYesterday, startOfDay } from 'date-fns'
 import { useAppStore } from '@/lib/store'
 import { getGreeting, formatCurrency, isOverdue, daysSince, relativeDate } from '@/lib/utils'
 import { useRelativeTime } from '@/hooks/useRelativeTime'
-import { Plus, ArrowRight, Check } from 'lucide-react'
-import AchievementBadges from '@/components/ui/AchievementBadges'
+import { Plus, ArrowRight, Check, ChevronDown } from 'lucide-react'
 import QuarterlyScorecard from '@/components/ui/QuarterlyScorecard'
 import CountUp from '@/components/ui/CountUp'
 import Skeleton from '@/components/ui/Skeleton'
@@ -118,8 +117,23 @@ function RelativeTime({ date, className, style }: { date: string | null; classNa
 export default function DailyBriefing() {
   const {
     clients, tasks, projects, invoices, events, activity, goals, settings,
-    setCurrentPage, dataLoaded,
+    setCurrentPage, dataLoaded, setSelectedClientId, setSelectedTaskId, setSelectedInvoiceId,
   } = useAppStore()
+  const [attentionOpen, setAttentionOpen] = useState(false)
+
+  const openClient = (id?: string | null) => {
+    if (!id) return
+    setSelectedClientId(id)
+    setCurrentPage('client-detail')
+  }
+  const openTask = (id: string) => {
+    setSelectedTaskId(id)
+    setCurrentPage('tasks')
+  }
+  const openInvoice = (id: string) => {
+    setSelectedInvoiceId(id)
+    setCurrentPage('invoices')
+  }
 
   const now = new Date()
   const todayStr = format(now, 'yyyy-MM-dd')
@@ -220,11 +234,15 @@ export default function DailyBriefing() {
     if (overdueInvoice) {
       return {
         label: 'Overdue Invoice',
-        title: `${overdueInvoice.client_name || overdueInvoice.num} — ${formatCurrency(overdueInvoice.amount)}`,
+        title: overdueInvoice.client_name || `Invoice ${overdueInvoice.num}`,
+        amount: formatCurrency(overdueInvoice.amount) as string | undefined,
         detail: 'Due',
         detailDate: overdueInvoice.due_date,
         tone: 'err' as const,
         target: 'invoices',
+        clientId: overdueInvoice.client_id as string | null,
+        open: () => openInvoice(overdueInvoice.id),
+        openLabel: 'Open invoice',
       }
     }
 
@@ -239,6 +257,9 @@ export default function DailyBriefing() {
         detailDate: null as string | null,
         tone: 'warn' as const,
         target: 'clients',
+        clientId: staleClient.id as string | null,
+        open: () => openClient(staleClient.id),
+        openLabel: 'Open client',
       }
     }
 
@@ -251,6 +272,9 @@ export default function DailyBriefing() {
         detailDate: highPriorityOverdue.due_date,
         tone: 'err' as const,
         target: 'tasks',
+        clientId: (highPriorityOverdue.client_id ?? null) as string | null,
+        open: () => openTask(highPriorityOverdue.id),
+        openLabel: 'Open task',
       }
     }
 
@@ -263,6 +287,9 @@ export default function DailyBriefing() {
         detailDate: null as string | null,
         tone: 'info' as const,
         target: 'tasks',
+        clientId: (t.client_id ?? null) as string | null,
+        open: () => openTask(t.id),
+        openLabel: 'Open task',
       }
     }
 
@@ -283,8 +310,8 @@ export default function DailyBriefing() {
   const displayName = settings.display_name || 'Omar'
   const quarter = Math.floor(now.getMonth() / 3) + 1
   const dateLine = `${format(now, 'EEEE, MMMM d, yyyy')} · Q${quarter} · Week ${format(now, 'I')}`
-  const overdueInvoiceCount = invoices.filter((i) => i.status !== 'paid' && i.due_date && isOverdue(i.due_date)).length
-  const attentionCount = overdueTasks.length + overdueInvoiceCount
+  const overdueInvoiceList = invoices.filter((i) => i.status !== 'paid' && i.due_date && isOverdue(i.due_date))
+  const attentionCount = overdueTasks.length + overdueInvoiceList.length
 
   return (
     <div className="brf">
@@ -303,14 +330,22 @@ export default function DailyBriefing() {
               {getGreeting()}, {displayName}.
             </h1>
             <div className="brf-status">
-              <span className="brf-status-item">
-                <span className="brf-light" data-tone={attentionCount > 0 ? 'err' : 'ok'} aria-hidden="true" />
-                {attentionCount > 0 ? (
+              {attentionCount > 0 ? (
+                <button
+                  className="brf-status-item brf-attn-btn"
+                  aria-expanded={attentionOpen}
+                  onClick={() => setAttentionOpen((o) => !o)}
+                >
+                  <span className="brf-light" data-tone="err" aria-hidden="true" />
                   <span><strong>{attentionCount}</strong> {attentionCount === 1 ? 'item needs' : 'items need'} your attention</span>
-                ) : (
+                  <ChevronDown size={14} className={`brf-attn-chev ${attentionOpen ? 'brf-attn-chev--open' : ''}`} />
+                </button>
+              ) : (
+                <span className="brf-status-item">
+                  <span className="brf-light" data-tone="ok" aria-hidden="true" />
                   <span>All clear. Nothing overdue.</span>
-                )}
-              </span>
+                </span>
+              )}
               {streak > 0 ? (
                 <span className={`streak-badge ${streak >= 7 ? 'streak-badge--hot streak-glow' : 'streak-badge--active'}`}>
                   <span className="brf-light" data-tone={streak >= 7 ? 'warn' : 'info'} aria-hidden="true" />
@@ -326,6 +361,29 @@ export default function DailyBriefing() {
           </div>
           <LiveClock />
         </div>
+        {attentionOpen && attentionCount > 0 && (
+          <div className="brf-attn">
+            {overdueInvoiceList.map((inv) => (
+              <button key={`i-${inv.id}`} className="brf-attn-row" onClick={() => openInvoice(inv.id)}>
+                <span className="brf-attn-kind">Invoice</span>
+                <span className="brf-attn-title">{inv.client_name || `Invoice ${inv.num}`} · {formatCurrency(inv.amount)}</span>
+                <RelativeTime date={inv.due_date} className="brf-row-meta brf-row-meta--err" />
+                <ArrowRight size={13} className="brf-attn-go" />
+              </button>
+            ))}
+            {overdueTasks.map((t) => (
+              <button key={`t-${t.id}`} className="brf-attn-row" onClick={() => openTask(t.id)}>
+                <span className="brf-attn-kind">Task</span>
+                <span className="brf-attn-title">
+                  {t.text}
+                  {t.client_name && <span className="brf-attn-client"> · {t.client_name}</span>}
+                </span>
+                <RelativeTime date={t.due_date} className="brf-row-meta brf-row-meta--err" />
+                <ArrowRight size={13} className="brf-attn-go" />
+              </button>
+            ))}
+          </div>
+        )}
       </header>
 
       <blockquote className="brf-quote rv" style={{ ['--i' as string]: 1 }}>
@@ -348,7 +406,14 @@ export default function DailyBriefing() {
               <span className="brf-light" data-tone={oneThingCard.tone} aria-hidden="true" />
               {oneThingCard.label}
             </p>
-            <p className="brf-signal-title">{oneThingCard.title}</p>
+            <p className="brf-signal-title">
+              {oneThingCard.clientId ? (
+                <button className="brf-signal-link" onClick={() => openClient(oneThingCard.clientId)}>{oneThingCard.title}</button>
+              ) : (
+                oneThingCard.title
+              )}
+              {'amount' in oneThingCard && oneThingCard.amount && <span className="brf-signal-amount"> · {oneThingCard.amount}</span>}
+            </p>
             <p className="brf-signal-detail">
               {oneThingCard.detail}
               {oneThingCard.detailDate && (
@@ -356,10 +421,17 @@ export default function DailyBriefing() {
               )}
             </p>
           </div>
-          <button className="btn-ghost brf-signal-btn" onClick={() => setCurrentPage(oneThingCard.target)}>
-            Open
-            <ArrowRight size={13} />
-          </button>
+          <div className="brf-signal-actions">
+            {oneThingCard.clientId && oneThingCard.target !== 'clients' && (
+              <button className="btn-ghost brf-signal-btn" onClick={() => openClient(oneThingCard.clientId)}>
+                View client
+              </button>
+            )}
+            <button className="btn-primary brf-signal-btn" onClick={oneThingCard.open}>
+              {oneThingCard.openLabel}
+              <ArrowRight size={13} />
+            </button>
+          </div>
         </section>
       )}
 
@@ -393,7 +465,7 @@ export default function DailyBriefing() {
             <ul className="brf-list">
               {tasksDueToday.length === 0 && <li className="brf-empty">Nothing due today.</li>}
               {tasksDueToday.slice(0, 4).map((t) => (
-                <li key={t.id} className="brf-row">
+                <li key={t.id} className="brf-row brf-row--link" role="button" tabIndex={0} onClick={() => openTask(t.id)} onKeyDown={(e) => { if (e.key === 'Enter') openTask(t.id) }}>
                   <span className="brf-row-text">{t.text}</span>
                   {t.client_name && <span className="brf-row-meta">{t.client_name}</span>}
                 </li>
@@ -416,7 +488,7 @@ export default function DailyBriefing() {
             <ul className="brf-list">
               {overdueTasks.length === 0 && <li className="brf-empty">All clear.</li>}
               {overdueTasks.slice(0, 4).map((t) => (
-                <li key={t.id} className="brf-row">
+                <li key={t.id} className="brf-row brf-row--link" role="button" tabIndex={0} onClick={() => openTask(t.id)} onKeyDown={(e) => { if (e.key === 'Enter') openTask(t.id) }}>
                   <span className="brf-row-text">{t.text}</span>
                   <RelativeTime date={t.due_date} className="brf-row-meta brf-row-meta--err" />
                 </li>
@@ -439,7 +511,7 @@ export default function DailyBriefing() {
             <ul className="brf-list">
               {meetingsToday.length === 0 && <li className="brf-empty">No meetings scheduled.</li>}
               {meetingsToday.slice(0, 4).map((e) => (
-                <li key={e.id} className="brf-row">
+                <li key={e.id} className="brf-row brf-row--link" role="button" tabIndex={0} onClick={() => setCurrentPage('calendar')} onKeyDown={(ev) => { if (ev.key === 'Enter') setCurrentPage('calendar') }}>
                   <span className="brf-row-text">{e.title}</span>
                   <span className="brf-row-meta">{e.start_time?.slice(0, 5)}</span>
                 </li>
@@ -492,7 +564,7 @@ export default function DailyBriefing() {
                   ? Math.min(Math.round(((g.current_value || 0) / g.target_value) * 100), 100)
                   : 0
               return (
-                <div className="brf-goal" key={g.id}>
+                <button className="brf-goal" key={g.id} onClick={() => setCurrentPage('goals')}>
                   <div className="brf-goal-title">{g.title}</div>
                   <div className="brf-goal-track">
                     <div className="brf-goal-fill" data-done={pct >= 100 || undefined} style={{ transform: `scaleX(${pct / 100})` }} />
@@ -501,17 +573,13 @@ export default function DailyBriefing() {
                     <span className={pct >= 100 ? 'text-ok' : ''}>{pct}%</span>
                     {g.target_date && <span>{format(parseISO(g.target_date), 'MMM d')}</span>}
                   </div>
-                </div>
+                </button>
               )
             })}
           </div>
         </section>
       )}
 
-      {/* ---- ACHIEVEMENTS ---- */}
-      <section className="brf-section rv" style={{ ['--i' as string]: 7 }}>
-        <AchievementBadges streak={streak} />
-      </section>
 
       {/* ---- CTA ---- */}
       <div className="brf-cta rv" style={{ ['--i' as string]: 8 }}>

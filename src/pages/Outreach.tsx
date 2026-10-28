@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, DragEvent } from 'react'
+import StatusMenu, { type StatusOption } from '@/components/ui/StatusMenu'
 import { Target, Plus, Trash2, ChevronUp, ChevronDown, Search, AlertTriangle, Clock, List, Columns3, Download, Bot, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { useAppStore, OutreachLead } from '@/lib/store'
 import { outreach } from '@/lib/api'
@@ -15,6 +16,22 @@ import { useDebounce } from '@/hooks/useDebounce'
 
 const STAGES = ['New Lead', 'Contacted', 'Responded', 'Meeting Set', 'Closed Won', 'Closed Lost'] as const
 type Stage = (typeof STAGES)[number]
+
+const STAGE_OPTIONS: StatusOption[] = [
+  { value: 'New Lead', label: 'New lead', tone: 'neutral' },
+  { value: 'Contacted', label: 'Contacted', tone: 'warn' },
+  { value: 'Responded', label: 'Responded', tone: 'info' },
+  { value: 'Meeting Set', label: 'Meeting set', tone: 'info' },
+  { value: 'Closed Won', label: 'Won', tone: 'ok' },
+  { value: 'Closed Lost', label: 'Lost', tone: 'err' },
+]
+
+/** Agent-created leads use slug stages (e.g. "new-lead"); show them on the same scale. */
+function normalizeStage(stage: string | null | undefined): string {
+  if (!stage) return 'New Lead'
+  const hit = STAGES.find(s => s.toLowerCase().replace(/\s+/g, '-') === stage.toLowerCase())
+  return hit || stage
+}
 
 const STAGE_BADGE: Record<string, string> = {
   'New Lead': 'badge badge-neutral',
@@ -234,7 +251,7 @@ export default function Outreach() {
     const result: Record<string, { count: number; value: number }> = {}
     STAGES.forEach(s => { result[s] = { count: 0, value: 0 } })
     visibleLeads.forEach(l => {
-      const s = l.stage || 'New Lead'
+      const s = normalizeStage(l.stage)
       if (result[s]) {
         result[s].count++
         result[s].value += l.deal_value || 0
@@ -254,7 +271,7 @@ export default function Outreach() {
     STAGES.forEach(s => { result[s] = [] })
     const q = debouncedSearch.trim().toLowerCase()
     visibleLeads.forEach(l => {
-      const s = (l.stage || 'New Lead') as string
+      const s = normalizeStage(l.stage)
       if (!result[s]) result[s] = []
       if (q) {
         const match =
@@ -283,7 +300,7 @@ export default function Outreach() {
       let cmp = 0
       if (sortKey === 'name') cmp = (a.name || '').localeCompare(b.name || '')
       else if (sortKey === 'deal_value') cmp = (a.deal_value || 0) - (b.deal_value || 0)
-      else if (sortKey === 'stage') cmp = STAGES.indexOf(a.stage as Stage) - STAGES.indexOf(b.stage as Stage)
+      else if (sortKey === 'stage') cmp = STAGES.indexOf(normalizeStage(a.stage) as Stage) - STAGES.indexOf(normalizeStage(b.stage) as Stage)
       return sortDir === 'asc' ? cmp : -cmp
     })
     return list
@@ -301,14 +318,12 @@ export default function Outreach() {
       : <ChevronDown size={10} className="text-polar ml-1 inline" />
   }
 
-  const cycleStage = async (lead: OutreachLead, e: React.MouseEvent) => {
-    e.stopPropagation()
-    const idx = STAGES.indexOf(lead.stage as Stage)
-    const next = STAGES[(idx + 1) % STAGES.length]
+  const setLeadStage = async (lead: OutreachLead, next: string) => {
+    if (next === lead.stage) return
     try {
       await outreach.update(lead.id, { stage: next })
       await refreshLeads()
-      showToast(`${lead.name} -> ${next}`, 'success')
+      showToast(`${lead.name} moved to ${next}`, 'success')
     } catch (err: any) { showToast(err?.message || 'Failed to update stage', 'error') }
   }
 
@@ -749,12 +764,12 @@ export default function Outreach() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <button
-                          onClick={(e) => cycleStage(lead, e)}
-                          className={STAGE_BADGE[lead.stage] || 'badge badge-neutral'}
-                        >
-                          {lead.stage}
-                        </button>
+                        <StatusMenu
+                          label={`${lead.name} stage`}
+                          value={normalizeStage(lead.stage)}
+                          options={STAGE_OPTIONS}
+                          onChange={(v) => setLeadStage(lead, v)}
+                        />
                       </td>
                       <td className="px-4 py-3 text-right mono text-steel">{formatCurrency(lead.deal_value)}</td>
                       <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>

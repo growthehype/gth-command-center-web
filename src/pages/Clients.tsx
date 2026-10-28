@@ -1,4 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import StatusMenu from '@/components/ui/StatusMenu'
+import { CLIENT_STATUS_OPTIONS } from '@/lib/statuses'
 import { useDebounce } from '@/hooks/useDebounce'
 import { usePagination } from '@/hooks/usePagination'
 import PaginationBar from '@/components/ui/PaginationBar'
@@ -28,7 +30,7 @@ const STATUS_BADGE: Record<string, string> = {
   active: 'badge badge-ok',
   prospect: 'badge badge-warn',
   paused: 'badge badge-neutral',
-  done: 'badge badge-err',
+  done: 'badge badge-neutral',
 }
 
 const FILTER_LABELS: Record<string, string> = {
@@ -198,16 +200,20 @@ export default function Clients() {
       : <ChevronDown size={10} className="text-polar ml-1 inline" />
   }
 
-  // Status cycle
-  const cycleStatus = async (client: Client, e: React.MouseEvent) => {
-    e.stopPropagation()
-    const idx = STATUSES.indexOf(client.status as ClientStatus)
-    const next = STATUSES[(idx + 1) % STATUSES.length]
+  // Status change (dropdown); cycleStatus kept for the context-menu shortcut
+  const setClientStatus = async (client: Client, next: string) => {
+    if (next === client.status) return
     try {
       await clientsApi.update(client.id, { status: next })
       await refreshClients()
-      showToast(`${client.name} → ${next}`, 'success')
+      const label = CLIENT_STATUS_OPTIONS.find(o => o.value === next)?.label || next
+      showToast(`${client.name} is now ${label.toLowerCase()}`, 'success')
     } catch (err: any) { showToast(err?.message || 'Failed to update status', 'error') }
+  }
+  const cycleStatus = async (client: Client, e: React.MouseEvent) => {
+    e?.stopPropagation?.()
+    const idx = STATUSES.indexOf(client.status as ClientStatus)
+    await setClientStatus(client, STATUSES[(idx + 1) % STATUSES.length])
   }
 
   // Create / Edit
@@ -452,12 +458,12 @@ export default function Clients() {
                       <td className="py-2.5 px-3 text-steel">{c.service || '\u2014'}</td>
                       <td className="py-2.5 px-3 mono">{c.retainer || formatCurrency(c.mrr)}</td>
                       <td className="py-2.5 px-3">
-                        <button
-                          onClick={(e) => cycleStatus(c, e)}
-                          className={STATUS_BADGE[c.status] || 'badge badge-neutral'}
-                        >
-                          {c.status}
-                        </button>
+                        <StatusMenu
+                          label={`${c.name} status`}
+                          value={c.status}
+                          options={CLIENT_STATUS_OPTIONS}
+                          onChange={(v) => setClientStatus(c, v)}
+                        />
                       </td>
                       <td
                         className="py-2.5 px-3 text-dim mono"
@@ -555,6 +561,7 @@ export default function Clients() {
               meetings={meetings}
               timeEntries={timeEntries}
               onEdit={() => openEdit(selectedClient)}
+              onStatus={(v) => setClientStatus(selectedClient, v)}
               onDelete={() => deleteClient(selectedClient.id)}
               onClose={() => setSelectedId(null)}
               refreshClients={refreshClients}
@@ -713,7 +720,7 @@ function ClientForm({
 function ClientDrawer({
   client, tab, setTab,
   tasks, projects, invoices, contacts, credentials, meetings, timeEntries,
-  onEdit, onDelete, onClose,
+  onEdit, onDelete, onClose, onStatus,
   refreshClients, refreshContacts, refreshActivity,
 }: {
   client: Client
@@ -729,6 +736,7 @@ function ClientDrawer({
   onEdit: () => void
   onDelete: () => void
   onClose: () => void
+  onStatus: (status: string) => void
   refreshClients: () => Promise<void>
   refreshContacts: () => Promise<void>
   refreshActivity: () => Promise<void>
@@ -743,7 +751,7 @@ function ClientDrawer({
         <div className="flex items-center gap-3">
           <Building2 size={16} className="text-steel" />
           <h2 className="text-polar" style={{ fontSize: '16px' }}>{client.name}</h2>
-          <span className={STATUS_BADGE[client.status] || 'badge badge-neutral'}>{client.status}</span>
+          <StatusMenu label={`${client.name} status`} value={client.status} options={CLIENT_STATUS_OPTIONS} onChange={onStatus} />
         </div>
         <div className="flex items-center gap-2">
           <button onClick={onEdit} className="btn-ghost" style={{ fontSize: '10px', padding: '4px 10px' }}>Edit</button>
