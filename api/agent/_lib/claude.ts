@@ -163,13 +163,37 @@ export async function askClaude(params: AskClaudeParams): Promise<any> {
 
   if (params.tools && params.tools.length > 0) {
     body.tools = params.tools
-    // Force the structured tool so we always get parseable output
-    if (params.tools.length === 1) body.tool_choice = { type: 'tool', name: params.tools[0].name }
+    // Ask for the structured tool. Some newer models reject a forced
+    // tool_choice, so we only force it on models that allow it and
+    // otherwise instruct the model to call the tool.
+    if (params.tools.length === 1) {
+      // The writing model rejects a forced tool, so it gets 'auto' plus the instruction
+      body.tool_choice = params.tier === 'fast'
+        ? { type: 'tool', name: params.tools[0].name }
+        : { type: 'auto' }
+      body.system = `${params.systemPrompt}\n\nAlways answer by calling the ${params.tools[0].name} tool. Do not reply with plain text.`
+    }
   }
 
   let r = await callMessages(apiKey, body)
 
-  const modelMissing = !r.ok && (r.status === 404 || JSON.stringify(r.data).includes('not_found'))
+  // Self-heal on request shapes a model doesn't accept, then retry once.
+  const errText = (x: typeof r) => JSON.stringify(x.data || '')
+  if (!r.ok && r.status === 400) {
+    const msg = errText(r)
+    let patched = false
+    if (/tool_choice/i.test(msg) && body.tool_choice) {
+      body.tool_choice = { type: 'auto' }
+      patched = true
+    }
+    if (/temperature/i.test(msg) && 'temperature' in body) {
+      delete body.temperature
+      patched = true
+    }
+    if (patched) r = await callMessages(apiKey, body)
+  }
+
+  const modelMissing = !r.ok && (r.status === 404 || errText(r).includes('not_found'))
   if (modelMissing) {
     r = await callMessages(apiKey, { ...body, model: MODEL_FALLBACK })
   }
@@ -199,5 +223,13 @@ export function extractText(response: any): string {
 export function extractToolUse(response: any): any | null {
   if (!response?.content) return null
   const toolBlock = response.content.find((b: any) => b.type === 'tool_use')
-  return toolBlock ? { name: toolBlock.name, input: toolBlock.input } : null
+  if (toolBlock) return { name: toolBlock.name, input: toolBlock.input }
+  // Fallback: the model answered in text. Pull the first JSON object out.
+  const text = extractText(response)
+  const start = text.indexOf('{')
+  const end = text.lastIndexOf('}')
+  if (start >= 0 && end > start) {
+    try { return { name: 'text_json', input: JSON.parse(text.slice(start, end + 1)) } } catch { /* not JSON */ }
+  }
+  return null
 }

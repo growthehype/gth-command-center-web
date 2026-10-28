@@ -108,7 +108,7 @@ async function generateEmailsForLead(
         tools,
       })
       const toolResult = extractToolUse(response)
-      if (toolResult && (toolResult.name === toolName)) {
+      if (toolResult && (toolResult.name === toolName || toolResult.name === 'text_json')) {
         return {
           subject: toolResult.input.subject || 'Quick question',
           body: toolResult.input.body || '',
