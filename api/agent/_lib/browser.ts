@@ -23,12 +23,18 @@ export interface BrowserCapture {
   viewportMeta: boolean
 }
 
-const BOOKING_RE = /calendly|janeapp|jane\.app|acuityscheduling|squareup\.com\/appointments|clinicsense|noterro|cliniko|mindbody|vagaro|fresha|booksy|setmore|simplybook|zocdoc|nexhealth|localmed|carecru|housecallpro|jobber|servicetitan|book\.dental|dentalhub|opencare/i
+const BOOKING_RE = /opentable|resy\.com|exploretock|toasttab|skipthedishes|doordash|ubereats|clover\.com\/online|square\.site|calendly|janeapp|jane\.app|acuityscheduling|squareup\.com\/appointments|clinicsense|noterro|cliniko|mindbody|vagaro|fresha|booksy|setmore|simplybook|zocdoc|nexhealth|localmed|carecru|housecallpro|jobber|servicetitan|book\.dental|dentalhub|opencare/i
+
+// Pages run in parallel, so none of them may be throttled as a "background tab"
+// (otherwise screenshots in the other tabs hang)
+const NO_THROTTLE = ['--disable-background-timer-throttling', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding']
+
+let exePath: Promise<string> | null = null
 
 async function launch() {
   const puppeteer = (await import('puppeteer-core')).default
   if (process.env.CHROME_PATH) {
-    return puppeteer.launch({ executablePath: process.env.CHROME_PATH, headless: true, args: ['--no-sandbox'] })
+    return puppeteer.launch({ executablePath: process.env.CHROME_PATH, headless: true, args: ['--no-sandbox', ...NO_THROTTLE] })
   }
   // Vercel runs on Amazon Linux 2023 but doesn't set the Lambda env vars
   // @sparticuz/chromium looks for, so it never unpacks the shared libraries
@@ -37,10 +43,12 @@ async function launch() {
     process.env.AWS_LAMBDA_JS_RUNTIME = 'nodejs22.x'
   }
   const chromium = (await import('@sparticuz/chromium')).default
+  // Unpack the binary once; parallel unpacking races ("spawn ETXTBSY")
+  if (!exePath) exePath = chromium.executablePath()
   return puppeteer.launch({
-    args: chromium.args,
+    args: [...chromium.args, ...NO_THROTTLE],
     defaultViewport: null,
-    executablePath: await chromium.executablePath(),
+    executablePath: await exePath,
     headless: true,
   })
 }
@@ -65,11 +73,17 @@ export async function captureWithBrowser(url: string, timeoutMs = 25_000): Promi
   try {
     browser = await launch()
   } catch (err: any) {
+    exePath = null
     return { ...empty, error: `browser could not start: ${String(err?.message || err).slice(0, 160)}` }
   }
 
+  const opened: any[] = []
   try {
     const page = await browser.newPage()
+    opened.push(page)
+    // Look like a normal visitor: many small-business hosts block obvious bots
+    await page.evaluateOnNewDocument(() => { Object.defineProperty(navigator, 'webdriver', { get: () => undefined }) })
+    await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-CA,en;q=0.9' })
     await page.setUserAgent(UA_DESKTOP)
     await page.setViewport({ width: 1366, height: 860, deviceScaleFactor: 1 })
 
@@ -160,6 +174,7 @@ export async function captureWithBrowser(url: string, timeoutMs = 25_000): Promi
     let mobileTop: string | null = null
     try {
       const m = await browser.newPage()
+      opened.push(m)
       await m.setUserAgent(UA_MOBILE)
       await m.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true })
       await m.goto(page.url(), { waitUntil: 'domcontentloaded', timeout: timeoutMs })

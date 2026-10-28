@@ -499,6 +499,7 @@ export async function qualifyGthLead(lead: any, agentConfig: any, agentRunId: st
       areas: Array.isArray(inner.search_areas) && inner.search_areas.length ? inner.search_areas : GTH_SEARCH_AREAS,
       audit,
       design: design ? { verdict: design.verdict, note: design.note, perf: psi?.perfMobile ?? null } : { verdict: 'unknown', perf: psi?.perfMobile ?? null },
+      visualFindings: visual?.checked ? visual.findings : undefined,
     })
 
     // 4. Claude reviews the whole picture (small, bounded adjustment)
@@ -733,7 +734,7 @@ async function pendingLeads(userId: string, cfg: any, n: number): Promise<any[]>
   const sb = getAdminClient()
   const { data } = await sb.from('outreach_leads').select('*')
     .eq('user_id', userId).eq('agent_config_id', cfg.id)
-    .order('created_at', { ascending: false }).limit(1000)
+    .order('created_at', { ascending: true }).limit(1000)
   const todo = (data || []).filter(l => !isV2(l) && l.enrichment_data?.user_feedback !== 'bad')
   return todo.slice(0, n)
 }

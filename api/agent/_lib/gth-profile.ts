@@ -138,6 +138,8 @@ export interface GthScoreInput {
     ctaWithoutAction?: boolean | null
   } | null
   design: { verdict: 'dated' | 'average' | 'modern' | 'unknown'; note?: string; perf?: number | null } | null
+  /** Problems Claude actually saw on screen, with evidence */
+  visualFindings?: { key: string; claim: string; evidence: string }[]
   now?: Date
 }
 
@@ -157,15 +159,17 @@ const CORPORATE_TYPES = /\b(hospital|local_government_office|city_hall|courthous
 
 const CLINIC_RE = /dental|dentist|orthodont|chiro|physio|massage|med ?spa|medspa|optomet|eye care|wellness|naturopath|audiolog|hearing|clinic|vet|veterinar|acupunct|counsel|psycholog|therap|skin|aesthetic|denturist|podiatr/i
 const TRADES_RE = /contractor|plumb|hvac|heating|furnace|roof|electric|landscap|renovat|flooring|kitchen|bath|construction|builder|paint|carpent|window|door|concrete|fence|deck|auto ?body|collision|mechanic|garage|cleaning|moving|pest|pool|gutter|tree service|snow|handyman|restoration|glass/i
+const FOOD_RE = /restaurant|caf[eé]|coffee|bistro|bakery|pizza|sushi|ramen|pho|vietnamese|thai|indian|italian|grill|diner|eatery|brewery|brewpub|pub\b|bar\b|steakhouse|burger|shawarma|taco|bbq|barbecue|dessert|catering|food/i
 const PRO_RE = /account|cpa|bookkeep|tax|law|lawyer|legal|attorney|notary|financial|wealth|mortgage|insurance|consult|property manag|real estate|architect|engineer|surveyor|appraiser/i
 
-export type Vertical = 'clinic' | 'trades' | 'professional' | 'other'
+export type Vertical = 'clinic' | 'trades' | 'professional' | 'restaurant' | 'other'
 
 export function verticalOf(input: Pick<GthScoreInput, 'industry' | 'searchQuery' | 'name' | 'types'>): Vertical {
   const hay = [input.searchQuery, input.industry, (input.types || []).join(' '), input.name].filter(Boolean).join(' ')
   // Search query is the most reliable label, so test it first on its own
   for (const src of [input.searchQuery || '', hay]) {
     if (!src) continue
+    if (FOOD_RE.test(src) && !/kitchen renovation|kitchen cabinet/i.test(src)) return 'restaurant'
     if (CLINIC_RE.test(src)) return 'clinic'
     if (TRADES_RE.test(src)) return 'trades'
     if (PRO_RE.test(src)) return 'professional'
@@ -203,7 +207,7 @@ export function scoreGthLead(input: GthScoreInput): GthScore {
   } else {
     add({ key: 'site_down', group: 'need', label: 'Website loads', points: 0, max: 30, status: 'pass', detail: 'Loads fine' })
 
-    const designPts = verdict === 'dated' ? 25 : verdict === 'average' ? 10 : 0
+    const designPts = verdict === 'dated' ? 25 : verdict === 'average' ? 15 : 0
     add({
       key: 'design', group: 'need', label: 'Design looks current', points: designPts, max: 25,
       status: verdict === 'unknown' ? 'unknown' : designPts > 0 ? 'fail' : 'pass',
@@ -239,13 +243,25 @@ export function scoreGthLead(input: GthScoreInput): GthScore {
       say: `your site says "${a.ctaPhrase}" but there's no way to actually do that online`,
     })
 
-    const expectsBooking = vertical === 'clinic' || vertical === 'trades'
+    const expectsBooking = vertical === 'clinic' || vertical === 'trades' || vertical === 'restaurant'
     const bookingGap = expectsBooking && !a.hasOnlineBooking
     add({
       key: 'booking', group: 'need', label: 'Online booking or requests', points: bookingGap ? 6 : 0, max: expectsBooking ? 6 : 0,
       status: a.hasOnlineBooking ? 'pass' : expectsBooking ? 'fail' : 'pass',
       detail: a.hasOnlineBooking ? (a.bookingTool || 'Yes') : expectsBooking ? 'None found' : 'Not something clients expect from this kind of firm',
-      say: vertical === 'trades' ? "there's no way to request a quote or book online" : "there's no way to book an appointment online",
+      say: vertical === 'trades' ? "there's no way to request a quote or book online" : vertical === 'restaurant' ? "there's no way to reserve a table or order online from your site" : "there's no way to book an appointment online",
+    })
+  }
+  // Problems seen on screen (with evidence) that the checks above don't already cover
+  if (a && a.reachable) {
+    const covered = new Set(['design', 'footer_year', 'no_booking', 'not_mobile'])
+    const seen = (input.visualFindings || []).filter(f => !covered.has(f.key))
+    const pts = Math.min(15, seen.length * 5)
+    add({
+      key: 'visible_issues', group: 'need', label: 'Problems visible on the page', points: pts, max: 15,
+      status: input.visualFindings == null ? 'unknown' : pts ? 'fail' : 'pass',
+      detail: seen.length ? seen.map(f => f.claim).join('; ') : 'Nothing else stood out',
+      say: seen[0]?.claim || '',
     })
   }
   let need = Math.min(50, checks.filter(c => c.group === 'need').reduce((s, c) => s + c.points, 0))
@@ -258,7 +274,7 @@ export function scoreGthLead(input: GthScoreInput): GthScore {
   const ratingPts = (input.rating ?? 0) >= 4.3 ? 5 : 0
   add({ key: 'rating', group: 'fit', label: 'Well rated (4.3+)', points: ratingPts, max: 5, status: input.rating == null ? 'unknown' : ratingPts ? 'pass' : 'fail', detail: input.rating == null ? 'No rating' : `${input.rating} stars` })
   const coreVertical = vertical !== 'other'
-  add({ key: 'vertical', group: 'fit', label: 'Core industry', points: coreVertical ? 5 : 0, max: 5, status: coreVertical ? 'pass' : 'fail', detail: { clinic: 'Clinic', trades: 'Trades or home services', professional: 'Professional services', other: 'Outside our core industries' }[vertical] })
+  add({ key: 'vertical', group: 'fit', label: 'Core industry', points: coreVertical ? 5 : 0, max: 5, status: coreVertical ? 'pass' : 'fail', detail: { clinic: 'Clinic', trades: 'Trades or home services', professional: 'Professional services', restaurant: 'Restaurant or café', other: 'Outside our core industries' }[vertical] })
   const addr = (input.address || '').toLowerCase()
   const areas = [...new Set([...input.areas.map(cityOf), ...EDMONTON_REGION])]
   const local = !!addr && areas.some(c => c && addr.includes(c))
@@ -275,7 +291,7 @@ export function scoreGthLead(input: GthScoreInput): GthScore {
   if (disqualifier) { need = Math.min(need, 5); fit = 0 }
 
   const strong = checks.some(c => c.group === 'need' && c.points >= 8)
-  const siteGaps = checks.filter(c => c.group === 'need' && c.points > 0 && ['no_website', 'site_down', 'design', 'https', 'mobile', 'speed', 'copyright', 'builder'].includes(c.key)).reduce((s, c) => s + c.points, 0)
+  const siteGaps = checks.filter(c => c.group === 'need' && c.points > 0 && ['no_website', 'site_down', 'design', 'https', 'mobile', 'speed', 'copyright', 'builder', 'visible_issues'].includes(c.key)).reduce((s, c) => s + c.points, 0)
   const flowGaps = checks.filter(c => c.group === 'need' && c.points > 0 && ['cta', 'booking'].includes(c.key)).reduce((s, c) => s + c.points, 0)
   const pitchAngle: GthScore['pitchAngle'] = siteGaps >= 10 && flowGaps > 0 ? 'both' : siteGaps >= flowGaps && siteGaps > 0 ? 'website' : flowGaps > 0 ? 'ai' : 'ai'
 

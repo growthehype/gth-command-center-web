@@ -80,7 +80,7 @@ export function useAgentWorkspace(agent: LeadAgent | null) {
       .eq('agent_config_id', agent.id).limit(5000)
     const rows = (poolRows || []) as any[]
     setPool({
-      screened: rows.length,
+      screened: rows.filter(r => r.qualification_score != null).length,
       unchecked: rows.filter(r => r.version !== 2 || !r.visual || !(r.visual.checked || !r.website || (Number(r.visual.attempts) || 0) >= 3)).length,
       below: rows.filter(r => r.qualification_score != null && r.qualification_score < 60).length,
     })
