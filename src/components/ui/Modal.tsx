@@ -26,7 +26,8 @@ export default function Modal({ open, onClose, title, children, width = '480px' 
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { onCloseRef.current(); return }
+      // Windows only close from the X, never from Escape or a stray click
+      if (e.key === 'Escape') { e.preventDefault(); return }
 
       if (e.key === 'Tab' && containerRef.current) {
         // Query focusable elements fresh on every Tab press so dynamically
@@ -76,7 +77,6 @@ export default function Modal({ open, onClose, title, children, width = '480px' 
     <div
       ref={overlayRef}
       className="fixed inset-0 flex items-center justify-center z-[100] modal-backdrop"
-      onClick={(e) => { if (e.target === overlayRef.current) onCloseRef.current() }}
       role="dialog"
       aria-modal="true"
       aria-label={title}

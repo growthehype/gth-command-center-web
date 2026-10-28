@@ -680,7 +680,7 @@ export default function Projects() {
           return (
             <div
               key={colKey}
-              className="flex flex-col min-h-0 min-w-[280px] flex-1"
+              className="proj-col flex flex-col min-h-0 min-w-[280px] flex-1"
               onDragOver={e => handleDragOver(e, colKey)}
               onDragLeave={handleDragLeave}
               onDrop={e => handleDrop(e, colKey)}

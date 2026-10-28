@@ -237,7 +237,20 @@ export default function Calendar() {
   const [anchor, setAnchor] = useState(new Date())
   const weekStart = useMemo(() => startOfWeek(anchor, { weekStartsOn: 1 }), [anchor])
   const weekEnd = useMemo(() => endOfWeek(anchor, { weekStartsOn: 1 }), [anchor])
-  const days = useMemo(() => eachDayOfInterval({ start: weekStart, end: weekEnd }), [weekStart, weekEnd])
+  // Phones get a 3-day window instead of a cramped 7-day week
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const on = () => setIsMobile(mq.matches)
+    mq.addEventListener('change', on)
+    return () => mq.removeEventListener('change', on)
+  }, [])
+  const threeStart = useMemo(() => { const d = new Date(anchor); d.setHours(0, 0, 0, 0); return d }, [anchor])
+  const threeEnd = useMemo(() => { const d = addDays(threeStart, 2); d.setHours(23, 59, 59, 999); return d }, [threeStart])
+  const days = useMemo(
+    () => (isMobile ? eachDayOfInterval({ start: threeStart, end: threeEnd }) : eachDayOfInterval({ start: weekStart, end: weekEnd })),
+    [isMobile, threeStart, threeEnd, weekStart, weekEnd],
+  )
 
   // Month view dates
   const monthStart = useMemo(() => startOfMonth(anchor), [anchor])
@@ -258,14 +271,14 @@ export default function Calendar() {
   const fetchStart = useMemo(() => {
     if (view === 'month') return monthGridStart
     if (view === 'agenda') return agendaStart
-    return weekStart
-  }, [view, weekStart, monthGridStart, agendaStart])
+    return isMobile ? threeStart : weekStart
+  }, [view, weekStart, monthGridStart, agendaStart, isMobile, threeStart])
 
   const fetchEnd = useMemo(() => {
     if (view === 'month') return monthGridEnd
     if (view === 'agenda') return agendaEnd
-    return weekEnd
-  }, [view, weekEnd, monthGridEnd, agendaEnd])
+    return isMobile ? threeEnd : weekEnd
+  }, [view, weekEnd, monthGridEnd, agendaEnd, isMobile, threeEnd])
 
   // Google Calendar — start as null (loading) to avoid flash of "Connect" button
   const [googleConnected, setGoogleConnected] = useState<boolean | null>(null)
@@ -347,10 +360,12 @@ export default function Calendar() {
   /* ---- Navigation ---- */
   const goPrev = () => {
     if (view === 'month') setAnchor((a) => subMonths(a, 1))
+    else if (isMobile) setAnchor((a) => addDays(a, -3))
     else setAnchor((a) => subWeeks(a, 1))
   }
   const goNext = () => {
     if (view === 'month') setAnchor((a) => addMonths(a, 1))
+    else if (isMobile) setAnchor((a) => addDays(a, 3))
     else setAnchor((a) => addWeeks(a, 1))
   }
   const goToday = () => setAnchor(new Date())
@@ -466,8 +481,9 @@ export default function Calendar() {
   const dateRangeLabel = useMemo(() => {
     if (view === 'month') return format(anchor, 'MMMM yyyy')
     if (view === 'agenda') return 'Next 14 Days'
+    if (isMobile) return `${format(threeStart, 'EEE MMM d')} – ${format(threeEnd, 'EEE MMM d')}`
     return `${format(weekStart, 'MMM d')} – ${format(weekEnd, 'MMM d, yyyy')}`
-  }, [view, anchor, weekStart, weekEnd])
+  }, [view, anchor, weekStart, weekEnd, isMobile, threeStart, threeEnd])
 
   /* ---- Live clock, mini calendar, derived views ---- */
   const [now, setNow] = useState(() => new Date())
@@ -622,7 +638,7 @@ export default function Calendar() {
                 ))}
                 {miniDays.map((day) => {
                   const key = format(day, 'yyyy-MM-dd')
-                  const inWeek = view === 'week' && day >= weekStart && day <= weekEnd
+                  const inWeek = view === 'week' && day >= days[0] && day <= days[days.length - 1]
                   return (
                     <button
                       key={key}
@@ -685,7 +701,7 @@ export default function Calendar() {
             {/* WEEK */}
             {view === 'week' && (
               <div className="cal-week spot">
-                <div className="cal-week-head">
+                <div className="cal-week-head" style={{ gridTemplateColumns: `58px repeat(${days.length}, minmax(0, 1fr))` }}>
                   <div className="cal-gutter-head" />
                   {days.map((day) => (
                     <button
@@ -701,7 +717,7 @@ export default function Calendar() {
                 </div>
 
                 {hasAllDay && (
-                  <div className="cal-allday">
+                  <div className="cal-allday" style={{ gridTemplateColumns: `58px repeat(${days.length}, minmax(0, 1fr))` }}>
                     <div className="cal-gutter-label">All day</div>
                     {days.map((day) => {
                       const key = format(day, 'yyyy-MM-dd')
@@ -719,7 +735,7 @@ export default function Calendar() {
                 )}
 
                 <div className="cal-scroll" ref={scrollRef}>
-                  <div className="cal-grid" style={{ height: HOURS.length * HOUR_H }}>
+                  <div className="cal-grid" style={{ height: HOURS.length * HOUR_H, gridTemplateColumns: `58px repeat(${days.length}, minmax(0, 1fr))` }}>
                     <div className="cal-gutter">
                       {HOURS.map((h) => (
                         <div key={h} className="cal-hour-label" style={{ height: HOUR_H }}>

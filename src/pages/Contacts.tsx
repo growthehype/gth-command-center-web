@@ -477,7 +477,7 @@ export default function Contacts() {
 
       {/* Detail Drawer */}
       {detailContact && (
-        <div className="fixed inset-0 flex items-center justify-center z-[100] modal-backdrop" onClick={() => setDetailContact(null)}>
+        <div className="fixed inset-0 flex items-center justify-center z-[100] modal-backdrop">
           <div className="modal-container bg-surface w-[95vw] max-w-[420px] max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-border">
               <h3 className="font-[800]" style={{ fontSize: '16px', letterSpacing: '-0.01em' }}>{detailContact.name}</h3>

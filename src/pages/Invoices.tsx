@@ -793,7 +793,7 @@ export default function Invoices() {
             {files.length} invoice{files.length !== 1 ? 's' : ''} across {clientsWithFiles.length} client{clientsWithFiles.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           {/* Search */}
           <div className="relative">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-dim" />
@@ -967,7 +967,7 @@ export default function Invoices() {
 
           {/* Invoice table */}
           <div className="border border-border overflow-x-auto">
-            <table className="w-full" style={{ minWidth: '760px' }}>
+            <table className="w-full m-cards m-cards--invoices" style={{ minWidth: '760px' }}>
               <thead>
                 <tr className="border-b border-border bg-surface">
                   <th className="label text-dim text-left px-4 py-2" style={{ width: '100px' }}>INVOICE #</th>

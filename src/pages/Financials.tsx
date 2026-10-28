@@ -608,11 +608,11 @@ export default function Financials() {
         {yearInvoices.length === 0 ? (
           <p className="text-dim text-center py-8" style={{ fontSize: '14px' }}>No invoice data for {selectedYear}</p>
         ) : (
-          <div className="flex items-end gap-2" style={{ height: '180px' }}>
+          <div className="flex items-end gap-1 md:gap-2" style={{ height: '180px' }}>
             {monthlyRevenue.map((amount, i) => {
               const height = maxMonthly > 0 ? (amount / maxMonthly) * 100 : 0
               return (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                <div key={i} className="flex-1 min-w-0 overflow-hidden flex flex-col items-center gap-1">
                   <span className="mono text-dim" style={{ fontSize: '10.5px' }}>
                     {amount > 0 ? formatCurrency(amount) : ''}
                   </span>

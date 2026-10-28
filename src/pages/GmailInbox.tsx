@@ -118,7 +118,7 @@ function ComposeModal({ onClose, onSent, replyTo, forwardMsg }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="bg-surface border border-border rounded-t-xl sm:rounded-xl shadow-2xl w-full max-w-2xl sm:mx-4" onClick={e => e.stopPropagation()} onKeyDown={handleKeyDown}>
         <div className="flex items-center justify-between px-5 py-3 border-b border-border">
           <h3 className="text-polar font-[700]" style={{ fontSize: '15px' }}>

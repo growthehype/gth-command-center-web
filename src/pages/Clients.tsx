@@ -381,7 +381,7 @@ export default function Clients() {
       ) : (
         <>
           <div className="overflow-x-auto">
-            <table className="w-full" style={{ fontSize: '13px' }}>
+            <table className="w-full m-cards m-cards--clients" style={{ fontSize: '13px' }}>
               <thead>
                 <tr className="border-b border-border text-left">
                   <th className="label py-2 px-3 cursor-pointer select-none" onClick={() => handleSort('name')}>
