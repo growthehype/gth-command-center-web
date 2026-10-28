@@ -172,7 +172,7 @@ export default function Login() {
           className="absolute inset-0 opacity-30"
           style={{
             background:
-              'radial-gradient(ellipse at 20% 50%, rgba(37, 99, 235, 0.15) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(37, 99, 235, 0.08) 0%, transparent 50%), radial-gradient(ellipse at 50% 80%, rgba(120, 120, 120, 0.06) 0%, transparent 50%)',
+              'radial-gradient(ellipse at 20% 50%, rgba(199, 206, 216, 0.15) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(199, 206, 216, 0.08) 0%, transparent 50%), radial-gradient(ellipse at 50% 80%, rgba(120, 120, 120, 0.06) 0%, transparent 50%)',
             animation: 'loginGradientShift 12s ease-in-out infinite alternate',
           }}
         />

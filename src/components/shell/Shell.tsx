@@ -218,7 +218,7 @@ export default function Shell({ onLock }: ShellProps) {
             )}
             {/* Sidebar - hidden on mobile unless open */}
             <div className={`
-              fixed inset-y-0 left-0 z-50 w-56 transform transition-transform duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] md:relative md:translate-x-0 md:w-48 md:z-auto
+              fixed inset-y-0 left-0 z-50 w-56 transform transition-transform duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] md:relative md:translate-x-0 md:w-[var(--sb-w,216px)] md:z-auto md:top-0!
               ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
             `} style={{ top: 'var(--topbar-h, 44px)' }}>
               <Sidebar onNavigate={() => setSidebarOpen(false)} />
@@ -227,11 +227,12 @@ export default function Shell({ onLock }: ShellProps) {
         )}
         <main className={`shell-main flex-1 overflow-y-auto p-3 md:p-6 ${focusMode ? 'focus-vignette' : ''}`}>
           {demoMode && (
-            <div className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-amber-500/15 border border-amber-500/30 px-4 py-2 text-sm text-amber-300">
-              <span className="font-semibold tracking-wide">DEMO MODE — Sample data shown</span>
+            <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-border-hard bg-surface px-4 py-2 text-steel" style={{ fontSize: 12 }}>
+              <span className="flex items-center gap-2.5 font-medium"><span className="brf-light" data-tone="warn" aria-hidden="true" />Demo mode. You are looking at sample data.</span>
               <button
                 onClick={exitDemoMode}
-                className="shrink-0 rounded-md bg-amber-500/20 px-3 py-1 text-xs font-medium text-amber-200 hover:bg-amber-500/30 transition-colors"
+                className="btn-ghost shrink-0"
+                style={{ padding: '4px 10px' }}
               >
                 Exit Demo
               </button>

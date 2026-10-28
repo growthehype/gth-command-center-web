@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, isValidElement } from 'react'
 
 export interface ContextMenuItem {
   label: string
@@ -49,14 +49,15 @@ export default function ContextMenu({ items, children }: ContextMenuProps) {
 
   return (
     <>
-      <div onContextMenu={handleContextMenu}>
+      {/* display:contents keeps wrapped <tr> rows inside the table layout */}
+      <div onContextMenu={handleContextMenu} style={isValidElement(children) && children.type === 'tr' ? { display: 'contents' } : undefined}>
         {children}
       </div>
       {visible && (
         <div
           ref={menuRef}
-          className="fixed bg-surface border border-border-hard shadow-lg z-[300]"
-          style={{ left: position.x, top: position.y, minWidth: 180 }}
+          className="ctx-menu fixed z-[300]"
+          style={{ left: position.x, top: position.y, minWidth: 190 }}
         >
           {items.map((item, idx) => {
             if (item.divider) {
@@ -67,10 +68,10 @@ export default function ContextMenu({ items, children }: ContextMenuProps) {
               <button
                 key={idx}
                 onClick={() => { item.action(); setVisible(false) }}
-                className={`w-full flex items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-surface-2 ${
+                className={`w-full flex items-center gap-3 px-3 py-[7px] rounded-[5px] text-left transition-colors hover:bg-surface-2 ${
                   item.danger ? 'text-err hover:text-err' : 'text-steel hover:text-polar'
                 }`}
-                style={{ fontSize: '13px' }}
+                style={{ fontSize: '12.5px' }}
               >
                 {Icon && <Icon size={13} className={item.danger ? 'text-err' : 'text-dim'} />}
                 {item.label}

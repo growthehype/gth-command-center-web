@@ -245,7 +245,7 @@ export default function Meetings() {
                 <button
                   onClick={() => toggleWeek(group.key)}
                   className="w-full flex items-center gap-2 px-4 py-3 border-b border-border hover:bg-border/30 transition-colors text-left bg-cell/30"
-                  style={{ borderLeft: '3px solid #5E81AC' }}
+                  style={{ boxShadow: 'inset 0 2px 0 var(--color-border-hard), inset 0 1px 0 var(--edge-hi)' }}
                 >
                   {collapsed
                     ? <ChevronRight size={13} className="text-dim" />

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import DOMPurify from 'dompurify'
-import { X, Send, Save, Ban, Edit3, User, Building, Globe, MapPin, Sparkles } from 'lucide-react'
+import { X, Send, Save, Ban, Edit3, User, Building, Globe, MapPin, Sparkles, ExternalLink } from 'lucide-react'
 import type { OutreachQueueItem } from '@/hooks/useAgentDashboard'
 
 interface EmailPreviewModalProps {

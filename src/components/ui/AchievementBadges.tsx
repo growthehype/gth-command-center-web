@@ -146,13 +146,13 @@ export default function AchievementBadges({ streak }: { streak: number }) {
                     alignItems: 'center',
                     justifyContent: 'center',
                     background: unlocked
-                      ? 'linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(139,92,246,0.15) 100%)'
+                      ? 'linear-gradient(135deg, rgba(199, 206, 216,0.15) 0%, rgba(199, 206, 216,0.15) 100%)'
                       : 'rgba(255,255,255,0.04)',
                     border: unlocked
-                      ? '1.5px solid rgba(59,130,246,0.4)'
+                      ? '1.5px solid rgba(199, 206, 216,0.4)'
                       : '1.5px solid rgba(255,255,255,0.08)',
                     boxShadow: unlocked
-                      ? '0 0 16px rgba(59,130,246,0.2), 0 0 4px rgba(139,92,246,0.15)'
+                      ? '0 0 16px rgba(199, 206, 216,0.2), 0 0 4px rgba(199, 206, 216,0.15)'
                       : 'none',
                     position: 'relative',
                   }}

@@ -23,7 +23,7 @@ const DOT_STYLES: Record<string, { color: string; shape: 'circle' | 'square' | '
   create: { color: '#22C55E', shape: 'circle' },
   update: { color: '#E8E8E8', shape: 'square' },
   delete: { color: '#FF3333', shape: 'diamond' },
-  upload: { color: '#3B82F6', shape: 'triangle' },
+  upload: { color: '#A3ADB9', shape: 'triangle' },
 }
 
 function ActivityDot({ type }: { type: string }) {

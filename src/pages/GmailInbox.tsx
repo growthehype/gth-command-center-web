@@ -60,7 +60,7 @@ function fullDate(dateStr: string): string {
 
 // Deterministic color from name
 function avatarColor(name: string): string {
-  const colors = ['#6366F1', '#8B5CF6', '#EC4899', '#F43F5E', '#EF4444', '#F97316', '#EAB308', '#22C55E', '#14B8A6', '#06B6D4', '#3B82F6']
+  const colors = ['#2A2F36', '#343A42', '#3D434C', '#23272D', '#454C56', '#2F343B', '#383E47', '#272B31']
   let hash = 0
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
   return colors[Math.abs(hash) % colors.length]

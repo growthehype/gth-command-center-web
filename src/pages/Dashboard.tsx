@@ -146,9 +146,9 @@ function RevenueTrendChart({
             <text
               x={padLeft - 8}
               y={y + 3}
-              fill="#888"
+              fill="var(--color-dim)"
               fontSize="9"
-              fontFamily="'Space Mono', monospace"
+              fontFamily="Geist, sans-serif"
               textAnchor="end"
             >
               ${(val / 1000).toFixed(val >= 1000 ? 0 : 1)}k
@@ -163,8 +163,8 @@ function RevenueTrendChart({
         const x = padLeft + gap + i * (barW + gap)
         const barH = (m.value / yMax) * barAreaH
         const y = padTop + barAreaH - barH
-        const baseColor = m.isCurrent ? '#2563EB' : 'rgba(136,136,136,0.35)'
-        const hoverColor = m.isCurrent ? '#3B82F6' : 'rgba(136,136,136,0.5)'
+        const baseColor = m.isCurrent ? 'var(--color-polar)' : 'rgba(136,136,136,0.35)'
+        const hoverColor = m.isCurrent ? 'var(--color-steel)' : 'rgba(136,136,136,0.5)'
 
         return (
           <g key={i}>
@@ -184,9 +184,9 @@ function RevenueTrendChart({
               <text
                 x={x + barW / 2}
                 y={y - 5}
-                fill={m.isCurrent ? '#FFF' : '#888'}
+                fill={m.isCurrent ? 'var(--color-polar)' : 'var(--color-dim)'}
                 fontSize="9"
-                fontFamily="'Space Mono', monospace"
+                fontFamily="Geist, sans-serif"
                 textAnchor="middle"
                 fontWeight={m.isCurrent ? 700 : 400}
               >
@@ -197,9 +197,9 @@ function RevenueTrendChart({
             <text
               x={x + barW / 2}
               y={chartH - 6}
-              fill={m.isCurrent ? '#FFF' : '#888'}
+              fill={m.isCurrent ? 'var(--color-polar)' : 'var(--color-dim)'}
               fontSize="9"
-              fontFamily="'Space Mono', monospace"
+              fontFamily="Geist, sans-serif"
               textAnchor="middle"
               fontWeight={m.isCurrent ? 700 : 400}
             >
@@ -492,7 +492,7 @@ export default function Dashboard() {
       { label: 'Healthy', count: healthy, color: '#22C55E' },
       { label: 'Needs Check-in', count: needsCheckin, color: '#F59E0B' },
       { label: 'Stale', count: stale, color: '#FF3333' },
-      { label: 'At Risk', count: atRisk, color: '#CC0000' },
+      { label: 'At Risk', count: atRisk, color: 'var(--color-err)' },
     ]
   }, [clients])
 
@@ -535,7 +535,7 @@ export default function Dashboard() {
   const projectPipeline = useMemo(() => {
     const statuses = [
       { key: 'backlog', label: 'Backlog', color: '#6B7280' },
-      { key: 'progress', label: 'In Progress', color: '#2563EB' },
+      { key: 'progress', label: 'In Progress', color: 'var(--color-polar)' },
       { key: 'review', label: 'Review', color: '#D97706' },
       { key: 'done', label: 'Done', color: '#22C55E' },
     ]
@@ -821,7 +821,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div style={{ opacity: 0.8, flexShrink: 0 }}>
-              <Sparkline data={taskSparklineData} width={64} height={36} color="#2563EB" />
+              <Sparkline data={taskSparklineData} width={64} height={36} color="var(--color-polar)" />
             </div>
           </div>
         </button>
@@ -953,7 +953,7 @@ export default function Dashboard() {
                       className="h-full rounded-full chart-bar transition-all duration-500"
                       style={{
                         width: `${(client.mrr / maxMrr) * 100}%`,
-                        background: 'linear-gradient(90deg, rgba(37, 99, 235, 0.6) 0%, rgba(37, 99, 235, 0.3) 100%)',
+                        background: 'linear-gradient(90deg, rgba(199, 206, 216, 0.6) 0%, rgba(199, 206, 216, 0.3) 100%)',
                       }}
                     />
                   </div>

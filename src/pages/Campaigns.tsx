@@ -146,15 +146,15 @@ export default function Campaigns() {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-        <div className="stat-card hover:translate-y-[-1px] transition-all duration-200" style={{ borderLeft: '4px solid #A3BE8C' }}>
+        <div className="stat-card hover:translate-y-[-1px] transition-all duration-200">
           <p className="label">Active Campaigns</p>
           <p className="text-polar font-[800]" style={{ fontSize: '20px' }}>{stats.activeCampaigns}</p>
         </div>
-        <div className="stat-card hover:translate-y-[-1px] transition-all duration-200" style={{ borderLeft: '4px solid #5E81AC' }}>
+        <div className="stat-card hover:translate-y-[-1px] transition-all duration-200">
           <p className="label">Total Spend MTD</p>
           <p className="text-polar font-[800]" style={{ fontSize: '20px' }}>{formatCurrency(stats.totalSpend)}</p>
         </div>
-        <div className="stat-card hover:translate-y-[-1px] transition-all duration-200" style={{ borderLeft: '4px solid #B48EAD' }}>
+        <div className="stat-card hover:translate-y-[-1px] transition-all duration-200">
           <p className="label">Conversions MTD</p>
           <p className="text-polar font-[800]" style={{ fontSize: '20px' }}>{stats.totalConversions}</p>
         </div>

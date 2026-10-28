@@ -301,14 +301,14 @@ export default function Notes() {
                 <div className="space-y-2">
                   <span className="label text-dim">ACTIVE</span>
                   {activeNotes.map((note, i) => {
-                    const accentColors = ['#5E81AC', '#A3BE8C', '#B48EAD', '#EBCB8B', '#88C0D0', '#D08770', '#BF616A']
+                    const accentColors = ['#4D5560', '#7D8794', '#A3ADB9', '#5C6673', '#8792A0', '#6B7583', '#C9D0D8']
                     const accentColor = accentColors[i % accentColors.length]
                     const wordCount = note.content.trim() ? note.content.trim().split(/\s+/).length : 0
                     return (
                     <div
                       key={note.id}
                       className="card cursor-pointer flex items-start justify-between gap-4 hover:border-dim transition-all duration-200"
-                      style={{ borderLeft: `3px solid ${accentColor}` }}
+                      style={{ boxShadow: `inset 0 2px 0 ${accentColor}` }}
                       onClick={() => selectNote(note)}
                     >
                       <div className="flex-1 min-w-0">

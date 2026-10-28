@@ -3,16 +3,15 @@
  */
 
 const PALETTE = [
-  '#2563EB', // blue
-  '#7C3AED', // violet
-  '#DB2777', // pink
-  '#FF3333', // red
-  '#EA580C', // orange
-  '#CA8A04', // yellow
-  '#22C55E', // green
-  '#0D9488', // teal
-  '#0284C7', // sky
-  '#6D28D9', // purple
+  // Gunmetal series: identity through tone, not hue
+  '#2A2F36',
+  '#343A42',
+  '#3D434C',
+  '#23272D',
+  '#454C56',
+  '#2F343B',
+  '#383E47',
+  '#272B31',
 ]
 
 function hashName(name: string): number {
@@ -52,14 +51,16 @@ export default function ClientAvatar({ name, size = 'md' }: ClientAvatarProps) {
         width: box,
         height: box,
         minWidth: box,
-        borderRadius: '50%',
+        borderRadius: Math.round(box * 0.26),
         backgroundColor: color,
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 0 0 1px rgba(255,255,255,0.06)',
+        fontFamily: 'var(--font-display)',
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
         fontSize: font,
         fontWeight: 700,
-        color: '#fff',
+        color: '#ECE9E3',
         lineHeight: 1,
         letterSpacing: '0.02em',
       }}

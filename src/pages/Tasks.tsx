@@ -588,7 +588,7 @@ export default function Tasks() {
                           </button>
                           <div className="flex-1 min-w-0">
                             <div
-                              className={`${task.done ? 'line-through text-steel' : overdue ? 'text-err' : 'text-polar'}`}
+                              className={`${task.done ? 'line-through text-steel' : 'text-polar'}`}
                               style={{ fontSize: '12px', fontWeight: 600, lineHeight: 1.3 }}
                             >
                               {task.text}
@@ -721,7 +721,7 @@ export default function Tasks() {
                 {/* Text + description */}
                 <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openEdit(task)}>
                   <div
-                    className={`truncate ${task.done ? 'line-through text-steel' : overdue ? 'text-err' : ''}`}
+                    className={`truncate ${task.done ? 'line-through text-steel' : ''}`}
                     style={{ fontSize: '13px', fontWeight: 600, transition: 'all 0.4s ease', opacity: recentlyCompleted.has(task.id) || task.done ? 0.5 : 1 }}
                   >
                     {task.text}

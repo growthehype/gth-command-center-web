@@ -3,15 +3,14 @@ import { format, parseISO, isToday, isYesterday, startOfDay } from 'date-fns'
 import { useAppStore } from '@/lib/store'
 import { getGreeting, formatCurrency, isOverdue, daysSince, relativeDate } from '@/lib/utils'
 import { useRelativeTime } from '@/hooks/useRelativeTime'
-import { Plus } from 'lucide-react'
+import { Plus, ArrowRight, Check } from 'lucide-react'
 import AchievementBadges from '@/components/ui/AchievementBadges'
-import WeeklyScorecard from '@/components/ui/WeeklyScorecard'
-import ActivityHeatmap from '@/components/ui/ActivityHeatmap'
+import QuarterlyScorecard from '@/components/ui/QuarterlyScorecard'
 import Skeleton from '@/components/ui/Skeleton'
 
 function BriefingSkeleton() {
   return (
-    <div className="max-w-full md:max-w-[920px] mx-auto" style={{ padding: '48px 0 64px' }}>
+    <div className="brf">
       {/* Greeting */}
       <Skeleton variant="text" width="260px" height="28px" />
       <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
@@ -40,10 +39,6 @@ function BriefingSkeleton() {
       {/* Scorecard placeholder */}
       <div style={{ marginTop: 36 }}>
         <Skeleton variant="rect" width="100%" height="120px" />
-      </div>
-      {/* Heatmap placeholder */}
-      <div style={{ marginTop: 36 }}>
-        <Skeleton variant="rect" width="100%" height="100px" />
       </div>
     </div>
   )
@@ -207,7 +202,8 @@ export default function DailyBriefing() {
         title: `${overdueInvoice.client_name || overdueInvoice.num} — ${formatCurrency(overdueInvoice.amount)}`,
         detail: 'Due',
         detailDate: overdueInvoice.due_date,
-        accent: '#FF3333',
+        tone: 'err' as const,
+        target: 'invoices',
       }
     }
 
@@ -220,7 +216,8 @@ export default function DailyBriefing() {
         title: staleClient.name,
         detail: `No activity in ${daysSince(staleClient.last_activity)} days`,
         detailDate: null as string | null,
-        accent: '#F59E0B',
+        tone: 'warn' as const,
+        target: 'clients',
       }
     }
 
@@ -231,7 +228,8 @@ export default function DailyBriefing() {
         title: highPriorityOverdue.text,
         detail: 'Due',
         detailDate: highPriorityOverdue.due_date,
-        accent: '#FF3333',
+        tone: 'err' as const,
+        target: 'tasks',
       }
     }
 
@@ -242,7 +240,8 @@ export default function DailyBriefing() {
         title: t.text,
         detail: t.client_name || 'Personal',
         detailDate: null as string | null,
-        accent: '#3B82F6',
+        tone: 'info' as const,
+        target: 'tasks',
       }
     }
 
@@ -261,356 +260,218 @@ export default function DailyBriefing() {
   if (!dataLoaded) return <BriefingSkeleton />
 
   const displayName = settings.display_name || 'Omar'
-  const fullDate = format(now, 'EEEE, MMMM d, yyyy')
+  const quarter = Math.floor(now.getMonth() / 3) + 1
+  const dateLine = `${format(now, 'EEEE, MMMM d')} · Q${quarter} · Week ${format(now, 'I')}`
 
   return (
-    <div className="max-w-full md:max-w-[920px] mx-auto" style={{ padding: '48px 0 64px' }}>
-      {/* ---- GREETING ---- */}
-      <h1 className="briefing-greeting">
-        {getGreeting()}, {displayName}.
-      </h1>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10 }}>
-        <p className="mono" style={{ color: '#888', fontSize: 13, margin: 0, letterSpacing: '0.02em' }}>
-          {fullDate}
-        </p>
-        {streak > 0 ? (
-          <span className={`streak-badge ${streak >= 7 ? 'streak-badge--hot streak-glow' : 'streak-badge--active'}`}>
-            <span role="img" aria-label="fire">&#128293;</span> {streak}-day streak
-          </span>
-        ) : (
-          <span className="streak-badge streak-badge--inactive">
-            <span role="img" aria-label="fire">&#128293;</span> Start your streak today!
-          </span>
-        )}
-      </div>
-
-      {/* ---- DAILY QUOTE ---- */}
-      <div style={{ marginTop: 28, marginBottom: 0 }}>
-        <p className="text-steel" style={{
-          fontSize: '14px',
-          fontStyle: 'italic',
-          lineHeight: 1.7,
-          maxWidth: 600,
-          opacity: 0.7,
-        }}>
-          &ldquo;{dailyQuote.text}&rdquo;
-        </p>
-        <p className="text-dim mono" style={{ fontSize: '11px', marginTop: 6 }}>
-          &mdash; {dailyQuote.author}
-        </p>
-      </div>
-
-      {/* ---- TODAY'S FOCUS ---- */}
-      <div style={{ marginTop: 40 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-          <h3 className="section-header" style={{ marginBottom: 0 }}>Today&apos;s Focus</h3>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={() => setCurrentPage('tasks')}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#999', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 4, transition: 'color 0.15s' }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-polar)')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#999')}
-            >
-              <Plus size={12} strokeWidth={2.5} />
-              Add Task
-            </button>
-            <button
-              onClick={() => setCurrentPage('calendar')}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#999', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 4, transition: 'color 0.15s' }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-polar)')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#999')}
-            >
-              <Plus size={12} strokeWidth={2.5} />
-              Add Event
-            </button>
-          </div>
+    <div className="brf">
+      {/* ---- HEADER ---- */}
+      <header className="brf-head">
+        <p className="brf-date">{dateLine}</p>
+        <h1 className="briefing-greeting">
+          {getGreeting()}, {displayName}.
+        </h1>
+        <div className="brf-sub">
+          {streak > 0 ? (
+            <span className={`streak-badge ${streak >= 7 ? 'streak-badge--hot streak-glow' : 'streak-badge--active'}`}>
+              <span className="brf-light" data-tone={streak >= 7 ? 'warn' : 'info'} aria-hidden="true" />
+              {streak}-day streak
+            </span>
+          ) : (
+            <span className="streak-badge streak-badge--inactive">
+              <span className="brf-light" data-tone="off" aria-hidden="true" />
+              No streak yet. Close a task today to start one.
+            </span>
+          )}
         </div>
+        <blockquote className="brf-quote">
+          <p>&ldquo;{dailyQuote.text}&rdquo;</p>
+          <cite>{dailyQuote.author}</cite>
+        </blockquote>
+      </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-[10px]">
-          {/* Due Today */}
-          <div className="stat-card stat-card--has-accent">
-            <div className="stat-card-accent stat-card-accent--blue" />
-            <div className="stat-value">{tasksDueToday.length}</div>
-            <div className="stat-label">Due Today</div>
-            <div style={{ marginTop: 12 }}>
-              {tasksDueToday.length === 0 && (
-                <p style={{ fontSize: 13, color: '#999' }}>Nothing due today</p>
-              )}
-              {tasksDueToday.slice(0, 3).map((t) => (
-                <div
-                  key={t.id}
-                  style={{
-                    fontSize: 13,
-                    padding: '4px 0',
-                    borderBottom: '1px solid #E0E0E0',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: 8,
-                  }}
-                >
-                  <span style={{ opacity: 0.85, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {t.text}
-                  </span>
-                  {t.client_name && (
-                    <span className="mono" style={{ color: '#888', flexShrink: 0, fontSize: 13 }}>
-                      {t.client_name}
-                    </span>
-                  )}
-                </div>
-              ))}
-              {tasksDueToday.length > 3 && (
-                <p className="mono" style={{ fontSize: 13, color: '#888', marginTop: 6 }}>
-                  +{tasksDueToday.length - 3} more
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Overdue */}
-          <div
-            className="stat-card stat-card--has-accent"
-            style={
-              overdueTasks.length > 0
-                ? { borderColor: 'rgba(255,51,51,0.25)' }
-                : undefined
-            }
-          >
-            <div className="stat-card-accent stat-card-accent--red" />
-            <div
-              className="stat-value"
-              style={overdueTasks.length > 0 ? { color: '#FF3333' } : undefined}
-            >
-              {overdueTasks.length}
-            </div>
-            <div className="stat-label">Overdue</div>
-            <div style={{ marginTop: 12 }}>
-              {overdueTasks.length === 0 && (
-                <p style={{ fontSize: 13, color: '#999' }}>All clear</p>
-              )}
-              {overdueTasks.slice(0, 3).map((t) => (
-                <div
-                  key={t.id}
-                  style={{
-                    fontSize: 13,
-                    padding: '4px 0',
-                    borderBottom: '1px solid #E0E0E0',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: 8,
-                  }}
-                >
-                  <span style={{ opacity: 0.85, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {t.text}
-                  </span>
-                  <RelativeTime date={t.due_date} className="mono" style={{ color: '#FF3333', flexShrink: 0, fontSize: 13 }} />
-                </div>
-              ))}
-              {overdueTasks.length > 3 && (
-                <p className="mono" style={{ fontSize: 13, color: '#888', marginTop: 6 }}>
-                  +{overdueTasks.length - 3} more
-                </p>
-              )}
-            </div>
-          </div>
-
-          {/* Meetings Today */}
-          <div className="stat-card stat-card--has-accent">
-            <div className="stat-card-accent stat-card-accent--purple" />
-            <div className="stat-value">{meetingsToday.length}</div>
-            <div className="stat-label">Meetings Today</div>
-            <div style={{ marginTop: 12 }}>
-              {meetingsToday.length === 0 && (
-                <p style={{ fontSize: 13, color: '#999' }}>No meetings</p>
-              )}
-              {meetingsToday.slice(0, 4).map((e) => (
-                <div
-                  key={e.id}
-                  style={{
-                    fontSize: 13,
-                    padding: '4px 0',
-                    borderBottom: '1px solid #E0E0E0',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: 8,
-                  }}
-                >
-                  <span style={{ opacity: 0.85, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {e.title}
-                  </span>
-                  <span className="mono" style={{ color: '#888', flexShrink: 0, fontSize: 13 }}>
-                    {e.start_time?.slice(0, 5)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ---- WEEKLY SCORECARD ---- */}
-      <div style={{ marginTop: 36 }}>
-        <WeeklyScorecard />
-      </div>
-
-      {/* ---- YESTERDAY'S WINS ---- */}
-      {yesterdayWins.length > 0 && (
-        <div style={{ marginTop: 36 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <h3 className="section-header" style={{ marginBottom: 0 }}>Yesterday&apos;s Wins</h3>
-            <button
-              onClick={() => setCurrentPage('activity')}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#999', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', borderRadius: 4, transition: 'color 0.15s' }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-polar)')}
-              onMouseLeave={e => (e.currentTarget.style.color = '#999')}
-            >
-              <Plus size={12} strokeWidth={2.5} />
-              Log a Win
-            </button>
-          </div>
-          <div className="card" style={{ padding: '14px 16px' }}>
-            {yesterdayWins.map((a, i) => (
-              <div
-                key={a.id}
-                style={{
-                  fontSize: 13,
-                  padding: '5px 0',
-                  borderBottom: i < yesterdayWins.length - 1 ? '1px solid #E0E0E0' : 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-              >
-                <span style={{ color: '#22C55E', fontSize: 13 }}>&#10003;</span>
-                <span style={{ opacity: 0.85 }}>{a.description}</span>
-                <span className="mono" style={{ color: '#BBB', marginLeft: 'auto', flexShrink: 0, fontSize: 13 }}>
-                  {a.entity || a.type}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ---- ACTIVITY HEATMAP ---- */}
-      <div style={{ marginTop: 36 }}>
-        <ActivityHeatmap />
-      </div>
-
-      {/* ---- ONE THING THAT NEEDS YOU ---- */}
+      {/* ---- THE SIGNAL: one thing that needs you ---- */}
       {oneThingCard && (
-        <div style={{ marginTop: 36 }}>
-          <h3 className="section-header" style={{ marginBottom: 14 }}>One Thing That Needs You</h3>
-          <div
-            className={`card ${oneThingCard.accent === '#FF3333' ? 'one-thing-urgent' : ''}`}
-            style={{
-              borderLeft: `4px solid ${oneThingCard.accent}`,
-              padding: '20px 24px',
-              background: oneThingCard.accent === '#FF3333'
-                ? 'linear-gradient(135deg, var(--color-cell) 0%, rgba(220, 38, 38, 0.03) 100%)'
-                : oneThingCard.accent === '#F59E0B'
-                ? 'linear-gradient(135deg, var(--color-cell) 0%, rgba(245, 158, 11, 0.03) 100%)'
-                : 'linear-gradient(135deg, var(--color-cell) 0%, rgba(37, 99, 235, 0.03) 100%)',
-            }}
-          >
-            <div
-              className="label"
-              style={{ color: oneThingCard.accent, marginBottom: 8 }}
-            >
+        <section
+          className={`brf-signal ${oneThingCard.tone === 'err' ? 'one-thing-urgent' : ''}`}
+          data-tone={oneThingCard.tone}
+          aria-label="Needs your attention"
+        >
+          <span className="brf-signal-beam" aria-hidden="true" />
+          <div className="brf-signal-body">
+            <p className="brf-signal-label">
+              <span className="brf-light" data-tone={oneThingCard.tone} aria-hidden="true" />
               {oneThingCard.label}
-            </div>
-            <div style={{ fontSize: 16, fontWeight: 800, letterSpacing: '-0.01em' }}>{oneThingCard.title}</div>
-            <div className="mono" style={{ color: '#888', marginTop: 6, fontSize: 13 }}>
+            </p>
+            <p className="brf-signal-title">{oneThingCard.title}</p>
+            <p className="brf-signal-detail">
               {oneThingCard.detail}
               {oneThingCard.detailDate && (
                 <>{' '}<RelativeTime date={oneThingCard.detailDate} /></>
               )}
-            </div>
+            </p>
+          </div>
+          <button className="btn-ghost brf-signal-btn" onClick={() => setCurrentPage(oneThingCard.target)}>
+            Open
+            <ArrowRight size={13} />
+          </button>
+        </section>
+      )}
+
+      {/* ---- TODAY'S FOCUS ---- */}
+      <section className="brf-section">
+        <div className="brf-section-head">
+          <h3 className="section-header" style={{ marginBottom: 0 }}>Today&apos;s focus</h3>
+          <div className="brf-actions">
+            <button className="brf-link" onClick={() => setCurrentPage('tasks')}>
+              <Plus size={12} />
+              Add task
+            </button>
+            <button className="brf-link" onClick={() => setCurrentPage('calendar')}>
+              <Plus size={12} />
+              Add event
+            </button>
           </div>
         </div>
+
+        <div className="brf-board">
+          {/* Due Today */}
+          <div className="brf-col">
+            <div className="brf-col-head">
+              <span className="brf-col-label">
+                <span className="brf-light" data-tone={tasksDueToday.length > 0 ? 'info' : 'off'} aria-hidden="true" />
+                Due today
+              </span>
+              <span className="brf-count">{tasksDueToday.length}</span>
+            </div>
+            <ul className="brf-list">
+              {tasksDueToday.length === 0 && <li className="brf-empty">Nothing due today.</li>}
+              {tasksDueToday.slice(0, 4).map((t) => (
+                <li key={t.id} className="brf-row">
+                  <span className="brf-row-text">{t.text}</span>
+                  {t.client_name && <span className="brf-row-meta">{t.client_name}</span>}
+                </li>
+              ))}
+            </ul>
+            {tasksDueToday.length > 4 && (
+              <button className="brf-more" onClick={() => setCurrentPage('tasks')}>+{tasksDueToday.length - 4} more</button>
+            )}
+          </div>
+
+          {/* Overdue */}
+          <div className="brf-col" data-alert={overdueTasks.length > 0 || undefined}>
+            <div className="brf-col-head">
+              <span className="brf-col-label">
+                <span className="brf-light" data-tone={overdueTasks.length > 0 ? 'err' : 'off'} aria-hidden="true" />
+                Overdue
+              </span>
+              <span className="brf-count">{overdueTasks.length}</span>
+            </div>
+            <ul className="brf-list">
+              {overdueTasks.length === 0 && <li className="brf-empty">All clear.</li>}
+              {overdueTasks.slice(0, 4).map((t) => (
+                <li key={t.id} className="brf-row">
+                  <span className="brf-row-text">{t.text}</span>
+                  <RelativeTime date={t.due_date} className="brf-row-meta brf-row-meta--err" />
+                </li>
+              ))}
+            </ul>
+            {overdueTasks.length > 4 && (
+              <button className="brf-more" onClick={() => setCurrentPage('tasks')}>+{overdueTasks.length - 4} more</button>
+            )}
+          </div>
+
+          {/* Meetings Today */}
+          <div className="brf-col">
+            <div className="brf-col-head">
+              <span className="brf-col-label">
+                <span className="brf-light" data-tone={meetingsToday.length > 0 ? 'info' : 'off'} aria-hidden="true" />
+                Meetings today
+              </span>
+              <span className="brf-count">{meetingsToday.length}</span>
+            </div>
+            <ul className="brf-list">
+              {meetingsToday.length === 0 && <li className="brf-empty">No meetings scheduled.</li>}
+              {meetingsToday.slice(0, 4).map((e) => (
+                <li key={e.id} className="brf-row">
+                  <span className="brf-row-text">{e.title}</span>
+                  <span className="brf-row-meta">{e.start_time?.slice(0, 5)}</span>
+                </li>
+              ))}
+            </ul>
+            {meetingsToday.length > 4 && (
+              <button className="brf-more" onClick={() => setCurrentPage('calendar')}>+{meetingsToday.length - 4} more</button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ---- QUARTERLY SCORECARD ---- */}
+      <section className="brf-section">
+        <QuarterlyScorecard />
+      </section>
+
+      {/* ---- YESTERDAY'S WINS ---- */}
+      {yesterdayWins.length > 0 && (
+        <section className="brf-section">
+          <div className="brf-section-head">
+            <h3 className="section-header" style={{ marginBottom: 0 }}>Yesterday&apos;s wins</h3>
+          </div>
+          <ul className="card brf-wins">
+            {yesterdayWins.map((a) => (
+              <li key={a.id} className="brf-row">
+                <Check size={13} className="text-ok shrink-0" />
+                <span className="brf-row-text">{a.description}</span>
+                <span className="brf-row-meta">{a.entity || a.type}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {/* ---- GOALS PROGRESS ---- */}
       {activeGoals.length > 0 && (
-        <div style={{ marginTop: 36 }}>
-          <h3 className="section-header" style={{ marginBottom: 14 }}>Goals Progress</h3>
-          <div
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-[10px]"
-          >
+        <section className="brf-section">
+          <div className="brf-section-head">
+            <h3 className="section-header" style={{ marginBottom: 0 }}>Goals</h3>
+            <button className="brf-link" onClick={() => setCurrentPage('goals')}>
+              View all
+              <ArrowRight size={12} />
+            </button>
+          </div>
+          <div className="brf-goals">
             {activeGoals.slice(0, 4).map((g) => {
               const pct =
                 g.target_value && g.target_value > 0
                   ? Math.min(Math.round(((g.current_value || 0) / g.target_value) * 100), 100)
                   : 0
               return (
-                <div className="card" key={g.id} style={{ padding: '12px 14px' }}>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 700,
-                      marginBottom: 8,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {g.title}
+                <div className="brf-goal" key={g.id}>
+                  <div className="brf-goal-title">{g.title}</div>
+                  <div className="brf-goal-track">
+                    <div className="brf-goal-fill" data-done={pct >= 100 || undefined} style={{ transform: `scaleX(${pct / 100})` }} />
                   </div>
-                  {/* Progress bar */}
-                  <div
-                    style={{
-                      height: 4,
-                      background: '#E0E0E0',
-                      borderRadius: 2,
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: '100%',
-                        width: `${pct}%`,
-                        background: pct >= 100 ? '#22C55E' : '#000000',
-                        borderRadius: 2,
-                        transition: 'width 0.4s ease',
-                      }}
-                    />
-                  </div>
-                  <div
-                    className="mono"
-                    style={{
-                      marginTop: 6,
-                      fontSize: 13,
-                      color: pct >= 100 ? '#22C55E' : '#555',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <span>{pct}%</span>
-                    {g.target_date && (
-                      <span style={{ color: '#BBB' }}>
-                        {format(parseISO(g.target_date), 'MMM d')}
-                      </span>
-                    )}
+                  <div className="brf-goal-meta">
+                    <span className={pct >= 100 ? 'text-ok' : ''}>{pct}%</span>
+                    {g.target_date && <span>{format(parseISO(g.target_date), 'MMM d')}</span>}
                   </div>
                 </div>
               )
             })}
           </div>
-        </div>
+        </section>
       )}
 
       {/* ---- ACHIEVEMENTS ---- */}
-      <div style={{ marginTop: 36 }}>
+      <section className="brf-section">
         <AchievementBadges streak={streak} />
-      </div>
+      </section>
 
-      {/* ---- CTA BUTTON ---- */}
-      <div style={{ marginTop: 48, textAlign: 'center' }}>
-        <button
-          className="btn-primary"
-          onClick={() => setCurrentPage('dashboard')}
-          style={{ padding: '12px 36px', fontSize: 12 }}
-        >
-          Enter Command Center &rarr;
+      {/* ---- CTA ---- */}
+      <div className="brf-cta">
+        <button className="btn-primary brf-cta-btn" onClick={() => setCurrentPage('dashboard')}>
+          Enter Command Center
+          <span className="brf-cta-icon" aria-hidden="true"><ArrowRight size={13} /></span>
         </button>
       </div>
     </div>

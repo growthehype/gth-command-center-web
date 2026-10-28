@@ -543,7 +543,7 @@ export default function Calendar() {
                     background: 'var(--color-cell)',
                     padding: '4px 6px',
                     textAlign: 'right',
-                    fontFamily: "'Space Mono', monospace",
+                    fontFamily: "Geist, sans-serif", fontVariantNumeric: 'tabular-nums',
                     fontSize: '11px',
                     color: 'var(--color-dim)',
                     minHeight: '40px',
@@ -676,7 +676,7 @@ export default function Calendar() {
                     style={{
                       fontSize: '12px',
                       fontWeight: today ? 800 : 500,
-                      fontFamily: "'Space Mono', monospace",
+                      fontFamily: "Geist, sans-serif", fontVariantNumeric: 'tabular-nums',
                       color: !inMonth
                         ? 'var(--color-dim)'
                         : today

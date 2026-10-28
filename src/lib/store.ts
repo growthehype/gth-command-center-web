@@ -249,7 +249,7 @@ export const useAppStore = create<AppStore>((set) => ({
   setFocusMode: (on) => set({ focusMode: on, sidebarOpen: false }),
   sidebarOpen: false,
   runningTimer: null,
-  theme: (localStorage.getItem('gth_theme') as 'light' | 'dark') || 'light',
+  theme: (localStorage.getItem('gth_theme') as 'light' | 'dark') || 'dark',
   setTheme: (theme) => {
     localStorage.setItem('gth_theme', theme)
     document.documentElement.setAttribute('data-theme', theme)

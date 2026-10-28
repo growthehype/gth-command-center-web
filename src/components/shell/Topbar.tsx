@@ -41,23 +41,21 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
   }, [runningTimer])
 
   return (
-    <header className="topbar-header h-11 flex items-center px-2 md:px-4 gap-2 md:gap-4 flex-shrink-0 select-none text-white" style={{ backgroundColor: '#111111' }}>
+    <header className="topbar-header h-12 flex items-center px-2 md:px-4 gap-1.5 md:gap-2 flex-shrink-0 select-none">
       {/* Mobile hamburger */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="md:hidden flex items-center justify-center w-8 h-8 text-white/70 hover:text-white transition-colors"
+        className="topbar-icon-btn md:hidden flex items-center justify-center w-8 h-8"
         title="Menu"
         aria-label="Toggle navigation menu"
       >
         <Menu size={18} />
       </button>
       {/* Logo + wordmark */}
-      <div className="flex items-center gap-2.5">
-        <img src="./icon.png" alt="GTH" className="w-[26px] h-[26px]" draggable={false} />
-        <span
-          className="font-sans font-[800] uppercase hidden md:inline"
-          style={{ fontSize: '14px', letterSpacing: '0.12em', color: '#FFFFFF' }}
-        >
+      <div className="flex items-center gap-3 min-w-0">
+        <img src="./icon.png" alt="GTH" className="w-[24px] h-[24px] shrink-0" draggable={false} />
+        <span className="hidden md:block w-px h-4 bg-white/12" aria-hidden="true" />
+        <span className="topbar-wordmark hidden md:inline truncate">
           {settings.company_name ? `${settings.company_name}` : 'Operations Command Center'}
         </span>
       </div>
@@ -67,25 +65,25 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
       {/* Search trigger */}
       <button
         onClick={() => setCommandPaletteOpen(true)}
-        className="topbar-icon-btn hidden md:flex items-center gap-2 px-3 py-1.5 border"
-        style={{ color: 'rgba(255,255,255,0.5)', borderColor: 'rgba(255,255,255,0.2)' }}
+        className="topbar-search hidden md:flex items-center gap-2.5 pl-2.5 pr-1.5 py-1 mr-2"
         title="Search (Ctrl+K)"
       >
-        <Search size={12} />
-        <span className="font-mono" style={{ fontSize: '11px' }}>Ctrl+K</span>
+        <Search size={13} />
+        <span style={{ fontSize: '12px', minWidth: 120, textAlign: 'left' }}>Search</span>
+        <span className="topbar-kbd">Ctrl K</span>
       </button>
 
       {/* Connection status */}
       {connectionStatus === 'offline' && (
-        <div className="flex items-center gap-1.5" style={{ color: '#FF3333' }}>
+        <div className="flex items-center gap-1.5 text-err">
           <WifiOff size={12} />
-          <span className="font-mono font-bold" style={{ fontSize: '11px' }}>Offline</span>
+          <span className="font-semibold" style={{ fontSize: '11px' }}>Offline</span>
         </div>
       )}
       {connectionStatus === 'reconnected' && (
-        <div className="flex items-center gap-1.5" style={{ color: '#22C55E', animation: 'fadeIn 0.15s ease-out' }}>
+        <div className="flex items-center gap-1.5 text-ok" style={{ animation: 'fadeIn 0.2s ease-out' }}>
           <Wifi size={12} />
-          <span className="font-mono font-bold" style={{ fontSize: '11px' }}>Back online</span>
+          <span className="font-semibold" style={{ fontSize: '11px' }}>Back online</span>
         </div>
       )}
 
@@ -93,11 +91,11 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
       {pomodoroActive ? (
         <button
           onClick={() => setPomodoroOpen(true)}
-          className={`flex items-center gap-2 cursor-pointer transition-colors ${pomodoroPhase === 'work' ? 'text-orange-400 hover:text-orange-300' : 'text-emerald-400 hover:text-emerald-300'}`}
+          className={`flex items-center gap-2 cursor-pointer px-2 ${pomodoroPhase === 'work' ? 'text-amber-400 hover:text-amber-300' : 'text-emerald-400 hover:text-emerald-300'}`}
           title="Open Pomodoro Timer"
         >
           <Flame size={12} />
-          <span className="font-mono font-bold" style={{ fontSize: '12px' }}>{pomodoroDisplay}</span>
+          <span className="tabular-nums font-semibold" style={{ fontSize: '12px' }}>{pomodoroDisplay}</span>
         </button>
       ) : runningTimer && elapsed ? (
         <button
@@ -116,7 +114,7 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
             <Timer size={12} className="group-hover:hidden" />
             <Square size={12} className="hidden group-hover:block text-err" fill="currentColor" />
           </div>
-          <span className="font-mono font-bold" style={{ fontSize: '12px' }}>{elapsed}</span>
+          <span className="tabular-nums font-semibold" style={{ fontSize: '12px' }}>{elapsed}</span>
           {runningTimer.notes && (
             <span className="hidden md:inline text-dim" style={{ fontSize: '10px', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {runningTimer.notes}
@@ -128,11 +126,7 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
       {/* Pomodoro toggle */}
       <button
         onClick={() => setPomodoroOpen(!pomodoroOpen)}
-        className="topbar-icon-btn flex items-center gap-1.5 px-2.5 py-1.5"
-        style={{
-          color: pomodoroOpen ? '#FFFFFF' : 'rgba(255,255,255,0.5)',
-          backgroundColor: pomodoroOpen ? 'rgba(255,255,255,0.15)' : 'transparent',
-        }}
+        className={`topbar-icon-btn flex items-center gap-1.5 px-2.5 py-1.5 ${pomodoroOpen ? 'topbar-icon-btn--on' : ''}`}
         title="Pomodoro Timer"
       >
         <Clock size={13} />
@@ -142,11 +136,7 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
       {/* AI Panel toggle */}
       <button
         onClick={() => setAiPanelOpen(!aiPanelOpen)}
-        className="topbar-icon-btn flex items-center gap-1.5 px-2.5 py-1.5"
-        style={{
-          color: aiPanelOpen ? '#FFFFFF' : 'rgba(255,255,255,0.5)',
-          backgroundColor: aiPanelOpen ? 'rgba(255,255,255,0.15)' : 'transparent',
-        }}
+        className={`topbar-icon-btn flex items-center gap-1.5 px-2.5 py-1.5 ${aiPanelOpen ? 'topbar-icon-btn--on' : ''}`}
         title="AI Assistant (Ctrl+J)"
       >
         <Sparkles size={13} />
@@ -156,11 +146,7 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
       {/* Focus Mode toggle */}
       <button
         onClick={() => setFocusMode(!focusMode)}
-        className="topbar-icon-btn flex items-center justify-center w-8 h-8"
-        style={{
-          color: focusMode ? '#F59E0B' : 'rgba(255,255,255,0.5)',
-          backgroundColor: focusMode ? 'rgba(245,158,11,0.15)' : 'transparent',
-        }}
+        className={`topbar-icon-btn flex items-center justify-center w-8 h-8 ${focusMode ? 'topbar-icon-btn--on' : ''}`}
         title={focusMode ? 'Exit Focus Mode' : 'Enter Focus Mode (hide sidebar)'}
         aria-label="Toggle focus mode"
       >
@@ -171,7 +157,6 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
       <button
         onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
         className="topbar-icon-btn flex items-center justify-center w-8 h-8"
-        style={{ color: 'rgba(255,255,255,0.5)' }}
         title="Toggle dark mode"
         aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
       >
@@ -182,7 +167,6 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
       <button
         onClick={onHelpClick}
         className="topbar-icon-btn hidden md:flex items-center justify-center w-8 h-8"
-        style={{ color: 'rgba(255,255,255,0.5)' }}
         title="Keyboard Shortcuts (?)"
         aria-label="Show keyboard shortcuts"
       >
@@ -190,17 +174,18 @@ export default function Topbar({ onLock, onHelpClick }: TopbarProps) {
       </button>
 
       {/* Time */}
-      <span className="font-mono hidden md:inline" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
+      <span className="hidden md:inline w-px h-4 bg-white/10 mx-1" aria-hidden="true" />
+      <span className="hidden md:inline tabular-nums" style={{ fontSize: '11.5px', fontWeight: 500, color: 'rgba(236,233,227,0.5)' }}>
         {format(currentTime, 'h:mm a')}
       </span>
 
       {/* User */}
-      <div className="flex items-center gap-2">
-        <span className="hidden md:inline" style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>
+      <div className="flex items-center gap-2.5 ml-1">
+        <span className="hidden md:inline" style={{ fontSize: '12px', fontWeight: 550, color: 'rgba(236,233,227,0.85)' }}>
           {displayName}
         </span>
-        <div className="topbar-avatar w-7 h-7 rounded-full flex items-center justify-center" title="Profile" style={{ backgroundColor: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.2)' }}>
-          <span className="font-bold" style={{ fontSize: '10px', letterSpacing: '0.05em', color: 'rgba(255,255,255,0.8)' }}>
+        <div className="topbar-avatar w-7 h-7 flex items-center justify-center" title="Profile">
+          <span className="font-display" style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.06em', color: '#ECE9E3' }}>
             {initials}
           </span>
         </div>

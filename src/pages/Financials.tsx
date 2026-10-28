@@ -106,8 +106,8 @@ function RevenueAreaChart({ data, year }: { data: number[]; year: number }) {
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ maxHeight: '220px' }}>
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#6C9BFF" stopOpacity="0.35" />
-          <stop offset="100%" stopColor="#6C9BFF" stopOpacity="0.02" />
+          <stop offset="0%" stopColor="var(--color-polar)" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="var(--color-polar)" stopOpacity="0.02" />
         </linearGradient>
       </defs>
 
@@ -118,7 +118,7 @@ function RevenueAreaChart({ data, year }: { data: number[]; year: number }) {
         return (
           <g key={i}>
             <line x1={PAD_L} y1={y} x2={W - PAD_R} y2={y} stroke="#333" strokeWidth="0.5" />
-            <text x={PAD_L - 8} y={y + 4} textAnchor="end" fill="#888" fontSize="10" fontFamily="'Space Mono', monospace">
+            <text x={PAD_L - 8} y={y + 4} textAnchor="end" fill="var(--color-dim)" fontSize="10" fontFamily="Geist, sans-serif">
               {val >= 1000 ? `$${(val / 1000).toFixed(0)}k` : `$${val}`}
             </text>
           </g>
@@ -127,7 +127,7 @@ function RevenueAreaChart({ data, year }: { data: number[]; year: number }) {
 
       {/* X labels */}
       {MONTHS.map((m, i) => (
-        <text key={m} x={xForIdx(i)} y={H - 6} textAnchor="middle" fill="#888" fontSize="10" fontFamily="'Space Mono', monospace">
+        <text key={m} x={xForIdx(i)} y={H - 6} textAnchor="middle" fill="var(--color-dim)" fontSize="10" fontFamily="Geist, sans-serif">
           {m}
         </text>
       ))}
@@ -136,7 +136,7 @@ function RevenueAreaChart({ data, year }: { data: number[]; year: number }) {
       <path d={areaPath} fill={`url(#${gradientId})`} />
 
       {/* line */}
-      <path d={linePath} fill="none" stroke="#6C9BFF" strokeWidth="2" strokeLinejoin="round" />
+      <path d={linePath} fill="none" stroke="var(--color-polar)" strokeWidth="2" strokeLinejoin="round" />
 
       {/* dots + hover rects */}
       {points.map((p, i) => (
@@ -151,8 +151,8 @@ function RevenueAreaChart({ data, year }: { data: number[]; year: number }) {
           {/* dot */}
           <circle
             cx={p.x} cy={p.y} r={hoverIdx === i ? 5 : (p.val > 0 ? 3 : 0)}
-            fill={hoverIdx === i ? '#FFF' : '#6C9BFF'}
-            stroke={hoverIdx === i ? '#6C9BFF' : 'none'}
+            fill={hoverIdx === i ? 'var(--color-polar)' : 'var(--color-polar)'}
+            stroke={hoverIdx === i ? 'var(--color-polar)' : 'none'}
             strokeWidth="2"
           />
 
@@ -160,7 +160,7 @@ function RevenueAreaChart({ data, year }: { data: number[]; year: number }) {
           {hoverIdx === i && p.val > 0 && (
             <g>
               <rect x={p.x - 38} y={p.y - 28} width="76" height="20" fill="#111" stroke="#333" strokeWidth="0.5" />
-              <text x={p.x} y={p.y - 14} textAnchor="middle" fill="#FFF" fontSize="11" fontFamily="'Space Mono', monospace">
+              <text x={p.x} y={p.y - 14} textAnchor="middle" fill="var(--color-polar)" fontSize="11" fontFamily="Geist, sans-serif">
                 {formatCurrency(p.val)}
               </text>
             </g>
@@ -248,7 +248,7 @@ function TopClientsTable({ clients }: { clients: { name: string; revenue: number
                   </span>
                 </div>
                 <div className="w-full bg-[#1a1a1a]" style={{ height: '4px' }}>
-                  <div style={{ width: `${barPct}%`, height: '100%', backgroundColor: '#6C9BFF', transition: 'width 0.3s' }} />
+                  <div style={{ width: `${barPct}%`, height: '100%', backgroundColor: 'var(--color-polar)', transition: 'width 0.3s' }} />
                 </div>
               </div>
             )
@@ -621,7 +621,7 @@ export default function Financials() {
                       className="w-full transition-all"
                       style={{
                         height: `${Math.max(height, amount > 0 ? 4 : 0)}%`,
-                        backgroundColor: amount > 0 ? '#6C9BFF' : 'transparent',
+                        backgroundColor: amount > 0 ? 'var(--color-polar)' : 'transparent',
                         minHeight: amount > 0 ? '4px' : '0',
                       }}
                     />

@@ -26,12 +26,13 @@ const STAGE_BADGE: Record<string, string> = {
 }
 
 const STAGE_COLORS: Record<string, string> = {
-  'New Lead': '#5E81AC',
-  'Contacted': '#EBCB8B',
-  'Responded': '#B48EAD',
-  'Meeting Set': '#A3BE8C',
-  'Closed Won': '#8FBC5E',
-  'Closed Lost': '#BF616A',
+  // Stages brighten as a lead moves forward; outcomes carry status colour
+  'New Lead': '#4D5560',
+  'Contacted': '#7D8794',
+  'Responded': '#A3ADB9',
+  'Meeting Set': '#D9DEE4',
+  'Closed Won': '#4CC38A',
+  'Closed Lost': '#F0575C',
 }
 
 // Expanded industry list — matches the categories the agent scraper writes
@@ -616,7 +617,7 @@ export default function Outreach() {
             <div
               key={stage}
               className="stat-card hover:translate-y-[-1px] transition-all duration-200"
-              style={{ borderLeft: `4px solid ${STAGE_COLORS[stage]}` }}
+              style={{ boxShadow: `inset 0 2px 0 ${STAGE_COLORS[stage]}, inset 0 1px 0 var(--edge-hi), var(--shadow-plate)` }}
             >
               <p className="label">{stage}</p>
               <p className="text-polar font-[800]" style={{ fontSize: '20px' }}>{pipeline[stage].count}</p>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Upload, FileText } from 'lucide-react'
+import { Upload, FileText, Palette } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import EmptyState from '@/components/ui/EmptyState'
@@ -19,17 +19,17 @@ const BRAND_COLORS = [
 
 const TYPOGRAPHY = [
   {
-    name: 'Figtree',
-    family: 'Figtree, sans-serif',
-    usage: 'Headings, UI labels, buttons',
-    weights: ['400 Regular', '600 Semibold', '700 Bold', '800 Extra Bold', '900 Black'],
+    name: 'Montserrat',
+    family: "'Montserrat', sans-serif",
+    usage: 'Display, headings, buttons, wordmark',
+    weights: ['500 Medium', '700 Bold', '800 Extra Bold', '900 Black'],
     sample: 'The quick brown fox jumps over the lazy dog',
   },
   {
-    name: 'Space Mono',
-    family: "'Space Mono', monospace",
-    usage: 'Data, metrics, timestamps, code',
-    weights: ['400 Regular', '700 Bold'],
+    name: 'Geist',
+    family: "'Geist', sans-serif",
+    usage: 'Interface text, data, metrics, timestamps',
+    weights: ['400 Regular', '500 Medium', '600 Semibold', '700 Bold'],
     sample: '$24,500 MRR | 12 clients | 99.8% uptime',
   },
 ]

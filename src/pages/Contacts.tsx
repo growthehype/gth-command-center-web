@@ -35,7 +35,7 @@ function levenshteinContacts(a: string, b: string): number {
 }
 
 const avatarColor = (name: string) => {
-  const colors = ['#5E81AC', '#A3BE8C', '#B48EAD', '#EBCB8B', '#BF616A', '#88C0D0', '#D08770']
+  const colors = ['#2A2F36', '#343A42', '#3D434C', '#23272D', '#454C56', '#2F343B', '#383E47']
   let hash = 0
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
   return colors[Math.abs(hash) % colors.length]
