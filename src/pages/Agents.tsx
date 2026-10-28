@@ -17,11 +17,12 @@ const STEP_NAME: Record<number, string> = { 1: 'First email', 2: 'Follow-up', 3:
    SEND DESK
    ======================================== */
 
-function SendDesk({ items, exportOnly, onSend, onCopy, onSave, onSkip, onOpenLead, onRun, running }: {
+function SendDesk({ items, exportOnly, onSend, onCopy, onGmail, onSave, onSkip, onOpenLead, onRun, running }: {
   items: WorkStep[]
   exportOnly: boolean
   onSend: (s: WorkStep) => Promise<any>
   onCopy: (s: WorkStep) => Promise<any>
+  onGmail: (s: WorkStep) => Promise<any>
   onSave: (s: WorkStep, subject: string, body: string) => Promise<any>
   onSkip: (s: WorkStep) => Promise<any>
   onOpenLead: (lead: OutreachLead) => void
@@ -32,7 +33,7 @@ function SendDesk({ items, exportOnly, onSend, onCopy, onSave, onSkip, onOpenLea
   const active = items.find(i => i.id === activeId) || items[0] || null
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
-  const [busy, setBusy] = useState<null | 'send' | 'save' | 'skip'>(null)
+  const [busy, setBusy] = useState<null | 'send' | 'save' | 'skip' | 'gmail'>(null)
 
   useEffect(() => {
     setSubject(active?.subject || '')
@@ -65,6 +66,17 @@ function SendDesk({ items, exportOnly, onSend, onCopy, onSave, onSkip, onOpenLea
       const next = items[items.findIndex(i => i.id === active.id) + 1]
       await (exportOnly ? onCopy(active) : onSend(active))
       setActiveId(next?.id || null)
+    } finally { setBusy(null) }
+  }
+
+  const doGmail = async () => {
+    if (!active) return
+    setBusy('gmail')
+    try {
+      if (dirty) await onSave(active, subject, body)
+      const next = items[items.findIndex(i => i.id === active.id) + 1]
+      const ok = await onGmail(active)
+      if (ok) setActiveId(next?.id || null)
     } finally { setBusy(null) }
   }
 
@@ -123,6 +135,11 @@ function SendDesk({ items, exportOnly, onSend, onCopy, onSave, onSkip, onOpenLea
             {dirty && (
               <button className="btn-ghost" disabled={!!busy} onClick={async () => { setBusy('save'); try { await onSave(active, subject, body) } finally { setBusy(null) } }}>
                 Save edits
+              </button>
+            )}
+            {!exportOnly && (
+              <button className="btn-ghost" disabled={!!busy || !lead.email} onClick={doGmail} title="Creates a draft in your Gmail with your signature, ready to send from there">
+                {busy === 'gmail' ? <Loader2 size={13} className="animate-spin" /> : <Mail size={13} />} Save to Gmail drafts
               </button>
             )}
             <button className="btn-primary" disabled={!!busy || !lead.email} onClick={doSend}>
@@ -377,12 +394,28 @@ export default function Agents() {
             exportOnly={exportOnly}
             onSend={ws.send}
             onCopy={ws.copy}
+            onGmail={ws.toGmail}
             onSave={ws.save}
             onSkip={ws.skip}
             onOpenLead={setOpenLead}
             onRun={run}
             running={busy}
           />
+          {ws.inGmail.length > 0 && (
+            <section className="ah-sched">
+              <p className="ah-k">Waiting in your Gmail Drafts</p>
+              <ul>
+                {ws.inGmail.map(s => (
+                  <li key={s.id}>
+                    <button onClick={() => s.sequence?.lead && setOpenLead(s.sequence.lead)}>
+                      <span>{s.sequence?.lead?.name}</span>
+                      <span className="text-dim">{STEP_NAME[s.step_number]} · send it from Gmail</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
           {ws.scheduled.length > 0 && (
             <section className="ah-sched">
               <p className="ah-k">Going out on their own</p>

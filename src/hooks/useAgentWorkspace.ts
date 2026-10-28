@@ -51,6 +51,7 @@ export async function callAgent(body: Record<string, any>) {
 export function useAgentWorkspace(agent: LeadAgent | null) {
   const [ready, setReady] = useState<WorkStep[]>([])
   const [scheduled, setScheduled] = useState<WorkStep[]>([])
+  const [inGmail, setInGmail] = useState<WorkStep[]>([])
   const [sent, setSent] = useState<WorkStep[]>([])
   const [runs, setRuns] = useState<AgentRunRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -66,11 +67,15 @@ export function useAgentWorkspace(agent: LeadAgent | null) {
         scheduled_at: new Date().toISOString(), executed_at: null, metadata: {},
         sequence: { id: `demo-seq-${l.id}`, status: 'draft', agent_config_id: agent?.id || null, lead: l },
       })))
-      setScheduled([]); setSent([]); setRuns([]); setLoading(false); return
+      setScheduled([]); setInGmail([]); setSent([]); setRuns([]); setLoading(false); return
+    }
+    // Pick up anything Omar sent from his Gmail Drafts since last look
+    if (agent.config?.delivery !== 'export') {
+      try { await callAgent({ mode: 'sync_drafts', agentType: agent.agent_type, configId: agent.id }) } catch { /* offline is fine */ }
     }
     const select = '*, sequence:outreach_sequences!inner(id, status, agent_config_id, lead:outreach_leads(*))'
     const nowIso = new Date().toISOString()
-    const [pending, sched, done, runRows] = await Promise.all([
+    const [pending, sched, done, runRows, drafted] = await Promise.all([
       supabase.from('outreach_steps').select(select)
         .eq('sequence.agent_config_id', agent.id)
         .eq('status', 'pending').not('scheduled_at', 'is', null).lte('scheduled_at', nowIso)
@@ -86,10 +91,15 @@ export function useAgentWorkspace(agent: LeadAgent | null) {
       supabase.from('agent_runs').select('id, started_at, completed_at, status, triggered_by, summary')
         .eq('agent_config_id', agent.id)
         .order('started_at', { ascending: false }).limit(15),
+      supabase.from('outreach_steps').select(select)
+        .eq('sequence.agent_config_id', agent.id)
+        .eq('status', 'approved').not('gmail_thread_id', 'is', null)
+        .order('updated_at', { ascending: false }).limit(100),
     ])
     const live = (rows: any[] | null) => (rows || []).filter(r => r.sequence && !['replied', 'stopped', 'unsubscribed', 'completed', 'bounced'].includes(r.sequence.status))
     setReady(live(pending.data) as WorkStep[])
     setScheduled(live(sched.data) as WorkStep[])
+    setInGmail(((drafted.data || []) as WorkStep[]).filter(s => s.metadata?.via === 'gmail_draft'))
     setSent((done.data || []) as WorkStep[])
     // Older runs may not carry agent_config_id; fall back to the agent type
     if (runRows.data && runRows.data.length) setRuns(runRows.data as AgentRunRow[])
@@ -150,6 +160,20 @@ export function useAgentWorkspace(agent: LeadAgent | null) {
     showToast('Skipped', 'info')
   }, [])
 
+  /** Put the email in Omar's Gmail Drafts to send from Gmail */
+  const toGmail = useCallback(async (step: WorkStep) => {
+    try {
+      await callAgent({ mode: 'gmail_draft', agentType: agent?.agent_type, configId: agent?.id, stepId: step.id })
+      setReady(prev => prev.filter(s => s.id !== step.id))
+      showToast(`In your Gmail Drafts. Send it from Gmail and it shows as sent here.`, 'success')
+      await load()
+      return true
+    } catch (err: any) {
+      showToast(err?.message || 'Could not create the Gmail draft', 'error')
+      return false
+    }
+  }, [agent, load])
+
   /** Client agents: copy the email and mark it handed over */
   const copy = useCallback(async (step: WorkStep) => {
     const lead = step.sequence?.lead
@@ -159,7 +183,7 @@ export function useAgentWorkspace(agent: LeadAgent | null) {
     showToast(`Copied the email for ${lead?.name || 'this lead'}`, 'success')
   }, [])
 
-  return { ready, scheduled, sent, runs, loading, reload: load, send, save, skip, copy }
+  return { ready, scheduled, inGmail, sent, runs, loading, reload: load, send, save, skip, copy, toGmail }
 }
 
 /** All steps of one lead's sequence (for the lead file) */

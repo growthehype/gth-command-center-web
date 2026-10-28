@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getAdminClient, getAgentConfig, getAgentConfigById, updateAgentRun } from './_lib/supabase-admin'
 import { runAgentTick } from './_lib/orchestrator'
 import { runActions, summariseRun } from './_lib/actions'
-import { sendScheduledEmails } from './_lib/sender'
+import { sendScheduledEmails, draftStepToGmail, syncGmailDrafts } from './_lib/sender'
 import { rescoreLeads } from './_lib/qualifier'
 import { isGthAgent } from './_lib/gth-profile'
 import { draftForLead } from './_lib/email-generator'
@@ -66,6 +66,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!isGthAgent(cfg)) return res.status(400).json({ error: 'Rescore is available for the GTH agent', step })
       const result = await rescoreLeads({ userId, agentConfig: cfg, deadlineMs: 250_000, pool: 4 })
       return res.status(200).json({ status: 'completed', results: { rescore: result } })
+    }
+
+    // Put one email into Omar's Gmail Drafts so he can send it from Gmail
+    if (mode === 'gmail_draft' || mode === 'sync_drafts') {
+      step = mode
+      const cfg = configId ? await getAgentConfigById(configId) : null
+      if (cfg && cfg.user_id !== userId) return res.status(403).json({ error: 'Config does not belong to this user', step })
+      if (mode === 'sync_drafts') {
+        const r = await syncGmailDrafts({ userId, cfgInner: cfg?.config || {} })
+        return res.status(200).json({ status: 'completed', results: { sync_drafts: r } })
+      }
+      const { stepId } = (req.body ?? {}) as any
+      if (!stepId) return res.status(400).json({ error: 'Missing stepId', step })
+      const r = await draftStepToGmail({ userId, stepId, cfgInner: cfg?.config || {} })
+      return res.status(200).json({ status: 'completed', results: { gmail_draft: r } })
     }
 
     // Write (or rewrite) the emails for one lead, straight from its lead file

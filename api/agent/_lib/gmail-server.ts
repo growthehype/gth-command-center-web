@@ -124,6 +124,59 @@ export async function sendEmail(userId: string, params: SendEmailParams): Promis
   return { id: result.id, threadId: result.threadId, rfcMessageId }
 }
 
+// ─── Drafts (Omar sends from Gmail himself) ─────────────────────
+
+/** Put a ready-to-send email into Omar's Gmail Drafts, with his signature. */
+export async function createDraft(userId: string, params: SendEmailParams): Promise<{ draftId: string; messageId: string; threadId: string }> {
+  const token = await getAccessToken(userId)
+  const htmlBody = escapeHtml(params.body).replace(/\n/g, '<br>')
+  const headers = [
+    `To: ${params.to}`,
+    `Subject: ${encodeHeader(params.subject)}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    'MIME-Version: 1.0',
+  ]
+  if (params.replyToMessageId) {
+    headers.push(`In-Reply-To: ${params.replyToMessageId}`)
+    headers.push(`References: ${params.replyToMessageId}`)
+  }
+  const mime = [
+    ...headers,
+    '',
+    `<html><body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #222;">${htmlBody}${GTH_EMAIL_SIGNATURE}${params.footerHtml || ''}</body></html>`,
+  ].join('\r\n')
+  const message: any = { raw: Buffer.from(mime, 'utf-8').toString('base64url') }
+  if (params.threadId) message.threadId = params.threadId
+
+  const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/drafts', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(`Gmail draft failed (${res.status}): ${JSON.stringify(err)}`)
+  }
+  const d = await res.json()
+  return { draftId: d.id, messageId: d.message?.id, threadId: d.message?.threadId }
+}
+
+/** If the thread now has a message Omar sent, return it (id, time, Message-ID). */
+export async function findSentInThread(userId: string, threadId: string): Promise<{ id: string; sentAt: string; rfcMessageId: string | null } | null> {
+  const token = await getAccessToken(userId)
+  const res = await fetch(
+    `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}?format=metadata&metadataHeaders=Message-ID`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  )
+  if (res.status === 404) return null
+  if (!res.ok) return null
+  const t = await res.json()
+  const sent = (t.messages || []).find((m: any) => (m.labelIds || []).includes('SENT') && !(m.labelIds || []).includes('DRAFT'))
+  if (!sent) return null
+  const h = (sent.payload?.headers || []).find((x: any) => String(x.name).toLowerCase() === 'message-id')
+  return { id: sent.id, sentAt: new Date(Number(sent.internalDate) || Date.now()).toISOString(), rfcMessageId: h?.value || null }
+}
+
 // ─── List New Messages ──────────────────────────────────────────
 
 interface GmailMessage {

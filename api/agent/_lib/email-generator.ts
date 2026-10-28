@@ -176,28 +176,53 @@ async function writeGthSequence(lead: any, cfgInner: any): Promise<{ draft: Sequ
   const brief = gthLeadBrief(lead, proof)
   const systemPrompt = buildGthWriterPrompt(cfgInner)
   const validateSequence = (d: SequenceDraft) => validateVoice(d, allowedLinks)
-  const ask = async (extra?: string) => {
+  const pick = (o: any, keys: string[]) => {
+    for (const k of keys) if (typeof o?.[k] === 'string' && o[k].trim()) return o[k]
+    return ''
+  }
+  // Accept the field names models actually use, not just the ones we asked for
+  const normalise = (o: any): SequenceDraft => {
+    const arr = Array.isArray(o?.emails) ? o.emails : null
+    return {
+      subject: pick(o, ['subject', 'subject_line']) || (arr?.[0]?.subject ?? ''),
+      email_1: pick(o, ['email_1', 'email1', 'first_email', 'initial_email', 'body']) || (arr?.[0]?.body ?? ''),
+      follow_up_1: pick(o, ['follow_up_1', 'followup_1', 'follow_up', 'email_2', 'second_email']) || (arr?.[1]?.body ?? ''),
+      follow_up_2: pick(o, ['follow_up_2', 'followup_2', 'final_note', 'email_3', 'third_email']) || (arr?.[2]?.body ?? ''),
+      angle_used: o?.angle_used,
+    }
+  }
+  const empty = (d: SequenceDraft) => !d.email_1?.trim() || !d.follow_up_1?.trim() || !d.follow_up_2?.trim()
+  let lastStop = ''
+
+  const ask = async (extra?: string, plainJson = false) => {
     const response = await askClaude({
-      systemPrompt,
+      systemPrompt: plainJson
+        ? `${systemPrompt}\n\nReply with ONLY a JSON object, no other text: {"subject": "...", "email_1": "...", "follow_up_1": "...", "follow_up_2": "...", "angle_used": "website|ai|both"}`
+        : systemPrompt,
       messages: [{
         role: 'user',
-        content: `Write the sequence for this business using compose_sequence.\n\n${brief}${extra ? `\n\n${extra}` : ''}`,
+        content: `${plainJson ? 'Write the three-email sequence for this business.' : 'Write the sequence for this business using compose_sequence.'}\n\n${brief}${extra ? `\n\n${extra}` : ''}`,
       }],
-      tools: GTH_WRITER_TOOLS,
+      ...(plainJson ? {} : { tools: GTH_WRITER_TOOLS }),
       tier: 'write',
-      maxTokens: 1600,
+      // Room for the model's own reasoning plus all three emails
+      maxTokens: 8000,
       temperature: 0.6,
     })
+    lastStop = response?.stop_reason || ''
     const tool = extractToolUse(response)
-    return (tool?.input || {}) as SequenceDraft
+    return normalise(tool?.input || {})
   }
 
   let draft = await ask()
+  if (empty(draft)) draft = await ask(undefined, true)
+  if (empty(draft)) throw new Error(`the writer came back without email text (stop: ${lastStop || 'unknown'})`)
   let issues = validateSequence(draft)
   if (issues.length === 0) return { draft, issues, repaired: false }
 
   // One rewrite with the exact problems listed
-  draft = await ask(`Your previous draft broke these rules, rewrite all three emails and fix every one:\n- ${issues.join('\n- ')}`)
+  const retry = await ask(`Your previous draft broke these rules, rewrite all three emails and fix every one:\n- ${issues.join('\n- ')}`)
+  if (!empty(retry)) draft = retry
   issues = validateSequence(draft)
   if (issues.length === 0) return { draft, issues, repaired: false }
 

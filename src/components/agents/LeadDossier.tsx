@@ -69,7 +69,7 @@ export default function LeadDossier({ lead, agent, onClose, onChanged }: Props) 
   const e = lead.enrichment_data || {}
   const exportOnly = agent?.config?.delivery === 'export'
   const [steps, setSteps] = useState<WorkStep[]>([])
-  const [busy, setBusy] = useState<null | 'draft' | 'send' | 'save' | 'dismiss'>(null)
+  const [busy, setBusy] = useState<null | 'draft' | 'send' | 'save' | 'dismiss' | 'gmail'>(null)
   const [editId, setEditId] = useState<string | null>(null)
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
@@ -124,6 +124,18 @@ export default function LeadDossier({ lead, agent, onClose, onChanged }: Props) 
       await refreshSteps()
       onChanged?.()
     } catch (err: any) { showToast(err?.message || 'Send failed', 'error') }
+    finally { setBusy(null) }
+  }
+
+  const toGmail = async () => {
+    if (!first || !agent) return
+    setBusy('gmail')
+    try {
+      await callAgent({ mode: 'gmail_draft', agentType: agent.agent_type, configId: agent.id, stepId: first.id })
+      showToast('In your Gmail Drafts with your signature. Send it from Gmail and it shows as sent here.', 'success')
+      await refreshSteps()
+      onChanged?.()
+    } catch (err: any) { showToast(err?.message || 'Could not create the Gmail draft', 'error') }
     finally { setBusy(null) }
   }
 
@@ -269,6 +281,11 @@ export default function LeadDossier({ lead, agent, onClose, onChanged }: Props) 
                     {steps.length ? 'Rewrite emails' : 'Write emails'}
                   </button>
                 )}
+                {firstReady && !exportOnly && (
+                  <button className="btn-ghost" onClick={toGmail} disabled={!!busy}>
+                    {busy === 'gmail' ? <Loader2 size={13} className="animate-spin" /> : <Mail size={13} />} Save to Gmail drafts
+                  </button>
+                )}
                 {firstReady && (
                   <button className="btn-primary" onClick={sendFirst} disabled={!!busy}>
                     {busy === 'send' ? <Loader2 size={13} className="animate-spin" /> : exportOnly ? <Copy size={13} /> : <Send size={13} />}
@@ -292,7 +309,9 @@ export default function LeadDossier({ lead, agent, onClose, onChanged }: Props) 
                         <span className={`ld-step-status ld-step-status--${s.status}`}>
                           {s.status === 'pending' ? (s.scheduled_at ? 'Ready for you' : 'Waits for the email before it') :
                             s.status === 'scheduled' ? `Sends ${s.scheduled_at ? relativeDate(s.scheduled_at) : 'soon'}` :
-                            s.status === 'sent' ? `Sent ${s.executed_at ? relativeDate(s.executed_at) : ''}` : s.status}
+                            s.status === 'sent' ? `Sent ${s.executed_at ? relativeDate(s.executed_at) : ''}` :
+                            s.status === 'approved' && s.metadata?.via === 'gmail_draft' ? 'In your Gmail Drafts' :
+                            s.status === 'approved' ? 'Copied' : s.status}
                         </span>
                         {editable && !editing && (
                           <button className="ld-link" onClick={() => { setEditId(s.id); setSubject(s.subject || ''); setBody(s.body || '') }}>Edit</button>
