@@ -632,7 +632,7 @@ Write the code that goes inside <script id="site-js"></script>, following the MO
 - [data-form]: prevent submit, check required fields and email format, show errors inline, then show in [data-status]: "This is a homepage concept. On your new site, this would go straight to your inbox."
 - Only reference elements that exist in the markup; guard every query. No console logs, no alerts, no external requests.
 
-Return only the JavaScript inside one \`\`\`js code block.`
+Return only the JavaScript inside exactly one \`\`\`js code block, complete and syntactically valid, under about 350 lines.`
 
 async function loadRefScript(): Promise<string> {
   const sb = getAdminClient()
@@ -650,8 +650,10 @@ export async function generateScript(html: string, deadline: number, slug = ''):
     ],
     messages: [{ role: 'user', content: `Here is the page. Write the script.\n\n${html}` }],
   }, deadline)
-  const m = text.match(/```(?:js|javascript)\s*([\s\S]*?)```/i)
-  const js = (m ? m[1] : text).trim()
+  if (slug) await put(`${slug}/debug/script-output.txt`, `stop=${stop}\n\n${text}`, 'text/plain; charset=utf-8').catch(() => {})
+  const blocks = [...text.matchAll(/```(?:js|javascript)?[ \t]*\r?\n([\s\S]*?)(?:```|$)/gi)].map(m => m[1])
+  const js = (blocks.sort((a, b) => b.length - a.length)[0] ?? text).trim()
+  if (stop === 'max_tokens' || stop === 'deadline') throw new Error('The motion script was cut off')
   if (js.length < 200) {
     if (slug) await put(`${slug}/debug/script-output.txt`, `stop=${stop}\n\n${text}`, 'text/plain; charset=utf-8').catch(() => {})
     throw new Error(`The script engineer returned nothing usable (stopped: ${stop || 'unknown'}, ${text.length} characters)`)
@@ -660,7 +662,7 @@ export async function generateScript(html: string, deadline: number, slug = ''):
 }
 
 function insertScript(html: string, js: string): string {
-  const tag = /<script id="site-js">\s*<\/script>/i
+  const tag = /<script id="site-js">[\s\S]*?<\/script>/i
   if (tag.test(html)) return html.replace(tag, () => `<script id="site-js">\n${js}\n</script>`)
   return html.replace(/<\/body>/i, () => `<script id="site-js">\n${js}\n</script>\n</body>`)
 }
@@ -775,15 +777,20 @@ FACTS WE HAVE (anything stated on the page that is not here is invented and must
       max_tokens: 8000,
       system: `You are the creative director at Grow The Hype reviewing a homepage concept before Omar sends it to a prospect. Omar's bar: it must look like a quarter-million-dollar custom build, with nothing that reads as a template or as AI. Be exacting about: alignment (shared edges, columns, baselines; Omar hates uneven lines), type scale and rhythm, spacing, image cropping, logo treatment (never a white box on a dark background, never stretched, always legible), contrast, the phone layout, anything broken or overlapping, banned patterns (eyebrow labels above headings, section numbers, identical icon cards, gradient text, emoji, italic accent words in headings), copy (no invented facts, no clichés, no exclamation marks, no dashes, Canadian spelling), and that every link works. Fix what you can with exact search-and-replace edits on the source. Use verdict "rebuild" only if the concept as a whole is weak (score below 7).`,
       tools: [REVIEW_TOOL],
-      tool_choice: { type: 'tool', name: 'review_concept' },
-      messages: [{ role: 'user', content }],
+      tool_choice: { type: 'auto' },
+      messages: [{ role: 'user', content: [...content, { type: 'text', text: 'Answer by calling the review_concept tool. Do not reply with plain text.' }] }],
     }),
   }).catch((e: any) => ({ ok: false, status: 0, json: async () => ({ error: String(e?.message || e) }) }) as any)
   const data: any = await res.json().catch(() => ({}))
-  const tool = (data?.content || []).find((b: any) => b.type === 'tool_use')?.input
+  let tool = (data?.content || []).find((b: any) => b.type === 'tool_use')?.input
+  if (!tool && res.ok) {
+    const t = (data?.content || []).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('')
+    const a = t.indexOf('{'), b = t.lastIndexOf('}')
+    if (a >= 0 && b > a) { try { tool = JSON.parse(t.slice(a, b + 1)) } catch { /* not JSON */ } }
+  }
   if (!res.ok || !tool) {
-    // Review unavailable: publish only if the automated checks passed
-    return { html, score: first.problems.length ? 5 : 7, verdict: first.problems.length ? 'fix' : 'ship', issues: first.problems }
+    // Never publish without a review
+    throw new Error(`The review could not run (${res.status || 'network'}): ${JSON.stringify(data?.error || data).slice(0, 160)}`)
   }
   let out = html
   for (const ed of (tool.edits || []) as { find: string; replace: string }[]) {
@@ -792,7 +799,10 @@ FACTS WE HAVE (anything stated on the page that is not here is invented and must
     if (idx < 0 || out.indexOf(ed.find, idx + ed.find.length) >= 0) continue
     out = out.slice(0, idx) + ed.replace + out.slice(idx + ed.find.length)
   }
-  return { html: out, score: Number(tool.score) || 0, verdict: tool.verdict || 'fix', issues: [...first.problems, ...(tool.issues || [])].slice(0, 30) }
+  // Check the fixed page again: nothing broken may ship
+  const after = out === html ? first : await renderChecks(out, slug)
+  const blocking = after.problems.filter(p => /JavaScript errors|Broken images|scrolls sideways|Files that failed/.test(p))
+  return { html: out, score: Number(tool.score) || 0, verdict: tool.verdict || 'fix', issues: [...after.problems, ...(tool.issues || [])].slice(0, 30), blocking } as any
 }
 
 // ─── Orchestration: advance one stage ───────────────────────────
@@ -884,17 +894,27 @@ export async function advancePreview(leadId: string, opts: { deadline: number; r
 
     // Stage 3 → review, fix, publish
     await progress(leadId, 'reviewing in a browser')
-    const r = await reviewPage(lead, slug, draft, kit, opts.deadline)
-    if (r.verdict === 'rebuild' && (state.attempts || 0) < 3) {
-      await sb.storage.from(BUCKET).remove([`${slug}/draft.html`])
-      return await savePreviewState(leadId, { status: 'kit', feedback: r.issues.slice(0, 15), review: { score: r.score, notes: r.issues.slice(0, 15) }, error: null, step: 'done' } as any)
+    const r: any = await reviewPage(lead, slug, draft, kit, opts.deadline)
+    const review = { score: r.score, notes: r.issues.slice(0, 15) }
+    if ((r.blocking || []).some((p: string) => /JavaScript errors/.test(p))) {
+      // The motion script is broken: write it again
+      await put(`${slug}/draft.html`, r.html, 'text/html; charset=utf-8')
+      const errors = ((state as any).errors || 0) + 1
+      return await savePreviewState(leadId, { status: errors >= 3 ? 'failed' : 'generated', errors, review, error: 'The motion script had errors; rewriting it', step: 'done' } as any)
+    }
+    if (r.score < 7 || r.verdict === 'rebuild' || (r.blocking || []).length) {
+      if ((state.attempts || 0) < 3) {
+        await sb.storage.from(BUCKET).remove([`${slug}/draft.html`])
+        return await savePreviewState(leadId, { status: 'kit', feedback: r.issues.slice(0, 15), review, error: null, step: 'done' } as any)
+      }
+      return await savePreviewState(leadId, { status: 'failed', review, error: `Did not reach the bar after three designs (best review ${r.score}/10)`, step: 'done' } as any)
     }
     await put(`${slug}/index.html`, r.html, 'text/html; charset=utf-8')
     return await savePreviewState(leadId, {
       status: 'ready',
       url: `${PREVIEW_HOST}/${slug}/`,
       built_at: new Date().toISOString(),
-      review: { score: r.score, notes: r.issues.slice(0, 15) },
+      review,
       error: null,
       step: 'done',
     } as any)
