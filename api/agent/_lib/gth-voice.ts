@@ -67,9 +67,9 @@ THE SEQUENCE (three emails, same thread)
    - What he would do about it, in one sentence (a new site built properly for phones and bookings, or setting up AI for booking, intake and follow-ups so the front desk isn't stuck on the phone). Match the pitch angle given.
    - If "Work to show" links are given, mention them briefly in one or two lines, e.g. "Here are a couple we built recently: {link} and {link}." Use the note to describe each in plain words (for example a lead landing page). Use at most two links in the first email. If none are given, don't mention past work at all.
    - A soft ask: a short call or a few ideas over email. ${booking ? `He may offer his booking link once: ${booking}` : 'Do not include any links other than the "Work to show" link.'}
-   - Polite thank you, then sign off with "Omar" on its own line.
-2) Follow-up, sent three days later, 40 to 90 words: friendly, no guilt, no "just checking in". Give one small, genuinely useful idea they could act on even without hiring him, tied to the same observation. End with a light, optional ask. Sign off "Omar".
-3) Final note, five days after that, 25 to 60 words: gracious, leaves the door open, wishes them a good season or a good week, no pressure. Sign off "Omar".
+   - End on the polite thank you line. Do NOT sign off with a name: Omar's Gmail signature is added below the email.
+2) Follow-up, sent three days later, 40 to 90 words: friendly, no guilt, no "just checking in". Give one small, genuinely useful idea they could act on even without hiring him, tied to the same observation. End with a light, optional ask. No name sign-off.
+3) Final note, five days after that, 25 to 60 words: gracious, leaves the door open, wishes them a good season or a good week, no pressure. No name sign-off.
 
 SUBJECT LINE: 2 to 6 words, lowercase except names, specific to them, e.g. "booking at {business}", "your website", "quick idea for {business}". No clickbait, no "re:", no exclamation marks.
 
@@ -160,8 +160,8 @@ export function validateVoice(d: VoiceDraft, allowedLinks: string[] = []): strin
     const [min, max] = LIMITS[key]
     const wc = words(body)
     if (wc < min || wc > max) problems.push(`${key} is ${wc} words (allowed ${min} to ${max})`)
-    const last = body.trim().split('\n').pop()?.trim()
-    if (last !== 'Omar') problems.push(`${key} must end with "Omar" on its own line`)
+    const last = body.trim().split('\n').pop()?.trim() || ''
+    if (/^(omar|omar alladina|-+\s*omar|cheers,?|thanks,?|best,?|regards,?)$/i.test(last)) problems.push(`${key} must not end with a sign-off or name (the Gmail signature adds it)`)
     if (/^\s*([-*•]|\d+\.)\s+/m.test(body)) problems.push(`${key} uses a list`)
     for (const { re, label } of BANNED) if (re.test(body)) problems.push(`${key} uses "${label}"`)
     for (const { re, label } of CHAR_RULES) {
@@ -191,8 +191,8 @@ export function repairVoice(d: VoiceDraft): VoiceDraft {
       .replace(/^\s*([-*•]|\d+\.)\s+/gm, '')
       .replace(/ ,/g, ',').replace(/,\s*,/g, ',').replace(/\.\s*\./g, '.')
       .replace(/\n{3,}/g, '\n\n').trim()
-    body = body.replace(/\n*\s*Omar\s*$/, '').trimEnd()
-    return `${body}\n\nOmar`
+    // No name at the bottom: Omar's Gmail signature carries it
+    return body.replace(/\n*\s*(?:cheers,?|thanks,?|best,?)?\s*\n*\s*Omar(?: Alladina)?\s*$/i, '').trimEnd()
   }
   let subject = (d.subject || '').replace(/!/g, '').replace(/^re:\s*/i, '')
   for (const { re, fix: f } of CHAR_RULES) { re.lastIndex = 0; subject = subject.replace(re, f) }

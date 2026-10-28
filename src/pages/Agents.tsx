@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Play, Loader2, Settings2, Send, Copy, SkipForward, Search, RefreshCw, ArrowUpRight, Inbox, CheckCircle2, Mail } from 'lucide-react'
+import { Play, Loader2, Settings2, Send, Copy, SkipForward, Search, RefreshCw, ArrowUpRight, Inbox, Mail } from 'lucide-react'
 import { useAppStore, type OutreachLead } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import { relativeDate } from '@/lib/utils'
@@ -8,9 +8,10 @@ import {
 } from '@/components/outreach/LeadAgents'
 import { useAgentWorkspace, callAgent, type WorkStep } from '@/hooks/useAgentWorkspace'
 import LeadDossier, { FactBadge } from '@/components/agents/LeadDossier'
+import LeadTracker from '@/components/agents/LeadTracker'
 import { leadTier, leadObservation, TIER_LABEL, type Tier } from '@/components/agents/leadScore'
 
-type Tab = 'ready' | 'leads' | 'sent' | 'how' | 'log'
+type Tab = 'ready' | 'track' | 'leads' | 'how' | 'log'
 const STEP_NAME: Record<number, string> = { 1: 'First email', 2: 'Follow-up', 3: 'Final note' }
 
 /* ========================================
@@ -312,15 +313,15 @@ export default function Agents() {
 
   const funnel = useMemo(() => {
     const worth = mine.filter(l => ['hot', 'warm'].includes(leadTier(l))).length
-    const replied = mine.filter(l => ['responded', 'interested'].includes(String(l.stage).toLowerCase())).length
-    const meetings = mine.filter(l => /meeting/i.test(String(l.stage))).length
+    const replied = mine.filter(l => /respond|interest|objection|meeting|proposal|won/i.test(String(l.stage))).length
+    const meetings = mine.filter(l => /meeting|proposal|won/i.test(String(l.stage))).length
     return [
       { key: 'found', label: 'Businesses checked', value: ws.pool.screened, tab: 'how' as Tab },
       { key: 'worth', label: 'Qualified 60+', value: worth, tab: 'leads' as Tab },
       { key: 'ready', label: 'Ready to send', value: ws.ready.length, tab: 'ready' as Tab, hot: ws.ready.length > 0 },
-      { key: 'sent', label: 'Contacted', value: sentLeadIds.size, tab: 'sent' as Tab },
-      { key: 'replied', label: 'Replied', value: replied, tab: 'sent' as Tab },
-      { key: 'meet', label: 'Meetings', value: meetings, tab: 'sent' as Tab },
+      { key: 'sent', label: 'Contacted', value: sentLeadIds.size, tab: 'track' as Tab },
+      { key: 'replied', label: 'Replied', value: replied, tab: 'track' as Tab },
+      { key: 'meet', label: 'Meetings', value: meetings, tab: 'track' as Tab },
     ]
   }, [mine, ws.ready.length, sentLeadIds, ws.pool.screened])
 
@@ -446,8 +447,8 @@ export default function Agents() {
       <div className="tabbar ah-tabs" role="tablist">
         {([
           ['ready', `Ready to send${ws.ready.length ? ` (${ws.ready.length})` : ''}`],
+          ['track', 'Tracker'],
           ['leads', `Leads (${mine.length})`],
-          ['sent', 'Sent'],
           ['how', 'How it works'],
           ['log', 'Run log'],
         ] as [Tab, string][]).map(([k, label]) => (
@@ -506,28 +507,7 @@ export default function Agents() {
         <LeadsBoard leads={mine} drafted={draftedIds} sentIds={sentLeadIds} onOpen={setOpenLead} onRescore={rescore} rescoring={rescoring} />
       )}
 
-      {tab === 'sent' && (
-        ws.sent.length === 0 ? (
-          <div className="ah-empty"><Mail size={22} /><p className="ah-empty-title">Nothing sent yet</p><p>Emails you send show up here with their status. Replies stop a sequence automatically.</p></div>
-        ) : (
-          <ul className="ah-leads">
-            {ws.sent.map(s => (
-              <li key={s.id}>
-                <button className="ah-lead" onClick={() => s.sequence?.lead && setOpenLead(s.sequence.lead)}>
-                  <span className={`ah-sent-ico ${s.sequence?.status === 'replied' ? 'ah-sent-ico--ok' : ''}`}>{s.sequence?.status === 'replied' ? <CheckCircle2 size={15} /> : <Send size={14} />}</span>
-                  <span className="ah-lead-main">
-                    <span className="ah-lead-name">{s.sequence?.lead?.name}</span>
-                    <span className="ah-lead-obs">{STEP_NAME[s.step_number]} · {s.subject}</span>
-                  </span>
-                  <span className="ah-lead-ind">{s.executed_at ? relativeDate(s.executed_at) : ''}</span>
-                  <span className={`ah-lead-status ${s.sequence?.status === 'replied' ? 'ah-lead-status--ok' : ''}`}>{s.sequence?.status === 'replied' ? 'Replied' : s.status === 'failed' ? 'Failed' : 'Sent'}</span>
-                  <ArrowUpRight size={14} className="ah-lead-go" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )
-      )}
+      {tab === 'track' && <LeadTracker key={agent.id} agent={agent} onOpenLead={setOpenLead} />}
 
       {tab === 'how' && <HowItWorks agent={agent} />}
 

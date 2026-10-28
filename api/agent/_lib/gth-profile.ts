@@ -382,9 +382,9 @@ export const GTH_WRITER_TOOLS = [
       type: 'object' as const,
       properties: {
         subject: { type: 'string', description: 'Subject line for the first email (follow-ups reply in the same thread)' },
-        email_1: { type: 'string', description: 'First email body, plain text, ends with "Omar"' },
-        follow_up_1: { type: 'string', description: 'Follow-up body, plain text, ends with "Omar"' },
-        follow_up_2: { type: 'string', description: 'Final note body, plain text, ends with "Omar"' },
+        email_1: { type: 'string', description: 'First email body, plain text, no name sign-off' },
+        follow_up_1: { type: 'string', description: 'Follow-up body, plain text, no name sign-off' },
+        follow_up_2: { type: 'string', description: 'Final note body, plain text, no name sign-off' },
         angle_used: { type: 'string', enum: ['website', 'ai', 'both'] },
       },
       required: ['subject', 'email_1', 'follow_up_1', 'follow_up_2', 'angle_used'],

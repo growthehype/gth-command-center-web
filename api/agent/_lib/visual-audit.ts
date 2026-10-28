@@ -305,7 +305,7 @@ const CHECK_PROMPT = `You fact-check a cold email before it is sent to a busines
 
 For every statement in the emails about the recipient's business or website, decide if it is supported by the screenshots or the verified facts. Compliments and general statements about Grow The Hype are fine and need no checking.
 
-If anything is not clearly supported, rewrite only the affected emails so they no longer make that claim, keeping the same voice, length and structure. Do not add new claims. Keep "Omar" as the last line of each email. No dashes, no exclamation marks.`
+If anything is not clearly supported, rewrite only the affected emails so they no longer make that claim, keeping the same voice, length and structure. Do not add new claims. Do not add a name or sign-off at the end. No dashes, no exclamation marks.`
 
 const CHECK_TOOL = [{
   name: 'fact_check',
@@ -380,4 +380,48 @@ export async function factCheckDraft(params: {
   } catch {
     return { status: 'unverified', removed: [], claims: [], draft: { email_1: d.email_1, follow_up_1: d.follow_up_1, follow_up_2: d.follow_up_2 } }
   }
+}
+
+// ─── Screenshots to attach to the first email ───────────────────
+
+const SHOT_KEYS: Record<string, { key: 'mobile_top' | 'desktop_top' | 'desktop_middle' | 'desktop_footer'; label: string }> = {
+  A: { key: 'mobile_top', label: 'phone' },
+  B: { key: 'desktop_top', label: 'homepage' },
+  C: { key: 'desktop_middle', label: 'page' },
+  D: { key: 'desktop_footer', label: 'footer' },
+}
+
+/** Which screenshots back up the email's points (max 2), based on where Claude saw each problem. */
+export function attachmentPlan(lead: any): { url: string; filename: string; label: string }[] {
+  const qual = lead?.enrichment_data?.qual
+  const visual = qual?.visual
+  if (!visual?.checked || !visual.urls) return []
+  const letters: string[] = []
+  for (const f of visual.findings || []) {
+    for (const m of String(f.evidence || '').matchAll(/Screenshot\s+([ABCD])/gi)) {
+      const l = m[1].toUpperCase()
+      if (!letters.includes(l)) letters.push(l)
+    }
+  }
+  if (!letters.length && qual?.design?.verdict === 'dated') letters.push('B', 'A')
+  const slug = String(lead.name || 'website').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'website'
+  const out: { url: string; filename: string; label: string }[] = []
+  for (const l of letters) {
+    const spec = SHOT_KEYS[l]
+    const url = spec && visual.urls[spec.key]
+    if (url && !out.some(o => o.url === url)) out.push({ url, filename: `${slug}-${spec.label}.jpg`, label: spec.label })
+    if (out.length >= 2) break
+  }
+  return out
+}
+
+/** Download the planned screenshots as attachments. */
+export async function loadAttachments(lead: any): Promise<{ filename: string; contentType: string; base64: string }[]> {
+  const plan = attachmentPlan(lead)
+  const files = await Promise.all(plan.map(async p => {
+    const uri = await fetchShot(p.url)
+    const m = uri?.match(/^data:([^;]+);base64,(.+)$/)
+    return m ? { filename: p.filename, contentType: m[1], base64: m[2] } : null
+  }))
+  return files.filter(Boolean) as { filename: string; contentType: string; base64: string }[]
 }

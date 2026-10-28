@@ -57,6 +57,48 @@ interface SendEmailParams {
   threadId?: string
   /** Extra HTML appended after the signature (e.g. CASL opt-out line) */
   footerHtml?: string
+  /** Files to attach, e.g. screenshots of the prospect's site */
+  attachments?: { filename: string; contentType: string; base64: string }[]
+}
+
+/** Build the raw MIME message: HTML body with signature, plus optional attachments. */
+function buildMime(params: SendEmailParams): string {
+  const htmlBody = escapeHtml(params.body).replace(/\n/g, '<br>')
+  const html = `<html><body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #222;">${htmlBody}${GTH_EMAIL_SIGNATURE}${params.footerHtml || ''}</body></html>`
+  const headers = [
+    `To: ${params.to}`,
+    `Subject: ${encodeHeader(params.subject)}`,
+    'MIME-Version: 1.0',
+  ]
+  if (params.replyToMessageId) {
+    headers.push(`In-Reply-To: ${params.replyToMessageId}`)
+    headers.push(`References: ${params.replyToMessageId}`)
+  }
+  const files = params.attachments || []
+  if (!files.length) {
+    return [...headers, 'Content-Type: text/html; charset="UTF-8"', '', html].join('\r\n')
+  }
+  const boundary = `gth_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`
+  const wrap = (b64: string) => b64.replace(/(.{76})/g, '$1\r\n')
+  const parts = [
+    `--${boundary}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    'Content-Transfer-Encoding: base64',
+    '',
+    wrap(Buffer.from(html, 'utf-8').toString('base64')),
+  ]
+  for (const f of files) {
+    parts.push(
+      `--${boundary}`,
+      `Content-Type: ${f.contentType}; name="${f.filename}"`,
+      `Content-Disposition: attachment; filename="${f.filename}"`,
+      'Content-Transfer-Encoding: base64',
+      '',
+      wrap(f.base64),
+    )
+  }
+  parts.push(`--${boundary}--`)
+  return [...headers, `Content-Type: multipart/mixed; boundary="${boundary}"`, '', ...parts].join('\r\n')
 }
 
 function escapeHtml(s: string): string {
@@ -70,24 +112,7 @@ function encodeHeader(v: string): string {
 
 export async function sendEmail(userId: string, params: SendEmailParams): Promise<{ id: string; threadId: string; rfcMessageId: string | null }> {
   const token = await getAccessToken(userId)
-  const htmlBody = escapeHtml(params.body).replace(/\n/g, '<br>')
-
-  const headers = [
-    `To: ${params.to}`,
-    `Subject: ${encodeHeader(params.subject)}`,
-    'Content-Type: text/html; charset="UTF-8"',
-    'MIME-Version: 1.0',
-  ]
-  if (params.replyToMessageId) {
-    headers.push(`In-Reply-To: ${params.replyToMessageId}`)
-    headers.push(`References: ${params.replyToMessageId}`)
-  }
-
-  const mimeMessage = [
-    ...headers,
-    '',
-    `<html><body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #222;">${htmlBody}${GTH_EMAIL_SIGNATURE}${params.footerHtml || ''}</body></html>`,
-  ].join('\r\n')
+  const mimeMessage = buildMime(params)
 
   const encoded = Buffer.from(mimeMessage, 'utf-8').toString('base64url')
 
@@ -129,22 +154,7 @@ export async function sendEmail(userId: string, params: SendEmailParams): Promis
 /** Put a ready-to-send email into Omar's Gmail Drafts, with his signature. */
 export async function createDraft(userId: string, params: SendEmailParams): Promise<{ draftId: string; messageId: string; threadId: string }> {
   const token = await getAccessToken(userId)
-  const htmlBody = escapeHtml(params.body).replace(/\n/g, '<br>')
-  const headers = [
-    `To: ${params.to}`,
-    `Subject: ${encodeHeader(params.subject)}`,
-    'Content-Type: text/html; charset="UTF-8"',
-    'MIME-Version: 1.0',
-  ]
-  if (params.replyToMessageId) {
-    headers.push(`In-Reply-To: ${params.replyToMessageId}`)
-    headers.push(`References: ${params.replyToMessageId}`)
-  }
-  const mime = [
-    ...headers,
-    '',
-    `<html><body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #222;">${htmlBody}${GTH_EMAIL_SIGNATURE}${params.footerHtml || ''}</body></html>`,
-  ].join('\r\n')
+  const mime = buildMime(params)
   const message: any = { raw: Buffer.from(mime, 'utf-8').toString('base64url') }
   if (params.threadId) message.threadId = params.threadId
 

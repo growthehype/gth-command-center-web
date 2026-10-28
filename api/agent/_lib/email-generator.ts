@@ -1,4 +1,5 @@
 // AI cold email generation engine
+import { attachmentPlan } from './visual-audit'
 import { getAdminClient } from './supabase-admin'
 import {
   askClaude,
@@ -183,6 +184,8 @@ function gthLeadBrief(lead: any, proof: string | null): string {
   }
   parts.push(`Lead with this observation: ${qual?.observation || e.observation || 'none, keep it general but honest'}`)
   parts.push(`Pitch angle: ${qual?.pitch_angle || e.pitch_angle || 'website'}`)
+  const shots = attachmentPlan(lead)
+  if (shots.length) parts.push(`Attached to email 1: ${shots.length === 1 ? 'a screenshot' : 'screenshots'} of their ${shots.map(x => x.label).join(' and ')}. In email 1 mention once, briefly and naturally, that you attached ${shots.length === 1 ? 'a screenshot' : 'a couple of screenshots'} so they can see what you mean. Do not mention attachments in the follow-ups.`)
   return parts.join('\n')
 }
 

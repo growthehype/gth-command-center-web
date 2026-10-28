@@ -33,7 +33,15 @@ const STAGE_OPTIONS: StatusOption[] = [
 function normalizeStage(stage: string | null | undefined): string {
   if (!stage) return 'New Lead'
   const hit = STAGES.find(s => s.toLowerCase().replace(/\s+/g, '-') === stage.toLowerCase())
-  return hit || stage
+  if (hit) return hit
+  // Stages set by the inbox check and the AI Agents tracker
+  const s = stage.toLowerCase()
+  if (/won/.test(s)) return 'Closed Won'
+  if (/lost|not.?interested|unsubscribed/.test(s)) return 'Closed Lost'
+  if (/proposal|meeting|call/.test(s)) return 'Meeting Set'
+  if (/interested|objection|respond|replied/.test(s)) return 'Responded'
+  if (/contacted/.test(s)) return 'Contacted'
+  return stage
 }
 
 const STAGE_BADGE: Record<string, string> = {

@@ -4,6 +4,7 @@ import { getAdminClient } from './supabase-admin'
 import { sendEmail, createDraft, findSentInThread } from './gmail-server'
 import { checkRateLimit, incrementCounter, DEFAULT_LIMITS } from './rate-limiter'
 import { gthOptOutFooterHtml } from './gth-profile'
+import { loadAttachments } from './visual-audit'
 
 interface SendParams {
   userId: string
@@ -76,7 +77,7 @@ export async function sendScheduledEmails(params: SendParams): Promise<SendResul
       const leadId = seq?.lead_id || step.lead_id
       const { data: lead } = await sb
         .from('outreach_leads')
-        .select('id, email, name, stage')
+        .select('id, email, name, stage, enrichment_data')
         .eq('id', leadId)
         .single()
 
@@ -127,6 +128,7 @@ export async function sendScheduledEmails(params: SendParams): Promise<SendResul
         threadId,
         replyToMessageId: replyTo,
         footerHtml: gthOptOutFooterHtml(params.cfgInner),
+        attachments: step.step_number === 1 ? await loadAttachments(lead).catch(() => []) : [],
       })
 
       const sentAt = new Date().toISOString()
@@ -212,8 +214,10 @@ export async function draftStepToGmail(params: { userId: string; stepId: string;
     .single()
   if (error || !step) throw new Error('Email not found')
   if (['sent', 'replied'].includes(step.status)) throw new Error('This email has already gone out')
-  const { data: lead } = await sb.from('outreach_leads').select('id, email, name').eq('id', step.outreach_sequences.lead_id).single()
+  const { data: lead } = await sb.from('outreach_leads').select('id, email, name, enrichment_data').eq('id', step.outreach_sequences.lead_id).single()
   if (!lead?.email) throw new Error('This lead has no email address')
+  // First email carries the screenshots of what we saw on their site
+  const attachments = step.step_number === 1 ? await loadAttachments(lead).catch(() => []) : []
 
   // Follow-ups go into the same Gmail thread as the email before them
   let threadId: string | undefined
@@ -234,6 +238,7 @@ export async function draftStepToGmail(params: { userId: string; stepId: string;
     threadId,
     replyToMessageId: replyTo,
     footerHtml: gthOptOutFooterHtml(params.cfgInner),
+    attachments,
   })
 
   const now = new Date().toISOString()

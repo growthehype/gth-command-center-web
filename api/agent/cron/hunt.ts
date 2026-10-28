@@ -7,6 +7,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { getAdminClient, createAgentRun, updateAgentRun } from '../_lib/supabase-admin'
 import { huntLeads } from '../_lib/qualifier'
 import { generateOutreach } from '../_lib/email-generator'
+import { syncGmailDrafts } from '../_lib/sender'
+import { classifyInbox } from '../_lib/inbox-classifier'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const sb = getAdminClient()
@@ -20,6 +22,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: configs } = await sb.from('agent_configs').select('*').eq('enabled', true)
   const agents = (configs || []).filter((c: any) => c.config?.profile === 'gth' && c.config?.background_hunt !== false)
   const out: any[] = []
+
+  // Keep the lead tracker current: drafts Omar sent from Gmail, and replies
+  const users = [...new Set(agents.map((c: any) => c.user_id))]
+  for (const userId of users) {
+    const cfg = agents.find((c: any) => c.user_id === userId)
+    await Promise.race([
+      (async () => {
+        await syncGmailDrafts({ userId, cfgInner: cfg?.config }).catch(() => null)
+        await classifyInbox({ userId, agentRunId: null as any }).catch(() => null)
+      })(),
+      new Promise(r => setTimeout(r, 30_000)),
+    ])
+  }
 
   for (const cfg of agents) {
     const left = 270_000 - (Date.now() - started)
