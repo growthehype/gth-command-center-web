@@ -11,7 +11,7 @@ import {
 import { isGthAgent, GTH_WRITER_TOOLS } from './gth-profile'
 import { factCheckDraft, fetchShot } from './visual-audit'
 import { qualifyGthLead } from './qualifier'
-import { buildGthWriterPrompt, pickProofLink, validateVoice, repairVoice, type VoiceDraft as SequenceDraft } from './gth-voice'
+import { buildGthWriterPrompt, pickProofLink, proofUrls, validateVoice, repairVoice, type VoiceDraft as SequenceDraft } from './gth-voice'
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -188,7 +188,7 @@ function gthLeadBrief(lead: any, proof: string | null): string {
 
 async function writeGthSequence(lead: any, cfgInner: any): Promise<{ draft: SequenceDraft; issues: string[]; repaired: boolean }> {
   const proof = pickProofLink(cfgInner, lead.industry || '', lead.name || '')
-  const allowedLinks = [proof, (cfgInner?.booking_link || '').trim()].filter(Boolean) as string[]
+  const allowedLinks = [...proofUrls(cfgInner, lead.industry || '', lead.name || ''), (cfgInner?.booking_link || '').trim()].filter(Boolean) as string[]
   const brief = gthLeadBrief(lead, proof)
   const systemPrompt = buildGthWriterPrompt(cfgInner)
   const validateSequence = (d: SequenceDraft) => validateVoice(d, allowedLinks)
@@ -289,7 +289,7 @@ async function buildSequence(lead: any, ctx: SeqCtx): Promise<{ ok: boolean; dra
       })
       if (fc.status === 'revised') {
         draft = { ...draft, ...fc.draft }
-        const allowed = [pickProofLink(inner, lead.industry || '', lead.name || ''), (inner?.booking_link || '').trim()].filter(Boolean) as string[]
+        const allowed = [...proofUrls(inner, lead.industry || '', lead.name || ''), (inner?.booking_link || '').trim()].filter(Boolean) as string[]
         issues = validateVoice(draft, allowed)
         if (issues.length) { draft = repairVoice(draft); repaired = true; issues = validateVoice(draft, allowed) }
       }

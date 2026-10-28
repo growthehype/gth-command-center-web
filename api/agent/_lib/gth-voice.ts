@@ -11,18 +11,29 @@
 //   numbers, no service menus.
 // - Show real work when it is relevant (one example, no description needed).
 
-export interface ProofLink { match: string; url: string }
+export interface ProofLink { match: string; url: string; note?: string }
 
-/** Pick the one piece of GTH work that fits this business, if any. */
-export function pickProofLink(cfgInner: any, industry: string, name: string): string | null {
+/** Every piece of GTH work that fits this business (up to 3), in config order. */
+export function pickProofLinks(cfgInner: any, industry: string, name: string): ProofLink[] {
   const links: ProofLink[] = Array.isArray(cfgInner?.proof_links) ? cfgInner.proof_links : []
   const hay = `${industry} ${name}`.toLowerCase()
+  const out: ProofLink[] = []
   for (const l of links) {
     try {
-      if (l?.url && new RegExp(l.match, 'i').test(hay)) return l.url
+      if (l?.url && new RegExp(l.match, 'i').test(hay) && !out.some(o => o.url === l.url)) out.push(l)
     } catch { /* bad pattern, skip */ }
   }
-  return null
+  return out.slice(0, 3)
+}
+
+/** Text for the writer's brief, e.g. "tcllp.netlify.app (custom website); tcllp.netlify.app/alberta-contractors (lead landing page)" */
+export function pickProofLink(cfgInner: any, industry: string, name: string): string | null {
+  const l = pickProofLinks(cfgInner, industry, name)
+  return l.length ? l.map(x => (x.note ? `${x.url} (${x.note})` : x.url)).join('; ') : null
+}
+
+export function proofUrls(cfgInner: any, industry: string, name: string): string[] {
+  return pickProofLinks(cfgInner, industry, name).map(l => l.url)
 }
 
 export function buildGthWriterPrompt(cfgInner: any): string {
@@ -54,7 +65,7 @@ THE SEQUENCE (three emails, same thread)
    - The observation: one or two concrete things he noticed, taken only from the "Verified findings" in the brief. Say exactly what is there, e.g. "your homepage asks people to book a free consultation, but there isn't a way to actually book one online."
    - Why it matters to them, in one or two sentences.
    - What he would do about it, in one sentence (a new site built properly for phones and bookings, or setting up AI for booking, intake and follow-ups so the front desk isn't stuck on the phone). Match the pitch angle given.
-   - If a "Work to show" link is given, one line like "Here's one we built recently: {link}". If none is given, don't mention past work at all.
+   - If "Work to show" links are given, mention them briefly in one or two lines, e.g. "Here are a couple we built recently: {link} and {link}." Use the note to describe each in plain words (for example a lead landing page). Use at most two links in the first email. If none are given, don't mention past work at all.
    - A soft ask: a short call or a few ideas over email. ${booking ? `He may offer his booking link once: ${booking}` : 'Do not include any links other than the "Work to show" link.'}
    - Polite thank you, then sign off with "Omar" on its own line.
 2) Follow-up, sent three days later, 40 to 90 words: friendly, no guilt, no "just checking in". Give one small, genuinely useful idea they could act on even without hiring him, tied to the same observation. End with a light, optional ask. Sign off "Omar".

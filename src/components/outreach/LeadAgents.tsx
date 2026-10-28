@@ -373,7 +373,9 @@ export function AgentSettingsModal({ open, agent, clients, leadCount, onClose, o
         const [url, kw] = line.split('|').map(x => (x || '').trim())
         if (!url || !kw) return null
         const match = kw.split(',').map(k => k.trim().replace(/[.*+?^${}()[\]\\]/g, '')).filter(Boolean).join('|')
-        return match ? { url: url.replace(/^https?:\/\//, '').replace(/\/$/, ''), match } : null
+        const clean = url.replace(/^https?:\/\//, '').replace(/\/$/, '')
+        const note = (Array.isArray(prev.proof_links) ? prev.proof_links : []).find((p: any) => p.url === clean)?.note
+        return match ? { url: clean, match, ...(note ? { note } : {}) } : null
       }).filter(Boolean),
     }
     if (!gth) {
