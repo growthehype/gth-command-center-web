@@ -239,7 +239,7 @@ export function AgentDeck({ agents, leads, drafts, selected, onSelect, running, 
                 <p className="la-for">Scraping for <strong>{agentFor(agent)}</strong></p>
               </div>
               <span className={`la-state ${busy ? 'la-state--busy' : agent.enabled ? 'la-state--on' : ''}`}>
-                {busy ? 'Working' : agent.enabled ? 'Daily' : 'Paused'}
+                {busy ? 'Working' : agent.enabled ? 'Live' : 'Paused'}
               </span>
             </div>
 
@@ -462,11 +462,11 @@ export function AgentSettingsModal({ open, agent, clients, leadCount, onClose, o
             <input className="cw-input" type="number" min={60} max={100} value={f.min_score} onChange={e => set('min_score', e.target.value)} />
           </label>
           <label className="la-toggle">
-            <span>Daily run</span>
+            <span>Background hunting</span>
             <button type="button" role="switch" aria-checked={f.enabled} className={`la-switch ${f.enabled ? 'la-switch--on' : ''}`} onClick={() => set('enabled', !f.enabled)}>
               <i />
             </button>
-            <em>{f.enabled ? 'Runs each weekday morning' : 'Only when you click Find leads'}</em>
+            <em>{f.enabled ? (gth ? 'Searches and checks every 20 minutes, around the clock' : 'Runs each weekday morning') : 'Only when you click Find leads'}</em>
           </label>
         </div>
 

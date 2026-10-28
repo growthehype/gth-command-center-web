@@ -392,7 +392,7 @@ export default function Agents() {
           <h1 className="ah-title">{agent.agent_name}<span> · {agentFor(agent)}</span></h1>
           <p className="ah-status">
             <span className={`ah-dot ${busy ? 'ah-dot--busy' : agent.enabled ? 'ah-dot--on' : ''}`} />
-            {busy ? 'Working now' : agent.enabled ? 'Runs every weekday morning' : 'Paused, runs only when you click'}
+            {busy ? 'Working now' : agent.enabled ? (agent.config?.profile === 'gth' ? 'Hunting for leads in the background, every 20 minutes, around the clock' : 'Runs every weekday morning') : 'Paused, runs only when you click'}
             {agent.last_run_at ? ` · last run ${relativeDate(agent.last_run_at)}` : ''}
           </p>
         </div>
@@ -544,7 +544,7 @@ export default function Agents() {
                     <p>{text || r.status}</p>
                     {errs.length > 0 && <p className="ah-log-err">{errs.length} draft{errs.length === 1 ? '' : 's'} failed: {errs[0].slice(0, 140)}</p>}
                   </div>
-                  <span className="text-dim">{r.triggered_by === 'manual' ? 'You' : 'Daily'} · {relativeDate(r.started_at)}</span>
+                  <span className="text-dim">{r.triggered_by === 'manual' ? 'You' : 'Background'} · {relativeDate(r.started_at)}</span>
                 </li>
               )
             })}
