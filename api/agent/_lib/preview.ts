@@ -510,7 +510,7 @@ TECHNICAL
 - Theme the browser surfaces: ::selection, caret-color, :focus-visible, scrollbar colours.
 
 OUTPUT
-Return only the complete HTML document inside one \`\`\`html code block. No commentary before or after. Keep it tight: roughly 600 to 900 lines of HTML and CSS, written compactly (one rule per line where sensible), every line earning its place. The page must be finished; never stop mid-document.`
+Return only the complete HTML document inside one \`\`\`html code block. No commentary before or after. Keep it tight: about 50,000 characters in total at most. Write CSS compactly (one rule per line, no comments beyond short section labels, no repeated declarations). Every line must earn its place. The page must be finished; never stop mid-document.`
 
 function kitBrief(lead: any, kit: SiteKit, findings: string[], feedback: string[]): string {
   const e = lead.enrichment_data || {}
@@ -599,7 +599,7 @@ export async function generatePage(lead: any, slug: string, kit: SiteKit, findin
   }
   let out: { text: string; stop: string | null }
   try {
-    out = await streamClaude({ max_tokens: 24000, system, messages }, deadline)
+    out = await streamClaude({ max_tokens: 30000, system, messages }, deadline)
   } catch (err: any) {
     if (!head || !/prefill|assistant/i.test(String(err?.message))) throw err
     out = await streamClaude({
@@ -610,7 +610,7 @@ export async function generatePage(lead: any, slug: string, kit: SiteKit, findin
   const full = head ? head + out.text : out.text
   const html = extractHtml(full.includes('```html') && !/```\s*$/.test(full.trim()) ? full + '\n```' : full)
   if (html) return { html, partial: '' }
-  if (out.stop === 'deadline' && full.length > 400) return { html: null, partial: full }
+  if ((out.stop === 'deadline' || out.stop === 'max_tokens') && full.length > 400) return { html: null, partial: full }
   throw new Error(out.stop === 'max_tokens' ? 'The page ran too long and was cut off' : 'The designer did not return a full HTML page')
 }
 
