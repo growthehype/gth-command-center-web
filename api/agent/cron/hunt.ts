@@ -1,5 +1,6 @@
-// Background lead hunting. Called every 20 minutes by a Supabase pg_cron job,
-// around the clock, for every enabled agent that has background hunting on.
+// Background lead hunting. Called every 20 minutes by a Supabase pg_cron job.
+// Replies and Gmail drafts are checked on every call; hunting itself only runs
+// during the agent's shifts (weekdays 7 to 9am, 1 to 3pm, 5 to 7pm Edmonton time).
 // Each call: check businesses not yet looked at, search for more when the
 // queue runs dry, then write emails for anything that reached 60+.
 // Auth: the x-agent-token header must match a secret kept in Supabase Vault.
@@ -9,6 +10,20 @@ import { huntLeads } from '../_lib/qualifier'
 import { generateOutreach } from '../_lib/email-generator'
 import { syncGmailDrafts } from '../_lib/sender'
 import { classifyInbox } from '../_lib/inbox-classifier'
+
+export const DEFAULT_SHIFTS: [number, number][] = [[7, 9], [13, 15], [17, 19]]
+
+/** Is it inside one of the agent's shifts, in Edmonton time (handles daylight saving)? */
+export function onShift(cfgInner: any, now = new Date()): boolean {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Edmonton', weekday: 'short', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' })
+    .formatToParts(now).map(p => [p.type, p.value]))
+  const day = parts.weekday as string
+  const weekdaysOnly = cfgInner?.hunt_weekends !== true
+  if (weekdaysOnly && (day === 'Sat' || day === 'Sun')) return false
+  const h = Number(parts.hour) + Number(parts.minute) / 60
+  const shifts: [number, number][] = Array.isArray(cfgInner?.hunt_shifts) && cfgInner.hunt_shifts.length ? cfgInner.hunt_shifts : DEFAULT_SHIFTS
+  return shifts.some(([a, b]) => h >= a && h < b)
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const sb = getAdminClient()
@@ -37,6 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   for (const cfg of agents) {
+    if (!onShift(cfg.config) && req.query.force !== '1') { out.push({ agent: cfg.agent_name, offShift: true }); continue }
     const left = 270_000 - (Date.now() - started)
     if (left < 100_000) break
     const runId = await createAgentRun({ user_id: cfg.user_id, agent_type: cfg.agent_type, agent_config_id: cfg.id, trigger: 'cron' }).catch(() => null)

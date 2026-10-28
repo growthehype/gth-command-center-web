@@ -466,7 +466,7 @@ export function AgentSettingsModal({ open, agent, clients, leadCount, onClose, o
             <button type="button" role="switch" aria-checked={f.enabled} className={`la-switch ${f.enabled ? 'la-switch--on' : ''}`} onClick={() => set('enabled', !f.enabled)}>
               <i />
             </button>
-            <em>{f.enabled ? (gth ? 'Searches and checks every 20 minutes, around the clock' : 'Runs each weekday morning') : 'Only when you click Find leads'}</em>
+            <em>{f.enabled ? (gth ? 'Hunts on weekday shifts: 7 to 9am, 1 to 3pm, 5 to 7pm' : 'Runs each weekday morning') : 'Only when you click Find leads'}</em>
           </label>
         </div>
 

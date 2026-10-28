@@ -393,7 +393,7 @@ export default function Agents() {
           <h1 className="ah-title">{agent.agent_name}<span> · {agentFor(agent)}</span></h1>
           <p className="ah-status">
             <span className={`ah-dot ${busy ? 'ah-dot--busy' : agent.enabled ? 'ah-dot--on' : ''}`} />
-            {busy ? 'Working now' : agent.enabled ? (agent.config?.profile === 'gth' ? 'Hunting for leads in the background, every 20 minutes, around the clock' : 'Runs every weekday morning') : 'Paused, runs only when you click'}
+            {busy ? 'Working now' : agent.enabled ? (agent.config?.profile === 'gth' ? 'On shift weekdays 7 to 9am, 1 to 3pm and 5 to 7pm. Replies are checked all day' : 'Runs every weekday morning') : 'Paused, runs only when you click'}
             {agent.last_run_at ? ` · last run ${relativeDate(agent.last_run_at)}` : ''}
           </p>
         </div>
