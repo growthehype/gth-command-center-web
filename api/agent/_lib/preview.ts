@@ -631,6 +631,7 @@ Write the code that goes inside <script id="site-js"></script>, following the MO
 - The signature element behaves exactly as the plan says, and also works by tap on a phone.
 - [data-form]: prevent submit, check required fields and email format, show errors inline, then show in [data-status]: "This is a homepage concept. On your new site, this would go straight to your inbox."
 - Only reference elements that exist in the markup; guard every query. No console logs, no alerts, no external requests.
+- Nothing may ever stay invisible: reveals use once: true; call ScrollTrigger.refresh() after window load and after fonts load (document.fonts.ready); and add a safety net with IntersectionObserver that forces any [data-reveal], [data-reveal-group] child or hero element to opacity 1 and no transform if it has been in the viewport for 1.5 seconds and is still hidden. Text scrubbed with [data-scrub] starts at no less than 0.35 opacity so it is readable before scrolling.
 
 Return only the JavaScript inside exactly one \`\`\`js code block, complete and syntactically valid, under about 350 lines.`
 
@@ -690,12 +691,24 @@ async function renderChecks(html: string, slug: string) {
     await new Promise(r => setTimeout(r, 2500))
     const height: number = await page.evaluate('document.documentElement.scrollHeight')
     const stops = [0, 0.18, 0.36, 0.54, 0.72, 1].map(f => Math.max(0, Math.round((height - 900) * f)))
+    let at = 0
+    const invisible: number[] = []
     for (const [i, y] of [...new Set(stops)].entries()) {
-      await page.evaluate(`window.scrollTo(0, ${y})`)
-      await new Promise(r => setTimeout(r, 1300))
+      // Scroll like a visitor (wheel), so smooth scroll and scroll triggers behave as they would live
+      await page.mouse.move(720, 450).catch(() => {})
+      while (Math.abs(y - at) > 10) {
+        const d = Math.max(-500, Math.min(500, y - at))
+        await page.mouse.wheel({ deltaY: d }).catch(() => {})
+        at += d
+        await new Promise(r => setTimeout(r, 90))
+      }
+      await new Promise(r => setTimeout(r, 1600))
+      const hidden: number = await page.evaluate(`[...document.querySelectorAll('h1,h2,h3,p,img,li,a.btn')].filter(el => { const r = el.getBoundingClientRect(); if (r.bottom < 80 || r.top > innerHeight - 80 || r.width === 0) return false; let o = 1, n = el; while (n && n !== document.body) { o *= Number(getComputedStyle(n).opacity); n = n.parentElement } return o < 0.15 }).length`).catch(() => 0)
+      if (hidden > 2) invisible.push(i + 1)
       const b = await page.screenshot({ type: 'jpeg', quality: 62 })
       shots.push({ label: `Desktop 1440, view ${i + 1}`, data: Buffer.from(b).toString('base64') })
     }
+    if (invisible.length) problems.push(`Content stays invisible after scrolling to it (desktop views ${invisible.join(', ')})`)
     const metrics: any = await page.evaluate(`(() => ({
       overflowX: document.documentElement.scrollWidth - window.innerWidth,
       brokenImgs: [...document.images].filter(i => i.complete && i.naturalWidth === 0).map(i => i.getAttribute('src')).slice(0, 8),
@@ -810,7 +823,7 @@ ${kit.extraPages.map(p => `Text from ${p.url}: ${p.text}`).join('\n')}`,
   }
   // Check the fixed page again: nothing broken may ship
   const after = out === html ? first : await renderChecks(out, slug)
-  const blocking = after.problems.filter(p => /JavaScript errors|Broken images|scrolls sideways|Files that failed/.test(p))
+  const blocking = after.problems.filter(p => /JavaScript errors|Broken images|scrolls sideways|Files that failed|stays invisible/.test(p))
   return { html: out, score: Number(tool.score_after ?? tool.score) || 0, verdict: tool.verdict || 'fix', issues: [...after.problems, ...(tool.issues || [])].slice(0, 30), blocking } as any
 }
 
@@ -905,7 +918,7 @@ export async function advancePreview(leadId: string, opts: { deadline: number; r
     await progress(leadId, 'reviewing in a browser')
     const r: any = await reviewPage(lead, slug, draft, kit, opts.deadline)
     const review = { score: r.score, notes: r.issues.slice(0, 15) }
-    if ((r.blocking || []).some((p: string) => /JavaScript errors/.test(p))) {
+    if ((r.blocking || []).some((p: string) => /JavaScript errors|stays invisible/.test(p))) {
       // The motion script is broken: write it again
       await put(`${slug}/draft.html`, r.html, 'text/html; charset=utf-8')
       const errors = ((state as any).errors || 0) + 1
