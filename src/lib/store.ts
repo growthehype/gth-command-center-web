@@ -131,6 +131,9 @@ interface AppStore {
   currentPage: string
   pageTab: string | null
   selectedClientId: string | null
+  /** Client whose window should open when the Clients page mounts */
+  clientWindowId: string | null
+  setClientWindowId: (id: string | null) => void
   selectedProjectId: string | null
   selectedTaskId: string | null
   selectedMeetingId: string | null
@@ -251,6 +254,7 @@ export const useAppStore = create<AppStore>((set) => ({
 
   currentPage: 'briefing', pageTab: null,
   selectedClientId: null,
+  clientWindowId: null,
   selectedProjectId: null,
   selectedTaskId: null,
   selectedMeetingId: null,
@@ -290,6 +294,7 @@ export const useAppStore = create<AppStore>((set) => ({
   },
   setPageTab: (tab) => set({ pageTab: tab }),
   setSelectedClientId: (id) => set({ selectedClientId: id }),
+  setClientWindowId: (id) => set({ clientWindowId: id }),
   setSelectedProjectId: (id) => set({ selectedProjectId: id }),
   setSelectedTaskId: (id) => set({ selectedTaskId: id }),
   setSelectedMeetingId: (id) => set({ selectedMeetingId: id }),

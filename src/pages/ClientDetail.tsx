@@ -2,7 +2,7 @@ import { useMemo, useState, useCallback } from 'react'
 import {
   ArrowLeft, Building2, Edit3, Mail, Phone, Globe, DollarSign,
   FolderKanban, CheckSquare, Users, Clock, FileText,
-  ChevronRight, Link2, Copy, Trash2,
+  ChevronRight, Link2, Copy, Trash2, Plus, CalendarDays,
 } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import ClientAvatar from '@/components/ui/ClientAvatar'
@@ -11,6 +11,7 @@ import { portalTokens, clients as clientsApi } from '@/lib/api'
 import StatusMenu from '@/components/ui/StatusMenu'
 import { CLIENT_STATUS_OPTIONS } from '@/lib/statuses'
 import { showToast } from '@/components/ui/Toast'
+import QuickAdd, { QuickKind, QUICK_LABEL } from '@/components/clients/QuickAdd'
 
 /* ========================================
    CONSTANTS
@@ -55,10 +56,6 @@ function LargeAvatar({ name, size = 56 }: { name: string; size?: number }) {
     .join('')
     .toUpperCase()
 
-  // Deterministic color from name
-  let hash = 0
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
-  const hue = Math.abs(hash) % 360
 
   return (
     <div
@@ -67,7 +64,8 @@ function LargeAvatar({ name, size = 56 }: { name: string; size?: number }) {
         width: size,
         height: size,
         borderRadius: size > 40 ? 12 : 8,
-        background: `linear-gradient(135deg, hsl(${hue}, 55%, 45%), hsl(${(hue + 30) % 360}, 55%, 35%))`,
+        background: 'linear-gradient(145deg, #3A4048, #1C1F24)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.12), 0 0 0 1px rgba(255,255,255,0.06)',
         fontSize: size * 0.36,
         letterSpacing: '0.05em',
       }}
@@ -105,8 +103,10 @@ function StatCard({ icon: Icon, label, value, sub }: {
    SECTION WRAPPER
    ======================================== */
 
-function Section({ title, icon: Icon, count, onViewAll, children }: {
-  title: string; icon: React.ElementType; count: number; onViewAll?: () => void; children: React.ReactNode
+function Section({ title, icon: Icon, count, onViewAll, addKind, onAdd, adding, children }: {
+  title: string; icon: React.ElementType; count: number; onViewAll?: () => void
+  addKind?: QuickKind; onAdd?: () => void; adding?: boolean
+  children: React.ReactNode
 }) {
   return (
     <div className="card">
@@ -116,15 +116,27 @@ function Section({ title, icon: Icon, count, onViewAll, children }: {
           <h3 className="text-polar font-semibold" style={{ fontSize: '15px' }}>{title}</h3>
           <span className="text-dim mono" style={{ fontSize: '10.5px' }}>({count})</span>
         </div>
-        {onViewAll && count > 0 && (
-          <button
-            onClick={onViewAll}
-            className="text-steel hover:text-polar transition-colors flex items-center gap-1"
-            style={{ fontSize: '11.5px' }}
-          >
-            View all <ChevronRight size={12} />
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {onViewAll && count > 0 && (
+            <button
+              onClick={onViewAll}
+              className="text-steel hover:text-polar transition-colors flex items-center gap-1"
+              style={{ fontSize: '11.5px' }}
+            >
+              View all <ChevronRight size={12} />
+            </button>
+          )}
+          {addKind && onAdd && (
+            <button
+              onClick={onAdd}
+              disabled={adding}
+              className="btn-ghost cd-add"
+              aria-label={`Add ${QUICK_LABEL[addKind]}`}
+            >
+              <Plus size={13} /> Add {QUICK_LABEL[addKind]}
+            </button>
+          )}
+        </div>
       </div>
       {children}
     </div>
@@ -144,6 +156,13 @@ export default function ClientDetail() {
   const client = useMemo(
     () => clients.find(c => c.id === selectedClientId) ?? null,
     [clients, selectedClientId]
+  )
+
+  // Which add form is open (one at a time)
+  const [adding, setAdding] = useState<QuickKind | null>(null)
+  const addProps = (kind: QuickKind) => ({ addKind: kind, onAdd: () => setAdding(kind), adding: adding === kind })
+  const addForm = (kind: QuickKind) => client && (
+    <QuickAdd kind={kind} client={client} open={adding === kind} onOpenChange={(o) => setAdding(o ? kind : null)} />
   )
 
   // Portal sharing
@@ -231,7 +250,7 @@ export default function ClientDetail() {
       {/* Back button */}
       <button
         onClick={goBack}
-        className="text-steel hover:text-polar transition-colors flex items-center gap-2 -mb-2"
+        className="text-steel hover:text-polar transition-colors flex items-center gap-2"
         style={{ fontSize: '13px' }}
       >
         <ArrowLeft size={14} /> Back to Clients
@@ -320,6 +339,7 @@ export default function ClientDetail() {
               </button>
               <button
                 onClick={() => {
+                  useAppStore.getState().setClientWindowId(client.id)
                   setCurrentPage('clients')
                 }}
                 className="btn-ghost flex items-center gap-2"
@@ -383,9 +403,11 @@ export default function ClientDetail() {
         icon={FolderKanban}
         count={clientProjects.length}
         onViewAll={() => navigateTo('projects')}
+        {...addProps('project')}
       >
+        {addForm('project')}
         {clientProjects.length === 0 ? (
-          <p className="text-dim" style={{ fontSize: '13px' }}>No projects yet.</p>
+          adding !== 'project' && <p className="text-dim" style={{ fontSize: '13px' }}>No projects yet.</p>
         ) : (
           <div className="space-y-0">
             {clientProjects.slice(0, 5).map(p => (
@@ -412,9 +434,11 @@ export default function ClientDetail() {
         icon={CheckSquare}
         count={clientTasks.length}
         onViewAll={() => navigateTo('tasks')}
+        {...addProps('task')}
       >
+        {addForm('task')}
         {clientTasks.length === 0 ? (
-          <p className="text-dim" style={{ fontSize: '13px' }}>No tasks yet.</p>
+          adding !== 'task' && <p className="text-dim" style={{ fontSize: '13px' }}>No tasks yet.</p>
         ) : (
           <div className="space-y-0">
             {clientTasks.slice(0, 5).map(t => (
@@ -458,9 +482,11 @@ export default function ClientDetail() {
         icon={FileText}
         count={clientInvoices.length}
         onViewAll={() => navigateTo('invoices')}
+        {...addProps('invoice')}
       >
+        {addForm('invoice')}
         {clientInvoices.length === 0 ? (
-          <p className="text-dim" style={{ fontSize: '13px' }}>No invoices yet.</p>
+          adding !== 'invoice' && <p className="text-dim" style={{ fontSize: '13px' }}>No invoices yet.</p>
         ) : (
           <div className="space-y-0">
             {clientInvoices.slice(0, 5).map(inv => (
@@ -493,9 +519,11 @@ export default function ClientDetail() {
         icon={Users}
         count={clientContacts.length}
         onViewAll={() => navigateTo('contacts')}
+        {...addProps('contact')}
       >
+        {addForm('contact')}
         {clientContacts.length === 0 ? (
-          <p className="text-dim" style={{ fontSize: '13px' }}>No contacts linked.</p>
+          adding !== 'contact' && <p className="text-dim" style={{ fontSize: '13px' }}>No contacts yet.</p>
         ) : (
           <div className="space-y-0">
             {clientContacts.slice(0, 5).map(c => (
@@ -533,7 +561,7 @@ export default function ClientDetail() {
         title="Recent Activity"
         icon={Clock}
         count={clientActivity.length}
-        onViewAll={() => navigateTo('activity')}
+        onViewAll={() => navigateTo('dashboard')}
       >
         {clientActivity.length === 0 ? (
           <p className="text-dim" style={{ fontSize: '13px' }}>No activity recorded.</p>
@@ -602,13 +630,17 @@ export default function ClientDetail() {
       )}
 
       {/* ── Meetings Section ── */}
-      {clientMeetings.length > 0 && (
-        <Section
-          title="Meetings"
-          icon={Users}
+      <Section
+          title="Meeting notes"
+          icon={CalendarDays}
           count={clientMeetings.length}
           onViewAll={() => navigateTo('meetings')}
+          {...addProps('meeting')}
         >
+          {addForm('meeting')}
+          {clientMeetings.length === 0 && adding !== 'meeting' && (
+            <p className="text-dim" style={{ fontSize: '13px' }}>No meeting notes yet.</p>
+          )}
           <div className="space-y-0">
             {clientMeetings.slice(0, 3).map(m => (
               <div key={m.id} className="flex items-center justify-between py-2.5 border-b border-border last:border-0">
@@ -625,7 +657,6 @@ export default function ClientDetail() {
             ))}
           </div>
         </Section>
-      )}
     </div>
   )
 }
