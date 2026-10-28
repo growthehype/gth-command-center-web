@@ -1,3 +1,4 @@
+import PersonalCommand from '@/components/personal/PersonalCommand'
 import { useEffect, useMemo, useState } from 'react'
 import { format, parseISO, isToday, isYesterday, startOfDay } from 'date-fns'
 import { useAppStore } from '@/lib/store'
@@ -434,6 +435,8 @@ export default function DailyBriefing() {
           </div>
         </section>
       )}
+
+      <PersonalCommand />
 
       {/* ---- TODAY'S FOCUS ---- */}
       <section className="brf-section rv" style={{ ['--i' as string]: 3 }}>
