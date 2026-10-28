@@ -17,6 +17,10 @@
     "api/agent/cron/hunt.ts": {
       "maxDuration": 300,
       "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
+    },
+    "api/agent/preview.ts": {
+      "maxDuration": 800,
+      "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
     }
   }
 }

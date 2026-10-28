@@ -31,7 +31,7 @@ const NO_THROTTLE = ['--disable-background-timer-throttling', '--disable-backgro
 
 let exePath: Promise<string> | null = null
 
-async function launch() {
+export async function launch() {
   const puppeteer = (await import('puppeteer-core')).default
   if (process.env.CHROME_PATH) {
     return puppeteer.launch({ executablePath: process.env.CHROME_PATH, headless: true, args: ['--no-sandbox', ...NO_THROTTLE] })
