@@ -29,6 +29,7 @@ interface PlaceResult {
   nationalPhoneNumber?: string
   websiteUri?: string
   rating?: number
+  userRatingCount?: number
   googleMapsUri?: string
   id?: string
   businessStatus?: string
@@ -409,6 +410,7 @@ const FIELD_MASK = [
   'places.nationalPhoneNumber',
   'places.websiteUri',
   'places.rating',
+  'places.userRatingCount',
   'places.googleMapsUri',
   'places.id',
   'places.businessStatus',
@@ -564,7 +566,12 @@ export async function scrapeLeads(params: ScrapeParams): Promise<ScrapeResult> {
         // Match the existing UI / hyphenated CHECK style
         stage: 'new-lead',
         location: location,
-        enrichment_data: { search_query: query, search_area: location },
+        enrichment_data: {
+          search_query: query,
+          search_area: location,
+          review_count: typeof place.userRatingCount === 'number' ? place.userRatingCount : null,
+          place_types: place.types || [],
+        },
         created_at: new Date().toISOString(),
       })
     }
@@ -725,4 +732,28 @@ export async function scrapeRotation(params: RotationParams) {
   agentConfig.config = { ...inner, rotation_index: nextIndex }
 
   return { leadsFound, leadsNew, searches, rotationIndex: nextIndex }
+}
+
+
+// ─── Place details: review count for leads saved before we asked for it ──
+
+/** Google review count for a place id. Null when unknown. Never throws. */
+export async function fetchReviewCount(placeId: string | null | undefined): Promise<{ reviewCount: number | null; rating: number | null; types: string[] } | null> {
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY
+  if (!apiKey || !placeId) return null
+  try {
+    const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
+      headers: { 'X-Goog-Api-Key': apiKey, 'X-Goog-FieldMask': 'userRatingCount,rating,types' },
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!res.ok) return null
+    const d: any = await res.json()
+    return {
+      reviewCount: typeof d.userRatingCount === 'number' ? d.userRatingCount : null,
+      rating: typeof d.rating === 'number' ? d.rating : null,
+      types: Array.isArray(d.types) ? d.types : [],
+    }
+  } catch {
+    return null
+  }
 }

@@ -1,10 +1,13 @@
 // Lead qualification engine using Claude AI
 import { getAdminClient } from './supabase-admin'
 import { askClaude, extractToolUse, LEAD_QUALIFIER_PROMPT, LEAD_QUALIFIER_TOOLS } from './claude'
-import { isValidEmail, normalizeIndustryLabel, scrapeEmailFromWebsitePublic } from './scraper'
-import { analyzeWebsite, type WebsiteIntel } from './website-analyzer'
+import { isValidEmail, normalizeIndustryLabel, scrapeEmailDetailed, fetchReviewCount } from './scraper'
+import { analyzeWebsite, runPageSpeed, judgeDesign, type WebsiteIntel } from './website-analyzer'
 import { buildLearnedPatterns } from './feedback-engine'
-import { isGthAgent, GTH_QUALIFIER_PROMPT, GTH_QUALIFIER_TOOLS } from './gth-profile'
+import {
+  isGthAgent, GTH_QUALIFIER_PROMPT, GTH_QUALIFIER_TOOLS, GTH_SEARCH_AREAS,
+  scoreGthLead, finaliseGthScore, type GthScore, type QualTier,
+} from './gth-profile'
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -14,6 +17,8 @@ interface QualifyParams {
   agentType: string
   batchSize?: number
   agentConfig?: any
+  /** Stop starting new leads after this many ms (GTH v2 path) */
+  deadlineMs?: number
 }
 
 interface QualifyResult {
@@ -107,8 +112,11 @@ export async function qualifyLeads(params: QualifyParams): Promise<QualifyResult
           await Promise.all(
             enrichmentTargets.map(async (target) => {
               try {
-                const found = await scrapeEmailFromWebsitePublic(target.website!)
-                if (found) target.patch.email = found
+                const found = await scrapeEmailDetailed(target.website!)
+                if (found.email) {
+                  target.patch.email = found.email
+                  target.patch.__email_source = found.source
+                }
               } catch {
                 // ignore — patch.email already null
               }
@@ -123,9 +131,14 @@ export async function qualifyLeads(params: QualifyParams): Promise<QualifyResult
           for (let i = 0; i < dirty.length; i += 10) {
             const slice = dirty.slice(i, i + 10)
             await Promise.all(
-              slice.map(d =>
-                sb.from('outreach_leads').update(d.patch).eq('id', d.id)
-              )
+              slice.map(async d => {
+                const { __email_source, ...patch } = d.patch
+                if (__email_source) {
+                  const { data: cur } = await sb.from('outreach_leads').select('enrichment_data').eq('id', d.id).single()
+                  patch.enrichment_data = { ...(cur?.enrichment_data || {}), email_source: __email_source }
+                }
+                return sb.from('outreach_leads').update(patch).eq('id', d.id)
+              })
             )
           }
           console.log(`Qualifier cleanup: fixed ${dirty.length} leads`)
@@ -133,6 +146,11 @@ export async function qualifyLeads(params: QualifyParams): Promise<QualifyResult
       }
     } catch (cleanupErr: any) {
       console.error('Qualifier cleanup pass failed (non-fatal):', cleanupErr?.message)
+    }
+
+    // GTH agents use the v2 points-based review
+    if (isGthAgent(agentConfig)) {
+      return await qualifyGthBatch({ userId, agentRunId, agentConfig, batchSize, deadlineMs: params.deadlineMs ?? 100_000 })
     }
 
     // 1. Fetch unqualified leads for this user
@@ -209,7 +227,7 @@ export async function qualifyLeads(params: QualifyParams): Promise<QualifyResult
             if (intel.socialLinks.length > 0) leadInfoParts.push(`Social Presence: ${intel.socialLinks.length} profiles`)
             leadInfoParts.push(`Has Blog: ${intel.hasBlog ? 'Yes' : 'No'}`)
             leadInfoParts.push(`Has Contact Form: ${intel.hasContactForm ? 'Yes' : 'No'}`)
-            if (intel.copyrightYear) leadInfoParts.push(`Established: ~${intel.copyrightYear}`)
+            // No founding year: the copyright year is not a reliable source for it
             leadInfoParts.push(`\nWebsite Content Excerpt:\n${intel.contentSnippet.slice(0, 800)}`)
           }
           if (intel?.audit) {
@@ -335,5 +353,325 @@ export async function qualifyLeads(params: QualifyParams): Promise<QualifyResult
   } catch (error) {
     console.error('qualifyLeads failed:', error)
     throw error
+  }
+}
+
+
+// ════════════════════════════════════════════════════════════════
+//  GTH v2: measured checks + points + one Claude review per lead
+// ════════════════════════════════════════════════════════════════
+
+const PER_LEAD_WORST_MS = 55_000
+
+let bucketReady: Promise<void> | null = null
+function ensureScreenshotBucket(): Promise<void> {
+  if (!bucketReady) {
+    bucketReady = (async () => {
+      try {
+        const sb = getAdminClient()
+        const { data } = await sb.storage.getBucket('lead-screenshots')
+        if (!data) await sb.storage.createBucket('lead-screenshots', { public: true })
+      } catch { /* ignore: upload will just fail quietly */ }
+    })()
+  }
+  return bucketReady
+}
+
+async function uploadScreenshot(leadId: string, dataUri: string): Promise<string | null> {
+  const m = dataUri.match(/^data:(image\/[a-z]+);base64,(.+)$/)
+  if (!m) return null
+  try {
+    await ensureScreenshotBucket()
+    const sb = getAdminClient()
+    const ext = m[1] === 'image/png' ? 'png' : m[1] === 'image/webp' ? 'webp' : 'jpg'
+    const path = `${leadId}.${ext}`
+    const { error } = await sb.storage.from('lead-screenshots').upload(path, Buffer.from(m[2], 'base64'), {
+      contentType: m[1], upsert: true,
+    })
+    if (error) return null
+    const { data } = sb.storage.from('lead-screenshots').getPublicUrl(path)
+    return data?.publicUrl ? `${data.publicUrl}?v=${Date.now()}` : null
+  } catch {
+    return null
+  }
+}
+
+/** Run `fn` over items with `size` workers, never starting one after `deadline`. */
+async function deadlinePool<T, R>(items: T[], size: number, deadline: number, fn: (item: T) => Promise<R>): Promise<{ results: R[]; notStarted: number }> {
+  const results: R[] = []
+  let i = 0
+  const worker = async () => {
+    while (i < items.length) {
+      if (Date.now() + PER_LEAD_WORST_MS > deadline) return
+      const item = items[i++]
+      results.push(await fn(item))
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(size, items.length) }, worker))
+  return { results, notStarted: Math.max(0, items.length - i) }
+}
+
+export interface GthLeadOutcome { ok: boolean; score: number; tier: QualTier | null; error?: string }
+
+/** Check, score and save one lead. Never throws. */
+export async function qualifyGthLead(lead: any, agentConfig: any, agentRunId: string | null): Promise<GthLeadOutcome> {
+  const sb = getAdminClient()
+  const inner = agentConfig?.config || {}
+  const prev = (lead.enrichment_data && typeof lead.enrichment_data === 'object') ? lead.enrichment_data : {}
+  try {
+    // 1. Website facts, Google's Lighthouse run and email source, in parallel
+    const [intel, psi, emailLookup, place] = await Promise.all([
+      lead.website ? analyzeWebsite(lead.website).catch(() => null) : Promise.resolve(null),
+      lead.website ? runPageSpeed(lead.website) : Promise.resolve(null),
+      lead.website && (!lead.email || !prev.email_source) ? scrapeEmailDetailed(lead.website).catch(() => null) : Promise.resolve(null),
+      (prev.review_count == null && lead.google_place_id) ? fetchReviewCount(lead.google_place_id) : Promise.resolve(null),
+    ])
+
+    let email: string | null = lead.email || null
+    let emailSource: 'website' | 'guessed' | null = prev.email_source ?? null
+    if (emailLookup) {
+      if (!email && emailLookup.email) { email = emailLookup.email; emailSource = emailLookup.source }
+      else if (email && !emailSource) emailSource = emailLookup.email === email ? emailLookup.source : 'website'
+    }
+    if (email && !isValidEmail(email)) { email = null; emailSource = null }
+
+    // 2. Look at the site
+    const [design, screenshotUrl] = psi?.screenshot
+      ? await Promise.all([judgeDesign(psi.screenshot, lead.name || 'this business'), uploadScreenshot(lead.id, psi.screenshot)])
+      : [null, null]
+
+    const reviewCount: number | null = prev.review_count ?? place?.reviewCount ?? null
+    const types: string[] = (prev.place_types && prev.place_types.length ? prev.place_types : place?.types) || []
+    const decisionMaker = intel?.decisionMakers?.[0]?.name || lead.contact_name || null
+    const audit = intel?.audit || null
+
+    // 3. Points
+    const pts: GthScore = scoreGthLead({
+      name: lead.name || '',
+      industry: lead.industry || null,
+      searchQuery: prev.search_query || null,
+      address: lead.address || null,
+      website: lead.website || null,
+      phone: lead.phone || null,
+      rating: lead.rating ?? place?.rating ?? null,
+      reviewCount,
+      types,
+      email,
+      emailSource,
+      decisionMaker,
+      areas: Array.isArray(inner.search_areas) && inner.search_areas.length ? inner.search_areas : GTH_SEARCH_AREAS,
+      audit,
+      design: design ? { verdict: design.verdict, note: design.note, perf: psi?.perf ?? null } : { verdict: 'unknown', perf: psi?.perf ?? null },
+    })
+
+    // 4. Claude reviews the whole picture (small, bounded adjustment)
+    const failed = pts.breakdown.filter(c => c.group === 'need' && c.status === 'fail' && c.points > 0)
+    const facts = [
+      `Business: ${lead.name}`,
+      `Type: ${lead.industry || 'unknown'}${prev.search_query ? ` (found searching "${prev.search_query}")` : ''}`,
+      `Address: ${lead.address || 'unknown'}`,
+      `Website: ${lead.website || 'none'}`,
+      `Google: ${lead.rating ?? 'no'} stars from ${reviewCount ?? 'an unknown number of'} reviews`,
+      intel?.summary ? `Homepage says: ${intel.summary}` : '',
+      intel?.services?.length ? `Services: ${intel.services.slice(0, 8).join(', ')}` : '',
+      intel?.contentSnippet ? `Site text excerpt: ${intel.contentSnippet.slice(0, 700)}` : '',
+      '',
+      `POINTS: need ${pts.need}/50, fit ${pts.fit}/30, reach ${pts.reach}/20 = ${pts.base}/100${pts.disqualifier ? ` (disqualified: ${pts.disqualifier})` : ''}`,
+      ...pts.breakdown.map(c => `- [${c.key}] ${c.label}: ${c.status}, ${c.points}/${c.max}. ${c.detail}`),
+      '',
+      failed.length
+        ? `Failed checks you can use for the opener: ${failed.map(c => c.key).join(', ')}`
+        : 'No check failed, so leave the observation empty.',
+    ].filter(Boolean).join('\n')
+
+    let adjustment = 0
+    let adjustmentReason = ''
+    let extraDisq: string | null = null
+    let observation = ''
+    let observationKey = ''
+    let summary = ''
+    try {
+      const response = await askClaude({
+        systemPrompt: GTH_QUALIFIER_PROMPT,
+        messages: [{ role: 'user', content: `${facts}\n\nReview this lead with review_lead.` }],
+        tools: GTH_QUALIFIER_TOOLS,
+        tier: 'fast',
+        maxTokens: 500,
+      })
+      const t = extractToolUse(response)?.input || {}
+      adjustment = Number(t.adjustment) || 0
+      adjustmentReason = String(t.adjustment_reason || '').trim()
+      extraDisq = String(t.disqualifier || '').trim() || null
+      observationKey = String(t.observation_key || '').trim()
+      observation = String(t.observation || '').trim()
+      summary = String(t.summary || '').trim()
+    } catch { /* score stands on the points alone */ }
+
+    // The opener must come from a check that actually failed
+    const chosen = failed.find(c => c.key === observationKey)
+    if (!chosen || !observation) {
+      const top = [...failed].sort((a, b) => b.points - a.points)[0]
+      observation = top?.say || ''
+      observationKey = top?.key || ''
+    }
+    if (!failed.length) { observation = ''; observationKey = '' }
+
+    const fin = finaliseGthScore(pts, adjustment, extraDisq)
+    if (fin.adjustment === 0) adjustmentReason = ''
+    if (!summary) {
+      summary = fin.disqualifier
+        ? `Skipped: ${fin.disqualifier.toLowerCase()}.`
+        : failed.length
+          ? `Main gaps: ${failed.map(c => c.label.toLowerCase()).join(', ')}.`
+          : 'No clear gap for GTH to fix right now.'
+    }
+
+    const now = new Date().toISOString()
+    const qual = {
+      version: 2,
+      score: fin.score,
+      tier: fin.tier,
+      need: pts.need,
+      fit: pts.fit,
+      reach: pts.reach,
+      adjustment: { points: fin.adjustment, reason: adjustmentReason },
+      breakdown: pts.breakdown.map(({ say, ...c }) => c),
+      design: {
+        verdict: design?.verdict || 'unknown',
+        note: design?.note || '',
+        screenshot_url: screenshotUrl,
+        perf: psi?.perf ?? null,
+        seo: psi?.seo ?? null,
+        accessibility: psi?.accessibility ?? null,
+      },
+      observation,
+      observation_key: observationKey || null,
+      pitch_angle: pts.pitchAngle,
+      disqualifier: fin.disqualifier,
+      checked_at: now,
+    }
+
+    const enrichment = {
+      ...prev,
+      ...(intel ? {
+        website_quality: intel.websiteQuality,
+        website_summary: intel.summary || null,
+        services_found: intel.services,
+        decision_makers: intel.decisionMakers,
+        tech_signals: intel.techSignals,
+        social_links: intel.socialLinks,
+        has_blog: intel.hasBlog,
+        has_contact_form: intel.hasContactForm,
+        copyright_year: intel.copyrightYear,
+        website_audit: intel.audit || null,
+        website_analyzed_at: now,
+      } : {}),
+      review_count: reviewCount,
+      place_types: types,
+      email_source: emailSource,
+      qual,
+      observation,
+      pitch_angle: pts.pitchAngle,
+      qualification_signals: failed.map(c => c.detail),
+      recommended_action: fin.tier === 'hot' ? 'priority_outreach' : fin.tier === 'warm' ? 'send_cold_email' : fin.tier === 'cold' ? 'add_to_nurture' : 'skip',
+      qualified_at: now,
+      ...(agentRunId ? { agent_run_id: agentRunId } : {}),
+    }
+
+    const patch: Record<string, any> = {
+      qualification_score: fin.score,
+      qualification_reason: summary,
+      enrichment_data: enrichment,
+    }
+    if (email !== (lead.email || null)) patch.email = email
+    if (decisionMaker && !lead.contact_name) patch.contact_name = decisionMaker
+
+    const { error } = await sb.from('outreach_leads').update(patch).eq('id', lead.id)
+    if (error) return { ok: false, score: 0, tier: null, error: `update ${lead.name}: ${error.message}` }
+    return { ok: true, score: fin.score, tier: fin.tier }
+  } catch (err: any) {
+    return { ok: false, score: 0, tier: null, error: `${lead.name}: ${String(err?.message || err).slice(0, 200)}` }
+  }
+}
+
+function isV2(lead: any): boolean {
+  return lead?.enrichment_data?.qual?.version === 2
+}
+
+/** Normal run: new leads first, then older leads scored the old way (not yet emailed). */
+async function qualifyGthBatch(p: { userId: string; agentRunId: string; agentConfig: any; batchSize: number; deadlineMs: number }): Promise<QualifyResult> {
+  const sb = getAdminClient()
+  const deadline = Date.now() + p.deadlineMs
+  const size = Math.max(1, p.batchSize)
+
+  const { data: fresh } = await sb.from('outreach_leads').select('*')
+    .eq('user_id', p.userId).eq('agent_config_id', p.agentConfig.id)
+    .is('qualification_score', null)
+    .order('created_at', { ascending: false }).limit(size)
+  let leads: any[] = fresh || []
+
+  if (leads.length < size) {
+    const { data: scored } = await sb.from('outreach_leads').select('*')
+      .eq('user_id', p.userId).eq('agent_config_id', p.agentConfig.id)
+      .not('qualification_score', 'is', null)
+      .order('created_at', { ascending: false }).limit(300)
+    const old = (scored || []).filter(l => !isV2(l))
+    if (old.length) {
+      const { data: seqs } = await sb.from('outreach_sequences').select('lead_id').in('lead_id', old.map(l => l.id))
+      const emailed = new Set((seqs || []).map((s: any) => s.lead_id))
+      leads = leads.concat(old.filter(l => !emailed.has(l.id)).slice(0, size - leads.length))
+    }
+  }
+  if (!leads.length) return { qualified: 0, avgScore: 0, attempted: 0 }
+
+  const { results } = await deadlinePool(leads, 8, deadline, l => qualifyGthLead(l, p.agentConfig, p.agentRunId))
+  const ok = results.filter(r => r.ok)
+  const errors = results.filter(r => !r.ok && r.error).map(r => r.error!)
+  return {
+    qualified: ok.length,
+    avgScore: ok.length ? Math.round(ok.reduce((s, r) => s + r.score, 0) / ok.length) : 0,
+    attempted: results.length,
+    ...(errors.length ? { firstError: errors[0], errors: errors.slice(0, 3) } : {}),
+  }
+}
+
+export interface RescoreResult {
+  rescored: number
+  hot: number
+  warm: number
+  cold: number
+  skip: number
+  failed: number
+  remaining: number
+  errors?: string[]
+}
+
+/** Re-check every lead of a GTH agent not yet on v2. Leads not yet emailed go first. */
+export async function rescoreLeads(p: { userId: string; agentConfig: any; deadlineMs?: number; pool?: number }): Promise<RescoreResult> {
+  const sb = getAdminClient()
+  const deadline = Date.now() + (p.deadlineMs ?? 250_000)
+  const { data: all, error } = await sb.from('outreach_leads').select('*')
+    .eq('user_id', p.userId).eq('agent_config_id', p.agentConfig.id)
+    .order('created_at', { ascending: false }).limit(1000)
+  if (error) throw error
+  const todo = (all || []).filter(l => !isV2(l))
+  const { data: seqs } = todo.length
+    ? await sb.from('outreach_sequences').select('lead_id').in('lead_id', todo.map(l => l.id))
+    : { data: [] as any[] }
+  const emailed = new Set((seqs || []).map((s: any) => s.lead_id))
+  todo.sort((a, b) => Number(emailed.has(a.id)) - Number(emailed.has(b.id)))
+
+  const { results, notStarted } = await deadlinePool(todo, p.pool ?? 4, deadline, l => qualifyGthLead(l, p.agentConfig, null))
+  const count = (t: QualTier) => results.filter(r => r.ok && r.tier === t).length
+  const errors = results.filter(r => !r.ok && r.error).map(r => r.error!)
+  return {
+    rescored: results.filter(r => r.ok).length,
+    hot: count('hot'),
+    warm: count('warm'),
+    cold: count('cold'),
+    skip: count('skip'),
+    failed: results.filter(r => !r.ok).length,
+    remaining: notStarted + results.filter(r => !r.ok).length,
+    ...(errors.length ? { errors: errors.slice(0, 3) } : {}),
   }
 }

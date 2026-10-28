@@ -1,5 +1,6 @@
 // Website content analyzer — scrapes a lead's website to extract
 // structured intelligence before AI scoring and email personalization.
+import { askClaude, extractToolUse } from './claude'
 
 const BROWSER_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -35,6 +36,12 @@ export interface WebsiteAudit {
   hasQuoteForm: boolean
   chatWidget: boolean
   copyrightYear: string | null
+  /** A working contact or enquiry form (not a search box), incl. embedded form tools */
+  hasForm?: boolean
+  /** e.g. "Book a free consultation" found on the homepage */
+  ctaPhrase?: string | null
+  /** true = the CTA leads nowhere online (phone/email only); false = it works; null = couldn't tell */
+  ctaWithoutAction?: boolean | null
   issues: string[]
 }
 
@@ -258,8 +265,14 @@ function auditSite(html: string, finalUrl: string, loadMs: number | null, copyri
   for (const [re, name] of BOOKING_TOOLS) {
     if (re.test(lower)) { bookingTool = name; break }
   }
-  const hasOnlineBooking = !!bookingTool || /book (an |your )?(appointment|online|now)|schedule (an |your )?(appointment|consultation)|request an appointment/i.test(html)
-  const hasQuoteForm = /(free )?(quote|estimate)/i.test(html) && /<form/i.test(html)
+  const hasForm = detectForm(html)
+  // Booking only counts when something actually takes the booking: a booking
+  // tool, a booking page link, or a form about appointments. A "Book now"
+  // sentence on its own is a call to action, not a way to book.
+  const bookingLink = /href=["'][^"']*\/(book|booking|bookings|appointments?|schedule|request-an-appointment)(\/|["'?#])/i.test(html)
+  const bookingForm = hasForm && /<form[\s\S]{0,4000}?(appointment|booking|preferred (date|time))/i.test(html)
+  const hasOnlineBooking = !!bookingTool || bookingLink || bookingForm
+  const hasQuoteForm = hasForm && /(free )?(quote|estimate)/i.test(html)
   const chatWidget = /intercom|drift\.com|tawk\.to|livechat|crisp\.chat|zendesk|tidio|hubspot-messages|olark/i.test(lower)
 
   const issues: string[] = []
@@ -267,7 +280,7 @@ function auditSite(html: string, finalUrl: string, loadMs: number | null, copyri
   if (!mobileReady) issues.push('no mobile viewport, the site is not set up for phones')
   if (copyrightYear && Number(copyrightYear) <= new Date().getFullYear() - 3) issues.push(`footer copyright still says ${copyrightYear}`)
   if (loadMs && loadMs > 3500) issues.push(`homepage took about ${Math.round(loadMs / 100) / 10}s to respond`)
-  if (!hasOnlineBooking) issues.push('no way to book or request an appointment online')
+  if (!hasOnlineBooking) issues.push('no online booking found')
   if (builder && ['Wix', 'GoDaddy', 'Weebly', 'Jimdo', 'Site123', 'Duda'].includes(builder)) issues.push(`built on a template builder (${builder})`)
   if (/<table[^>]+(width|cellpadding)=/i.test(html) && /<font\b/i.test(html)) issues.push('old table and font-tag layout')
   if (/jquery[.-]1\.[0-9]/i.test(lower)) issues.push('very old jQuery 1.x scripts')
@@ -284,8 +297,55 @@ function auditSite(html: string, finalUrl: string, loadMs: number | null, copyri
     hasQuoteForm,
     chatWidget,
     copyrightYear,
+    hasForm,
+    ctaPhrase: null,
+    ctaWithoutAction: null,
     issues,
   }
+}
+
+// ─── Forms and calls to action ──────────────────────────────────
+
+const FORM_TOOLS = /hsforms|hbspt\.forms|gform_|gravityforms|wpcf7|contact-form-7|wpforms|ninja-forms|formidable|formspree|jotform|typeform|cognitoforms|wufoo|elementor-form|fluentform|forminator|squarespace-form|wixforms|form-block|calendly|janeapp/i
+
+/** A real contact/enquiry form, not a search or newsletter box. */
+export function detectForm(html: string): boolean {
+  if (FORM_TOOLS.test(html)) return true
+  const forms = html.match(/<form[\s\S]*?<\/form>/gi) || []
+  return forms.some(f => /<textarea/i.test(f) || (/type=["']?(email|tel)/i.test(f) && /name=["']?[^"'>]*(name|message|phone)/i.test(f)))
+}
+
+const CTA_RE = /\b(book (?:a |an |your )?(?:free )?(?:consultation|appointment|call|session|visit|assessment)|book now|book online|schedule (?:a |an |your )?(?:free )?(?:consultation|appointment|call)|get (?:a |your )?(?:free )?(?:quote|estimate)|request (?:a |an )?(?:free )?(?:quote|estimate|consultation|appointment)|free (?:quote|estimate|consultation))\b/i
+
+/**
+ * Find the homepage's main call to action and check whether it actually
+ * leads somewhere you can act online. Follows the CTA link one hop.
+ */
+async function checkCta(html: string, baseUrl: string, audit: WebsiteAudit): Promise<{ phrase: string | null; without: boolean | null }> {
+  const text = stripHtml(html)
+  const m = text.match(CTA_RE)
+  if (!m) return { phrase: null, without: null }
+  const phrase = m[0].replace(/\s+/g, ' ').trim()
+  if (audit.bookingTool || audit.hasOnlineBooking || audit.hasForm) return { phrase, without: false }
+
+  // Find an <a> whose text carries the CTA and follow it
+  const anchors = html.match(/<a\b[^>]*href=["'][^"']+["'][^>]*>[\s\S]{0,300}?<\/a>/gi) || []
+  const hit = anchors.find(a => CTA_RE.test(stripHtml(a)))
+  if (!hit) return { phrase, without: null }
+  const href = (hit.match(/href=["']([^"']+)["']/i) || [])[1] || ''
+  if (/^(tel:|mailto:)/i.test(href)) return { phrase, without: true }
+  if (/^#/.test(href)) return { phrase, without: null }
+  let target: string
+  try { target = new URL(href, baseUrl).toString() } catch { return { phrase, without: null } }
+  if (!target.startsWith(new URL(baseUrl).origin)) {
+    // Off-site booking or form tool counts as working
+    return { phrase, without: false }
+  }
+  const page = await fetchPage(target)
+  if (!page) return { phrase, without: null }
+  const lower = page.toLowerCase()
+  const works = detectForm(page) || BOOKING_TOOLS.some(([re]) => re.test(lower))
+  return { phrase, without: !works }
 }
 
 async function fetchHomepageTimed(url: string): Promise<{ html: string | null; finalUrl: string; ms: number | null }> {
@@ -329,7 +389,7 @@ export async function analyzeWebsite(websiteUrl: string | null | undefined): Pro
         audit: {
           reachable: false, https: false, mobileReady: false, loadMs: home.ms, pageKb: null,
           builder: null, bookingTool: null, hasOnlineBooking: false, hasQuoteForm: false,
-          chatWidget: false, copyrightYear: null,
+          chatWidget: false, copyrightYear: null, hasForm: false, ctaPhrase: null, ctaWithoutAction: null,
           issues: ['website did not load when we checked it'],
         },
       }
@@ -359,6 +419,12 @@ export async function analyzeWebsite(websiteUrl: string | null | undefined): Pro
     const summary = sentences.slice(0, 3).join(' ').slice(0, 300)
 
     const audit = auditSite(homepageHtml, home.finalUrl, home.ms, copyrightYear, techSignals)
+    try {
+      const cta = await checkCta(homepageHtml, home.finalUrl || origin, audit)
+      audit.ctaPhrase = cta.phrase
+      audit.ctaWithoutAction = cta.without
+      if (cta.without) audit.issues.push(`homepage says "${cta.phrase}" but there is no way to do it online`)
+    } catch { /* CTA check is best effort */ }
 
     return {
       audit,
@@ -376,5 +442,97 @@ export async function analyzeWebsite(websiteUrl: string | null | undefined): Pro
   } catch (err) {
     console.warn('Website analysis failed:', err instanceof Error ? err.message : err)
     return EMPTY_INTEL
+  }
+}
+
+
+// ─── Visual check: PageSpeed Insights + Claude looking at the site ──
+
+export interface PageSpeedResult {
+  perf: number | null
+  seo: number | null
+  accessibility: number | null
+  screenshot: string | null // data:image/jpeg;base64,...
+}
+
+/** Lighthouse via PageSpeed Insights (mobile). Never throws; null on failure. */
+export async function runPageSpeed(url: string, timeoutMs = 35_000): Promise<PageSpeedResult | null> {
+  let target = url.trim()
+  if (!target.startsWith('http')) target = 'https://' + target
+  const base = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed'
+  const qs = `url=${encodeURIComponent(target)}&strategy=mobile&category=performance&category=seo&category=accessibility`
+  const key = process.env.GOOGLE_PAGESPEED_API_KEY || process.env.GOOGLE_PLACES_API_KEY || ''
+
+  const attempt = async (withKey: boolean) => {
+    const res = await fetch(`${base}?${qs}${withKey && key ? `&key=${encodeURIComponent(key)}` : ''}`, {
+      signal: AbortSignal.timeout(timeoutMs),
+    })
+    const data: any = await res.json().catch(() => null)
+    return { ok: res.ok, status: res.status, data }
+  }
+
+  try {
+    let r = await attempt(true)
+    // Key not enabled for PageSpeed (403/400): try the keyless quota once
+    if (!r.ok && key && (r.status === 403 || r.status === 400)) r = await attempt(false)
+    if (!r.ok || !r.data?.lighthouseResult) return null
+    const lh = r.data.lighthouseResult
+    const pct = (v: any) => (typeof v === 'number' ? Math.round(v * 100) : null)
+    return {
+      perf: pct(lh.categories?.performance?.score),
+      seo: pct(lh.categories?.seo?.score),
+      accessibility: pct(lh.categories?.accessibility?.score),
+      screenshot: lh.audits?.['final-screenshot']?.details?.data || null,
+    }
+  } catch {
+    return null
+  }
+}
+
+export type DesignVerdict = 'dated' | 'average' | 'modern'
+
+const DESIGN_TOOL = [{
+  name: 'rate_design',
+  description: 'Judge how current the website looks from the screenshot',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      verdict: { type: 'string', enum: ['dated', 'average', 'modern'] },
+      note: { type: 'string', description: 'One short plain sentence about what you see, e.g. "small grey text and clip-art icons, looks around 2012"' },
+    },
+    required: ['verdict', 'note'],
+  },
+}]
+
+const DESIGN_PROMPT = `You look at a screenshot of a small business homepage (as seen on a phone) and judge how current the design looks to a customer today.
+- "modern": clean, current layout, good type and imagery, would not embarrass the business in 2026.
+- "average": works and is tidy but generic or a few years old; nothing a customer would notice as broken.
+- "dated": clearly old or neglected: cramped or tiny text, desktop layout squeezed onto a phone, stock clip-art, heavy gradients or bevels, broken images, cookie-cutter template that looks a decade old.
+Judge only what is visible. If the screenshot is blank, a cookie banner or an error page, say "average" and note that you could not see the page.`
+
+/** Ask Claude to judge the screenshot. Null when it can't. */
+export async function judgeDesign(screenshotDataUri: string, businessName: string): Promise<{ verdict: DesignVerdict; note: string } | null> {
+  const m = screenshotDataUri.match(/^data:(image\/[a-z]+);base64,(.+)$/)
+  if (!m) return null
+  try {
+    const response = await askClaude({
+      systemPrompt: DESIGN_PROMPT,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: m[1], data: m[2] } },
+          { type: 'text', text: `Homepage of ${businessName}. Rate it with rate_design.` },
+        ],
+      }],
+      tools: DESIGN_TOOL,
+      tier: 'write',
+      maxTokens: 300,
+    })
+    const tool = extractToolUse(response)
+    const v = tool?.input?.verdict
+    if (v !== 'dated' && v !== 'average' && v !== 'modern') return null
+    return { verdict: v, note: String(tool.input.note || '').trim().slice(0, 200) }
+  } catch {
+    return null
   }
 }

@@ -87,46 +87,237 @@ export const GTH_DEFAULT_CONFIG = {
   sender_city: 'Edmonton, Alberta',
 }
 
-// ─── Qualification ──────────────────────────────────────────────
+// ─── Qualification (v2: points you can check) ───────────────────
+//
+// The score is built from measured facts, not a vibe:
+//   Need  (max 50)  how much there is for GTH to fix
+//   Fit   (max 30)  whether this is the kind of business GTH wins
+//   Reach (max 20)  whether we can get to a decision maker
+// Claude then looks at the whole picture and may move it by at most ±8,
+// with a reason. Chains, franchises and corporate offices are skipped.
 
-export const GTH_QUALIFIER_PROMPT = `You score local businesses as prospects for Grow The Hype (GTH), a marketing and web agency in Edmonton, Alberta run by Omar Alladina.
+export type QualTier = 'hot' | 'warm' | 'cold' | 'skip'
+export type CheckGroup = 'need' | 'fit' | 'reach'
 
-What GTH sells:
-1. Custom websites, designed, built and hosted in-house. Fast, mobile-first, built to turn visitors into bookings or calls.
-2. AI integration for small and mid-sized businesses: automating online booking, intake forms, quote requests, follow-ups, reminders and common customer questions, and teaching teams to use AI day to day.
-3. Marketing: paid ads, social media and email.
+export interface QualCheck {
+  key: string
+  group: CheckGroup
+  label: string
+  points: number
+  max: number
+  /** need: 'fail' = gap found (opportunity). fit/reach: 'pass' = criterion met. */
+  status: 'pass' | 'fail' | 'unknown'
+  detail: string
+  /** How Omar would say this gap to the owner (need checks only) */
+  say?: string
+}
 
-Who we want: established independent businesses in the Edmonton area (professional firms, clinics, trades and home services) with a real, specific gap GTH can fix.
+export interface GthScoreInput {
+  name: string
+  industry: string | null
+  searchQuery?: string | null
+  address: string | null
+  website: string | null
+  phone: string | null
+  rating: number | null
+  reviewCount: number | null
+  types?: string[] | null
+  email: string | null
+  emailSource: 'website' | 'guessed' | null
+  decisionMaker: string | null
+  areas: string[]
+  audit: {
+    reachable: boolean
+    https: boolean
+    mobileReady: boolean
+    builder: string | null
+    bookingTool: string | null
+    hasOnlineBooking: boolean
+    copyrightYear: string | null
+    ctaPhrase?: string | null
+    ctaWithoutAction?: boolean | null
+  } | null
+  design: { verdict: 'dated' | 'average' | 'modern' | 'unknown'; note?: string; perf?: number | null } | null
+  now?: Date
+}
 
-Scoring guide (0-100):
-- 80-100: an established local business (reviews, several services, real team) with a clear, specific gap: no website, site not secure (no HTTPS), not set up for phones, an old copyright year, a thin template-builder site, no way to book or request a quote online in a business where customers expect it, or contact by phone only.
-- 60-79: a decent site but a clear AI or automation opportunity (manual booking, paper or PDF intake, no online quote request, lots of back and forth by phone) or a noticeably dated design.
-- 30-59: modern site with online booking and good content; little obvious need.
-- 0-29: national chains, franchises, corporate groups, hospitals, government, permanently closed, outside Alberta, or no realistic way to reach a decision maker.
+export interface GthScore {
+  need: number
+  fit: number
+  reach: number
+  base: number
+  breakdown: QualCheck[]
+  disqualifier: string | null
+  hasStrongNeed: boolean
+  pitchAngle: 'website' | 'ai' | 'both'
+}
 
-Rules:
-- Base everything on the data provided. Never invent facts about the business.
-- "observation" must be ONE concrete, checkable detail taken from the data, written plainly in a few words as Omar would say it to the owner (for example: "your site still shows 2016 in the footer", "there's no way to book online", "the site isn't secure, browsers flag it as not secure"). If you have nothing concrete, leave it empty and lower the score.
-- "pitch_angle": "website" when the site itself is the problem, "ai" when the site is fine but the workflow is manual, "both" when both are true.`
+const CHAIN_RE = /\b(kpmg|deloitte|mnp|bdo|grant thornton|ernst & young|pwc|pricewaterhouse|crowe|h&r block|h & r block|liberty tax|jackson hewitt|dentalcorp|dental corp|123dentist|lifemark|pt health|physio ?health|cbi health|pure physio|athletico|nova physio|mr\.? ?lube|midas|canadian tire|home depot|lowe'?s|walmart|costco|shoppers|rexall|london drugs|specsavers|fyidoctors|lenscrafters|hearinglife|connect hearing|amplifon|nobul|re\/?max|royal lepage|century 21|exp realty|keller williams|coldwell|investors group|ig wealth|edward jones|sun life|manulife|rbc|td bank|scotiabank|bmo|cibc|atb|servpro|molly maid|mr\.? rooter|two men and a truck|college pro|gentle dental|smile dental group|primacare|medicentres|alberta health|covenant health|government of|city of)\b/i
+const CORPORATE_TYPES = /\b(hospital|local_government_office|city_hall|courthouse|embassy|police|fire_station|university|school|post_office)\b/
+
+const CLINIC_RE = /dental|dentist|orthodont|chiro|physio|massage|med ?spa|medspa|optomet|eye care|wellness|naturopath|audiolog|hearing|clinic|vet|veterinar|acupunct|counsel|psycholog|therap|skin|aesthetic|denturist|podiatr/i
+const TRADES_RE = /contractor|plumb|hvac|heating|furnace|roof|electric|landscap|renovat|flooring|kitchen|bath|construction|builder|paint|carpent|window|door|concrete|fence|deck|auto ?body|collision|mechanic|garage|cleaning|moving|pest|pool|gutter|tree service|snow|handyman|restoration|glass/i
+const PRO_RE = /account|cpa|bookkeep|tax|law|lawyer|legal|attorney|notary|financial|wealth|mortgage|insurance|consult|property manag|real estate|architect|engineer|surveyor|appraiser/i
+
+export type Vertical = 'clinic' | 'trades' | 'professional' | 'other'
+
+export function verticalOf(input: Pick<GthScoreInput, 'industry' | 'searchQuery' | 'name' | 'types'>): Vertical {
+  const hay = [input.searchQuery, input.industry, (input.types || []).join(' '), input.name].filter(Boolean).join(' ')
+  // Search query is the most reliable label, so test it first on its own
+  for (const src of [input.searchQuery || '', hay]) {
+    if (!src) continue
+    if (CLINIC_RE.test(src)) return 'clinic'
+    if (TRADES_RE.test(src)) return 'trades'
+    if (PRO_RE.test(src)) return 'professional'
+  }
+  return 'other'
+}
+
+function cityOf(area: string): string {
+  return area.split(',')[0].trim().toLowerCase()
+}
+
+const EDMONTON_REGION = ['edmonton', 'sherwood park', 'st. albert', 'st albert', 'spruce grove', 'stony plain', 'leduc', 'nisku', 'fort saskatchewan', 'beaumont', 'devon', 'morinville', 'strathcona county', 'acheson', 'parkland county']
+
+/** Deterministic points from measured facts. Pure, no IO. */
+export function scoreGthLead(input: GthScoreInput): GthScore {
+  const now = input.now || new Date()
+  const checks: QualCheck[] = []
+  const add = (c: QualCheck) => checks.push(c)
+  const a = input.audit
+  const verdict = input.design?.verdict || 'unknown'
+  const vertical = verticalOf(input)
+
+  // ── Disqualifiers ──
+  let disqualifier: string | null = null
+  const hay = `${input.name} ${input.website || ''}`
+  if (CHAIN_RE.test(hay)) disqualifier = 'Part of a chain, franchise or national firm'
+  else if ((input.types || []).some(t => CORPORATE_TYPES.test(t))) disqualifier = 'Hospital, school or government office'
+  else if (input.address && !/\b(AB|Alberta)\b/.test(input.address)) disqualifier = 'Outside Alberta'
+
+  // ── Need (max 50) ──
+  if (!input.website) {
+    add({ key: 'no_website', group: 'need', label: 'Has a website', points: 30, max: 30, status: 'fail', detail: 'No website listed on Google', say: "I couldn't find a website for you on Google" })
+  } else if (!a || !a.reachable) {
+    add({ key: 'site_down', group: 'need', label: 'Website loads', points: a ? 30 : 0, max: 30, status: a ? 'fail' : 'unknown', detail: a ? 'The site did not load when we checked' : 'Not checked', say: "your website wouldn't load when I tried it" })
+  } else {
+    add({ key: 'site_down', group: 'need', label: 'Website loads', points: 0, max: 30, status: 'pass', detail: 'Loads fine' })
+
+    const designPts = verdict === 'dated' ? 25 : verdict === 'average' ? 10 : 0
+    add({
+      key: 'design', group: 'need', label: 'Design looks current', points: designPts, max: 25,
+      status: verdict === 'unknown' ? 'unknown' : designPts > 0 ? 'fail' : 'pass',
+      detail: verdict === 'unknown' ? 'Could not get a screenshot' : `${verdict[0].toUpperCase()}${verdict.slice(1)}${input.design?.note ? `: ${input.design.note}` : ''}`,
+      say: verdict === 'dated' ? 'your site looks a fair bit older than the business behind it' : 'the site works, but it reads a few years old next to your competitors',
+    })
+
+    add({ key: 'https', group: 'need', label: 'Secure (HTTPS)', points: a.https ? 0 : 10, max: 10, status: a.https ? 'pass' : 'fail', detail: a.https ? 'Yes' : 'No, browsers show "Not secure"', say: "your site isn't secure, so browsers flag it as not secure" })
+    add({ key: 'mobile', group: 'need', label: 'Set up for phones', points: a.mobileReady ? 0 : 12, max: 12, status: a.mobileReady ? 'pass' : 'fail', detail: a.mobileReady ? 'Yes' : 'No mobile layout', say: "your site isn't set up for phones, so it shows the desktop version shrunk down" })
+
+    const perf = input.design?.perf ?? null
+    const perfPts = perf == null ? 0 : perf < 40 ? 8 : perf < 60 ? 4 : 0
+    add({ key: 'speed', group: 'need', label: 'Fast on phones', points: perfPts, max: 8, status: perf == null ? 'unknown' : perfPts ? 'fail' : 'pass', detail: perf == null ? 'Not measured' : `Google mobile speed score ${perf}/100`, say: 'your site is slow to load on a phone' })
+
+    const year = a.copyrightYear ? Number(a.copyrightYear) : null
+    const oldYear = !!year && year <= now.getFullYear() - 3
+    const yearPts = oldYear && verdict !== 'modern' ? 5 : 0
+    add({
+      key: 'copyright', group: 'need', label: 'Kept up to date', points: yearPts, max: 5,
+      status: !year ? 'unknown' : yearPts ? 'fail' : 'pass',
+      detail: !year ? 'No year in the footer' : oldYear ? (verdict === 'modern' ? `Footer says ${year}, but the design is current, so it doesn't count` : `Footer still says ${year}`) : `Footer says ${year}`,
+      say: `your footer still says ${year}`,
+    })
+
+    const template = !!a.builder && ['Wix', 'GoDaddy', 'Weebly', 'Jimdo', 'Site123', 'Duda'].includes(a.builder)
+    add({ key: 'builder', group: 'need', label: 'Custom built', points: template ? 5 : 0, max: 5, status: template ? 'fail' : 'pass', detail: template ? `Template builder (${a.builder})` : (a.builder || 'Not a template builder'), say: `your site is on a ${a.builder} template` })
+
+    const ctaGap = a.ctaWithoutAction === true
+    add({
+      key: 'cta', group: 'need', label: 'Main button works online', points: ctaGap ? 8 : 0, max: 8,
+      status: a.ctaWithoutAction == null ? 'unknown' : ctaGap ? 'fail' : 'pass',
+      detail: !a.ctaPhrase ? 'No booking or quote button found' : ctaGap ? `Says "${a.ctaPhrase}" but there is no way to do it online` : `"${a.ctaPhrase}" works`,
+      say: `your site says "${a.ctaPhrase}" but there's no way to actually do that online`,
+    })
+
+    const expectsBooking = vertical === 'clinic' || vertical === 'trades'
+    const bookingGap = expectsBooking && !a.hasOnlineBooking
+    add({
+      key: 'booking', group: 'need', label: 'Online booking or requests', points: bookingGap ? 6 : 0, max: expectsBooking ? 6 : 0,
+      status: a.hasOnlineBooking ? 'pass' : expectsBooking ? 'fail' : 'pass',
+      detail: a.hasOnlineBooking ? (a.bookingTool || 'Yes') : expectsBooking ? 'None found' : 'Not something clients expect from this kind of firm',
+      say: vertical === 'trades' ? "there's no way to request a quote or book online" : "there's no way to book an appointment online",
+    })
+  }
+  let need = Math.min(50, checks.filter(c => c.group === 'need').reduce((s, c) => s + c.points, 0))
+
+  // ── Fit (max 30) ──
+  add({ key: 'independent', group: 'fit', label: 'Independent local business', points: 0, max: 0, status: disqualifier ? 'fail' : 'pass', detail: disqualifier || 'Yes' })
+  const rc = input.reviewCount
+  const reviewPts = rc == null ? 0 : rc >= 15 && rc <= 400 ? 10 : rc >= 5 && rc < 15 ? 5 : 0
+  add({ key: 'reviews', group: 'fit', label: 'Established (Google reviews)', points: reviewPts, max: 10, status: rc == null ? 'unknown' : reviewPts ? 'pass' : 'fail', detail: rc == null ? 'Review count unknown' : rc > 400 ? `${rc} reviews, likely bigger than our sweet spot` : `${rc} reviews` })
+  const ratingPts = (input.rating ?? 0) >= 4.3 ? 5 : 0
+  add({ key: 'rating', group: 'fit', label: 'Well rated (4.3+)', points: ratingPts, max: 5, status: input.rating == null ? 'unknown' : ratingPts ? 'pass' : 'fail', detail: input.rating == null ? 'No rating' : `${input.rating} stars` })
+  const coreVertical = vertical !== 'other'
+  add({ key: 'vertical', group: 'fit', label: 'Core industry', points: coreVertical ? 5 : 0, max: 5, status: coreVertical ? 'pass' : 'fail', detail: { clinic: 'Clinic', trades: 'Trades or home services', professional: 'Professional services', other: 'Outside our core industries' }[vertical] })
+  const addr = (input.address || '').toLowerCase()
+  const areas = [...new Set([...input.areas.map(cityOf), ...EDMONTON_REGION])]
+  const local = !!addr && areas.some(c => c && addr.includes(c))
+  add({ key: 'area', group: 'fit', label: 'In the Edmonton region', points: local ? 5 : 0, max: 5, status: !addr ? 'unknown' : local ? 'pass' : 'fail', detail: input.address || 'No address' })
+  let fit = Math.min(30, checks.filter(c => c.group === 'fit').reduce((s, c) => s + c.points, 0))
+
+  // ── Reach (max 20) ──
+  const emailPts = !input.email ? 0 : input.emailSource === 'guessed' ? 3 : 10
+  add({ key: 'email', group: 'reach', label: 'Real email address', points: emailPts, max: 10, status: !input.email ? 'fail' : emailPts === 10 ? 'pass' : 'unknown', detail: !input.email ? 'No email found' : input.emailSource === 'guessed' ? `${input.email} (guessed, not on their site)` : `${input.email} (from their site)` })
+  add({ key: 'decision_maker', group: 'reach', label: 'Owner or decision maker named', points: input.decisionMaker ? 6 : 0, max: 6, status: input.decisionMaker ? 'pass' : 'fail', detail: input.decisionMaker || 'No name found' })
+  add({ key: 'phone', group: 'reach', label: 'Phone number', points: input.phone ? 4 : 0, max: 4, status: input.phone ? 'pass' : 'fail', detail: input.phone || 'None listed' })
+  const reach = Math.min(20, checks.filter(c => c.group === 'reach').reduce((s, c) => s + c.points, 0))
+
+  if (disqualifier) { need = Math.min(need, 5); fit = 0 }
+
+  const strong = checks.some(c => c.group === 'need' && c.points >= 8)
+  const siteGaps = checks.filter(c => c.group === 'need' && c.points > 0 && ['no_website', 'site_down', 'design', 'https', 'mobile', 'speed', 'copyright', 'builder'].includes(c.key)).reduce((s, c) => s + c.points, 0)
+  const flowGaps = checks.filter(c => c.group === 'need' && c.points > 0 && ['cta', 'booking'].includes(c.key)).reduce((s, c) => s + c.points, 0)
+  const pitchAngle: GthScore['pitchAngle'] = siteGaps >= 10 && flowGaps > 0 ? 'both' : siteGaps >= flowGaps && siteGaps > 0 ? 'website' : flowGaps > 0 ? 'ai' : 'ai'
+
+  return { need, fit, reach, base: need + fit + reach, breakdown: checks, disqualifier, hasStrongNeed: strong, pitchAngle }
+}
+
+/** Apply Claude's adjustment, the need gate and the tier rules. */
+export function finaliseGthScore(s: GthScore, adjustment: number, extraDisqualifier?: string | null): { score: number; tier: QualTier; adjustment: number; disqualifier: string | null } {
+  const adj = Math.max(-8, Math.min(8, Math.round(Number(adjustment) || 0)))
+  const disq = s.disqualifier || (extraDisqualifier ? extraDisqualifier.trim() || null : null)
+  let score = Math.max(0, Math.min(100, s.base + adj))
+  if (disq) return { score: Math.min(score, 15), tier: 'skip', adjustment: adj, disqualifier: disq }
+  if (!s.hasStrongNeed) score = Math.min(score, 54)
+  const tier: QualTier = score >= 70 ? 'hot' : score >= 55 ? 'warm' : 'cold'
+  return { score, tier, adjustment: adj, disqualifier: null }
+}
+
+export const GTH_QUALIFIER_PROMPT = `You review prospects for Grow The Hype (GTH), a web and marketing agency in Edmonton run by Omar Alladina. GTH builds custom websites and sets up AI for booking, intake, quotes and follow-ups.
+
+You are given measured facts about one business and a points score already calculated from them (Need, Fit, Reach). Your job:
+1. Sanity-check the score. You may adjust it by -8 to +8, only for something the points can't see (for example: the content shows a large corporate operation, the site belongs to a parent company, or the business clearly invests heavily in marketing already). Give the reason in a few words. Use 0 if the score is fair.
+2. Flag a disqualifier if the business is a chain, franchise, national network, corporate office, hospital, school or government body. Leave it empty otherwise.
+3. Pick the ONE best opening observation for Omar's email from the failed checks listed. Return its check key, and write it the way Omar would say it to the owner: plain, kind, specific, a few words, nothing invented. If no check failed, leave it empty.
+4. Write a one or two sentence plain summary of why this business is or isn't worth Omar's time.
+
+Never invent facts. Never use a founding year or business age; you do not have reliable data for it.`
 
 export const GTH_QUALIFIER_TOOLS = [
   {
-    name: 'score_lead',
-    description: 'Score a prospect for Grow The Hype',
+    name: 'review_lead',
+    description: 'Review the points score for a prospect',
     input_schema: {
       type: 'object' as const,
       properties: {
-        score: { type: 'number', description: 'Fit score 0-100' },
-        reasoning: { type: 'string', description: 'One or two sentences citing what was observed' },
-        signals: { type: 'array', items: { type: 'string' }, description: 'Concrete signals behind the score' },
-        observation: { type: 'string', description: 'One concrete detail Omar can mention to the owner, or empty' },
-        pitch_angle: { type: 'string', enum: ['website', 'ai', 'both'] },
-        recommended_action: {
-          type: 'string',
-          enum: ['send_cold_email', 'add_to_nurture', 'skip', 'priority_outreach'],
-        },
+        adjustment: { type: 'number', description: 'Points to add or remove, -8 to 8, usually 0' },
+        adjustment_reason: { type: 'string', description: 'Why, in a few words. Empty when 0' },
+        disqualifier: { type: 'string', description: 'Chain, franchise, corporate, etc. Empty if none' },
+        observation_key: { type: 'string', description: 'Key of the failed check used for the opener, or empty' },
+        observation: { type: 'string', description: 'The opener as Omar would say it, or empty' },
+        summary: { type: 'string', description: 'One or two plain sentences' },
       },
-      required: ['score', 'reasoning', 'signals', 'observation', 'pitch_angle', 'recommended_action'],
+      required: ['adjustment', 'adjustment_reason', 'disqualifier', 'observation_key', 'observation', 'summary'],
     },
   },
 ]

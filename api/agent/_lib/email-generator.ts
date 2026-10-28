@@ -8,14 +8,8 @@ import {
   COLD_EMAIL_TOOLS,
   SALES_EMAIL_TOOLS,
 } from './claude'
-import {
-  isGthAgent,
-  GTH_WRITER_PROMPT,
-  GTH_WRITER_TOOLS,
-  validateSequence,
-  repairSequence,
-  type SequenceDraft,
-} from './gth-profile'
+import { isGthAgent, GTH_WRITER_TOOLS } from './gth-profile'
+import { buildGthWriterPrompt, pickProofLink, validateVoice, repairVoice, type VoiceDraft as SequenceDraft } from './gth-voice'
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -142,7 +136,7 @@ function firstName(full?: string | null): string | null {
   return first && /^[A-Za-z'-]{2,}$/.test(first) ? first : null
 }
 
-function gthLeadBrief(lead: any): string {
+function gthLeadBrief(lead: any, proof: string | null): string {
   const e = lead.enrichment_data || {}
   const a = e.website_audit || null
   const dm = e.decision_makers?.[0]
@@ -153,32 +147,46 @@ function gthLeadBrief(lead: any): string {
     `Area: ${lead.location || lead.address || 'Edmonton area'}`,
     `Contact first name: ${firstName(contact) || 'unknown (use "Hi there,")'}`,
     `Website: ${lead.website || 'none listed on Google'}`,
-    `Google rating: ${lead.rating ?? 'n/a'}`,
+    `Google rating: ${lead.rating ?? 'n/a'}${e.review_count || e.user_rating_count ? ` from ${e.review_count || e.user_rating_count} reviews` : ''}`,
   ]
+  // Only things we actually checked go to the writer
+  const findings: string[] = []
+  const qual = e.qual
+  if (qual?.breakdown?.length) {
+    for (const b of qual.breakdown) if (b.status === 'fail' && b.group === 'need' && b.detail) findings.push(b.detail)
+    if (qual.design?.verdict && qual.design?.note && qual.design.verdict !== 'modern') findings.push(`Design looks ${qual.design.verdict}: ${qual.design.note}`)
+  } else if (a?.issues?.length) {
+    findings.push(...a.issues)
+  }
+  parts.push(`Verified findings (the ONLY site facts you may mention): ${findings.length ? findings.join('; ') : 'none, so do not claim anything specific about their site'}`)
+  parts.push(`Work to show: ${proof || 'none'}`)
   if (e.website_summary) parts.push(`What their site says about them: ${String(e.website_summary).slice(0, 280)}`)
   if (e.services_found?.length) parts.push(`Services they list: ${e.services_found.slice(0, 6).join(', ')}`)
   if (a) {
     parts.push(`Website check: HTTPS ${a.https ? 'yes' : 'no'}, phone-ready ${a.mobileReady ? 'yes' : 'no'}, online booking ${a.hasOnlineBooking ? (a.bookingTool || 'yes') : 'none'}, builder ${a.builder || 'unknown'}`)
-    if (a.issues?.length) parts.push(`Gaps we found: ${a.issues.join('; ')}`)
   }
-  parts.push(`Observation to build the email on: ${e.observation || lead.qualification_reason || 'none, keep it general but honest'}`)
-  parts.push(`Best angle: ${e.pitch_angle || 'website'}`)
+  parts.push(`Lead with this observation: ${qual?.observation || e.observation || 'none, keep it general but honest'}`)
+  parts.push(`Pitch angle: ${qual?.pitch_angle || e.pitch_angle || 'website'}`)
   return parts.join('\n')
 }
 
-async function writeGthSequence(lead: any): Promise<{ draft: SequenceDraft; issues: string[]; repaired: boolean }> {
-  const brief = gthLeadBrief(lead)
+async function writeGthSequence(lead: any, cfgInner: any): Promise<{ draft: SequenceDraft; issues: string[]; repaired: boolean }> {
+  const proof = pickProofLink(cfgInner, lead.industry || '', lead.name || '')
+  const allowedLinks = [proof, (cfgInner?.booking_link || '').trim()].filter(Boolean) as string[]
+  const brief = gthLeadBrief(lead, proof)
+  const systemPrompt = buildGthWriterPrompt(cfgInner)
+  const validateSequence = (d: SequenceDraft) => validateVoice(d, allowedLinks)
   const ask = async (extra?: string) => {
     const response = await askClaude({
-      systemPrompt: GTH_WRITER_PROMPT,
+      systemPrompt,
       messages: [{
         role: 'user',
         content: `Write the sequence for this business using compose_sequence.\n\n${brief}${extra ? `\n\n${extra}` : ''}`,
       }],
       tools: GTH_WRITER_TOOLS,
       tier: 'write',
-      maxTokens: 1200,
-      temperature: 0.7,
+      maxTokens: 1600,
+      temperature: 0.6,
     })
     const tool = extractToolUse(response)
     return (tool?.input || {}) as SequenceDraft
@@ -193,7 +201,7 @@ async function writeGthSequence(lead: any): Promise<{ draft: SequenceDraft; issu
   issues = validateSequence(draft)
   if (issues.length === 0) return { draft, issues, repaired: false }
 
-  const repaired = repairSequence(draft)
+  const repaired = repairVoice(draft)
   return { draft: repaired, issues: validateSequence(repaired), repaired: true }
 }
 
@@ -208,6 +216,112 @@ async function runPool<T, R>(items: T[], size: number, fn: (item: T) => Promise<
   })
   await Promise.all(workers)
   return out
+}
+
+// ─── One lead → one three-step sequence ─────────────────────────
+
+interface SeqCtx { userId: string; agentRunId: string | null; agentType: string; agentConfig: any; inner: any; gth: boolean }
+
+async function buildSequence(lead: any, ctx: SeqCtx): Promise<{ ok: boolean; drafts: number; flagged?: boolean; error?: string }> {
+  const { userId, agentRunId, agentType, agentConfig, inner, gth } = ctx
+  const sb = getAdminClient()
+  let flagged = false
+    let steps: { subject: string; body: string }[]
+    let meta: Record<string, any> = {}
+
+    if (gth) {
+      const { draft, issues, repaired } = await writeGthSequence(lead, inner)
+      const subject = (draft.subject || '').trim()
+      steps = [
+        { subject, body: draft.email_1 },
+        { subject: `Re: ${subject}`, body: draft.follow_up_1 },
+        { subject: `Re: ${subject}`, body: draft.follow_up_2 },
+      ]
+      meta = {
+        angle: draft.angle_used || lead.enrichment_data?.pitch_angle || null,
+        validator_issues: issues,
+        repaired,
+        email_source: lead.enrichment_data?.email_source || null,
+      }
+      flagged = issues.length > 0 || repaired
+    } else {
+      steps = await generateEmailsForLead(lead, agentType, agentConfig)
+    }
+
+    const { data: sequence, error: seqErr } = await sb
+      .from('outreach_sequences')
+      .insert({
+        user_id: userId,
+        lead_id: lead.id,
+        agent_run_id: agentRunId,
+        agent_config_id: agentConfig?.id || null,
+        agent_type: agentType,
+        sequence_name: gth ? 'GTH intro' : 'Outreach',
+        status: 'draft',
+        total_steps: SEQUENCE_STEPS.length,
+        max_steps: SEQUENCE_STEPS.length,
+        current_step: 1,
+      })
+      .select('id')
+      .single()
+
+    if (seqErr || !sequence) {
+      return { ok: false, drafts: 0, error: `sequence ${lead.name}: ${seqErr?.message || 'insert failed'}` }
+    }
+
+    const now = new Date().toISOString()
+    const rows = SEQUENCE_STEPS.map((step, i) => ({
+      sequence_id: sequence.id,
+      user_id: userId,
+      lead_id: lead.id,
+      step_number: step.stepNumber,
+      step_type: 'email',
+      label: step.label,
+      delay_hours: step.delayHours,
+      subject: steps[i]?.subject || '',
+      body: steps[i]?.body || '',
+      status: 'pending',
+      approval_status: 'pending',
+      // Only the first email is ready for review now; follow-ups become
+      // due once the previous email has actually been sent.
+      scheduled_at: i === 0 ? now : null,
+      metadata: meta,
+    }))
+
+    const { error: stepsErr } = await sb.from('outreach_steps').insert(rows)
+    if (stepsErr) {
+      await sb.from('outreach_sequences').delete().eq('id', sequence.id)
+      return { ok: false, drafts: 0, error: `steps ${lead.name}: ${stepsErr.message}` }
+    }
+    return { ok: true, drafts: rows.length, flagged }
+}
+
+/** Write (or rewrite) the sequence for one lead on demand. Never touches a sequence that has already sent. */
+export async function draftForLead(params: { userId: string; agentConfig: any; leadId: string; agentRunId?: string | null }) {
+  const sb = getAdminClient()
+  const { data: lead, error } = await sb.from('outreach_leads').select('*').eq('id', params.leadId).eq('user_id', params.userId).single()
+  if (error || !lead) throw new Error('Lead not found')
+  if (!lead.email) throw new Error('This lead has no email address yet')
+
+  const { data: seqs } = await sb.from('outreach_sequences').select('id').eq('lead_id', lead.id)
+  for (const sq of seqs || []) {
+    const { count } = await sb.from('outreach_steps').select('id', { count: 'exact', head: true }).eq('sequence_id', sq.id).eq('status', 'sent')
+    if ((count || 0) > 0) throw new Error('Emails have already gone to this lead, so the sequence is locked')
+    await sb.from('outreach_steps').delete().eq('sequence_id', sq.id)
+    await sb.from('outreach_sequences').delete().eq('id', sq.id)
+  }
+
+  const cfg = params.agentConfig
+  const r = await buildSequence(lead, {
+    userId: params.userId,
+    agentRunId: params.agentRunId || null,
+    agentType: cfg?.agent_type || 'lead_gen',
+    agentConfig: cfg,
+    inner: cfg?.config || {},
+    gth: isGthAgent(cfg),
+  })
+  if (!r.ok) throw new Error(r.error || 'Could not write the emails')
+  return { drafted: r.drafts, flagged: !!r.flagged }
 }
 
 // ─── Main Export ────────────────────────────────────────────────
@@ -255,78 +369,13 @@ export async function generateOutreach(params: GenerateParams): Promise<Generate
 
   // 2. Write and store, three leads at a time (keeps us well inside the
   //    function budget and under API rate limits)
+  const ctx: SeqCtx = { userId, agentRunId, agentType, agentConfig, inner, gth }
   const results = await runPool(eligible, 3, async (lead: any) => {
     try {
-      let steps: { subject: string; body: string }[]
-      let meta: Record<string, any> = {}
-
-      if (gth) {
-        const { draft, issues, repaired } = await writeGthSequence(lead)
-        const subject = (draft.subject || '').trim()
-        steps = [
-          { subject, body: draft.email_1 },
-          { subject: `Re: ${subject}`, body: draft.follow_up_1 },
-          { subject: `Re: ${subject}`, body: draft.follow_up_2 },
-        ]
-        meta = {
-          angle: draft.angle_used || lead.enrichment_data?.pitch_angle || null,
-          validator_issues: issues,
-          repaired,
-          email_source: lead.enrichment_data?.email_source || null,
-        }
-        if (issues.length > 0 || repaired) flagged++
-      } else {
-        steps = await generateEmailsForLead(lead, agentType, agentConfig)
-      }
-
-      const { data: sequence, error: seqErr } = await sb
-        .from('outreach_sequences')
-        .insert({
-          user_id: userId,
-          lead_id: lead.id,
-          agent_run_id: agentRunId,
-          agent_config_id: agentConfig?.id || null,
-          agent_type: agentType,
-          sequence_name: gth ? 'GTH intro' : 'Outreach',
-          status: 'draft',
-          total_steps: SEQUENCE_STEPS.length,
-          max_steps: SEQUENCE_STEPS.length,
-          current_step: 1,
-        })
-        .select('id')
-        .single()
-
-      if (seqErr || !sequence) {
-        errors.push(`sequence ${lead.name}: ${seqErr?.message || 'insert failed'}`)
-        return { ok: false, drafts: 0 }
-      }
-
-      const now = new Date().toISOString()
-      const rows = SEQUENCE_STEPS.map((step, i) => ({
-        sequence_id: sequence.id,
-        user_id: userId,
-        lead_id: lead.id,
-        step_number: step.stepNumber,
-        step_type: 'email',
-        label: step.label,
-        delay_hours: step.delayHours,
-        subject: steps[i]?.subject || '',
-        body: steps[i]?.body || '',
-        status: 'pending',
-        approval_status: 'pending',
-        // Only the first email is ready for review now; follow-ups become
-        // due once the previous email has actually been sent.
-        scheduled_at: i === 0 ? now : null,
-        metadata: meta,
-      }))
-
-      const { error: stepsErr } = await sb.from('outreach_steps').insert(rows)
-      if (stepsErr) {
-        errors.push(`steps ${lead.name}: ${stepsErr.message}`)
-        await sb.from('outreach_sequences').delete().eq('id', sequence.id)
-        return { ok: false, drafts: 0 }
-      }
-      return { ok: true, drafts: rows.length }
+      const r = await buildSequence(lead, ctx)
+      if (r.flagged) flagged++
+      if (!r.ok && r.error) errors.push(r.error)
+      return r
     } catch (err: any) {
       errors.push(`${lead.name}: ${String(err?.message || err).slice(0, 200)}`)
       return { ok: false, drafts: 0 }

@@ -552,8 +552,8 @@ export default function Outreach() {
         {activeAgent && (
           <div className="tabbar la-tabs" role="tablist" style={{ marginBottom: 0 }}>
             <button role="tab" aria-selected={workTab === 'leads'} className={`tabbar-tab ${workTab === 'leads' ? 'la-tab--on' : ''}`} onClick={() => setWorkTab('leads')}>Leads</button>
-            <button role="tab" aria-selected={workTab === 'drafts'} className={`tabbar-tab ${workTab === 'drafts' ? 'la-tab--on' : ''}`} onClick={() => setWorkTab('drafts')}>
-              Drafts{agentQueue.length ? ` (${agentQueue.length})` : ''}
+            <button role="tab" aria-selected={workTab === 'drafts'} className={`tabbar-tab ${workTab === 'drafts' ? 'la-tab--on' : ''}`} onClick={() => useAppStore.getState().setCurrentPage('agents')} title="Read and send this agent's emails in AI Agents">
+              Emails to send{agentQueue.length ? ` (${agentQueue.length})` : ''} ↗
             </button>
           </div>
         )}

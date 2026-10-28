@@ -11,7 +11,8 @@ import { isGthAgent } from './gth-profile'
 export const ACTION_BUDGET_MS: Record<string, number> = {
   classify_inbox: 25_000,
   scrape_leads: 70_000,
-  qualify_leads: 60_000,
+  // GTH v2 opens each site in Lighthouse and has Claude look at it, so it needs longer
+  qualify_leads: 110_000,
   generate_emails: 110_000,
   send_emails: 30_000,
 }
@@ -47,8 +48,10 @@ export async function executeAgentAction(
         userId,
         agentRunId: runId,
         agentType: config?.agent_type || 'lead_gen',
-        batchSize: 14,
+        batchSize: isGthAgent(config) ? 16 : 14,
         agentConfig: config,
+        // Leave headroom so the last leads in flight finish inside the action budget
+        deadlineMs: ACTION_BUDGET_MS.qualify_leads - 5_000,
       })
 
     case 'generate_emails':

@@ -5,6 +5,9 @@ import { getAdminClient, getAgentConfig, getAgentConfigById, updateAgentRun } fr
 import { runAgentTick } from './_lib/orchestrator'
 import { runActions, summariseRun } from './_lib/actions'
 import { sendScheduledEmails } from './_lib/sender'
+import { rescoreLeads } from './_lib/qualifier'
+import { isGthAgent } from './_lib/gth-profile'
+import { draftForLead } from './_lib/email-generator'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // ------ Step tracker so the response tells us WHERE it blew up ----
@@ -51,6 +54,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         cfgInner: inner,
       })
       return res.status(200).json({ status: 'completed', results: { send_emails: result } })
+    }
+
+    // Re-check every lead of one agent with the current scoring (v2)
+    if (mode === 'rescore') {
+      step = 'rescore'
+      if (!configId) return res.status(400).json({ error: 'Missing configId', step })
+      const cfg = await getAgentConfigById(configId)
+      if (!cfg) return res.status(404).json({ error: 'Agent config not found', step })
+      if (cfg.user_id !== userId) return res.status(403).json({ error: 'Config does not belong to this user', step })
+      if (!isGthAgent(cfg)) return res.status(400).json({ error: 'Rescore is available for the GTH agent', step })
+      const result = await rescoreLeads({ userId, agentConfig: cfg, deadlineMs: 250_000, pool: 4 })
+      return res.status(200).json({ status: 'completed', results: { rescore: result } })
+    }
+
+    // Write (or rewrite) the emails for one lead, straight from its lead file
+    if (mode === 'draft_lead') {
+      step = 'draft_lead'
+      const { leadId } = (req.body ?? {}) as any
+      if (!configId || !leadId) return res.status(400).json({ error: 'Missing configId or leadId', step })
+      const cfg = await getAgentConfigById(configId)
+      if (!cfg) return res.status(404).json({ error: 'Agent config not found', step })
+      if (cfg.user_id !== userId) return res.status(403).json({ error: 'Config does not belong to this user', step })
+      const result = await draftForLead({ userId, agentConfig: cfg, leadId })
+      return res.status(200).json({ status: 'completed', results: { draft_lead: result } })
     }
 
     if (!agentType) {

@@ -150,8 +150,15 @@ export async function sendScheduledEmails(params: SendParams): Promise<SendResul
           .maybeSingle()
         if (nextStep) {
           const gapHours = Math.max(24, (nextStep.delay_hours || 72) - (step.delay_hours || 0))
+          // Once Omar approves the first email, follow-ups go out on their own
+          // (a reply or opt-out stops them). He can turn this off per agent.
+          const autoFollow = params.cfgInner?.auto_followups !== false
           await sb.from('outreach_steps')
-            .update({ scheduled_at: new Date(Date.now() + gapHours * 3600_000).toISOString(), updated_at: sentAt })
+            .update({
+              scheduled_at: new Date(Date.now() + gapHours * 3600_000).toISOString(),
+              ...(autoFollow ? { status: 'scheduled', approval_status: 'approved' } : {}),
+              updated_at: sentAt,
+            })
             .eq('id', nextStep.id)
             .eq('status', 'pending')
         }

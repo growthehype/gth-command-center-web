@@ -279,6 +279,7 @@ export function AgentSettingsModal({ open, agent, clients, leadCount, onClose, o
   const [f, setF] = useState({
     agent_name: '', client_id: '', client_offer: '', ideal_customer_profile: '', sender_name: '',
     terms: '', areas: '', daily_lead_quota: '25', min_score: '60', enabled: true,
+    booking_link: '', proof: '', auto_followups: true,
   })
   const [saving, setSaving] = useState(false)
   const set = (k: keyof typeof f, v: any) => setF(p => ({ ...p, [k]: v }))
@@ -297,6 +298,9 @@ export function AgentSettingsModal({ open, agent, clients, leadCount, onClose, o
       daily_lead_quota: String(c.daily_lead_quota ?? 25),
       min_score: String(c.min_score ?? 60),
       enabled: agent ? agent.enabled : false,
+      booking_link: c.booking_link || '',
+      proof: (Array.isArray(c.proof_links) ? c.proof_links : []).map((p: any) => `${p.url} | ${String(p.match || '').split('|').join(', ')}`).join('\n'),
+      auto_followups: c.auto_followups !== false,
     })
   }, [open, agent])
 
@@ -320,6 +324,14 @@ export function AgentSettingsModal({ open, agent, clients, leadCount, onClose, o
       queries_per_run: prev.queries_per_run || 3,
       drafts_per_run: prev.drafts_per_run || 8,
       rotation_index: prev.rotation_index || 0,
+      auto_followups: f.auto_followups,
+      booking_link: f.booking_link.trim(),
+      proof_links: f.proof.split('\n').map(line => {
+        const [url, kw] = line.split('|').map(x => (x || '').trim())
+        if (!url || !kw) return null
+        const match = kw.split(',').map(k => k.trim().replace(/[.*+?^${}()[\]\\]/g, '')).filter(Boolean).join('|')
+        return match ? { url: url.replace(/^https?:\/\//, '').replace(/\/$/, ''), match } : null
+      }).filter(Boolean),
     }
     if (!gth) {
       Object.assign(config, {
@@ -412,6 +424,25 @@ export function AgentSettingsModal({ open, agent, clients, leadCount, onClose, o
             <em>{f.enabled ? 'Runs each weekday morning' : 'Only when you click Find leads'}</em>
           </label>
         </div>
+
+        <div className="la-row">
+          <label><span>Booking link (optional)</span>
+            <input className="cw-input" value={f.booking_link} onChange={e => set('booking_link', e.target.value)} placeholder="Your calendar link, offered once in first emails" />
+          </label>
+          <label className="la-toggle">
+            <span>Follow-ups</span>
+            <button type="button" role="switch" aria-checked={f.auto_followups} className={`la-switch ${f.auto_followups ? 'la-switch--on' : ''}`} onClick={() => set('auto_followups', !f.auto_followups)}>
+              <i />
+            </button>
+            <em>{f.auto_followups ? 'Send on their own after you approve the first email' : 'Each follow-up waits for your approval'}</em>
+          </label>
+        </div>
+
+        <label><span>Work to show</span>
+          <textarea className="cw-input la-area" rows={3} value={f.proof} onChange={e => set('proof', e.target.value)}
+            placeholder={'cecg.ca | contractor, renovation, plumbing\nlpaschool.ca | daycare, montessori'} />
+          <em>One per line: a live site you built | the kinds of businesses it should be shown to. Only these links are ever used.</em>
+        </label>
 
         <p className="la-note">
           {gth
