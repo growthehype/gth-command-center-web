@@ -21,6 +21,7 @@ export interface SiteShots {
   /** True only when every method tried and the page would not load */
   confirmedDown: boolean
   source: 'browser' | 'pagespeed' | 'none'
+  captureError?: string | null
 }
 
 export interface VisualFinding {
@@ -59,9 +60,25 @@ async function psi(url: string, strategy: 'mobile' | 'desktop', timeoutMs: numbe
   try {
     let r = await go(true)
     if (!r.ok && key && (r.status === 403 || r.status === 400)) r = await go(false)
+    if (!r.ok) lastPsiError = `PageSpeed ${r.status}: ${String(r.data?.error?.message || '').slice(0, 140)}`
     return r.ok ? r.data?.lighthouseResult || null : null
-  } catch {
+  } catch (err: any) {
+    lastPsiError = `PageSpeed: ${String(err?.message || err).slice(0, 140)}`
     return null
+  }
+}
+let lastPsiError: string | null = null
+
+/** Diagnose both capture methods for one URL (used by the agent's self-test). */
+export async function diagnoseCapture(url: string) {
+  lastPsiError = null
+  const t0 = Date.now()
+  const browser = await captureWithBrowser(url).catch((err: any) => ({ ok: false, loaded: false, error: String(err?.message || err) } as any))
+  const t1 = Date.now()
+  const mob = await psi(url, 'mobile', 40_000)
+  return {
+    browser: { ok: browser.ok, loaded: browser.loaded, error: browser.error, ms: t1 - t0, footer: browser.footerText?.slice(0, 120) || null, shots: !!browser.desktopTop },
+    pagespeed: { ok: !!mob, error: lastPsiError, ms: Date.now() - t1 },
   }
 }
 
@@ -128,11 +145,12 @@ export async function captureSite(url: string, timeoutMs = 40_000): Promise<Site
     perfDesktop: pct(desk?.categories?.performance?.score),
     seo: pct(mob?.categories?.seo?.score),
     accessibility: pct(mob?.categories?.accessibility?.score),
-    browser: browser?.ok ? browser : null,
+    browser: browser || null,
     loaded: psiLoaded,
     // Only call a site down when a real browser opened it and failed twice AND Google couldn't render it either
     confirmedDown: !!browser?.ok && !browser.loaded && !psiLoaded,
     source: psiLoaded ? 'pagespeed' : 'none',
+    captureError: [browser?.error, lastPsiError].filter(Boolean).join(' | ') || null,
   }
 }
 

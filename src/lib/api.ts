@@ -319,7 +319,11 @@ export const events = {
 // ============================================
 export const outreach = {
   async getAll() {
-    const { data, error } = await supabase.from('outreach_leads').select('*').eq(...scope()).order('created_at', { ascending: false })
+    // Agent-found businesses only become leads once they score 60 or more.
+    // Everything else stays in the agent's screening pool (for dedupe), out of sight.
+    const { data, error } = await supabase.from('outreach_leads').select('*').eq(...scope())
+      .or('agent_config_id.is.null,qualification_score.gte.60')
+      .order('created_at', { ascending: false })
     if (error) throw error
     return data || []
   },

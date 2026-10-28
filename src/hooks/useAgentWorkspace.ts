@@ -55,6 +55,7 @@ export function useAgentWorkspace(agent: LeadAgent | null) {
   const [sent, setSent] = useState<WorkStep[]>([])
   const [runs, setRuns] = useState<AgentRunRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [pool, setPool] = useState<{ screened: number; unchecked: number; below: number }>({ screened: 0, unchecked: 0, below: 0 })
   const demo = useAppStore(s => s.demoMode)
 
   const load = useCallback(async () => {
@@ -73,6 +74,16 @@ export function useAgentWorkspace(agent: LeadAgent | null) {
     if (agent.config?.delivery !== 'export') {
       try { await callAgent({ mode: 'sync_drafts', agentType: agent.agent_type, configId: agent.id }) } catch { /* offline is fine */ }
     }
+    // Screening pool: every business the agent has looked at, qualified or not
+    const { data: poolRows } = await supabase.from('outreach_leads')
+      .select('id, website, qualification_score, visual:enrichment_data->qual->visual, version:enrichment_data->qual->version')
+      .eq('agent_config_id', agent.id).limit(5000)
+    const rows = (poolRows || []) as any[]
+    setPool({
+      screened: rows.length,
+      unchecked: rows.filter(r => r.version !== 2 || !r.visual || !(r.visual.checked || !r.website || (Number(r.visual.attempts) || 0) >= 3)).length,
+      below: rows.filter(r => r.qualification_score != null && r.qualification_score < 60).length,
+    })
     const select = '*, sequence:outreach_sequences!inner(id, status, agent_config_id, lead:outreach_leads(*))'
     const nowIso = new Date().toISOString()
     const [pending, sched, done, runRows, drafted] = await Promise.all([
@@ -183,7 +194,7 @@ export function useAgentWorkspace(agent: LeadAgent | null) {
     showToast(`Copied the email for ${lead?.name || 'this lead'}`, 'success')
   }, [])
 
-  return { ready, scheduled, inGmail, sent, runs, loading, reload: load, send, save, skip, copy, toGmail }
+  return { ready, scheduled, inGmail, sent, runs, pool, loading, reload: load, send, save, skip, copy, toGmail }
 }
 
 /** All steps of one lead's sequence (for the lead file) */

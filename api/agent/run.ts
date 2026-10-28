@@ -8,6 +8,7 @@ import { sendScheduledEmails, draftStepToGmail, syncGmailDrafts } from './_lib/s
 import { rescoreLeads } from './_lib/qualifier'
 import { isGthAgent } from './_lib/gth-profile'
 import { draftForLead, generateOutreach } from './_lib/email-generator'
+import { diagnoseCapture } from './_lib/visual-audit'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // ------ Step tracker so the response tells us WHERE it blew up ----
@@ -81,6 +82,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!stepId) return res.status(400).json({ error: 'Missing stepId', step })
       const r = await draftStepToGmail({ userId, stepId, cfgInner: cfg?.config || {} })
       return res.status(200).json({ status: 'completed', results: { gmail_draft: r } })
+    }
+
+    // Self-test: can we actually open and screenshot a site from here?
+    if (mode === 'diag') {
+      step = 'diag'
+      const { url } = (req.body ?? {}) as any
+      const r = await diagnoseCapture(String(url || 'https://growthehype.ca'))
+      return res.status(200).json({ status: 'completed', results: { diag: r } })
     }
 
     // Write emails for every hot/warm lead that doesn't have them yet (no scraping)

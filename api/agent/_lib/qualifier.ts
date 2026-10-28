@@ -447,6 +447,7 @@ export async function qualifyGthLead(lead: any, agentConfig: any, agentRunId: st
     // What we saw on screen beats what the HTML suggests. Never claim a
     // footer year we didn't read, and trust a visible booking button.
     const b = psi?.browser?.loaded ? psi.browser : null
+    if (psi && !psi.loaded) console.error(`capture failed for ${lead.website}: ${psi.captureError}`)
     let audit: any = intel?.audit ? { ...intel.audit } : null
     if (psi?.loaded && (!audit || !audit.reachable)) {
       // Our plain fetch was blocked but a real browser (or Google) saw the page
@@ -585,7 +586,7 @@ export async function qualifyGthLead(lead: any, agentConfig: any, agentRunId: st
         seo: psi?.seo ?? null,
         accessibility: psi?.accessibility ?? null,
       },
-      visual: visual ? { attempts: visual.checked ? 0 : (Number(prev.qual?.visual?.attempts) || 0) + 1, source: psi?.source || 'none', error: psi?.browser?.error || null, checked: visual.checked, footer_text: visual.footer_text, footer_year: visual.footer_year, booking_visible: visual.booking_visible, form_visible: visual.form_visible, main_cta: visual.main_cta, findings: visual.findings, urls: visual.urls, checked_at: visual.checked_at } : { checked: false, attempts: (Number(prev.qual?.visual?.attempts) || 0) + 1, source: psi?.source || 'none', error: psi?.browser?.error || null },
+      visual: visual ? { attempts: visual.checked ? 0 : (Number(prev.qual?.visual?.attempts) || 0) + 1, source: psi?.source || 'none', error: psi?.captureError || psi?.browser?.error || null, checked: visual.checked, footer_text: visual.footer_text, footer_year: visual.footer_year, booking_visible: visual.booking_visible, form_visible: visual.form_visible, main_cta: visual.main_cta, findings: visual.findings, urls: visual.urls, checked_at: visual.checked_at } : { checked: false, attempts: (Number(prev.qual?.visual?.attempts) || 0) + 1, source: psi?.source || 'none', error: psi?.captureError || psi?.browser?.error || null },
       observation,
       observation_key: observationKey || null,
       pitch_angle: pts.pitchAngle,

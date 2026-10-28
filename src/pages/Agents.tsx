@@ -203,7 +203,10 @@ function LeadsBoard({ leads, drafted, sentIds, onOpen, onRescore, rescoring }: {
       </div>
 
       {rows.length === 0 ? (
-        <div className="ah-empty"><p>No leads here yet.</p></div>
+        <div className="ah-empty">
+          <p className="ah-empty-title">No qualified leads yet</p>
+          <p>Only businesses that score 60 or more show up here. Everything else stays out of your CRM.</p>
+        </div>
       ) : (
         <ul className="ah-leads">
           {rows.map(l => {
@@ -285,14 +288,14 @@ export default function Agents() {
     const replied = mine.filter(l => ['responded', 'interested'].includes(String(l.stage).toLowerCase())).length
     const meetings = mine.filter(l => /meeting/i.test(String(l.stage))).length
     return [
-      { key: 'found', label: 'Found', value: mine.length, tab: 'leads' as Tab },
-      { key: 'worth', label: 'Worth contacting', value: worth, tab: 'leads' as Tab },
+      { key: 'found', label: 'Businesses checked', value: ws.pool.screened, tab: 'how' as Tab },
+      { key: 'worth', label: 'Qualified 60+', value: worth, tab: 'leads' as Tab },
       { key: 'ready', label: 'Ready to send', value: ws.ready.length, tab: 'ready' as Tab, hot: ws.ready.length > 0 },
       { key: 'sent', label: 'Contacted', value: sentLeadIds.size, tab: 'sent' as Tab },
       { key: 'replied', label: 'Replied', value: replied, tab: 'sent' as Tab },
       { key: 'meet', label: 'Meetings', value: meetings, tab: 'sent' as Tab },
     ]
-  }, [mine, ws.ready.length, sentLeadIds])
+  }, [mine, ws.ready.length, sentLeadIds, ws.pool.screened])
 
   const run = async () => {
     if (!agent) return
@@ -310,7 +313,7 @@ export default function Agents() {
         const r = await callAgent({ mode: 'rescore', agentType: agent.agent_type, configId: agent.id })
         const res = r?.results?.rescore || {}
         total += res.rescored || 0
-        await refreshLeads()
+        await Promise.all([refreshLeads(), ws.reload()])
         if (!res.remaining || !res.rescored) break
       }
       await refreshLeads()
@@ -327,11 +330,7 @@ export default function Agents() {
   }
 
   // Leads not yet looked at on screen get checked automatically, once per visit
-  const unchecked = useMemo(() => mine.filter(l => {
-    const q = l.enrichment_data?.qual
-    if (q?.version !== 2 || !q?.visual) return true
-    return !(q.visual.checked || !l.website || (Number(q.visual.attempts) || 0) >= 3)
-  }).length, [mine])
+  const unchecked = ws.pool.unchecked
   const [autoStarted, setAutoStarted] = useState<string | null>(null)
   useEffect(() => {
     if (!agent || agent.config?.profile !== 'gth' || rescoring || unchecked === 0 || autoStarted === agent.id) return
