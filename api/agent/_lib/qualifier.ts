@@ -362,7 +362,7 @@ export async function qualifyLeads(params: QualifyParams): Promise<QualifyResult
 //  GTH v2: measured checks + points + one Claude review per lead
 // ════════════════════════════════════════════════════════════════
 
-const PER_LEAD_WORST_MS = 60_000
+const PER_LEAD_WORST_MS = 85_000
 
 let bucketReady: Promise<void> | null = null
 function ensureScreenshotBucket(): Promise<void> {
@@ -405,7 +405,11 @@ async function deadlinePool<T, R>(items: T[], size: number, deadline: number, fn
     while (i < items.length) {
       if (Date.now() + PER_LEAD_WORST_MS > deadline) return
       const item = items[i++]
-      results.push(await fn(item))
+      // Hard cap per item so a slow site can't push the request past Vercel's limit
+      results.push(await Promise.race([
+        fn(item),
+        new Promise<R>(res => setTimeout(() => res({ ok: false, score: 0, tier: null, error: 'took too long, will retry' } as any), 80_000)),
+      ]))
     }
   }
   await Promise.all(Array.from({ length: Math.min(size, items.length) }, worker))
@@ -740,12 +744,12 @@ async function pendingLeads(userId: string, cfg: any, n: number): Promise<any[]>
 }
 
 export async function huntLeads(p: { userId: string; agentConfig: any; deadlineMs?: number; target?: number }) {
-  const deadline = Date.now() + (p.deadlineMs ?? 255_000)
+  const deadline = Date.now() + (p.deadlineMs ?? 200_000)
   const target = p.target ?? 3
   let screened = 0, qualified = 0, searches = 0, newFound = 0, dryRuns = 0
   const errors: string[] = []
-  while (Date.now() + PER_LEAD_WORST_MS < deadline && qualified < target) {
-    const todo = await pendingLeads(p.userId, p.agentConfig, 6)
+  while (Date.now() + 85_000 < deadline && qualified < target) {
+    const todo = await pendingLeads(p.userId, p.agentConfig, 8)
     if (!todo.length) {
       if (dryRuns >= 3) break
       const r: any = await scrapeRotation({ userId: p.userId, agentRunId: null as any, agentConfig: p.agentConfig, deadlineMs: 45_000 })
@@ -755,7 +759,8 @@ export async function huntLeads(p: { userId: string; agentConfig: any; deadlineM
       if (r?.note && /quota/i.test(r.note)) { errors.push(r.note); break }
       continue
     }
-    const { results } = await deadlinePool(todo, 3, deadline, l => qualifyGthLead(l, p.agentConfig, null))
+    // Each lead gets a hard 80s cap so one slow site can never push the request past Vercel's limit
+    const { results } = await deadlinePool(todo, 4, deadline, l => qualifyGthLead(l, p.agentConfig, null))
     if (!results.length) break
     screened += results.length
     qualified += results.filter(r => r.ok && r.score >= 60).length

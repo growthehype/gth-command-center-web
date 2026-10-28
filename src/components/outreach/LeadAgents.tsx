@@ -82,12 +82,18 @@ export function useLeadAgents() {
       }
       // GTH: hunt until a few businesses qualify at 60+ (each round is up to ~4 minutes)
       if (agent.config?.profile === 'gth') {
-        let screened = 0, qualified = 0
+        let screened = 0, qualified = 0, failures = 0
         setProgress(prev => { const n = { ...prev }; delete n[agent.id]; return n })
         for (let round = 0; round < 4 && qualified < 3; round++) {
-          const r = await fetch('/api/agent/run', { method: 'POST', headers, body: JSON.stringify({ mode: 'hunt', agentType: agent.agent_type, configId: agent.id }) })
-          const b = await r.json().catch(() => ({}))
-          if (!r.ok) throw new Error(b?.error || `Search failed (${r.status})`)
+          const r = await fetch('/api/agent/run', { method: 'POST', headers, body: JSON.stringify({ mode: 'hunt', agentType: agent.agent_type, configId: agent.id }) }).catch(() => null)
+          const b = r ? await r.json().catch(() => ({})) : {}
+          if (!r || !r.ok) {
+            // Progress is saved as it goes, so a dropped round just means we keep going
+            failures++
+            onProgressRef.current?.()
+            if (failures >= 2) throw new Error(b?.error || `Search stopped (${r?.status || 'network'}). Progress so far is saved; press Find leads again to continue.`)
+            continue
+          }
           const h = b?.results?.hunt || {}
           screened += h.screened || 0
           qualified += h.qualified || 0
@@ -96,8 +102,8 @@ export function useLeadAgents() {
           if (h.errors?.some((e: string) => /quota/i.test(e))) { showToast(h.errors[0], 'warn'); break }
           if (!h.screened && !h.newFound) break
         }
-        if (qualified > 0) {
-          showToast(`Found ${qualified} lead${qualified === 1 ? '' : 's'} at 60+ out of ${screened} checked. Writing their emails now…`, 'success')
+        if (qualified > 0 || failures > 0) {
+          showToast(qualified ? `Found ${qualified} lead${qualified === 1 ? '' : 's'} at 60+ out of ${screened} checked. Writing their emails now…` : 'Writing emails for any leads that reached 60…', 'success')
           for (let i = 0; i < 3; i++) {
             const d = await fetch('/api/agent/run', { method: 'POST', headers, body: JSON.stringify({ mode: 'draft_batch', agentType: agent.agent_type, configId: agent.id }) })
             const db = await d.json().catch(() => ({}))
