@@ -1,0 +1,6 @@
+401 https://unsplash.com/napi/search/photos?query=edmonton&per_page=30
+<!doctype html><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta name="robots" content="noindex,nofollow"/><title>Checking your browser before accessing unsplash.com</title><script id="anubis_version" type="application/json">"v1.2
+401 https://api.openverse.org/v1/images/?q=edmonton%20skyline&license_type=commercial&page_size=40
+{"detail":"page_size may not exceed 20 for anonymous requests"}
+200 https://commons.wikimedia.org/w/api.php?action=query&list=search&srsearch=Edmonton%20skyline%20filetype:bitmap&srnamespace=6&format=json&srlimit=50
+{"batchcomplete":"","continue":{"sroffset":50,"continue":"-||"},"query":{"searchinfo":{"totalhits":257},"search":[{"ns":6,"title":"File:Walterdale Bridge into downtown Edmonton, Alberta, 2026-09-26.jpg","pageid":200632993,"size":984,"wordcount":151,"snippet":"Creative Commons Attribution-Share Alike
