@@ -9,6 +9,7 @@ import { relativeDate } from '@/lib/utils'
 import { callAgent, loadLeadSequence, type WorkStep } from '@/hooks/useAgentWorkspace'
 import { leadQual, leadTier, leadObservation, TIER_LABEL, TIER_HINT, ANGLE_LABEL, type BreakdownRow } from './leadScore'
 import type { LeadAgent } from '@/components/outreach/LeadAgents'
+import ConceptPanel from './ConceptPanel'
 
 const GROUPS: { key: 'need' | 'fit' | 'reach'; label: string; max: number; blurb: string }[] = [
   { key: 'need', label: 'Need', max: 50, blurb: 'Is there a real, visible problem we can fix?' },
@@ -314,6 +315,14 @@ export default function LeadDossier({ lead, agent, onClose, onChanged }: Props) 
           </div>
 
           {/* Emails */}
+          {!exportOnly && (
+            <ConceptPanel
+              lead={lead}
+              canRewriteEmails={!!agent && !anySent && steps.length > 0 && !steps.some(s => String(s.body || '').includes('growthehype-previews'))}
+              onRewriteEmails={draft}
+            />
+          )}
+
           <section className="ld-emails">
             <div className="ld-emails-head">
               <p className="ld-k" style={{ margin: 0 }}>Emails</p>

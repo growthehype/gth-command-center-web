@@ -205,3 +205,13 @@ export async function loadLeadSequence(leadId: string): Promise<WorkStep[]> {
     .order('step_number', { ascending: true })
   return (data || []) as WorkStep[]
 }
+
+/** Homepage concept builder: each call does the next stage for one lead */
+export async function callPreview(body: { leadId: string; rebuild?: boolean; feedback?: string }) {
+  const res = await fetch('/api/agent/preview', { method: 'POST', headers: await authHeaders(), body: JSON.stringify(body) })
+  const raw = await res.text()
+  let data: any = {}
+  try { data = JSON.parse(raw) } catch { /* not JSON */ }
+  if (!res.ok) throw new Error(data?.error || (res.status === 504 ? 'That step ran long. It carries on with the next one.' : `Request failed (${res.status})`))
+  return data?.preview
+}

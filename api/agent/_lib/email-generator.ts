@@ -1,5 +1,6 @@
 // AI cold email generation engine
 import { attachmentPlan } from './visual-audit'
+import { PREVIEW_MIN_SCORE } from './preview'
 import { getAdminClient } from './supabase-admin'
 import {
   askClaude,
@@ -159,6 +160,20 @@ export function verifiedFindings(lead: any): string[] {
   return Array.from(new Set(out))
 }
 
+/** A 70+ lead whose homepage concept is still being built (and hasn't given up). */
+function conceptPending(lead: any): boolean {
+  if ((lead.qualification_score || 0) < PREVIEW_MIN_SCORE || !lead.website) return false
+  const p = lead.enrichment_data?.preview
+  if (!p) return true
+  if (p.status === 'ready' || p.status === 'failed') return false
+  return (p.attempts || 0) < 3 && (p.errors || 0) < 3
+}
+
+function conceptUrl(lead: any): string | null {
+  const p = lead.enrichment_data?.preview
+  return p?.status === 'ready' && p.url ? p.url : null
+}
+
 function gthLeadBrief(lead: any, proof: string | null): string {
   const e = lead.enrichment_data || {}
   const a = e.website_audit || null
@@ -184,6 +199,8 @@ function gthLeadBrief(lead: any, proof: string | null): string {
   }
   parts.push(`Lead with this observation: ${qual?.observation || e.observation || 'none, keep it general but honest'}`)
   parts.push(`Pitch angle: ${qual?.pitch_angle || e.pitch_angle || 'website'}`)
+  const concept = conceptUrl(lead)
+  if (concept) parts.push(`Homepage concept: Omar had a new homepage built for them, using their own logo, photos and details: ${concept} . In email 1, mention it once, warmly and plainly, as a quick look at what their homepage could be (for example "I put together a quick look at what your homepage could be, using your own photos and details: {link}"). This is the main thing to share; at most one other work link. Never call it a mockup or a template. In follow-up 1 you may refer back to it in a few words.`)
   const shots = attachmentPlan(lead)
   if (shots.length) parts.push(`Attached to email 1: ${shots.length === 1 ? 'a screenshot' : 'screenshots'} of their ${shots.map(x => x.label).join(' and ')}. In email 1 mention once, briefly and naturally, that you attached ${shots.length === 1 ? 'a screenshot' : 'a couple of screenshots'} so they can see what you mean. Do not mention attachments in the follow-ups.`)
   return parts.join('\n')
@@ -191,7 +208,7 @@ function gthLeadBrief(lead: any, proof: string | null): string {
 
 async function writeGthSequence(lead: any, cfgInner: any): Promise<{ draft: SequenceDraft; issues: string[]; repaired: boolean }> {
   const proof = pickProofLink(cfgInner, lead.industry || '', lead.name || '')
-  const allowedLinks = [...proofUrls(cfgInner, lead.industry || '', lead.name || ''), (cfgInner?.booking_link || '').trim()].filter(Boolean) as string[]
+  const allowedLinks = [...proofUrls(cfgInner, lead.industry || '', lead.name || ''), (cfgInner?.booking_link || '').trim(), conceptUrl(lead) || ''].filter(Boolean) as string[]
   const brief = gthLeadBrief(lead, proof)
   const systemPrompt = buildGthWriterPrompt(cfgInner)
   const validateSequence = (d: SequenceDraft) => validateVoice(d, allowedLinks)
@@ -435,6 +452,8 @@ export async function generateOutreach(params: GenerateParams): Promise<Generate
     // GTH: only write to leads we've actually looked at with the current checks
     .filter((l: any) => !gth || l.enrichment_data?.qual?.version === 2)
     .filter((l: any) => l.enrichment_data?.user_feedback !== 'bad')
+    // Hot leads wait for their homepage concept, so the first email can include it
+    .filter((l: any) => !gth || !conceptPending(l))
     .filter((l: any) => !['contacted', 'interested', 'not_interested', 'objection', 'skipped', 'closed', 'lost'].includes(String(l.stage || '').toLowerCase()))
     .slice(0, batchSize)
 
