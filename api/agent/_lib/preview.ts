@@ -570,7 +570,12 @@ function extractHtml(text: string): string | null {
   if (start < 0) start = lower.indexOf('<html')
   const end = lower.lastIndexOf('</html>')
   if (start < 0 || end < start) return null
-  return text.slice(start, end + 7).trim()
+  return cleanFences(text.slice(start, end + 7).trim())
+}
+
+/** Continuations sometimes restart with a code fence mid-document; strip any fences inside the page. */
+function cleanFences(html: string): string {
+  return html.replace(/```(?:html|HTML)?[ \t]*\r?\n?/g, '')
 }
 
 export async function generatePage(lead: any, slug: string, kit: SiteKit, findings: string[], feedback: string[], deadline: number, partial = ''): Promise<{ html: string | null; partial: string }> {
@@ -605,7 +610,8 @@ export async function generatePage(lead: any, slug: string, kit: SiteKit, findin
       messages: [{ role: 'user', content: [...content, { type: 'text', text: `You already started. Your output so far is below. Continue from exactly where it stops: output only the remaining characters, with no repetition and no commentary.\n\n${head}` }] }],
     }, deadline)
   }
-  const full = head ? head + out.text : out.text
+  const more = head ? out.text.replace(/^\s*```(?:html)?[ \t]*\r?\n?/i, '') : out.text
+  const full = head ? head + more : more
   const html = extractHtml(full)
   if (html) return { html, partial: '' }
   if ((out.stop === 'deadline' || out.stop === 'max_tokens') && full.length > 400) return { html: null, partial: full }
@@ -846,7 +852,8 @@ export async function advancePreview(leadId: string, opts: { deadline: number; r
     const kit = JSON.parse(kitText) as SiteKit
 
     // Stage 2 → page draft
-    const draft = state.status === 'kit' ? null : await getText(`${slug}/draft.html`)
+    const draftRaw = state.status === 'kit' ? null : await getText(`${slug}/draft.html`)
+    const draft = draftRaw ? cleanFences(draftRaw) : null
     if (!draft) {
       if ((state.attempts || 0) >= 3) return await savePreviewState(leadId, { status: 'failed', error: state.error || 'Three attempts did not reach the bar' })
       const partial = (state as any).partial ? (await getText(`${slug}/partial.txt`)) || '' : ''
