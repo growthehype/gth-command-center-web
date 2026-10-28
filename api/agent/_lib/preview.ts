@@ -742,7 +742,8 @@ const REVIEW_TOOL = {
   input_schema: {
     type: 'object' as const,
     properties: {
-      score: { type: 'number', description: '1 to 10 against the shipped Grow The Hype site. 8 or more means a business owner would be sold on sight.' },
+      score: { type: 'number', description: '1 to 10 for the page as it is now, against the shipped Grow The Hype site.' },
+      score_after: { type: 'number', description: '1 to 10 for the page once your edits are applied. 8 or more means the business owner would be sold on sight and Omar can send it.' },
       verdict: { type: 'string', enum: ['ship', 'fix', 'rebuild'], description: 'ship: publish as is or with the edits; fix: publish after the edits; rebuild: the concept is not good enough and must be redone' },
       issues: { type: 'array', items: { type: 'string' }, description: 'Every problem, specific and visual' },
       edits: {
@@ -751,7 +752,7 @@ const REVIEW_TOOL = {
         items: { type: 'object', properties: { find: { type: 'string' }, replace: { type: 'string' } }, required: ['find', 'replace'] },
       },
     },
-    required: ['score', 'verdict', 'issues', 'edits'],
+    required: ['score', 'score_after', 'verdict', 'issues', 'edits'],
   },
 }
 
@@ -763,7 +764,15 @@ export async function reviewPage(lead: any, slug: string, html: string, kit: Sit
 
 AUTOMATED CHECKS: ${first.problems.length ? first.problems.join('; ') : 'all passed'}
 
-FACTS WE HAVE (anything stated on the page that is not here is invented and must be removed): phone ${kit.phones.join(', ') || 'none'}; email ${kit.emails.join(', ') || 'none'}; address ${kit.address || 'none'}; hours ${kit.hours || 'none'}; Google ${lead.rating || 'n/a'}; testimonials ${kit.testimonials.length ? kit.testimonials.join(' || ').slice(0, 1500) : 'none'}; their own text: ${kit.text.slice(0, 3500)}`,
+EVERYTHING WE COLLECTED FROM THEIR WEBSITE AND GOOGLE (a fact on the page is real if it appears anywhere here; anything not supported by this is invented and must be removed):
+Google: ${lead.rating ? `${lead.rating} stars` : 'n/a'}${(lead.enrichment_data?.review_count || lead.enrichment_data?.user_rating_count) ? ` from ${lead.enrichment_data?.review_count || lead.enrichment_data?.user_rating_count} reviews` : ''}
+Phones: ${kit.phones.join(', ') || 'none in links'}; emails: ${kit.emails.join(', ') || 'none in links'}; address: ${kit.address || 'see text'}; hours: ${kit.hours || 'see text'}
+Booking links: ${kit.bookingLinks.map(b => b.href).join(', ') || 'none'}; social: ${kit.socials.join(', ') || 'none'}
+Testimonials: ${kit.testimonials.length ? kit.testimonials.join(' || ') : 'none'}
+Footer: ${(kit as any).footerText || ''}
+Structured data: ${kit.jsonld.slice(0, 2000)}
+Homepage text: ${kit.text}
+${kit.extraPages.map(p => `Text from ${p.url}: ${p.text}`).join('\n')}`,
   }]
   for (const s of first.shots) content.push({ type: 'text', text: s.label }, { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: s.data } })
   content.push({ type: 'text', text: `HTML SOURCE:\n${html}` })
@@ -775,7 +784,7 @@ FACTS WE HAVE (anything stated on the page that is not here is invented and must
     body: JSON.stringify({
       model: MODEL_DESIGN,
       max_tokens: 8000,
-      system: `You are the creative director at Grow The Hype reviewing a homepage concept before Omar sends it to a prospect. Omar's bar: it must look like a quarter-million-dollar custom build, with nothing that reads as a template or as AI. Be exacting about: alignment (shared edges, columns, baselines; Omar hates uneven lines), type scale and rhythm, spacing, image cropping, logo treatment (never a white box on a dark background, never stretched, always legible), contrast, the phone layout, anything broken or overlapping, banned patterns (eyebrow labels above headings, section numbers, identical icon cards, gradient text, emoji, italic accent words in headings), copy (no invented facts, no clichés, no exclamation marks, no dashes, Canadian spelling), and that every link works. Fix what you can with exact search-and-replace edits on the source. Use verdict "rebuild" only if the concept as a whole is weak (score below 7).`,
+      system: `You are the creative director at Grow The Hype reviewing a homepage concept before Omar sends it to a prospect. Omar's bar: it must look like a quarter-million-dollar custom build, with nothing that reads as a template or as AI. Be exacting about: alignment (shared edges, columns, baselines; Omar hates uneven lines), type scale and rhythm, spacing, image cropping, logo treatment (never a white box on a dark background, never stretched, always legible), contrast, the phone layout, anything broken or overlapping, banned patterns (eyebrow labels above headings, section numbers, identical icon cards, gradient text, emoji, italic accent words in headings), copy (no invented facts, no clichés, no exclamation marks, no dashes, Canadian spelling), and that every link works. Fix what you can with exact search-and-replace edits on the source. Only remove a fact if it is not supported anywhere in what we collected. Use verdict "rebuild" if the concept as a whole is weak; Omar only sends pages that score 8 or more after your edits, so be honest.`,
       tools: [REVIEW_TOOL],
       tool_choice: { type: 'auto' },
       messages: [{ role: 'user', content: [...content, { type: 'text', text: 'Answer by calling the review_concept tool. Do not reply with plain text.' }] }],
@@ -802,7 +811,7 @@ FACTS WE HAVE (anything stated on the page that is not here is invented and must
   // Check the fixed page again: nothing broken may ship
   const after = out === html ? first : await renderChecks(out, slug)
   const blocking = after.problems.filter(p => /JavaScript errors|Broken images|scrolls sideways|Files that failed/.test(p))
-  return { html: out, score: Number(tool.score) || 0, verdict: tool.verdict || 'fix', issues: [...after.problems, ...(tool.issues || [])].slice(0, 30), blocking } as any
+  return { html: out, score: Number(tool.score_after ?? tool.score) || 0, verdict: tool.verdict || 'fix', issues: [...after.problems, ...(tool.issues || [])].slice(0, 30), blocking } as any
 }
 
 // ─── Orchestration: advance one stage ───────────────────────────
@@ -902,7 +911,7 @@ export async function advancePreview(leadId: string, opts: { deadline: number; r
       const errors = ((state as any).errors || 0) + 1
       return await savePreviewState(leadId, { status: errors >= 3 ? 'failed' : 'generated', errors, review, error: 'The motion script had errors; rewriting it', step: 'done' } as any)
     }
-    if (r.score < 7 || r.verdict === 'rebuild' || (r.blocking || []).length) {
+    if (r.score < 8 || r.verdict === 'rebuild' || (r.blocking || []).length) {
       if ((state.attempts || 0) < 3) {
         await sb.storage.from(BUCKET).remove([`${slug}/draft.html`])
         return await savePreviewState(leadId, { status: 'kit', feedback: r.issues.slice(0, 15), review, error: null, step: 'done' } as any)
