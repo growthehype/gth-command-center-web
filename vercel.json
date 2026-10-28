@@ -19,7 +19,7 @@
       "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
     },
     "api/agent/preview.ts": {
-      "maxDuration": 800,
+      "maxDuration": 300,
       "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
     }
   }

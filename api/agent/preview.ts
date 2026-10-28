@@ -7,7 +7,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getAdminClient } from './_lib/supabase-admin'
 import { advancePreview, leadsNeedingPreview } from './_lib/preview'
 
-const BUDGET_MS = Number(process.env.PREVIEW_BUDGET_MS) || 740_000
+const BUDGET_MS = Number(process.env.PREVIEW_BUDGET_MS) || 285_000
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const started = Date.now()
@@ -27,7 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const leads = await leadsNeedingPreview(a.id, 3)
       for (const l of leads) {
         // A page draft takes several minutes; only start a stage with room left
-        if (Date.now() > started + BUDGET_MS * 0.35 && done.length) break
+        if (done.length) break // each stage can use most of one call
         const s = await advancePreview(l.id, { deadline })
         done.push({ lead: l.name, status: s.status, error: s.error || null })
         if (s.status !== 'ready' && s.status !== 'failed') break // one lead at a time

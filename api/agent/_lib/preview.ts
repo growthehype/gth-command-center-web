@@ -21,7 +21,7 @@ const MODEL_DESIGN = 'claude-opus-5-5'
 const MODEL_DESIGN_FALLBACK = 'claude-sonnet-5-5'
 export const PREVIEW_MIN_SCORE = 70
 
-export type PreviewStatus = 'kit' | 'generated' | 'ready' | 'failed'
+export type PreviewStatus = 'kit' | 'generated' | 'scripted' | 'ready' | 'failed'
 export interface PreviewState {
   status: PreviewStatus
   slug: string
@@ -368,7 +368,9 @@ async function streamClaude(body: any, deadline: number): Promise<{ text: string
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured')
   const run = async (model: string) => {
     const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), Math.max(10_000, deadline - Date.now()))
+    // Stop a little before the function's time limit and keep what was written
+    const timer = setTimeout(() => ctrl.abort(), Math.max(10_000, deadline - Date.now() - 15_000))
+    let text = '', stop: string | null = null
     try {
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -382,9 +384,14 @@ async function streamClaude(body: any, deadline: number): Promise<{ text: string
       }
       const reader = res.body.getReader()
       const dec = new TextDecoder()
-      let buf = '', text = '', stop: string | null = null
+      let buf = ''
       for (;;) {
-        const { done, value } = await reader.read()
+        let chunk: ReadableStreamReadResult<Uint8Array>
+        try { chunk = await reader.read() } catch (e: any) {
+          if (ctrl.signal.aborted) return { ok: true as const, text, stop: 'deadline' }
+          throw e
+        }
+        const { done, value } = chunk
         if (done) break
         buf += dec.decode(value, { stream: true })
         let i
@@ -400,6 +407,9 @@ async function streamClaude(body: any, deadline: number): Promise<{ text: string
         }
       }
       return { ok: true as const, text, stop }
+    } catch (e: any) {
+      if (ctrl.signal.aborted) return { ok: true as const, text, stop: 'deadline' }
+      throw e
     } finally { clearTimeout(timer) }
   }
   let r = await run(MODEL_DESIGN)
@@ -440,11 +450,12 @@ VISUAL WORLD
 ONE SIGNATURE MOMENT
 Build one bespoke element that explains this specific business better than words, the way the shipped site turns corporate structure into an animated diagram. It must come from their real services or process. Examples: a clinic's first visit as a calm step path; an accountant's year as a deadline timeline; a restaurant's menu highlights as a photo-led list; a trade's service area or quote process as a clean diagram. Inline SVG and CSS only. Make it beautiful and make it work on a phone.
 
-MOTION
-- GSAP 3.12.5 and ScrollTrigger from https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js and https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js, and Lenis from https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js, loaded with defer.
-- One authored hero moment (for example the headline rising line by line from masks) plus restrained reveals. Custom easing (cubic-bezier(0.16, 1, 0.3, 1) or similar), never linear.
-- Progressive enhancement exactly like the reference: content is fully visible without JavaScript; motion classes are added by a tiny inline script and removed after a timeout if the libraries fail. Respect prefers-reduced-motion.
-- Animate transform and opacity (and clip-path) only.
+MOTION (planned by you, coded by a second engineer)
+- In <head>, include exactly: the GSAP 3.12.5 and ScrollTrigger scripts from https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js and https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js and Lenis from https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js, all with defer; plus this tiny inline script: <script>(function(d){d.classList.add("js");if(!matchMedia("(prefers-reduced-motion: reduce)").matches)d.classList.add("motion");setTimeout(function(){if(!window.__ready)d.classList.remove("motion")},4000)})(document.documentElement)</script>
+- Write NO other JavaScript. Just before </body>, leave exactly one empty tag: <script id="site-js"></script>. Another engineer writes the behaviour from your markup.
+- Mark behaviour with data attributes: data-menu-toggle and data-menu for the mobile menu, data-nav for the header (gains .is-solid after scrolling), data-hero-line on each hero headline line wrapper (an overflow-hidden span holding an inner span), data-reveal and data-reveal-group for scroll reveals, data-scrub for a statement revealed word by word, data-form for the form with data-status for its message, and data-signature on the signature element plus any data attributes it needs.
+- Style the start states only under html.motion (for example html.motion [data-reveal]{opacity:0;transform:translateY(24px)}) so everything is visible without JavaScript. Respect prefers-reduced-motion.
+- Right after <body>, add an HTML comment <!-- MOTION PLAN: ... --> describing, in a few precise lines, the hero moment, the reveals, and exactly how the signature element should animate or respond (states, timing, easing such as cubic-bezier(0.16, 1, 0.3, 1)). Animate transform, opacity and clip-path only.
 
 CONTENT AND TRUTH
 - Use ONLY facts from the brief: their services, areas, people, credentials, years, phone, email, address, hours, booking links and reviews. Rewrite their copy so it is clear, warm and specific, in Canadian spelling, in their voice.
@@ -462,12 +473,12 @@ TECHNICAL
 - Images: only the asset paths given in the brief, as relative paths (for example assets/photo-2.jpg), with width and height attributes, object-fit: cover, sensible object-position, loading="lazy" except the hero. Never link to their old website's files and never use stock or placeholder image services.
 - Logo: use assets/logo.png following the handling note in the brief. If there is no logo file, set their name in the display face as a wordmark.
 - Every link goes somewhere real: tel:, mailto:, their booking link, or an anchor on the page. No href="#".
-- The form does not send anything: on submit, prevent default, validate, and show an inline message: "This is a homepage concept. On your new site, this would go straight to your inbox."
+- The form does not send anything (the script engineer wires it to show: "This is a homepage concept. On your new site, this would go straight to your inbox.").
 - <meta name="robots" content="noindex, nofollow">, a proper <title> ("{Business} | Homepage concept by Grow The Hype"), meta description, theme-color.
 - Theme the browser surfaces: ::selection, caret-color, :focus-visible, scrollbar colours.
 
 OUTPUT
-Return only the complete HTML document inside one \`\`\`html code block. No commentary before or after. Aim for roughly 900 to 1400 lines; every line should earn its place.`
+Return only the complete HTML document inside one \`\`\`html code block. No commentary before or after. Keep it tight: roughly 600 to 900 lines of HTML and CSS, written compactly (one rule per line where sensible), every line earning its place. The page must be finished; never stop mid-document.`
 
 function kitBrief(lead: any, kit: SiteKit, findings: string[], feedback: string[]): string {
   const e = lead.enrichment_data || {}
@@ -532,7 +543,7 @@ function extractHtml(text: string): string | null {
   return html
 }
 
-export async function generatePage(lead: any, slug: string, kit: SiteKit, findings: string[], feedback: string[], deadline: number): Promise<string> {
+export async function generatePage(lead: any, slug: string, kit: SiteKit, findings: string[], feedback: string[], deadline: number, partial = ''): Promise<{ html: string | null; partial: string }> {
   const refs = await loadReferences()
   const content: any[] = [{ type: 'text', text: kitBrief(lead, kit, findings, feedback) }]
   const shots = await Promise.all([
@@ -544,18 +555,74 @@ export async function generatePage(lead: any, slug: string, kit: SiteKit, findin
   const labels = ['Their current homepage, desktop', 'Their current homepage, phone', 'Their logo (shown on grey)', ...kit.photos.map(p => p.path)]
   shots.forEach((b, i) => { if (b) content.push({ type: 'text', text: labels[i] }, b) })
   content.push({ type: 'text', text: `Build the homepage concept for ${lead.name} now. Return only the HTML in one code block.` })
+  const system = [
+    { type: 'text', text: DESIGN_SYSTEM },
+    ...(refs ? [{ type: 'text', text: `SOURCE OF A HOMEPAGE GROW THE HYPE SHIPPED (the bar, not a template):\n\n${refs}`, cache_control: { type: 'ephemeral' } }] : []),
+  ]
+  // A long page can outrun one serverless call: carry on from where it stopped
+  const head = partial.replace(/\s+$/, '')
+  const messages: any[] = [{ role: 'user', content }]
+  if (head) {
+    messages.push({ role: 'assistant', content: head })
+  }
+  let out: { text: string; stop: string | null }
+  try {
+    out = await streamClaude({ max_tokens: 24000, system, messages }, deadline)
+  } catch (err: any) {
+    if (!head || !/prefill|assistant/i.test(String(err?.message))) throw err
+    out = await streamClaude({
+      max_tokens: 24000, system,
+      messages: [{ role: 'user', content: [...content, { type: 'text', text: `You already started. Your output so far is below. Continue from exactly where it stops: output only the remaining characters, with no repetition and no commentary.\n\n${head}` }] }],
+    }, deadline)
+  }
+  const full = head ? head + out.text : out.text
+  const html = extractHtml(full.includes('```html') && !/```\s*$/.test(full.trim()) ? full + '\n```' : full)
+  if (html) return { html, partial: '' }
+  if (out.stop === 'deadline' && full.length > 400) return { html: null, partial: full }
+  throw new Error(out.stop === 'max_tokens' ? 'The page ran too long and was cut off' : 'The designer did not return a full HTML page')
+}
 
-  const { text, stop } = await streamClaude({
-    max_tokens: 32000,
+const SCRIPT_SYSTEM = `You are the front-end engineer at Grow The Hype who writes the JavaScript for a homepage the design director just built. The bar is the shipped site's main.js included below: GSAP + ScrollTrigger + Lenis, precise and restrained, progressive enhancement, prefers-reduced-motion respected, no layout thrash.
+
+Write the code that goes inside <script id="site-js"></script>, following the MOTION PLAN comment and the data attributes in the markup:
+- Run on DOMContentLoaded. If gsap, ScrollTrigger or Lenis is missing, or reduced motion is on, remove the "motion" class from <html> so everything shows, still wire the menu and form, and stop.
+- Set window.__ready = true once motion is initialised.
+- Lenis smooth scroll wired to ScrollTrigger (lenis.on('scroll', ScrollTrigger.update); gsap.ticker.add(t => lenis.raf(t * 1000)); gsap.ticker.lagSmoothing(0)); anchor links scroll with lenis.scrollTo and the header offset.
+- Header: add .is-solid after 40px of scroll; mobile menu toggles aria-expanded, the hidden attribute and body scroll lock, closes on link click and Escape.
+- Hero: headline lines rise from their masks with a short stagger, then supporting elements fade up.
+- [data-reveal] and [data-reveal-group] children reveal once on scroll; [data-scrub] splits into words and brightens with scroll.
+- The signature element behaves exactly as the plan says, and also works by tap on a phone.
+- [data-form]: prevent submit, check required fields and email format, show errors inline, then show in [data-status]: "This is a homepage concept. On your new site, this would go straight to your inbox."
+- Only reference elements that exist in the markup; guard every query. No console logs, no alerts, no external requests.
+
+Return only the JavaScript inside one \`\`\`js code block.`
+
+async function loadRefScript(): Promise<string> {
+  const sb = getAdminClient()
+  const { data } = await sb.from('preview_refs').select('content').eq('key', 'sumar_js').maybeSingle()
+  return data?.content || ''
+}
+
+export async function generateScript(html: string, deadline: number): Promise<string> {
+  const ref = await loadRefScript()
+  const { text } = await streamClaude({
+    max_tokens: 9000,
     system: [
-      { type: 'text', text: DESIGN_SYSTEM },
-      ...(refs ? [{ type: 'text', text: `SOURCE OF A HOMEPAGE GROW THE HYPE SHIPPED (the bar, not a template):\n\n${refs}`, cache_control: { type: 'ephemeral' } }] : []),
+      { type: 'text', text: SCRIPT_SYSTEM },
+      ...(ref ? [{ type: 'text', text: `SHIPPED main.js (the bar):\n${ref}`, cache_control: { type: 'ephemeral' } }] : []),
     ],
-    messages: [{ role: 'user', content }],
+    messages: [{ role: 'user', content: `Here is the page. Write the script.\n\n${html}` }],
   }, deadline)
-  const html = extractHtml(text)
-  if (!html) throw new Error(stop === 'max_tokens' ? 'The page ran too long and was cut off' : 'The designer did not return a full HTML page')
-  return html
+  const m = text.match(/```(?:js|javascript)\s*([\s\S]*?)```/i)
+  const js = (m ? m[1] : text).trim()
+  if (js.length < 200) throw new Error('The script engineer returned nothing usable')
+  return js.replace(/<\/script/gi, '<\\/script')
+}
+
+function insertScript(html: string, js: string): string {
+  const tag = /<script id="site-js">\s*<\/script>/i
+  if (tag.test(html)) return html.replace(tag, () => `<script id="site-js">\n${js}\n</script>`)
+  return html.replace(/<\/body>/i, () => `<script id="site-js">\n${js}\n</script>\n</body>`)
 }
 
 // ─── Stage 3: check, review, publish ────────────────────────────
@@ -660,7 +727,7 @@ FACTS WE HAVE (anything stated on the page that is not here is invented and must
     headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY || '', 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
       model: MODEL_DESIGN,
-      max_tokens: 12000,
+      max_tokens: 8000,
       system: `You are the creative director at Grow The Hype reviewing a homepage concept before Omar sends it to a prospect. Omar's bar: it must look like a quarter-million-dollar custom build, with nothing that reads as a template or as AI. Be exacting about: alignment (shared edges, columns, baselines; Omar hates uneven lines), type scale and rhythm, spacing, image cropping, logo treatment (never a white box on a dark background, never stretched, always legible), contrast, the phone layout, anything broken or overlapping, banned patterns (eyebrow labels above headings, section numbers, identical icon cards, gradient text, emoji, italic accent words in headings), copy (no invented facts, no clichés, no exclamation marks, no dashes, Canadian spelling), and that every link works. Fix what you can with exact search-and-replace edits on the source. Use verdict "rebuild" only if the concept as a whole is weak (score below 7).`,
       tools: [REVIEW_TOOL],
       tool_choice: { type: 'tool', name: 'review_concept' },
@@ -717,7 +784,7 @@ export async function advancePreview(leadId: string, opts: { deadline: number; r
   } else if (opts.rebuild) {
     // Keep the kit (their logo, photos, facts); redo the page with Omar's notes
     await sb.storage.from(BUCKET).remove([`${state.slug}/draft.html`])
-    state = await savePreviewState(leadId, { status: 'kit', attempts: 0, errors: 0, error: null, started_at: new Date().toISOString(), feedback: opts.feedback || [] } as any)
+    state = await savePreviewState(leadId, { status: 'kit', attempts: 0, errors: 0, partial: false, parts: 0, error: null, started_at: new Date().toISOString(), feedback: opts.feedback || [] } as any)
   }
   if ((state.status === 'ready' || state.status === 'failed') && !opts.rebuild) return state
   const slug = state.slug
@@ -734,9 +801,25 @@ export async function advancePreview(leadId: string, opts: { deadline: number; r
     const draft = state.status === 'kit' ? null : await getText(`${slug}/draft.html`)
     if (!draft) {
       if ((state.attempts || 0) >= 3) return await savePreviewState(leadId, { status: 'failed', error: state.error || 'Three attempts did not reach the bar' })
-      const html = await generatePage(lead, slug, kit, findingsFor(lead), state.feedback || [], opts.deadline)
-      await put(`${slug}/draft.html`, html, 'text/html; charset=utf-8')
-      return await savePreviewState(leadId, { status: 'generated', attempts: (state.attempts || 0) + 1, error: null })
+      const partial = (state as any).partial ? (await getText(`${slug}/partial.txt`)) || '' : ''
+      const g = await generatePage(lead, slug, kit, findingsFor(lead), state.feedback || [], opts.deadline, partial)
+      if (!g.html) {
+        const parts = ((state as any).parts || 0) + 1
+        if (parts >= 4) {
+          return await savePreviewState(leadId, { partial: false, parts: 0, attempts: (state.attempts || 0) + 1, error: 'The page took too long to write; starting over' } as any)
+        }
+        await put(`${slug}/partial.txt`, g.partial, 'text/plain; charset=utf-8')
+        return await savePreviewState(leadId, { partial: true, parts, error: null } as any)
+      }
+      await put(`${slug}/draft.html`, g.html, 'text/html; charset=utf-8')
+      return await savePreviewState(leadId, { status: 'generated', partial: false, parts: 0, attempts: (state.attempts || 0) + 1, error: null } as any)
+    }
+
+    // Stage 2b → behaviour
+    if (state.status === 'generated') {
+      const js = await generateScript(draft, opts.deadline)
+      await put(`${slug}/draft.html`, insertScript(draft, js), 'text/html; charset=utf-8')
+      return await savePreviewState(leadId, { status: 'scripted', error: null })
     }
 
     // Stage 3 → review, fix, publish
