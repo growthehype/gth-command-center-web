@@ -3447,3 +3447,17 @@ button.brf-goal:hover { border-color: var(--color-border-hard); }
   .ld-head { flex-wrap: wrap; }
   .ld-ring { width: 60px; height: 60px; }
 }
+
+/* Lead file: live site viewer + fact-check badge */
+.ld-shot-tabs { display: flex; gap: 4px; padding: 8px; border-bottom: 1px solid rgba(255,255,255,.06); }
+.ld-shot-tabs button { padding: 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--color-dim); }
+.ld-shot-tabs button:hover { color: var(--color-polar); }
+.ld-shot-tabs button.is-on { color: var(--color-polar); background: rgba(255,255,255,.1); }
+.ld-shot a { display: block; background: #fff; }
+.ld-shot img.is-phone { max-width: 300px; margin: 0 auto; }
+.ld-seen { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.ld-seen li p { margin: 0; font-size: 14px; font-weight: 600; }
+.ld-seen li span { display: block; margin-top: 2px; font-size: 12.5px; color: var(--color-dim); line-height: 1.45; }
+.ld-fact { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; width: fit-content; }
+.ld-fact--ok { color: #4ADE80; border: 1px solid rgba(74,222,128,.3); background: rgba(74,222,128,.06); }
+.ld-fact--warn { color: #FBBF24; border: 1px solid rgba(251,191,36,.3); background: rgba(251,191,36,.06); }

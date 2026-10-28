@@ -9,6 +9,8 @@ import {
   SALES_EMAIL_TOOLS,
 } from './claude'
 import { isGthAgent, GTH_WRITER_TOOLS } from './gth-profile'
+import { factCheckDraft, fetchShot } from './visual-audit'
+import { qualifyGthLead } from './qualifier'
 import { buildGthWriterPrompt, pickProofLink, validateVoice, repairVoice, type VoiceDraft as SequenceDraft } from './gth-voice'
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -136,6 +138,26 @@ function firstName(full?: string | null): string | null {
   return first && /^[A-Za-z'-]{2,}$/.test(first) ? first : null
 }
 
+/** Site facts we actually confirmed (on screen, or hard technical checks). Nothing else may be claimed. */
+export function verifiedFindings(lead: any): string[] {
+  const qual = lead?.enrichment_data?.qual
+  if (!qual || qual.version !== 2) return []
+  const out: string[] = []
+  const visual = qual.visual
+  for (const f of visual?.findings || []) out.push(`${f.claim} (seen: ${f.evidence})`)
+  // Hard checks that don't depend on reading the page
+  const hard = ['no_website', 'site_down', 'https', 'mobile', 'speed', 'builder', 'copyright', 'cta', 'booking']
+  for (const b of qual.breakdown || []) {
+    if (b.group !== 'need' || b.status !== 'fail' || !b.points || !hard.includes(b.key)) continue
+    if (b.key === 'copyright' && !visual?.footer_year) continue
+    if ((b.key === 'cta' || b.key === 'booking') && !visual?.checked) continue
+    out.push(b.detail)
+  }
+  if (visual?.checked && qual.design?.verdict && qual.design.verdict !== 'modern' && qual.design.note) out.push(`Design looks ${qual.design.verdict}: ${qual.design.note}`)
+  if (visual?.footer_text) out.push(`Footer reads exactly: "${visual.footer_text}"`)
+  return Array.from(new Set(out))
+}
+
 function gthLeadBrief(lead: any, proof: string | null): string {
   const e = lead.enrichment_data || {}
   const a = e.website_audit || null
@@ -150,14 +172,8 @@ function gthLeadBrief(lead: any, proof: string | null): string {
     `Google rating: ${lead.rating ?? 'n/a'}${e.review_count || e.user_rating_count ? ` from ${e.review_count || e.user_rating_count} reviews` : ''}`,
   ]
   // Only things we actually checked go to the writer
-  const findings: string[] = []
+  const findings = verifiedFindings(lead)
   const qual = e.qual
-  if (qual?.breakdown?.length) {
-    for (const b of qual.breakdown) if (b.status === 'fail' && b.group === 'need' && b.detail) findings.push(b.detail)
-    if (qual.design?.verdict && qual.design?.note && qual.design.verdict !== 'modern') findings.push(`Design looks ${qual.design.verdict}: ${qual.design.note}`)
-  } else if (a?.issues?.length) {
-    findings.push(...a.issues)
-  }
   parts.push(`Verified findings (the ONLY site facts you may mention): ${findings.length ? findings.join('; ') : 'none, so do not claim anything specific about their site'}`)
   parts.push(`Work to show: ${proof || 'none'}`)
   if (e.website_summary) parts.push(`What their site says about them: ${String(e.website_summary).slice(0, 280)}`)
@@ -255,7 +271,28 @@ async function buildSequence(lead: any, ctx: SeqCtx): Promise<{ ok: boolean; dra
     let meta: Record<string, any> = {}
 
     if (gth) {
-      const { draft, issues, repaired } = await writeGthSequence(lead, inner)
+      const written = await writeGthSequence(lead, inner)
+      let { draft, issues, repaired } = written
+
+      // Check every claim against the screenshots of their live site
+      const urls = lead.enrichment_data?.qual?.visual?.urls || {}
+      const [mt, dt, df] = await Promise.all([fetchShot(urls.mobile_top), fetchShot(urls.desktop_top), fetchShot(urls.desktop_footer)])
+      const fc = await factCheckDraft({
+        draft: { subject: draft.subject, email_1: draft.email_1, follow_up_1: draft.follow_up_1, follow_up_2: draft.follow_up_2 },
+        shots: [['Their site on a phone (top)', mt], ['Their site on desktop (top)', dt], ['Their site on desktop (bottom and footer)', df]],
+        facts: [
+          ...verifiedFindings(lead),
+          lead.rating != null ? `Google rating ${lead.rating}` : '',
+          lead.enrichment_data?.review_count ? `${lead.enrichment_data.review_count} Google reviews` : '',
+          lead.enrichment_data?.website_summary ? `Their site says: ${String(lead.enrichment_data.website_summary).slice(0, 300)}` : '',
+        ].filter(Boolean),
+      })
+      if (fc.status === 'revised') {
+        draft = { ...draft, ...fc.draft }
+        const allowed = [pickProofLink(inner, lead.industry || '', lead.name || ''), (inner?.booking_link || '').trim()].filter(Boolean) as string[]
+        issues = validateVoice(draft, allowed)
+        if (issues.length) { draft = repairVoice(draft); repaired = true; issues = validateVoice(draft, allowed) }
+      }
       const subject = (draft.subject || '').trim()
       steps = [
         { subject, body: draft.email_1 },
@@ -267,8 +304,9 @@ async function buildSequence(lead: any, ctx: SeqCtx): Promise<{ ok: boolean; dra
         validator_issues: issues,
         repaired,
         email_source: lead.enrichment_data?.email_source || null,
+        factcheck: { status: fc.status, removed: fc.removed, claims: fc.claims.slice(0, 12), checked_at: new Date().toISOString() },
       }
-      flagged = issues.length > 0 || repaired
+      flagged = issues.length > 0 || repaired || fc.status === 'unverified'
     } else {
       steps = await generateEmailsForLead(lead, agentType, agentConfig)
     }
@@ -324,8 +362,14 @@ async function buildSequence(lead: any, ctx: SeqCtx): Promise<{ ok: boolean; dra
 /** Write (or rewrite) the sequence for one lead on demand. Never touches a sequence that has already sent. */
 export async function draftForLead(params: { userId: string; agentConfig: any; leadId: string; agentRunId?: string | null }) {
   const sb = getAdminClient()
-  const { data: lead, error } = await sb.from('outreach_leads').select('*').eq('id', params.leadId).eq('user_id', params.userId).single()
+  let { data: lead, error } = await sb.from('outreach_leads').select('*').eq('id', params.leadId).eq('user_id', params.userId).single()
   if (error || !lead) throw new Error('Lead not found')
+  // Look at the live site first if we haven't yet, so the email only says what's true
+  if (isGthAgent(params.agentConfig) && !lead.enrichment_data?.qual?.visual?.checked && lead.website) {
+    await qualifyGthLead(lead, params.agentConfig, null)
+    const again = await sb.from('outreach_leads').select('*').eq('id', params.leadId).single()
+    if (again.data) lead = again.data
+  }
   if (!lead.email) throw new Error('This lead has no email address yet')
 
   const { data: seqs } = await sb.from('outreach_sequences').select('id').eq('lead_id', lead.id)
@@ -384,6 +428,9 @@ export async function generateOutreach(params: GenerateParams): Promise<Generate
   const hasSequence = new Set((existingSequences || []).map((s: any) => s.lead_id))
   const eligible = allQualified
     .filter((l: any) => !hasSequence.has(l.id))
+    // GTH: only write to leads we've actually looked at with the current checks
+    .filter((l: any) => !gth || l.enrichment_data?.qual?.version === 2)
+    .filter((l: any) => l.enrichment_data?.user_feedback !== 'bad')
     .filter((l: any) => !['contacted', 'interested', 'not_interested', 'objection', 'skipped', 'closed', 'lost'].includes(String(l.stage || '').toLowerCase()))
     .slice(0, batchSize)
 

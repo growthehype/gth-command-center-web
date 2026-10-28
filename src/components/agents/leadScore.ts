@@ -37,7 +37,17 @@ export interface Qual {
   reach: number
   adjustment?: { points: number; reason: string } | null
   breakdown: BreakdownRow[]
-  design?: { verdict?: string; note?: string; screenshot_url?: string; perf?: number; seo?: number; accessibility?: number } | null
+  design?: { verdict?: string; note?: string; screenshot_url?: string; desktop_url?: string; footer_url?: string; perf?: number; perf_desktop?: number; seo?: number; accessibility?: number } | null
+  visual?: {
+    checked: boolean
+    footer_text?: string | null
+    footer_year?: number | null
+    booking_visible?: string
+    form_visible?: string
+    main_cta?: string | null
+    findings?: { key: string; claim: string; evidence: string }[]
+    urls?: { mobile_top?: string | null; desktop_top?: string | null; desktop_footer?: string | null; desktop_middle?: string | null }
+  } | null
   observation?: string
   pitch_angle?: string
   disqualifier?: string | null

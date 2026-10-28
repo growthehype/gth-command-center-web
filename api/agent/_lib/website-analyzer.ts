@@ -241,8 +241,21 @@ function assessQuality(html: string, text: string, techSignals: string[], social
 // ─── Copyright Year ─────────────────────────────────────────────
 
 function extractCopyrightYear(html: string): string | null {
-  const m = html.match(/(?:©|&copy;|copyright)\s*(\d{4})/i)
-  return m ? m[1] : null
+  // Only visible page text: theme CSS/JS files and comments carry their own
+  // copyright years (that is how "2011" ended up in an email). Take the
+  // latest year in any copyright line, e.g. "2011 - 2024" means 2024.
+  const visible = html
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/<(script|style|noscript|template)[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&copy;|&#169;/gi, '©')
+  const years: number[] = []
+  for (const m of visible.matchAll(/(?:©|copyright)[^.\n]{0,40}/gi)) {
+    for (const y of m[0].match(/\b(19|20)\d{2}\b/g) || []) years.push(Number(y))
+  }
+  const now = new Date().getFullYear()
+  const ok = years.filter(y => y > 1990 && y <= now + 1)
+  return ok.length ? String(Math.max(...ok)) : null
 }
 
 // ─── GTH audit: concrete, checkable gaps ────────────────────────
@@ -405,7 +418,7 @@ export async function analyzeWebsite(websiteUrl: string | null | undefined): Pro
     const services = extractServices(fullText)
     const techSignals = extractTechSignals(combinedHtml)
     const socialLinks = extractSocialLinks(combinedHtml)
-    const copyrightYear = extractCopyrightYear(combinedHtml)
+    const copyrightYear = extractCopyrightYear(homepageHtml)
     const websiteQuality = assessQuality(homepageHtml, homepageText, techSignals, socialLinks)
 
     const hasContactForm = /<form[^>]*>/i.test(combinedHtml) && /(?:contact|message|inquiry|get.in.touch)/i.test(combinedHtml)

@@ -7,7 +7,7 @@ import {
   useLeadAgents, AgentSettingsModal, leadBelongsTo, agentFor, isExportAgent, type LeadAgent,
 } from '@/components/outreach/LeadAgents'
 import { useAgentWorkspace, callAgent, type WorkStep } from '@/hooks/useAgentWorkspace'
-import LeadDossier from '@/components/agents/LeadDossier'
+import LeadDossier, { FactBadge } from '@/components/agents/LeadDossier'
 import { leadTier, leadObservation, TIER_LABEL, type Tier } from '@/components/agents/leadScore'
 
 type Tab = 'ready' | 'leads' | 'sent' | 'how' | 'log'
@@ -113,6 +113,7 @@ function SendDesk({ items, exportOnly, onSend, onCopy, onGmail, onSave, onSkip, 
             <button className="ah-linkbtn" onClick={() => onOpenLead(lead)}>Lead file <ArrowUpRight size={13} /></button>
           </div>
 
+          {active.step_number === 1 && <FactBadge fc={active.metadata?.factcheck} />}
           <label className="ah-field">
             <span>To</span>
             <p className="ah-to">{lead.email}{lead.enrichment_data?.email_source === 'guessed' ? <em> guessed address, check before sending</em> : null}</p>

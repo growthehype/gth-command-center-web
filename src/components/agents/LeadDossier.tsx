@@ -55,6 +55,50 @@ function Row({ row }: { row: BreakdownRow }) {
   )
 }
 
+export function FactBadge({ fc }: { fc?: { status?: string; removed?: { text: string; basis: string }[] } | null }) {
+  if (!fc?.status) return <p className="ld-fact ld-fact--warn">Not checked against their site. Read before sending.</p>
+  if (fc.status === 'verified') return <p className="ld-fact ld-fact--ok"><Check size={12} /> Every claim checked against their live site</p>
+  if (fc.status === 'revised') return (
+    <p className="ld-fact ld-fact--ok" title={(fc.removed || []).map(r => `${r.text}: ${r.basis}`).join('\n')}>
+      <Check size={12} /> Checked against their live site, {fc.removed?.length || 0} unsupported claim{fc.removed?.length === 1 ? '' : 's'} removed
+    </p>
+  )
+  return <p className="ld-fact ld-fact--warn"><AlertCircle size={12} /> Couldn’t see their site to check. Read before sending.</p>
+}
+
+function SiteViewer({ q, name, website }: { q: ReturnType<typeof leadQual>; name: string; website?: string | null }) {
+  const urls = q?.visual?.urls || {}
+  const views = [
+    ['Phone', urls.mobile_top || q?.design?.screenshot_url],
+    ['Desktop', urls.desktop_top || q?.design?.desktop_url],
+    ['Footer', urls.desktop_footer || q?.design?.footer_url],
+  ].filter(([, u]) => !!u) as [string, string][]
+  const [view, setView] = useState(0)
+  if (!views.length) {
+    return (
+      <div className="ld-shot ld-shot--empty">
+        <Globe size={20} />
+        <p>{website ? 'Not looked at yet. Rescore or Write emails and the agent will screenshot the live site first.' : 'No website on their Google listing.'}</p>
+      </div>
+    )
+  }
+  const [label, src] = views[Math.min(view, views.length - 1)]
+  return (
+    <figure className="ld-shot">
+      <div className="ld-shot-tabs" role="tablist">
+        {views.map(([l], i) => (
+          <button key={l} role="tab" aria-selected={i === view} className={i === view ? 'is-on' : ''} onClick={() => setView(i)}>{l}</button>
+        ))}
+      </div>
+      <a href={src} target="_blank" rel="noreferrer"><img src={src} alt={`${name}: ${label.toLowerCase()} view`} loading="lazy" className={label === 'Phone' ? 'is-phone' : ''} /></a>
+      <figcaption>
+        <span className={`ld-verdict ld-verdict--${q?.design?.verdict || 'unknown'}`}>{q?.design?.verdict && q.design.verdict !== 'unknown' ? `Design: ${q.design.verdict}` : 'Design not judged'}</span>
+        {q?.design?.note && <span>{q.design.note}</span>}
+      </figcaption>
+    </figure>
+  )
+}
+
 interface Props {
   lead: OutreachLead
   agent: LeadAgent | null
@@ -202,20 +246,19 @@ export default function LeadDossier({ lead, agent, onClose, onChanged }: Props) 
           <div className="ld-grid">
             {/* Left: what we saw */}
             <section className="ld-col">
-              {q?.design?.screenshot_url ? (
-                <figure className="ld-shot">
-                  <img src={q.design.screenshot_url} alt={`${lead.name} homepage on a phone`} loading="lazy" />
-                  <figcaption>
-                    <span className={`ld-verdict ld-verdict--${q.design.verdict || 'unknown'}`}>{q.design.verdict ? `Design: ${q.design.verdict}` : 'Design not judged'}</span>
-                    {q.design.note && <span>{q.design.note}</span>}
-                  </figcaption>
-                </figure>
-              ) : (
-                <div className="ld-shot ld-shot--empty">
-                  <Globe size={20} />
-                  <p>{lead.website ? 'No screenshot yet. Rescore to see the site.' : 'No website on their Google listing.'}</p>
+              <SiteViewer q={q} name={lead.name} website={lead.website} />
+
+              {q?.visual?.checked && (q.visual.findings?.length || q.visual.footer_text) ? (
+                <div className="ld-card">
+                  <p className="ld-k">Seen on their site</p>
+                  <ul className="ld-seen">
+                    {(q.visual.findings || []).map((f, i) => (
+                      <li key={i}><p>{f.claim}</p><span>{f.evidence}</span></li>
+                    ))}
+                    {q.visual.footer_text && <li><p>Footer</p><span>“{q.visual.footer_text}”</span></li>}
+                  </ul>
                 </div>
-              )}
+              ) : null}
 
               {obs && (
                 <div className="ld-card">
@@ -328,6 +371,7 @@ export default function LeadDossier({ lead, agent, onClose, onChanged }: Props) 
                         </div>
                       ) : (
                         <>
+                          {s.step_number === 1 && <FactBadge fc={s.metadata?.factcheck} />}
                           <p className="ld-step-subj">{s.subject}</p>
                           <p className="ld-step-body">{s.body}</p>
                         </>

@@ -2,7 +2,8 @@
 import { getAdminClient } from './supabase-admin'
 import { askClaude, extractToolUse, LEAD_QUALIFIER_PROMPT, LEAD_QUALIFIER_TOOLS } from './claude'
 import { isValidEmail, normalizeIndustryLabel, scrapeEmailDetailed, fetchReviewCount } from './scraper'
-import { analyzeWebsite, runPageSpeed, judgeDesign, type WebsiteIntel } from './website-analyzer'
+import { analyzeWebsite, type WebsiteIntel } from './website-analyzer'
+import { captureSite, auditVisually, type VisualAudit } from './visual-audit'
 import { buildLearnedPatterns } from './feedback-engine'
 import {
   isGthAgent, GTH_QUALIFIER_PROMPT, GTH_QUALIFIER_TOOLS, GTH_SEARCH_AREAS,
@@ -361,7 +362,7 @@ export async function qualifyLeads(params: QualifyParams): Promise<QualifyResult
 //  GTH v2: measured checks + points + one Claude review per lead
 // ════════════════════════════════════════════════════════════════
 
-const PER_LEAD_WORST_MS = 55_000
+const PER_LEAD_WORST_MS = 95_000
 
 let bucketReady: Promise<void> | null = null
 function ensureScreenshotBucket(): Promise<void> {
@@ -422,7 +423,7 @@ export async function qualifyGthLead(lead: any, agentConfig: any, agentRunId: st
     // 1. Website facts, Google's Lighthouse run and email source, in parallel
     const [intel, psi, emailLookup, place] = await Promise.all([
       lead.website ? analyzeWebsite(lead.website).catch(() => null) : Promise.resolve(null),
-      lead.website ? runPageSpeed(lead.website) : Promise.resolve(null),
+      lead.website ? captureSite(lead.website).catch(() => null) : Promise.resolve(null),
       lead.website && (!lead.email || !prev.email_source) ? scrapeEmailDetailed(lead.website).catch(() => null) : Promise.resolve(null),
       (prev.review_count == null && lead.google_place_id) ? fetchReviewCount(lead.google_place_id) : Promise.resolve(null),
     ])
@@ -435,15 +436,22 @@ export async function qualifyGthLead(lead: any, agentConfig: any, agentRunId: st
     }
     if (email && !isValidEmail(email)) { email = null; emailSource = null }
 
-    // 2. Look at the site
-    const [design, screenshotUrl] = psi?.screenshot
-      ? await Promise.all([judgeDesign(psi.screenshot, lead.name || 'this business'), uploadScreenshot(lead.id, psi.screenshot)])
-      : [null, null]
+    // 2. Look at the site: phone and desktop screenshots, top to footer, read by Claude
+    const visual: VisualAudit | null = psi ? await auditVisually(lead.name || 'this business', psi, lead.id) : null
+    const design = visual?.checked && visual.design_verdict !== 'unknown' ? { verdict: visual.design_verdict, note: visual.design_note } : null
+    const screenshotUrl = visual?.urls?.mobile_top || visual?.urls?.desktop_top || null
 
     const reviewCount: number | null = prev.review_count ?? place?.reviewCount ?? null
     const types: string[] = (prev.place_types && prev.place_types.length ? prev.place_types : place?.types) || []
     const decisionMaker = intel?.decisionMakers?.[0]?.name || lead.contact_name || null
-    const audit = intel?.audit || null
+    // What we saw on screen beats what the HTML suggests. Never claim a
+    // footer year we didn't read, and trust a visible booking button.
+    const audit = intel?.audit ? { ...intel.audit } : null
+    if (audit) {
+      audit.copyrightYear = visual?.checked && visual.footer_year ? String(visual.footer_year) : null
+      if (visual?.booking_visible === 'yes') audit.hasOnlineBooking = true
+      if (visual?.checked && visual.form_visible === 'yes' && audit.ctaWithoutAction === true) audit.ctaWithoutAction = null
+    }
 
     // 3. Points
     const pts: GthScore = scoreGthLead({
@@ -461,7 +469,7 @@ export async function qualifyGthLead(lead: any, agentConfig: any, agentRunId: st
       decisionMaker,
       areas: Array.isArray(inner.search_areas) && inner.search_areas.length ? inner.search_areas : GTH_SEARCH_AREAS,
       audit,
-      design: design ? { verdict: design.verdict, note: design.note, perf: psi?.perf ?? null } : { verdict: 'unknown', perf: psi?.perf ?? null },
+      design: design ? { verdict: design.verdict, note: design.note, perf: psi?.perfMobile ?? null } : { verdict: 'unknown', perf: psi?.perfMobile ?? null },
     })
 
     // 4. Claude reviews the whole picture (small, bounded adjustment)
@@ -475,6 +483,8 @@ export async function qualifyGthLead(lead: any, agentConfig: any, agentRunId: st
       intel?.summary ? `Homepage says: ${intel.summary}` : '',
       intel?.services?.length ? `Services: ${intel.services.slice(0, 8).join(', ')}` : '',
       intel?.contentSnippet ? `Site text excerpt: ${intel.contentSnippet.slice(0, 700)}` : '',
+      visual?.checked ? `Seen on screen: design ${visual.design_verdict} (${visual.design_note}); footer reads "${visual.footer_text || 'not legible'}"; booking visible: ${visual.booking_visible}; form visible: ${visual.form_visible}` : 'Screenshots unavailable, so make no claims about how the site looks.',
+      ...(visual?.findings || []).map(f => `Visible problem: ${f.claim} (evidence: ${f.evidence})`),
       '',
       `POINTS: need ${pts.need}/50, fit ${pts.fit}/30, reach ${pts.reach}/20 = ${pts.base}/100${pts.disqualifier ? ` (disqualified: ${pts.disqualifier})` : ''}`,
       ...pts.breakdown.map(c => `- [${c.key}] ${c.label}: ${c.status}, ${c.points}/${c.max}. ${c.detail}`),
@@ -540,10 +550,14 @@ export async function qualifyGthLead(lead: any, agentConfig: any, agentRunId: st
         verdict: design?.verdict || 'unknown',
         note: design?.note || '',
         screenshot_url: screenshotUrl,
-        perf: psi?.perf ?? null,
+        desktop_url: visual?.urls?.desktop_top || null,
+        footer_url: visual?.urls?.desktop_footer || null,
+        perf: psi?.perfMobile ?? null,
+        perf_desktop: psi?.perfDesktop ?? null,
         seo: psi?.seo ?? null,
         accessibility: psi?.accessibility ?? null,
       },
+      visual: visual ? { checked: visual.checked, footer_text: visual.footer_text, footer_year: visual.footer_year, booking_visible: visual.booking_visible, form_visible: visual.form_visible, main_cta: visual.main_cta, findings: visual.findings, urls: visual.urls, checked_at: visual.checked_at } : { checked: false },
       observation,
       observation_key: observationKey || null,
       pitch_angle: pts.pitchAngle,
