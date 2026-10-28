@@ -111,8 +111,13 @@ export async function captureWithBrowser(url: string, timeoutMs = 25_000): Promi
     const facts = await page.evaluate((bookingSrc: string) => {
       const bookingRe = new RegExp(bookingSrc, 'i')
       const text = (document.body?.innerText || '').replace(/\s+\n/g, '\n')
-      const footerEl = document.querySelector('footer') || document.querySelector('[class*="footer" i], [id*="footer" i]')
-      const footerText = (footerEl ? (footerEl as HTMLElement).innerText : text.slice(-800)).trim().slice(0, 800)
+      // The real footer is the last <footer> on the page (themes often use
+      // "pre-footer" call-to-action blocks); fall back to the end of the page.
+      const footers = Array.from(document.querySelectorAll('footer, [role="contentinfo"], [class*="footer" i], [id*="footer" i]')) as HTMLElement[]
+      const visibleFooters = footers.filter(f => (f.innerText || '').trim().length > 10)
+      const footerEl = visibleFooters.length ? visibleFooters[visibleFooters.length - 1] : null
+      const tail = text.slice(-600)
+      const footerText = ((footerEl ? footerEl.innerText : '') + (footerEl && /©|copyright/i.test(footerEl.innerText) ? '' : '\n' + tail)).trim().slice(-900)
       const years: number[] = []
       for (const m of (footerText + '\n' + text.slice(-1500)).matchAll(/(?:©|copyright)[^\n]{0,50}/gi)) {
         for (const y of m[0].match(/\b(19|20)\d{2}\b/g) || []) years.push(Number(y))
