@@ -565,14 +565,12 @@ async function imageBlock(url: string | null, maxW = 900): Promise<any | null> {
 }
 
 function extractHtml(text: string): string | null {
-  const m = text.match(/```html\s*([\s\S]*?)```/i)
-  let html = (m ? m[1] : text).trim()
-  if (!m) {
-    const s = html.toLowerCase().indexOf('<!doctype')
-    if (s > 0) html = html.slice(s)
-  }
-  if (!/<html[\s>]/i.test(html) || !/<\/html>\s*$/i.test(html)) return null
-  return html
+  const lower = text.toLowerCase()
+  let start = lower.indexOf('<!doctype')
+  if (start < 0) start = lower.indexOf('<html')
+  const end = lower.lastIndexOf('</html>')
+  if (start < 0 || end < start) return null
+  return text.slice(start, end + 7).trim()
 }
 
 export async function generatePage(lead: any, slug: string, kit: SiteKit, findings: string[], feedback: string[], deadline: number, partial = ''): Promise<{ html: string | null; partial: string }> {
@@ -608,10 +606,11 @@ export async function generatePage(lead: any, slug: string, kit: SiteKit, findin
     }, deadline)
   }
   const full = head ? head + out.text : out.text
-  const html = extractHtml(full.includes('```html') && !/```\s*$/.test(full.trim()) ? full + '\n```' : full)
+  const html = extractHtml(full)
   if (html) return { html, partial: '' }
   if ((out.stop === 'deadline' || out.stop === 'max_tokens') && full.length > 400) return { html: null, partial: full }
-  throw new Error(out.stop === 'max_tokens' ? 'The page ran too long and was cut off' : 'The designer did not return a full HTML page')
+  await put(`${slug}/debug/last-output.txt`, `stop=${out.stop}\n\n${full}`, 'text/plain; charset=utf-8').catch(() => {})
+  throw new Error(out.stop === 'max_tokens' ? 'The page ran too long and was cut off' : `The designer did not return a full HTML page (stopped: ${out.stop || 'unknown'}, ${full.length} characters)`)
 }
 
 const SCRIPT_SYSTEM = `You are the front-end engineer at Grow The Hype who writes the JavaScript for a homepage the design director just built. The bar is the shipped site's main.js included below: GSAP + ScrollTrigger + Lenis, precise and restrained, progressive enhancement, prefers-reduced-motion respected, no layout thrash.
