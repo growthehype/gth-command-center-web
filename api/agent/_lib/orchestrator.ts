@@ -94,7 +94,10 @@ function getLeadGenActions(config: any, lastRun: any): AgentAction[] {
   const inner = config?.config || {}
 
   // 1. Always check inbox first for replies
-  actions.push({ type: 'classify_inbox', priority: 1 })
+  // Client agents hand over lists and drafts; nothing goes out from Omar's Gmail
+  const exportOnly = inner.delivery === 'export'
+
+  if (!exportOnly) actions.push({ type: 'classify_inbox', priority: 1 })
 
   // 2. Scrape new leads if enough time has passed
   const hoursSinceLastScrape = lastRun?.last_scrape
@@ -126,7 +129,7 @@ function getLeadGenActions(config: any, lastRun: any): AgentAction[] {
   actions.push({ type: 'generate_emails', priority: 4 })
 
   // 5. Send scheduled/approved emails
-  actions.push({ type: 'send_emails', priority: 5 })
+  if (!exportOnly) actions.push({ type: 'send_emails', priority: 5 })
 
   return actions.sort((a, b) => a.priority - b.priority)
 }

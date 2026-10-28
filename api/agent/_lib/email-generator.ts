@@ -55,14 +55,21 @@ function buildEmailPrompt(agentType: string, cfg?: any): string {
   const c = cfg?.config || {}
   if (!c.client_business) return COLD_EMAIL_WRITER_PROMPT
 
+  const sender = c.sender_name ? `${c.sender_name} at ${c.client_name || c.client_business}` : (c.client_name || c.client_business)
   const parts: string[] = [
-    `You are a cold email specialist writing on behalf of: ${c.client_business}`,
-    'Write short, personalized, non-spammy cold emails. Reference the prospect\'s specific business and explain how the client\'s services could help them.',
-    'Keep it under 150 words. No generic templates.',
+    `You write cold emails as ${sender}. The business: ${c.client_business}`,
+    c.client_offer ? `What we are offering this prospect: ${c.client_offer}` : '',
+    c.ideal_customer_profile ? `Who we want to work with: ${c.ideal_customer_profile}` : '',
+    c.outreach_tone ? `Tone: ${c.outreach_tone}` : 'Tone: plain, direct and friendly, like one local business owner writing to another.',
+    'Rules, follow every one:',
+    '- Under 120 words. Short sentences. One clear ask, usually a short call.',
+    '- Open with something specific to their business, never with who we are.',
+    '- Sound like a person typed it. No marketing language, no hype, no buzzwords.',
+    '- Never use em dashes, exclamation marks, emojis, or phrases like "I hope this finds you well", "leverage", "elevate", "unlock", "game-changer", "in today\'s world".',
+    '- Do not invent facts, numbers, clients or results. Only use what is in the business info.',
+    '- Canadian spelling. Sign off with the sender\'s first name only.',
   ]
-  if (c.outreach_tone) parts.push(`Tone: ${c.outreach_tone}`)
-  if (c.ideal_customer_profile) parts.push(`The ideal customer is: ${c.ideal_customer_profile}`)
-  return parts.join('\n')
+  return parts.filter(Boolean).join('\n')
 }
 
 async function generateEmailsForLead(

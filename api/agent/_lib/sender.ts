@@ -34,7 +34,7 @@ export async function sendScheduledEmails(params: SendParams): Promise<SendResul
   const now = new Date().toISOString()
   const { data: steps, error: fetchErr } = await sb
     .from('outreach_steps')
-    .select('*, outreach_sequences!inner(id, lead_id, status, total_steps)')
+    .select('*, outreach_sequences!inner(id, lead_id, status, total_steps, agent_config_id)')
     .eq('user_id', userId)
     .eq('status', 'scheduled')
     .lte('scheduled_at', now)
@@ -44,8 +44,16 @@ export async function sendScheduledEmails(params: SendParams): Promise<SendResul
   if (fetchErr) throw fetchErr
   if (!steps || steps.length === 0) return { sent: 0, skipped: 0, errors: 0 }
 
+  // Client agents are export-only: their drafts never go out from this Gmail
+  const { data: exportCfgs } = await sb
+    .from('agent_configs')
+    .select('id, config')
+    .eq('user_id', userId)
+  const exportOnly = new Set((exportCfgs || []).filter((c: any) => c.config?.delivery === 'export').map((c: any) => c.id))
+
   for (const step of steps) {
     const seq = step.outreach_sequences
+    if (seq?.agent_config_id && exportOnly.has(seq.agent_config_id)) { skipped++; continue }
     try {
       // Never send into a conversation that has ended (reply, opt-out, etc.)
       if (seq && STOPPED_SEQUENCE_STATES.includes(seq.status)) {

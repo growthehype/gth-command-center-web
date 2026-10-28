@@ -10,6 +10,8 @@ interface ApprovalQueueProps {
   onSkip: (id: string) => Promise<void> | void
   onSave: (id: string, subject: string, body: string) => Promise<void> | void
   onRun: () => void
+  /** Label for the main button, e.g. 'Copy email' for client agents */
+  approveLabel?: string
 }
 
 const STEP_LABEL: Record<number, string> = { 1: 'First email', 2: 'Follow-up', 3: 'Final note' }
@@ -23,9 +25,10 @@ function hostOf(url?: string | null): string | null {
   }
 }
 
-function QueueCard({ item, onApprove, onSkip, onSave }: {
+function QueueCard({ item, onApprove, onSkip, onSave, approveLabel }: {
   item: OutreachQueueItem
   onApprove: ApprovalQueueProps['onApprove']
+  approveLabel?: string
   onSkip: ApprovalQueueProps['onSkip']
   onSave: ApprovalQueueProps['onSave']
 }) {
@@ -169,9 +172,9 @@ function QueueCard({ item, onApprove, onSkip, onSave }: {
               </>
             ) : (
               <>
-                <button className="btn-primary" disabled={!!busy || !lead?.email} onClick={() => run('approve', () => onApprove(item.id))}>
+                <button className="btn-primary" disabled={!!busy || (!approveLabel && !lead?.email)} onClick={() => run('approve', () => onApprove(item.id))}>
                   {busy === 'approve' ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
-                  Approve &amp; send
+                  {approveLabel || 'Approve & send'}
                 </button>
                 <button className="btn-ghost" disabled={!!busy} onClick={() => setEditing(true)}>
                   <PenLine size={13} />
@@ -190,7 +193,7 @@ function QueueCard({ item, onApprove, onSkip, onSave }: {
   )
 }
 
-export default function ApprovalQueue({ queue, loading, isRunning, onApprove, onSkip, onSave, onRun }: ApprovalQueueProps) {
+export default function ApprovalQueue({ queue, loading, isRunning, onApprove, onSkip, onSave, onRun, approveLabel }: ApprovalQueueProps) {
   if (loading) {
     return (
       <div className="space-y-3">
@@ -217,7 +220,7 @@ export default function ApprovalQueue({ queue, loading, isRunning, onApprove, on
   return (
     <div className="space-y-3">
       {queue.map((item) => (
-        <QueueCard key={item.id} item={item} onApprove={onApprove} onSkip={onSkip} onSave={onSave} />
+        <QueueCard key={item.id} item={item} onApprove={onApprove} onSkip={onSkip} onSave={onSave} approveLabel={approveLabel} />
       ))}
     </div>
   )

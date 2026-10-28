@@ -11,6 +11,9 @@ import VoiceTextarea from '@/components/ui/VoiceTextarea'
 import { formatCurrency, relativeDate, friendlyDate, isOverdue } from '@/lib/utils'
 import { isToday, parseISO, differenceInCalendarDays } from 'date-fns'
 import { downloadLeadsCsv } from '@/lib/lead-export'
+import { useLeadAgents, AgentDeck, AgentSettingsModal, leadBelongsTo, isExportAgent, agentFor, type LeadAgent } from '@/components/outreach/LeadAgents'
+import { useAgentDashboard } from '@/hooks/useAgentDashboard'
+import ApprovalQueue from '@/components/agents/ApprovalQueue'
 import { useConfirm } from '@/hooks/useConfirm'
 import { useDebounce } from '@/hooks/useDebounce'
 
@@ -182,56 +185,81 @@ export default function Outreach() {
   const [viewMode, setViewMode] = useState<ViewMode>('table')
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null)
   const [dragOverStage, setDragOverStage] = useState<string | null>(null)
-  // 'all' | 'manual' | '<exact agent_name string>'
-  const [agentFilter, setAgentFilter] = useState<string>('all')
+  // Lead agents: each one keeps its own list (GTH, Ideal Integration, ...)
+  const { clients } = useAppStore()
+  const leadAgents = useLeadAgents()
+  const { agents } = leadAgents
+  const dash = useAgentDashboard()
+  const [settingsFor, setSettingsFor] = useState<LeadAgent | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [workTab, setWorkTab] = useState<'leads' | 'drafts'>('leads')
 
-  // All agent configs the user owns — populates the Add Lead "Agent" picker
-  const [agentConfigs, setAgentConfigs] = useState<AgentConfigOption[]>([])
+  // 'manual' or an agent id; remembered between visits
+  const [agentFilter, setAgentFilterState] = useState<string>(() => {
+    try { return localStorage.getItem('gth_lead_agent') || '' } catch { return '' }
+  })
+  const setAgentFilter = (id: string) => {
+    setAgentFilterState(id)
+    setWorkTab('leads')
+    try { localStorage.setItem('gth_lead_agent', id) } catch { /* private mode */ }
+  }
   useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) return
-        const { data, error } = await supabase
-          .from('agent_configs')
-          .select('id, agent_name, agent_type')
-          .eq('user_id', user.id)
-          .order('agent_name', { ascending: true })
-        if (error) throw error
-        if (!cancelled) setAgentConfigs(data || [])
-      } catch (err) {
-        showToast('Failed to load agent settings', 'error')
-      }
-    })()
-    return () => { cancelled = true }
-  }, [])
+    if (leadAgents.loading) return
+    if (agentFilter === 'manual' || agents.some(a => a.id === agentFilter)) return
+    setAgentFilterState(agents[0]?.id || 'manual')
+  }, [agents, agentFilter, leadAgents.loading])
 
-  // Distinct agent names that appear on the current leads (for the filter dropdown)
-  // — also tracks lead counts per agent so the dropdown can show "Frank (21)"
-  const agentOptions = useMemo(() => {
-    const counts = new Map<string, number>()
-    let manualCount = 0
-    leads.forEach(l => {
-      const n = (l.agent_name || '').trim()
-      if (n) counts.set(n, (counts.get(n) || 0) + 1)
-      else manualCount++
-    })
-    const names = Array.from(counts.keys()).sort((a, b) => a.localeCompare(b))
-    return {
-      names,
-      counts,
-      manualCount,
-      hasManual: manualCount > 0,
-    }
-  }, [leads])
+  const activeAgent = agents.find(a => a.id === agentFilter) || null
+  const agentConfigs: AgentConfigOption[] = useMemo(
+    () => agents.map(a => ({ id: a.id, agent_name: a.agent_name, agent_type: a.agent_type })),
+    [agents],
+  )
 
-  // Apply the agent filter on top of the leads source used everywhere else
+  const manualLeads = useMemo(
+    () => leads.filter(l => !agents.some(a => leadBelongsTo(l, a))),
+    [leads, agents],
+  )
+
   const visibleLeads = useMemo(() => {
-    if (agentFilter === 'all') return leads
-    if (agentFilter === 'manual') return leads.filter(l => !l.agent_name)
-    return leads.filter(l => (l.agent_name || '') === agentFilter)
-  }, [leads, agentFilter])
+    if (agentFilter === 'manual') return manualLeads
+    if (!activeAgent) return [] as OutreachLead[]
+    return leads.filter(l => leadBelongsTo(l, activeAgent))
+  }, [leads, agentFilter, activeAgent, manualLeads])
+
+  // Drafts waiting, per agent
+  const draftCounts = useMemo(() => {
+    const out: Record<string, number> = {}
+    for (const q of dash.queue) {
+      const lead = q.sequence?.lead
+      const owner = agents.find(a => lead && (lead.agent_config_id ? lead.agent_config_id === a.id : false))
+      if (owner) out[owner.id] = (out[owner.id] || 0) + 1
+    }
+    return out
+  }, [dash.queue, agents])
+  const agentQueue = useMemo(
+    () => dash.queue.filter(q => activeAgent && q.sequence?.lead?.agent_config_id === activeAgent.id),
+    [dash.queue, activeAgent],
+  )
+
+  // Client agents never send: copying a draft marks it handed over
+  const copyDraft = useCallback(async (stepId: string) => {
+    const item = dash.queue.find(q => q.id === stepId)
+    if (!item) return
+    const lead = item.sequence?.lead
+    const text = `To: ${lead?.email || ''}\nSubject: ${item.subject || ''}\n\n${item.body || ''}`
+    try { await navigator.clipboard.writeText(text) } catch { /* clipboard blocked */ }
+    const { error } = await supabase.from('outreach_steps')
+      .update({ status: 'approved', approval_status: 'approved', updated_at: new Date().toISOString() })
+      .eq('id', stepId)
+    if (error) { showToast(error.message, 'error'); return }
+    showToast(`Copied the email for ${lead?.name || 'this lead'}`, 'success')
+    await dash.refresh()
+  }, [dash])
+
+  const runAgent = async (agent: LeadAgent) => {
+    const ok = await leadAgents.run(agent)
+    if (ok) await Promise.all([refreshLeads(), dash.refresh()])
+  }
 
   const handleExportCsv = useCallback(() => {
     if (visibleLeads.length === 0) {
@@ -239,12 +267,11 @@ export default function Outreach() {
       return
     }
     const baseName =
-      agentFilter === 'all' ? 'all-leads'
-      : agentFilter === 'manual' ? 'manual-leads'
-      : agentFilter
+      agentFilter === 'manual' ? 'manual-leads'
+      : `${activeAgent?.agent_name || 'agent'}-${activeAgent ? agentFor(activeAgent) : ''}`.replace(/\s+/g, '-').toLowerCase()
     const filename = downloadLeadsCsv(visibleLeads, baseName)
     showToast(`Exported ${visibleLeads.length} leads → ${filename}`, 'success')
-  }, [visibleLeads, agentFilter])
+  }, [visibleLeads, agentFilter, activeAgent])
 
   // Pipeline counts (filtered by agent)
   const pipeline = useMemo(() => {
@@ -328,7 +355,7 @@ export default function Outreach() {
   }
 
   const openCreate = () => {
-    setForm({ ...EMPTY_FORM })
+    setForm({ ...EMPTY_FORM, agent_config_id: activeAgent?.id || '' })
     setEditingId(null)
     setModalOpen(true)
   }
@@ -489,49 +516,51 @@ export default function Outreach() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+      <div className="flex items-end justify-between mb-5 flex-wrap gap-3">
         <div>
-          <div className="flex items-center gap-3">
-            <h1>Outreach Pipeline</h1>
-            <Target size={14} className="text-dim" />
-          </div>
+          <h1>Leads &amp; Outreach</h1>
           <p className="text-dim mt-1" style={{ fontSize: '14px' }}>
-            {visibleLeads.length} of {leads.length} leads
-            {agentFilter !== 'all' && (
-              <span className="ml-1 text-amber-400">
-                · {agentFilter === 'manual' ? 'Manual entries' : agentFilter}
-              </span>
-            )}
+            Each agent hunts for one business and keeps its own list.
           </p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* Agent Filter — always visible so users learn it exists */}
-          <div className="relative flex items-center">
-            <Bot size={13} className={`absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${agentFilter !== 'all' ? 'text-polar' : 'text-dim'}`} />
-            <select
-              value={agentFilter}
-              onChange={e => setAgentFilter(e.target.value)}
-              className={`bg-cell border pl-8 pr-7 py-1.5 font-sans outline-none focus:border-dim transition-colors appearance-none ${agentFilter !== 'all' ? 'border-polar text-polar' : 'border-border text-polar'}`}
-              style={{ fontSize: '13px', minWidth: '200px' }}
-              title="Filter leads by which agent created them"
-            >
-              <option value="all">All Leads ({leads.length})</option>
-              {agentOptions.hasManual && (
-                <option value="manual">Manual entries ({agentOptions.manualCount})</option>
-              )}
-              {agentOptions.names.length > 0 && (
-                <optgroup label="Agents">
-                  {agentOptions.names.map(name => (
-                    <option key={name} value={name}>
-                      {name} ({agentOptions.counts.get(name) || 0})
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-            </select>
-            <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-dim pointer-events-none" />
-          </div>
+      </div>
 
+      <AgentDeck
+        agents={agents}
+        leads={leads}
+        drafts={draftCounts}
+        selected={agentFilter}
+        onSelect={setAgentFilter}
+        running={leadAgents.running}
+        onRun={runAgent}
+        onSettings={(a) => { setSettingsFor(a); setSettingsOpen(true) }}
+        onNew={() => { setSettingsFor(null); setSettingsOpen(true) }}
+        manualCount={manualLeads.length}
+      />
+
+      {/* Workspace for the selected agent */}
+      <div className="la-workbar">
+        <div className="min-w-0">
+          <p className="la-work-title">
+            {agentFilter === 'manual' ? 'Added by hand' : activeAgent ? `${activeAgent.agent_name} · ${agentFor(activeAgent)}` : 'Leads'}
+          </p>
+          <p className="text-dim" style={{ fontSize: '12.5px' }}>
+            {visibleLeads.length} lead{visibleLeads.length === 1 ? '' : 's'}
+            {activeAgent?.last_run_summary ? ` · Last run: ${activeAgent.last_run_summary}` : ''}
+          </p>
+        </div>
+        {activeAgent && (
+          <div className="tabbar la-tabs" role="tablist" style={{ marginBottom: 0 }}>
+            <button role="tab" aria-selected={workTab === 'leads'} className={`tabbar-tab ${workTab === 'leads' ? 'la-tab--on' : ''}`} onClick={() => setWorkTab('leads')}>Leads</button>
+            <button role="tab" aria-selected={workTab === 'drafts'} className={`tabbar-tab ${workTab === 'drafts' ? 'la-tab--on' : ''}`} onClick={() => setWorkTab('drafts')}>
+              Drafts{agentQueue.length ? ` (${agentQueue.length})` : ''}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {workTab === 'leads' && (
+        <div className="flex items-center gap-3 flex-wrap mb-6">
           {/* View Toggle */}
           <div className="flex border border-border overflow-hidden">
             <button
@@ -583,8 +612,31 @@ export default function Outreach() {
             <Plus size={14} /> Add Lead
           </button>
         </div>
-      </div>
+      )}
 
+      {workTab === 'drafts' && activeAgent && (
+        <section className="mb-10" aria-label="Drafts waiting">
+          <p className="text-dim mb-4" style={{ fontSize: '13px' }}>
+            {isExportAgent(activeAgent)
+              ? `Drafts for ${agentFor(activeAgent)}. Copy hands the email over; nothing is sent from your Gmail.`
+              : 'Approve sends it from your Gmail right away. Skip drops the lead from the sequence.'}
+          </p>
+          <div>
+            <ApprovalQueue
+              queue={agentQueue}
+              loading={dash.loading}
+              isRunning={leadAgents.running.has(activeAgent.id)}
+              onApprove={isExportAgent(activeAgent) ? copyDraft : dash.approveStep}
+              onSkip={dash.skipStep}
+              onSave={dash.updateStepContent}
+              onRun={() => runAgent(activeAgent)}
+              approveLabel={isExportAgent(activeAgent) ? 'Copy email' : undefined}
+            />
+          </div>
+        </section>
+      )}
+
+      {workTab === 'leads' && (<>
       {/* Pipeline Summary Bar */}
       {totalPipelineValue > 0 && (
         <div className="mb-6">
@@ -959,6 +1011,19 @@ export default function Outreach() {
           })}
         </div>
       )}
+
+      </>)}
+
+      <AgentSettingsModal
+        open={settingsOpen}
+        agent={settingsFor}
+        clients={clients}
+        leadCount={settingsFor ? leads.filter(l => leadBelongsTo(l, settingsFor)).length : 0}
+        onClose={() => setSettingsOpen(false)}
+        onSave={leadAgents.save}
+        onDelete={leadAgents.remove}
+        onPauseToggle={leadAgents.setEnabled}
+      />
 
       {/* Modal */}
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editingId ? 'Edit Lead' : 'Add Lead'}>

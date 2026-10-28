@@ -486,6 +486,9 @@ export async function scrapeLeads(params: ScrapeParams): Promise<ScrapeResult> {
       .from('outreach_leads')
       .select('name, website, google_place_id')
       .eq('user_id', userId)
+      // Each agent keeps its own list: a dentist in Frank's list can still be
+      // a fresh lead for GTH, but never twice for the same agent.
+      .match(params.agentConfigId ? { agent_config_id: params.agentConfigId } : {})
 
     // Dedupe on place id, website domain and business name: the same business
     // must never be contacted twice, whichever agent found it first.
