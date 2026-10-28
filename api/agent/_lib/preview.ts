@@ -503,7 +503,7 @@ TECHNICAL
 - One self-contained index.html: inline <style> and <script>, semantic HTML, skip link, labels, alt text, visible focus, WCAG AA contrast.
 - Responsive from 360px to 1920px with no horizontal scroll; hero uses min-height: 100svh; mobile menu works and traps nothing.
 - Images: only the asset paths given in the brief, as relative paths (for example assets/photo-2.jpg), with width and height attributes, object-fit: cover, sensible object-position, loading="lazy" except the hero. Never link to their old website's files and never use stock or placeholder image services.
-- Logo: use assets/logo.png following the handling note in the brief. If there is no logo file, set their name in the display face as a wordmark.
+- Logo: use assets/logo.png following the handling note in the brief. If there is no logo file, set their name in the display face as a clean wordmark. Never draw, invent or add a symbol, monogram or icon mark for their brand.
 - Every link goes somewhere real: tel:, mailto:, their booking link, or an anchor on the page. No href="#".
 - The form does not send anything (the script engineer wires it to show: "This is a homepage concept. On your new site, this would go straight to your inbox.").
 - <meta name="robots" content="noindex, nofollow">, a proper <title> ("{Business} | Homepage concept by Grow The Hype"), meta description, theme-color.
@@ -543,7 +543,7 @@ function kitBrief(lead: any, kit: SiteKit, findings: string[], feedback: string[
     `THEIR CURRENT FONTS: ${kit.fonts.join(', ')}`,
     '',
     'ASSETS YOU MAY USE (relative paths):',
-    kit.logo ? `- ${kit.logo.path} (logo, ${kit.logo.w}x${kit.logo.h}). Handling: ${kit.logoNote}` : '- No logo file. Set their name as a wordmark in the display face.',
+    kit.logo ? `- ${kit.logo.path} (logo, ${kit.logo.w}x${kit.logo.h}). Handling: ${kit.logoNote}` : '- No logo file. Set their name as a clean wordmark in the display face. Do not invent a symbol or icon mark.',
     ...kit.photos.map(p => `- ${p.path} (photo, ${p.w}x${p.h}${p.alt ? `, alt on their site: "${p.alt}"` : ''})`),
     kit.photos.length < 2 ? 'They have few usable photos. Lead with typography and the bespoke signature visual rather than imagery.' : '',
     '',
