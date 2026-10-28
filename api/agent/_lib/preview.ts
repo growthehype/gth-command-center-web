@@ -97,6 +97,10 @@ async function savePreviewState(leadId: string, patch: Partial<PreviewState>) {
   return preview as PreviewState
 }
 
+async function progress(leadId: string, step: string) {
+  try { await savePreviewState(leadId, { step, step_at: new Date().toISOString() } as any) } catch { /* best effort */ }
+}
+
 async function fetchBuffer(url: string, timeoutMs = 15_000): Promise<{ buf: Buffer; type: string } | null> {
   try {
     const r = await fetch(url, {
@@ -241,6 +245,7 @@ export async function buildKit(lead: any, slug: string, deadline: number): Promi
   const extraPages: { url: string; text: string }[] = []
   let desktopShot: Buffer | null = null
   let mobileShot: Buffer | null = null
+  const hardStop = setTimeout(() => { browser.close().catch(() => {}) }, 120_000)
   try {
     const page = await browser.newPage()
     await page.setViewport({ width: 1440, height: 900 })
@@ -249,16 +254,20 @@ export async function buildKit(lead: any, slug: string, deadline: number): Promi
     catch { await page.goto(target, { waitUntil: 'domcontentloaded', timeout: 20_000 }) }
     await new Promise(r => setTimeout(r, 1500))
     // Scroll through so lazy images load
-    await page.evaluate(async () => {
-      for (let y = 0; y < document.body.scrollHeight; y += 700) { window.scrollTo(0, y); await new Promise(r => setTimeout(r, 140)) }
-      window.scrollTo(0, 0)
-    }).catch(() => {})
+    await Promise.race([
+      page.evaluate(async () => {
+        for (let y = 0, n = 0; y < document.body.scrollHeight && n < 30; y += 700, n++) { window.scrollTo(0, y); await new Promise(r => setTimeout(r, 140)) }
+        window.scrollTo(0, 0)
+      }).catch(() => {}),
+      new Promise(r => setTimeout(r, 9000)),
+    ])
     await new Promise(r => setTimeout(r, 1200))
     desktopShot = Buffer.from(await page.screenshot({ type: 'jpeg', quality: 70 }))
     raw = await page.evaluate(EXTRACT)
+    await progress(lead.id, 'homepage read')
 
     for (const href of (raw.internal || []).slice(0, 3)) {
-      if (Date.now() > deadline - 60_000) break
+      if (Date.now() > deadline - 170_000) break
       try {
         await page.goto(href, { waitUntil: 'domcontentloaded', timeout: 15_000 })
         await new Promise(r => setTimeout(r, 900))
@@ -275,10 +284,14 @@ export async function buildKit(lead: any, slug: string, deadline: number): Promi
     try { await m.goto(target, { waitUntil: 'networkidle2', timeout: 20_000 }) } catch { /* use what loaded */ }
     await new Promise(r => setTimeout(r, 800))
     mobileShot = Buffer.from(await m.screenshot({ type: 'jpeg', quality: 70 }))
+  } catch (err: any) {
+    if (!raw) throw new Error(`Could not read their website: ${String(err?.message || err).slice(0, 120)}`)
   } finally {
+    clearTimeout(hardStop)
     await browser.close().catch(() => {})
   }
   if (!raw) throw new Error('Could not read their website')
+  await progress(lead.id, 'site read, collecting logo and photos')
 
   // Logo
   let logo: Asset | null = null
@@ -293,9 +306,9 @@ export async function buildKit(lead: any, slug: string, deadline: number): Promi
       logoNote = a.note
     } catch { /* fall through to <img> logos */ }
   }
-  for (const c of logoCands) {
+  for (const c of logoCands.slice(0, 4)) {
     if (logo) break
-    const f = await fetchBuffer(c.src)
+    const f = await fetchBuffer(c.src, 10_000)
     if (!f) continue
     try {
       const a = await analyseLogo(f.buf)
@@ -315,15 +328,18 @@ export async function buildKit(lead: any, slug: string, deadline: number): Promi
     .filter((i: any) => { const k = i.src.split('?')[0]; if (seen.has(k)) return false; seen.add(k); return true })
     .slice(0, 16)
   const photos: Asset[] = []
-  for (const c of cands) {
-    if (photos.length >= 10 || Date.now() > deadline - 25_000) break
-    const f = await fetchBuffer(c.src)
-    if (!f) continue
+  const fetched = await Promise.all(cands.map(async (c: any) => {
+    if (Date.now() > deadline - 60_000) return null
+    const f = await fetchBuffer(c.src, 10_000)
+    if (!f) return null
     const j = await photoToJpeg(f.buf)
-    if (!j) continue
+    return j ? { c, j } : null
+  }))
+  for (const x of fetched) {
+    if (!x || photos.length >= 10) continue
     const path = `assets/photo-${photos.length + 1}.jpg`
-    await put(`${slug}/${path}`, j.jpg, 'image/jpeg')
-    photos.push({ path, kind: 'photo', w: j.w, h: j.h, alt: c.alt || '' })
+    await put(`${slug}/${path}`, x.j.jpg, 'image/jpeg')
+    photos.push({ path, kind: 'photo', w: x.j.w, h: x.j.h, alt: x.c.alt || '' })
   }
 
   if (desktopShot) await put(`${slug}/ref/current-desktop.jpg`, desktopShot, 'image/jpeg')
@@ -792,6 +808,7 @@ export async function advancePreview(leadId: string, opts: { deadline: number; r
     // Stage 1 → kit
     const kitText = await getText(`${slug}/kit.json`)
     if (!kitText) {
+      await progress(leadId, 'opening their site')
       await buildKit(lead, slug, opts.deadline)
       return await savePreviewState(leadId, { status: 'kit', error: null })
     }
@@ -802,6 +819,7 @@ export async function advancePreview(leadId: string, opts: { deadline: number; r
     if (!draft) {
       if ((state.attempts || 0) >= 3) return await savePreviewState(leadId, { status: 'failed', error: state.error || 'Three attempts did not reach the bar' })
       const partial = (state as any).partial ? (await getText(`${slug}/partial.txt`)) || '' : ''
+      await progress(leadId, partial ? 'continuing the page' : 'designing the page')
       const g = await generatePage(lead, slug, kit, findingsFor(lead), state.feedback || [], opts.deadline, partial)
       if (!g.html) {
         const parts = ((state as any).parts || 0) + 1
@@ -817,12 +835,14 @@ export async function advancePreview(leadId: string, opts: { deadline: number; r
 
     // Stage 2b → behaviour
     if (state.status === 'generated') {
+      await progress(leadId, 'writing the motion')
       const js = await generateScript(draft, opts.deadline)
       await put(`${slug}/draft.html`, insertScript(draft, js), 'text/html; charset=utf-8')
       return await savePreviewState(leadId, { status: 'scripted', error: null })
     }
 
     // Stage 3 → review, fix, publish
+    await progress(leadId, 'reviewing in a browser')
     const r = await reviewPage(lead, slug, draft, kit, opts.deadline)
     if (r.verdict === 'rebuild' && (state.attempts || 0) < 3) {
       await sb.storage.from(BUCKET).remove([`${slug}/draft.html`])
