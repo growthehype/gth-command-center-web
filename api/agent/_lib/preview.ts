@@ -640,9 +640,9 @@ async function loadRefScript(): Promise<string> {
   return data?.content || ''
 }
 
-export async function generateScript(html: string, deadline: number): Promise<string> {
+export async function generateScript(html: string, deadline: number, slug = ''): Promise<string> {
   const ref = await loadRefScript()
-  const { text } = await streamClaude({
+  const { text, stop } = await streamClaude({
     max_tokens: 9000,
     system: [
       { type: 'text', text: SCRIPT_SYSTEM },
@@ -652,7 +652,10 @@ export async function generateScript(html: string, deadline: number): Promise<st
   }, deadline)
   const m = text.match(/```(?:js|javascript)\s*([\s\S]*?)```/i)
   const js = (m ? m[1] : text).trim()
-  if (js.length < 200) throw new Error('The script engineer returned nothing usable')
+  if (js.length < 200) {
+    if (slug) await put(`${slug}/debug/script-output.txt`, `stop=${stop}\n\n${text}`, 'text/plain; charset=utf-8').catch(() => {})
+    throw new Error(`The script engineer returned nothing usable (stopped: ${stop || 'unknown'}, ${text.length} characters)`)
+  }
   return js.replace(/<\/script/gi, '<\\/script')
 }
 
@@ -874,7 +877,7 @@ export async function advancePreview(leadId: string, opts: { deadline: number; r
     // Stage 2b → behaviour
     if (state.status === 'generated') {
       await progress(leadId, 'writing the motion')
-      const js = await generateScript(draft, opts.deadline)
+      const js = await generateScript(draft, opts.deadline, slug)
       await put(`${slug}/draft.html`, insertScript(draft, js), 'text/html; charset=utf-8')
       return await savePreviewState(leadId, { status: 'scripted', error: null, step: 'done' } as any)
     }
