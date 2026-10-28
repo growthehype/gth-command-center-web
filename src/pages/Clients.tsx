@@ -5,9 +5,9 @@ import { CLIENT_STATUS_OPTIONS } from '@/lib/statuses'
 import { useDebounce } from '@/hooks/useDebounce'
 import { usePagination } from '@/hooks/usePagination'
 import PaginationBar from '@/components/ui/PaginationBar'
-import { X, Building2, Plus, Search, ChevronUp, ChevronDown, ExternalLink, Globe, Edit3, Trash2, Eye, RefreshCw, Download, Upload, File, FileText, Image } from 'lucide-react'
+import { X, Check, Building2, Plus, Search, ChevronUp, ChevronDown, ExternalLink, Globe, Edit3, Trash2, Eye, RefreshCw, Download, Upload, File, FileText, Image } from 'lucide-react'
 import { useAppStore, Client } from '@/lib/store'
-import { clients as clientsApi, contacts as contactsApi, shell, clientFiles } from '@/lib/api'
+import { clients as clientsApi, contacts as contactsApi, shell, clientFiles, projects as projectsApi, tasks as tasksApi, invoices as invoicesApi, meetings as meetingsApi } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
 import Modal from '@/components/ui/Modal'
 import EmptyState from '@/components/ui/EmptyState'
@@ -750,8 +750,52 @@ function ClientDrawer({
   const days = daysSince(client.last_activity)
   const health = clientHealth(days)
 
+  // Overview edits are held here until Save, so nothing changes by accident
+  const [drafts, setDrafts] = useState<Partial<Record<EditableKey, string>>>({})
+  const [savingDrafts, setSavingDrafts] = useState(false)
+  const [justSaved, setJustSaved] = useState(false)
+  const { confirm, ConfirmDialog } = useConfirm()
+  useEffect(() => { setDrafts({}); setJustSaved(false) }, [client.id])
+  const dirtyKeys = (Object.keys(drafts) as EditableKey[]).filter(k => (drafts[k] ?? '') !== originalValue(client, k))
+  const dirty = dirtyKeys.length > 0
+
+  const setDraft = (k: EditableKey, v: string) => {
+    setJustSaved(false)
+    setDrafts(prev => ({ ...prev, [k]: v }))
+  }
+  const revertDraft = (k: EditableKey) => setDrafts(prev => { const n = { ...prev }; delete n[k]; return n })
+
+  const saveDrafts = async () => {
+    if (!dirty || savingDrafts) return
+    const payload: Record<string, any> = {}
+    for (const k of dirtyKeys) {
+      const raw = (drafts[k] ?? '').trim()
+      if (k === 'mrr') payload.mrr = Number(raw.replace(/[$,\s]/g, '')) || 0
+      else if (k === 'website') payload.website = raw ? (/^https?:\/\//.test(raw) ? raw : `https://${raw}`) : null
+      else payload[k] = raw || null
+    }
+    setSavingDrafts(true)
+    try {
+      await clientsApi.update(client.id, payload)
+      await refreshClients()
+      setDrafts({})
+      setJustSaved(true)
+      showToast(`${client.name} saved`, 'success')
+    } catch (err: any) {
+      showToast(err?.message || 'Could not save changes', 'error')
+    } finally {
+      setSavingDrafts(false)
+    }
+  }
+
+  const requestClose = async () => {
+    if (dirty && !(await confirm('Unsaved changes', 'You have changes that are not saved. Close without saving?'))) return
+    onClose()
+  }
+
   return (
     <div className="cw-inner">
+      {ConfirmDialog}
       {/* Window header */}
       <div className="cw-head">
         <div className="flex items-center gap-3 min-w-0">
@@ -776,7 +820,15 @@ function ClientDrawer({
           >
             Delete
           </button>
-          <button onClick={onClose} className="modal-close-btn cursor-pointer ml-1" aria-label="Close client window">
+          <button
+            onClick={saveDrafts}
+            className={`btn-primary cw-save ${dirty ? 'cw-save--dirty' : ''}`}
+            disabled={!dirty || savingDrafts}
+            title={dirty ? 'Save your changes' : 'Everything is saved'}
+          >
+            {savingDrafts ? 'Saving…' : dirty ? `Save changes (${dirtyKeys.length})` : justSaved ? <><Check size={13} /> Saved</> : 'Saved'}
+          </button>
+          <button onClick={requestClose} className="modal-close-btn cursor-pointer ml-1" aria-label="Close client window">
             <X size={16} />
           </button>
         </div>
@@ -804,7 +856,13 @@ function ClientDrawer({
         {tab === 'Overview' && (
           <OverviewTab
             client={client}
-            refreshClients={refreshClients}
+            drafts={drafts}
+            setDraft={setDraft}
+            revertDraft={revertDraft}
+            dirty={dirty}
+            saving={savingDrafts}
+            onSave={saveDrafts}
+            onDiscard={() => setDrafts({})}
             invoices={invoices}
             timeEntries={timeEntries}
             health={health}
@@ -862,43 +920,45 @@ function displayMrr(c: Client): string {
   return r || '\u2014'
 }
 
-/** A field that reads as text and turns into an input when clicked. Enter saves, Esc cancels. */
-function EditableRow({ label, value, onSave, options, placeholder, type = 'text', display }: {
+type EditableKey = 'service' | 'mrr' | 'retainer' | 'platform' | 'contact' | 'email' | 'phone' | 'website'
+
+function originalValue(c: Client, k: EditableKey): string {
+  if (k === 'mrr') return c.mrr ? String(c.mrr) : ''
+  return (c[k] as string | null) ?? ''
+}
+
+/** Reads as text; click to edit. Changes are held until the window's Save. Esc reverts the field. */
+function EditableRow({ label, value, changed, onChange, onRevert, options, placeholder, type = 'text', display }: {
   label: string
-  value: string | null | undefined
-  onSave: (v: string) => void | Promise<void>
+  value: string
+  changed: boolean
+  onChange: (v: string) => void
+  onRevert: () => void
   options?: string[]
   placeholder?: string
   type?: 'text' | 'email' | 'tel' | 'url' | 'money'
   display?: React.ReactNode
 }) {
   const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(value ?? '')
   const listId = useMemo(() => `opts-${label.replace(/\s+/g, '-').toLowerCase()}-${Math.random().toString(36).slice(2, 7)}`, [label])
-  useEffect(() => { if (!editing) setDraft(value ?? '') }, [value, editing])
-
-  const commit = async () => {
-    setEditing(false)
-    if ((draft ?? '').trim() !== (value ?? '').trim()) await onSave(draft.trim())
-  }
 
   return (
-    <div className="cw-field">
-      <span className="cw-field-label">{label}</span>
+    <div className={`cw-field ${changed ? 'cw-field--changed' : ''}`}>
+      <span className="cw-field-label">{label}{changed && <span className="cw-field-dot" title="Changed, not saved yet" />}</span>
       {editing ? (
         <div className="cw-field-edit">
           <input
             autoFocus
             type={type === 'money' ? 'text' : type}
             inputMode={type === 'money' ? 'decimal' : undefined}
-            value={draft}
+            value={value}
             list={options ? listId : undefined}
             placeholder={placeholder}
-            onChange={e => setDraft(e.target.value)}
-            onBlur={commit}
+            onChange={e => onChange(e.target.value)}
+            onBlur={() => setEditing(false)}
             onKeyDown={e => {
-              if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur() }
-              if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setDraft(value ?? ''); setEditing(false) }
+              if (e.key === 'Enter') { e.preventDefault(); setEditing(false) }
+              if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onRevert(); setEditing(false) }
             }}
             className="cw-input"
           />
@@ -923,22 +983,24 @@ function EditableRow({ label, value, onSave, options, placeholder, type = 'text'
    ======================================== */
 
 function OverviewTab({
-  client, invoices, timeEntries, health, days, refreshClients,
+  client, invoices, timeEntries, health, days, drafts, setDraft, revertDraft, dirty, saving, onSave, onDiscard,
 }: {
   client: Client; invoices: any[]; timeEntries: any[]; health: { color: string; label: string }; days: number
-  refreshClients: () => Promise<void>
+  drafts: Partial<Record<EditableKey, string>>
+  setDraft: (k: EditableKey, v: string) => void
+  revertDraft: (k: EditableKey) => void
+  dirty: boolean
+  saving: boolean
+  onSave: () => void
+  onDiscard: () => void
 }) {
   const { clients: allClients, services } = useAppStore()
-  const saveField = async (field: keyof Client, value: string | number | null) => {
-    if ((client[field] ?? '') === (value ?? '')) return
-    try {
-      await clientsApi.update(client.id, { [field]: value })
-      await refreshClients()
-      showToast('Saved', 'success')
-    } catch (err: any) {
-      showToast(err?.message || 'Could not save that change', 'error')
-    }
-  }
+  const field = (k: EditableKey) => ({
+    value: drafts[k] ?? originalValue(client, k),
+    changed: drafts[k] !== undefined && drafts[k] !== originalValue(client, k),
+    onChange: (v: string) => setDraft(k, v),
+    onRevert: () => revertDraft(k),
+  })
   const platformOptions = useMemo(() => uniqueOptions([...PLATFORM_PRESETS, ...allClients.map(c => c.platform)]), [allClients])
   const serviceOptions = useMemo(
     () => uniqueOptions([...(services || []).map((s: any) => s.name), ...allClients.map(c => c.service)]),
@@ -969,14 +1031,23 @@ function OverviewTab({
 
   return (
     <div>
-      <EditableRow label="Service" value={client.service} options={serviceOptions} placeholder="e.g. Website Development" onSave={v => saveField('service', v || null)} />
-      <EditableRow label="MRR" value={client.mrr ? String(client.mrr) : ''} type="money" placeholder="0" display={client.mrr ? formatCurrency(client.mrr) : null} onSave={v => saveField('mrr', Number(String(v).replace(/[$,\s]/g, '')) || 0)} />
-      <EditableRow label="Retainer" value={client.retainer} placeholder="e.g. $2,500 / month" onSave={v => saveField('retainer', v || null)} />
-      <EditableRow label="Platform" value={client.platform} options={platformOptions} placeholder="Pick or type a platform" onSave={v => saveField('platform', v || null)} />
-      <EditableRow label="Primary contact" value={client.contact} placeholder="Name" onSave={v => saveField('contact', v || null)} />
-      <EditableRow label="Email" value={client.email} type="email" placeholder="name@company.com" onSave={v => saveField('email', v || null)} />
-      <EditableRow label="Phone" value={client.phone} type="tel" placeholder="(780) 000-0000" onSave={v => saveField('phone', v || null)} />
-      <EditableRow label="Website" value={client.website} type="url" placeholder="https://" onSave={v => saveField('website', v ? (/^https?:\/\//.test(v) ? v : `https://${v}`) : null)} />
+      <EditableRow label="Service" {...field('service')} options={serviceOptions} placeholder="e.g. Website Development" />
+      <EditableRow label="MRR" {...field('mrr')} type="money" placeholder="0" display={(() => { const n = Number(String(field('mrr').value).replace(/[$,\s]/g, '')); return n ? formatCurrency(n) : null })()} />
+      <EditableRow label="Retainer" {...field('retainer')} placeholder="e.g. $2,500 / month" />
+      <EditableRow label="Platform" {...field('platform')} options={platformOptions} placeholder="Pick or type a platform" />
+      <EditableRow label="Primary contact" {...field('contact')} placeholder="Name" />
+      <EditableRow label="Email" {...field('email')} type="email" placeholder="name@company.com" />
+      <EditableRow label="Phone" {...field('phone')} type="tel" placeholder="(780) 000-0000" />
+      <EditableRow label="Website" {...field('website')} type="url" placeholder="https://" />
+      {dirty && (
+        <div className="cw-savebar">
+          <span><span className="brf-light" data-tone="warn" aria-hidden="true" /> Unsaved changes</span>
+          <div className="flex gap-2">
+            <button className="btn-ghost" onClick={onDiscard} disabled={saving}>Discard</button>
+            <button className="btn-primary" onClick={onSave} disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</button>
+          </div>
+        </div>
+      )}
       <Row
         label="Brand Colors"
         value={
@@ -1091,6 +1162,138 @@ function ContactsTab({
   )
 }
 
+
+/* ========================================
+   ADD FROM THE CLIENT WINDOW
+   ======================================== */
+
+type QuickKind = 'project' | 'task' | 'invoice' | 'meeting'
+
+function QuickAdd({ kind, client }: { kind: QuickKind; client: Client }) {
+  const store = useAppStore()
+  const [open, setOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const todayIso = new Date().toISOString().slice(0, 10)
+  const plus30 = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10)
+  const [f, setF] = useState<Record<string, string>>({})
+  const set = (k: string, v: string) => setF(prev => ({ ...prev, [k]: v }))
+
+  const label = { project: 'project', task: 'task', invoice: 'invoice', meeting: 'meeting note' }[kind]
+
+  const start = async () => {
+    const base: Record<string, string> = {
+      project: { title: '', status: 'backlog', priority: 'medium', due_date: '' },
+      task: { text: '', priority: 'medium', due_date: '' },
+      invoice: { num: '', amount: '', due_date: plus30, status: 'draft', notes: '' },
+      meeting: { title: '', date: todayIso, type: 'check-in', notes: '' },
+    }[kind] as Record<string, string>
+    setF(base)
+    setOpen(true)
+    if (kind === 'invoice') {
+      try { const n = await invoicesApi.getNextNum(); setF(prev => ({ ...prev, num: n })) } catch { /* keep blank */ }
+    }
+  }
+
+  const save = async () => {
+    if (saving) return
+    try {
+      setSaving(true)
+      if (kind === 'project') {
+        if (!f.title?.trim()) { showToast('Give the project a title', 'warn'); return }
+        await projectsApi.create({ title: f.title.trim(), client_id: client.id, status: f.status, priority: f.priority, due_date: f.due_date || null })
+        await store.refreshProjects()
+      } else if (kind === 'task') {
+        if (!f.text?.trim()) { showToast('Describe the task', 'warn'); return }
+        await tasksApi.create({ text: f.text.trim(), client_id: client.id, priority: f.priority, due_date: f.due_date || null, done: 0 })
+        await store.refreshTasks()
+      } else if (kind === 'invoice') {
+        const amount = Number(String(f.amount).replace(/[$,\s]/g, ''))
+        if (!amount) { showToast('Enter the invoice amount', 'warn'); return }
+        await invoicesApi.create({ num: f.num || null, client_id: client.id, amount, due_date: f.due_date || null, status: f.status, notes: f.notes || null })
+        await store.refreshInvoices()
+      } else {
+        if (!f.title?.trim()) { showToast('Give the meeting a title', 'warn'); return }
+        await meetingsApi.create({ title: f.title.trim(), client_id: client.id, date: f.date, type: f.type, notes: f.notes || null })
+        await store.refreshMeetings()
+      }
+      showToast(`${label.charAt(0).toUpperCase() + label.slice(1)} added to ${client.name}`, 'success')
+      setOpen(false)
+    } catch (err: any) {
+      showToast(err?.message || `Could not add the ${label}`, 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!open) {
+    return (
+      <div className="qa-bar">
+        <button className="btn-ghost" onClick={start}><Plus size={13} /> Add {label}</button>
+      </div>
+    )
+  }
+
+  const input = (k: string, ph: string, type = 'text', autoFocus = false) => (
+    <input
+      className="cw-input"
+      type={type}
+      placeholder={ph}
+      value={f[k] ?? ''}
+      autoFocus={autoFocus}
+      onChange={e => set(k, e.target.value)}
+      onKeyDown={e => { if (e.key === 'Enter') save() }}
+    />
+  )
+  const select = (k: string, opts: [string, string][]) => (
+    <select className="cw-input" value={f[k]} onChange={e => set(k, e.target.value)}>
+      {opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+    </select>
+  )
+  const priorities: [string, string][] = [['low', 'Low'], ['medium', 'Medium'], ['high', 'High']]
+
+  return (
+    <div className="qa-form">
+      <p className="qa-title">New {label} for {client.name}</p>
+      {kind === 'project' && (
+        <div className="qa-grid">
+          <label className="qa-wide"><span>Title</span>{input('title', 'e.g. Website rebuild', 'text', true)}</label>
+          <label><span>Stage</span>{select('status', [['backlog', 'Backlog'], ['progress', 'In progress'], ['review', 'Review'], ['done', 'Done']])}</label>
+          <label><span>Priority</span>{select('priority', priorities)}</label>
+          <label><span>Due</span>{input('due_date', '', 'date')}</label>
+        </div>
+      )}
+      {kind === 'task' && (
+        <div className="qa-grid">
+          <label className="qa-wide"><span>Task</span>{input('text', 'What needs doing?', 'text', true)}</label>
+          <label><span>Priority</span>{select('priority', priorities)}</label>
+          <label><span>Due</span>{input('due_date', '', 'date')}</label>
+        </div>
+      )}
+      {kind === 'invoice' && (
+        <div className="qa-grid">
+          <label><span>Invoice #</span>{input('num', 'INV-001')}</label>
+          <label><span>Amount</span>{input('amount', '$0', 'text', true)}</label>
+          <label><span>Due</span>{input('due_date', '', 'date')}</label>
+          <label><span>Status</span>{select('status', [['draft', 'Draft'], ['sent', 'Sent, unpaid'], ['paid', 'Paid']])}</label>
+          <label className="qa-wide"><span>Notes</span>{input('notes', 'What is this invoice for?')}</label>
+        </div>
+      )}
+      {kind === 'meeting' && (
+        <div className="qa-grid">
+          <label className="qa-wide"><span>Title</span>{input('title', 'e.g. Monthly check-in', 'text', true)}</label>
+          <label><span>Date</span>{input('date', '', 'date')}</label>
+          <label><span>Type</span>{select('type', [['check-in', 'Check-in'], ['discovery', 'Discovery'], ['strategy', 'Strategy'], ['review', 'Review'], ['other', 'Other']])}</label>
+          <label className="qa-wide"><span>Notes</span>{input('notes', 'Key points')}</label>
+        </div>
+      )}
+      <div className="qa-actions">
+        <button className="btn-ghost" onClick={() => setOpen(false)} disabled={saving}>Cancel</button>
+        <button className="btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : `Save ${label}`}</button>
+      </div>
+    </div>
+  )
+}
+
 /* ========================================
    TAB: PROJECTS
    ======================================== */
@@ -1099,7 +1302,7 @@ function ProjectsTab({ client, projects }: { client: Client; projects: any[] }) 
   const { setCurrentPage, setSelectedProjectId } = useAppStore()
   const clientProjects = useMemo(() => projects.filter(p => p.client_id === client.id), [projects, client.id])
 
-  if (clientProjects.length === 0) return <p className="text-dim" style={{ fontSize: '13px' }}>No projects for this client.</p>
+  if (clientProjects.length === 0) return <><QuickAdd kind="project" client={client} /><p className="qa-empty">No projects for this client yet.</p></>
 
   const statusBadge = (s: string) => {
     if (s === 'active' || s === 'in_progress' || s === 'in-progress' || s === 'progress') return 'badge badge-ok'
@@ -1114,6 +1317,8 @@ function ProjectsTab({ client, projects }: { client: Client; projects: any[] }) 
   }
 
   return (
+    <>
+    <QuickAdd kind="project" client={client} />
     <table className="w-full" style={{ fontSize: '13px' }}>
       <thead>
         <tr className="border-b border-border text-left">
@@ -1136,6 +1341,7 @@ function ProjectsTab({ client, projects }: { client: Client; projects: any[] }) 
         ))}
       </tbody>
     </table>
+    </>
   )
 }
 
@@ -1147,10 +1353,11 @@ function TasksTab({ client, tasks }: { client: Client; tasks: any[] }) {
   const { setSelectedTaskId, setCurrentPage } = useAppStore()
   const clientTasks = useMemo(() => tasks.filter(t => t.client_id === client.id), [tasks, client.id])
 
-  if (clientTasks.length === 0) return <p className="text-dim" style={{ fontSize: '13px' }}>No tasks for this client.</p>
+  if (clientTasks.length === 0) return <><QuickAdd kind="task" client={client} /><p className="qa-empty">No tasks for this client yet.</p></>
 
   return (
     <div className="space-y-1">
+      <QuickAdd kind="task" client={client} />
       {clientTasks.map(t => (
         <div
           key={t.id}
@@ -1176,7 +1383,7 @@ function InvoicesTab({ client, invoices }: { client: Client; invoices: any[] }) 
   const { setSelectedInvoiceId, setCurrentPage } = useAppStore()
   const clientInvoices = useMemo(() => invoices.filter(inv => inv.client_id === client.id), [invoices, client.id])
 
-  if (clientInvoices.length === 0) return <p className="text-dim" style={{ fontSize: '13px' }}>No invoices for this client.</p>
+  if (clientInvoices.length === 0) return <><QuickAdd kind="invoice" client={client} /><p className="qa-empty">No invoices for this client yet.</p></>
 
   const statusBadge = (s: string) => {
     if (s === 'paid') return 'badge badge-ok'
@@ -1186,6 +1393,8 @@ function InvoicesTab({ client, invoices }: { client: Client; invoices: any[] }) 
   }
 
   return (
+    <>
+    <QuickAdd kind="invoice" client={client} />
     <table className="w-full" style={{ fontSize: '13px' }}>
       <thead>
         <tr className="border-b border-border text-left">
@@ -1212,6 +1421,7 @@ function InvoicesTab({ client, invoices }: { client: Client; invoices: any[] }) 
         ))}
       </tbody>
     </table>
+    </>
   )
 }
 
@@ -1396,10 +1606,11 @@ function MeetingsTab({ client, meetings }: { client: Client; meetings: any[] }) 
   const { setSelectedMeetingId, setCurrentPage } = useAppStore()
   const clientMeetings = useMemo(() => meetings.filter(m => m.client_id === client.id), [meetings, client.id])
 
-  if (clientMeetings.length === 0) return <p className="text-dim" style={{ fontSize: '13px' }}>No meetings for this client.</p>
+  if (clientMeetings.length === 0) return <><QuickAdd kind="meeting" client={client} /><p className="qa-empty">No meeting notes for this client yet.</p></>
 
   return (
     <div className="space-y-3">
+      <QuickAdd kind="meeting" client={client} />
       {clientMeetings.map(m => (
         <div
           key={m.id}
