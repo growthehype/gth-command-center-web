@@ -23,7 +23,7 @@ export function pickProofLinks(cfgInner: any, industry: string, name: string): P
       if (l?.url && new RegExp(l.match, 'i').test(hay) && !out.some(o => o.url === l.url)) out.push(l)
     } catch { /* bad pattern, skip */ }
   }
-  return out.slice(0, 3)
+  return out.slice(0, 4)
 }
 
 /** Text for the writer's brief, e.g. "tcllp.netlify.app (custom website); tcllp.netlify.app/alberta-contractors (lead landing page)" */
