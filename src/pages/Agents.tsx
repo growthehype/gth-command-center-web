@@ -238,11 +238,37 @@ function LeadsBoard({ leads, drafted, sentIds, onOpen, onRescore, rescoring }: {
    HOW IT WORKS
    ======================================== */
 
+function SelfTest({ agent }: { agent: LeadAgent }) {
+  const [busy, setBusy] = useState(false)
+  const [res, setRes] = useState<any>(null)
+  const run = async () => {
+    setBusy(true); setRes(null)
+    try {
+      const r = await callAgent({ mode: 'diag', agentType: agent.agent_type, configId: agent.id, url: 'https://rkprofessional.ca/' })
+      setRes(r?.results?.diag || r)
+    } catch (err: any) { setRes({ error: err?.message || 'Self-test failed' }) }
+    finally { setBusy(false) }
+  }
+  return (
+    <div className="ah-selftest">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <p className="ah-k" style={{ margin: 0 }}>Site check self-test</p>
+          <p className="ah-sub">Opens rkprofessional.ca the way the agent does and reports what worked.</p>
+        </div>
+        <button className="btn-ghost" onClick={run} disabled={busy}>{busy ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Run self-test</button>
+      </div>
+      {res && <pre className="ah-pre">{JSON.stringify(res, null, 2)}</pre>}
+    </div>
+  )
+}
+
 function HowItWorks({ agent }: { agent: LeadAgent }) {
   const c = agent.config || {}
   const autoFollow = c.auto_followups !== false
   return (
     <div className="ah-how">
+      <SelfTest agent={agent} />
       <ol className="ah-flow">
         <li><b>1. Find</b><p>Each weekday morning it searches Google Maps for {(c.search_terms || []).slice(0, 4).join(', ')}{(c.search_terms || []).length > 4 ? ' and more' : ''} around {(c.search_areas || ['Edmonton']).slice(0, 3).join(', ')}. Up to {c.daily_lead_quota || 25} new businesses a day, never the same one twice.</p></li>
         <li><b>2. Check</b><p>It opens every website on a phone, takes a screenshot, and judges whether the design looks dated, average or modern. It also checks security, phone setup, speed, booking and quote forms, old copyright years and template builders, and reads the Google rating and reviews.</p></li>
