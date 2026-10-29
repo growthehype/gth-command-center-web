@@ -3724,3 +3724,14 @@ button.brf-goal:hover { border-color: var(--color-border-hard); }
 .cp-notes label { font-size: 12.5px; color: var(--color-dim); }
 .cp-notes textarea { width: 100%; resize: vertical; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.03); color: var(--color-polar); font: inherit; font-size: 13.5px; }
 @media (max-width: 767px) { .cp-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ── Invoice builder: phone layout ── */
+.inv-b input, .inv-b select, .inv-b textarea { min-width: 0; }
+.inv-b input[type="date"] { -webkit-appearance: none; appearance: none; min-height: 38px; }
+.inv-b .inv-grow { field-sizing: content; min-height: 3.2em; max-height: 22em; }
+@media (max-width: 639px) {
+  /* 16px stops iOS from zooming in on focus, and gives text room to breathe */
+  .inv-b input, .inv-b select, .inv-b textarea { font-size: 16px !important; padding-top: 10px !important; padding-bottom: 10px !important; }
+  .inv-b .inv-li input { padding-left: 10px !important; padding-right: 10px !important; }
+  .inv-b .inv-acts button { justify-content: center; min-height: 46px; width: 100%; }
+}

@@ -1283,11 +1283,11 @@ export default function Invoices() {
 
       {/* ── Invoice Builder Modal ── */}
       <Modal open={builderOpen} onClose={() => setBuilderOpen(false)} title={editingInvoiceId ? 'Edit Invoice' : 'Create Invoice'} width="740px">
-        <div className="space-y-5">
+        <div className="space-y-5 inv-b">
           {/* From / To */}
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="space-y-2.5">
-              <span className="label" style={{ color: '#000', fontWeight: 800, fontSize: '10.5px', letterSpacing: '0.1em' }}>FROM</span>
+              <span className="label text-dim" style={{ fontWeight: 800, fontSize: '10.5px', letterSpacing: '0.1em' }}>FROM</span>
               <input
                 value={builderFromName}
                 onChange={e => setBuilderFromName(e.target.value)}
@@ -1302,7 +1302,7 @@ export default function Invoices() {
                 className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors"
                 style={{ fontSize: '13px' }}
               />
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <input
                   value={builderFromPhone}
                   onChange={e => setBuilderFromPhone(e.target.value)}
@@ -1327,7 +1327,7 @@ export default function Invoices() {
               />
             </div>
             <div className="space-y-2.5">
-              <span className="label" style={{ color: '#000', fontWeight: 800, fontSize: '10.5px', letterSpacing: '0.1em' }}>BILL TO</span>
+              <span className="label text-dim" style={{ fontWeight: 800, fontSize: '10.5px', letterSpacing: '0.1em' }}>BILL TO</span>
               <select
                 value={builderClientId}
                 onChange={e => {
@@ -1380,7 +1380,7 @@ export default function Invoices() {
           <div className="border-t border-border" />
 
           {/* Invoice details row */}
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="space-y-1">
               <span className="label text-dim">INVOICE #</span>
               <input
@@ -1425,7 +1425,7 @@ export default function Invoices() {
           </div>
 
           {/* Recurring & GST row */}
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="space-y-1">
               <span className="label text-dim">RECURRING</span>
               <select
@@ -1476,7 +1476,7 @@ export default function Invoices() {
             </datalist>
             <div className="border border-border">
               {/* Header */}
-              <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-surface border-b border-border">
+              <div className="hidden sm:grid grid-cols-12 gap-2 px-3 py-2 bg-surface border-b border-border">
                 <span className="label text-dim col-span-5" style={{ fontSize: '10.5px' }}>SERVICE / DESCRIPTION</span>
                 <span className="label text-dim col-span-2 text-center" style={{ fontSize: '10.5px' }}>QTY</span>
                 <span className="label text-dim col-span-2 text-center" style={{ fontSize: '10.5px' }}>RATE</span>
@@ -1484,39 +1484,58 @@ export default function Invoices() {
                 <span className="col-span-1"></span>
               </div>
               {builderLineItems.map((li, i) => (
-                <div key={i} className="grid grid-cols-12 gap-2 px-3 py-2 items-center border-b border-border last:border-b-0">
+                <div key={i} className="inv-li grid grid-cols-12 gap-2 px-3 py-3 sm:py-2 items-center border-b border-border last:border-b-0">
+                  <span className="sm:hidden col-span-12 label text-dim" style={{ fontSize: '10px' }}>ITEM {i + 1}</span>
+                  <textarea
+                    value={li.description}
+                    onChange={e => updateLineItem(i, 'description', e.target.value)}
+                    placeholder="Service or description"
+                    aria-label="Service or description"
+                    rows={2}
+                    className="sm:hidden inv-grow col-span-12 min-w-0 bg-cell border border-border text-polar px-2 py-1.5 font-sans outline-none focus:border-dim transition-colors resize-none"
+                    style={{ fontSize: '13px', lineHeight: '1.45' }}
+                  />
                   <input
                     list="gth-services"
                     value={li.description}
                     onChange={e => updateLineItem(i, 'description', e.target.value)}
                     placeholder="Select or type a service..."
-                    className="col-span-5 bg-cell border border-border text-polar px-2 py-1.5 font-sans outline-none focus:border-dim transition-colors"
+                    aria-label="Service or description"
+                    className="hidden sm:block col-span-5 min-w-0 bg-cell border border-border text-polar px-2 py-1.5 font-sans outline-none focus:border-dim transition-colors"
                     style={{ fontSize: '13px' }}
                   />
+                  <span className="sm:hidden col-span-3 label text-dim" style={{ fontSize: '10px' }}>QTY</span>
+                  <span className="sm:hidden col-span-4 label text-dim" style={{ fontSize: '10px' }}>RATE</span>
+                  <span className="sm:hidden col-span-4 label text-dim text-right" style={{ fontSize: '10px' }}>AMOUNT</span>
                   <input
                     type="number"
+                    inputMode="decimal"
                     min={0}
                     value={li.qty}
                     onChange={e => updateLineItem(i, 'qty', parseFloat(e.target.value) || 0)}
-                    className="col-span-2 bg-cell border border-border text-polar px-2 py-1.5 font-sans outline-none focus:border-dim transition-colors text-center mono"
+                    aria-label="Quantity"
+                    className="col-span-3 sm:col-span-2 min-w-0 bg-cell border border-border text-polar px-2 py-1.5 font-sans outline-none focus:border-dim transition-colors text-center mono"
                     style={{ fontSize: '13px' }}
                   />
                   <input
                     type="number"
+                    inputMode="decimal"
                     min={0}
                     value={li.rate}
                     onChange={e => updateLineItem(i, 'rate', parseFloat(e.target.value) || 0)}
-                    className="col-span-2 bg-cell border border-border text-polar px-2 py-1.5 font-sans outline-none focus:border-dim transition-colors text-center mono"
+                    aria-label="Rate"
+                    className="col-span-4 sm:col-span-2 min-w-0 bg-cell border border-border text-polar px-2 py-1.5 font-sans outline-none focus:border-dim transition-colors text-center mono"
                     style={{ fontSize: '13px' }}
                   />
-                  <span className="col-span-2 text-polar font-[600] mono text-right" style={{ fontSize: '13px' }}>
+                  <span className="col-span-4 sm:col-span-2 text-polar font-[600] mono text-right" style={{ fontSize: '13px' }}>
                     ${(li.qty * li.rate).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </span>
                   <div className="col-span-1 flex justify-center">
                     <button
                       onClick={() => removeLineItem(i)}
-                      className="text-dim hover:text-err transition-colors"
+                      className="text-dim hover:text-err transition-colors p-2 -m-2"
                       title="Remove"
+                      aria-label="Remove line item"
                     >
                       <X size={13} />
                     </button>
@@ -1538,7 +1557,7 @@ export default function Invoices() {
 
           {/* Totals */}
           <div className="flex justify-end">
-            <div className="space-y-2 w-[280px] bg-surface border border-border p-4">
+            <div className="space-y-2 w-full sm:w-[280px] bg-surface border border-border p-4">
               <div className="flex justify-between items-center">
                 <span className="text-steel" style={{ fontSize: '13px' }}>Subtotal</span>
                 <span className="text-polar mono font-[600]" style={{ fontSize: '14px' }}>
@@ -1585,7 +1604,7 @@ export default function Invoices() {
           <div className="border-t border-border" />
 
           {/* Footer fields */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-4">
             <div className="space-y-2">
               <span className="label text-dim">PAYMENT TERMS</span>
               <div className="flex flex-wrap gap-1.5">
@@ -1626,12 +1645,13 @@ export default function Invoices() {
               )}
               <div className="pt-1">
                 <span className="label text-dim" style={{ fontSize: '9.5px' }}>PAYMENT INSTRUCTIONS</span>
-                <input
+                <textarea
                   value={builderPaymentInstructions}
                   onChange={e => setBuilderPaymentInstructions(e.target.value)}
                   placeholder="e.g., E-Transfer to omar@growthehype.ca"
-                  className="w-full bg-cell border border-border text-polar px-3 py-1.5 font-sans outline-none focus:border-dim transition-colors mt-1"
-                  style={{ fontSize: '11.5px' }}
+                  rows={2}
+                  className="inv-grow w-full bg-cell border border-border text-polar px-3 py-1.5 font-sans outline-none focus:border-dim transition-colors mt-1 resize-none"
+                  style={{ fontSize: '11.5px', lineHeight: '1.5' }}
                 />
               </div>
             </div>
@@ -1660,8 +1680,8 @@ export default function Invoices() {
                 value={builderMemo}
                 onChange={e => setBuilderMemo(e.target.value)}
                 placeholder="Add a note or memo for the client..."
-                rows={2}
-                className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors resize-none"
+                rows={3}
+                className="inv-grow w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors resize-none"
                 style={{ fontSize: '13px' }}
               />
             </div>
@@ -1674,7 +1694,7 @@ export default function Invoices() {
               value={builderTermsText}
               onChange={e => setBuilderTermsText(e.target.value)}
               rows={5}
-              className="w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors resize-none"
+              className="inv-grow w-full bg-cell border border-border text-polar px-3 py-2 font-sans outline-none focus:border-dim transition-colors resize-none"
               style={{ fontSize: '11.5px', lineHeight: '1.6' }}
               placeholder="Legal terms and conditions..."
             />
@@ -1682,8 +1702,8 @@ export default function Invoices() {
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center justify-between pt-2 border-t border-border">
-            <div className="flex items-center gap-2">
+          <div className="inv-acts flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 sm:pt-2 border-t border-border">
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
               <button
                 onClick={handlePreviewPDF}
                 className="btn-ghost flex items-center gap-2"
@@ -1704,7 +1724,7 @@ export default function Invoices() {
                 <Download size={12} /> Download PDF
               </button>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3">
               <button
                 onClick={handleSaveDraft}
                 disabled={builderSaving}
