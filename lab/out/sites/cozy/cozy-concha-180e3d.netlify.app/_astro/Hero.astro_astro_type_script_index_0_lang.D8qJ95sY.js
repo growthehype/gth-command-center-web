@@ -1,0 +1,1 @@
+import{t as e}from"./hero.BEIxrlAq.js";document.addEventListener(`astro:page-load`,e);
