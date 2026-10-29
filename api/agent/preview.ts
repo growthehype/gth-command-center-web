@@ -8,6 +8,7 @@ import { getAdminClient } from './_lib/supabase-admin'
 import { advancePreview, leadsNeedingPreview, PREVIEW_HOST } from './_lib/preview'
 import { draftStepToGmail } from './_lib/sender'
 import { reopenSequence } from './_lib/tracker-sync'
+import { spendLevel } from './_lib/lead-stage'
 import { draftForLead } from './_lib/email-generator'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -69,6 +70,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ ok: true, ...r })
       } catch (e: any) { return res.status(200).json({ ok: false, error: String(e?.message || e).slice(0, 300) }) }
     }
+    // Health check: can the server start Chrome and screenshot a page?
+    if (body.browserCheck) {
+      const t0 = Date.now()
+      const { captureWithBrowser } = await import('./_lib/browser')
+      const c: any = await captureWithBrowser(String(body.url || 'https://growthehype.ca')).catch((e: any) => ({ ok: false, error: String(e?.message || e) }))
+      return res.status(200).json({ ok: !!c.ok, loaded: !!c.loaded, error: c.error || null, title: c.title || null, shots: ['desktopTop', 'mobileTop'].filter(k => c[k]).length, ms: Date.now() - t0 })
+    }
     // Pick a lead back up after a bounce (never sends)
     if (body.reopenLead) {
       const { data: l } = await sb.from('outreach_leads').select('user_id').eq('id', String(body.reopenLead)).single()
@@ -87,7 +95,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       } catch (e: any) { return res.status(200).json({ ok: false, error: String(e?.message || e).slice(0, 300) }) }
     }
     const { data: configs } = await sb.from('agent_configs').select('id, agent_name, config').eq('enabled', true)
-    const agents = (configs || []).filter((c: any) => c.config?.profile === 'gth' && c.config?.build_previews !== false)
+    const agents = (configs || []).filter((c: any) => c.config?.profile === 'gth' && c.config?.build_previews !== false && !spendLevel(c.config))
     const done: any[] = []
     for (const a of agents) {
       const leads = await leadsNeedingPreview(a.id, 3)

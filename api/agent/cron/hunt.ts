@@ -9,6 +9,7 @@ import { getAdminClient, createAgentRun, updateAgentRun } from '../_lib/supabase
 import { huntLeads } from '../_lib/qualifier'
 import { generateOutreach } from '../_lib/email-generator'
 import { syncTracker } from '../_lib/tracker-sync'
+import { spendLevel } from '../_lib/lead-stage'
 
 export const DEFAULT_SHIFTS: [number, number][] = [[7, 9], [13, 15], [17, 19]]
 
@@ -51,7 +52,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   for (const cfg of agents) {
-    if (!onShift(cfg.config) && req.query.force !== '1') { out.push({ agent: cfg.agent_name, offShift: true }); continue }
+    // Spend guard: lean mode keeps only the morning shift, 'off' stops hunting
+    const spend = spendLevel(cfg.config)
+    if (spend === 'off') { out.push({ agent: cfg.agent_name, paused: 'spend guard' }); continue }
+    const shiftCfg = spend === 'lean' ? { ...cfg.config, hunt_shifts: [[7, 9]] } : cfg.config
+    if (!onShift(shiftCfg) && req.query.force !== '1') { out.push({ agent: cfg.agent_name, offShift: true }); continue }
     const left = 270_000 - (Date.now() - started)
     if (left < 100_000) break
     const runId = await createAgentRun({ user_id: cfg.user_id, agent_type: cfg.agent_type, agent_config_id: cfg.id, trigger: 'cron' }).catch(() => null)

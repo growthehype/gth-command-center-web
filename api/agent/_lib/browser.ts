@@ -1,7 +1,9 @@
 // A real headless Chrome that opens a prospect's site like a visitor would:
 // does it load, what does it look like on desktop and on a phone, what does
 // the footer actually say, is there a form or booking widget on the page.
-// Runs on Vercel via @sparticuz/chromium; CHROME_PATH overrides for local tests.
+// Runs on Vercel via @sparticuz/chromium-min: Chrome is downloaded once per
+// server instance (kept in /tmp) instead of being packed into every deployment,
+// which keeps each deployment about 70 MB smaller. CHROME_PATH overrides for local tests.
 
 export interface BrowserCapture {
   ok: boolean                // browser launched and tried the page
@@ -29,6 +31,9 @@ const BOOKING_RE = /opentable|resy\.com|exploretock|toasttab|skipthedishes|doord
 // (otherwise screenshots in the other tabs hang)
 const NO_THROTTLE = ['--disable-background-timer-throttling', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding']
 
+// Must match the installed @sparticuz/chromium-min version
+const CHROMIUM_PACK = 'https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar'
+
 let exePath: Promise<string> | null = null
 
 export async function launch() {
@@ -42,9 +47,9 @@ export async function launch() {
   if (!process.env.AWS_LAMBDA_JS_RUNTIME && !process.env.AWS_EXECUTION_ENV?.includes('nodejs')) {
     process.env.AWS_LAMBDA_JS_RUNTIME = 'nodejs22.x'
   }
-  const chromium = (await import('@sparticuz/chromium')).default
-  // Unpack the binary once; parallel unpacking races ("spawn ETXTBSY")
-  if (!exePath) exePath = chromium.executablePath()
+  const chromium = (await import('@sparticuz/chromium-min')).default
+  // Download and unpack once per instance; parallel unpacking races ("spawn ETXTBSY")
+  if (!exePath) exePath = chromium.executablePath(process.env.CHROMIUM_PACK_URL || CHROMIUM_PACK)
   return puppeteer.launch({
     args: [...chromium.args, ...NO_THROTTLE],
     defaultViewport: null,

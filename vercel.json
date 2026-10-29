@@ -7,20 +7,17 @@
   ],
   "functions": {
     "api/agent/run.ts": {
-      "maxDuration": 300,
-      "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
+      "maxDuration": 300
     },
     "api/agent/cron/tick.ts": {
-      "maxDuration": 300,
-      "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
+      "maxDuration": 300
     },
     "api/agent/cron/hunt.ts": {
-      "maxDuration": 300,
-      "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
+      "maxDuration": 300
     },
     "api/agent/preview.ts": {
       "maxDuration": 300,
-      "includeFiles": "{node_modules/@sparticuz/chromium/bin/**,concepts/**}"
+      "includeFiles": "concepts/**"
     }
   }
 }

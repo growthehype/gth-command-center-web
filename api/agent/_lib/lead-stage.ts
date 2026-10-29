@@ -37,3 +37,10 @@ export function leadRecipients(lead: { email?: string | null; alt_emails?: strin
   }
   return out
 }
+
+/** Spend guard set by the Vercel spend webhook (api/agent/spend.ts); resets each month. */
+export function spendLevel(cfgInner: any): 'lean' | 'off' | null {
+  const a = cfgInner?.spend_alert
+  if (!a?.level || a.month !== new Date().toISOString().slice(0, 7)) return null
+  return a.level === 'off' ? 'off' : a.level === 'lean' ? 'lean' : null
+}
