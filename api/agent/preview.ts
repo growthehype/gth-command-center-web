@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getAdminClient } from './_lib/supabase-admin'
 import { advancePreview, leadsNeedingPreview, PREVIEW_HOST } from './_lib/preview'
 import { draftStepToGmail } from './_lib/sender'
+import { draftForLead } from './_lib/email-generator'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -56,6 +57,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (body.publish && body.slug && body.leadId) {
       const r = await publishBundled(String(body.slug), String(body.leadId))
       return res.status(200).json(r)
+    }
+    // Rewrite one lead's unsent emails with the current voice (never sends)
+    if (body.redraftLead) {
+      const { data: l } = await sb.from('outreach_leads').select('user_id').eq('id', String(body.redraftLead)).single()
+      const { data: cfg } = await sb.from('agent_configs').select('*').eq('id', String(body.configId || '')).single()
+      if (!l || !cfg || cfg.user_id !== l.user_id) return res.status(404).json({ error: 'lead or agent not found' })
+      try {
+        const r = await draftForLead({ userId: l.user_id, agentConfig: cfg, leadId: String(body.redraftLead) })
+        return res.status(200).json({ ok: true, ...r })
+      } catch (e: any) { return res.status(200).json({ ok: false, error: String(e?.message || e).slice(0, 300) }) }
     }
     // Put one approved email into Omar's Gmail Drafts (never sends)
     if (body.gmailDraft && body.stepId) {
