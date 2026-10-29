@@ -12,7 +12,7 @@ omna/photo-8.jpg https://lihziucupctxwayijeoc.supabase.co/storage/v1/object/publ
 trehan/kit.json https://lihziucupctxwayijeoc.supabase.co/storage/v1/object/public/lead-previews/trehan-and-company-accountants-and-tax-consultants/kit.json
 trehan/logo.png https://lihziucupctxwayijeoc.supabase.co/storage/v1/object/public/lead-previews/trehan-and-company-accountants-and-tax-consultants/assets/logo.png
 trehan/photo-1.jpg https://lihziucupctxwayijeoc.supabase.co/storage/v1/object/public/lead-previews/trehan-and-company-accountants-and-tax-consultants/assets/photo-1.jpg
-photos/skyline-stitch.jpg https://upload.wikimedia.org/wikipedia/commons/thumb/9/94/Downtown-Skyline-Edmonton-Alberta-Canada-Stitch-01.jpg/2560px-Downtown-Skyline-Edmonton-Alberta-Canada-Stitch-01.jpg
-photos/hotel-mac.jpg https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Hotel-MacDonald-Edmonton-Alberta-Canada-01A.jpg/2560px-Hotel-MacDonald-Edmonton-Alberta-Canada-01A.jpg
-photos/skyline-south.jpg https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Edmonton_Skyline_from_South_Side.jpg/2560px-Edmonton_Skyline_from_South_Side.jpg
-photos/epcor.jpg https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Epcor-Tower-Edmonton-Alberta-Canada-01.jpg/2560px-Epcor-Tower-Edmonton-Alberta-Canada-01.jpg
+photos/skyline-stitch.jpg https://upload.wikimedia.org/wikipedia/commons/9/94/Downtown-Skyline-Edmonton-Alberta-Canada-Stitch-01.jpg
+photos/hotel-mac.jpg https://upload.wikimedia.org/wikipedia/commons/5/5d/Hotel-MacDonald-Edmonton-Alberta-Canada-01A.jpg
+photos/skyline-south.jpg https://upload.wikimedia.org/wikipedia/commons/1/12/Edmonton_Skyline_from_South_Side.jpg
+photos/epcor.jpg https://upload.wikimedia.org/wikipedia/commons/d/d1/Epcor-Tower-Edmonton-Alberta-Canada-01.jpg
