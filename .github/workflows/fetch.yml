@@ -17,7 +17,7 @@ jobs:
             [ -z "$path" ] && continue
             case "$path" in \#*) continue;; esac
             mkdir -p "$(dirname "lab/assets/$path")"
-            curl -sSL -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131 Safari/537.36" -m 60 -o "lab/assets/$path" "$url" || echo "failed $url"
+            curl -sSL -A "GTH-concept-lab/1.0 (https://growthehype.ca)" -m 60 -o "lab/assets/$path" "$url" || echo "failed $url"
           done < lab/fetch.txt
           ls -la lab/assets | head -80
       - name: Commit
