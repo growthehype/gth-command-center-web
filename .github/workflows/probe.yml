@@ -1,0 +1,24 @@
+name: concept-lab-probe
+on:
+  push:
+    branches: [concept-lab]
+    paths: ['lab/probe.sh']
+permissions:
+  contents: write
+jobs:
+  job:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Run lab/probe.sh
+        run: bash lab/probe.sh 2>&1 | tail -200
+      - name: Commit
+        run: |
+          git config user.name "concept-lab"
+          git config user.email "concept-lab@users.noreply.github.com"
+          git add lab/out lab/assets || true
+          git commit -m "Job output" || echo "nothing new"
+          git pull --rebase -q || true
+          git push
