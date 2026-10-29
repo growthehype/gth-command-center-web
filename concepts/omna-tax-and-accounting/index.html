@@ -1,0 +1,847 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Omna Tax &amp; Accounting | Homepage concept by Grow The Hype</title>
+<meta name="description" content="Bookkeeping, payroll, GST, personal and corporate tax, business set-up and CRA support from downtown Edmonton. Open Saturdays.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#11100d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400..700&family=Geist:wght@300..600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js" defer></script>
+<script>(function(d){d.classList.add("js");if(!matchMedia("(prefers-reduced-motion: reduce)").matches)d.classList.add("motion");setTimeout(function(){if(!window.__ready){d.classList.remove("motion");d.classList.add("static")}},3500)})(document.documentElement)</script>
+<style>
+:root{
+  --ink:#11100d;--ink-2:#191712;--ink-3:#24211b;
+  --ivory:#f2eee5;--ivory-2:#e8e2d5;--paper:#faf8f3;
+  --gold:#c8a253;--gold-hi:#e3c98f;--gold-lo:#9c7a33;
+  --text:#1b1915;--text-2:#5f594e;--text-3:#8a8375;
+  --on-ink:#f2eee5;--on-ink-2:#b4ad9f;--on-ink-3:#7f796d;
+  --rule:rgba(27,25,21,.14);--rule-ink:rgba(242,238,229,.12);
+  --display:"Familjen Grotesk",ui-sans-serif,system-ui,sans-serif;
+  --body:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --e-out:cubic-bezier(.16,1,.3,1);--e-io:cubic-bezier(.76,0,.24,1);
+  --wrap:1360px;--gut:clamp(20px,4vw,64px);--sec:clamp(112px,14vw,200px);--nav:84px;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;background:var(--ink);scrollbar-color:var(--ink-3) var(--ink);scrollbar-width:thin}
+html.lenis,html.lenis body{height:auto}
+.lenis.lenis-smooth{scroll-behavior:auto!important}
+body{margin:0;background:var(--ivory);color:var(--text);font:400 17px/1.6 var(--body);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overflow-x:clip;font-feature-settings:"ss01"}
+img,svg{display:block;max-width:100%}
+a{color:inherit;text-decoration-thickness:1px;text-underline-offset:.24em}
+h1,h2,h3,h4,p,ul,ol,dl,dd,figure{margin:0}
+ul,ol{padding:0;list-style:none}
+button,input,select,textarea{font:inherit;color:inherit}
+::selection{background:var(--gold);color:var(--ink)}
+input,textarea{caret-color:var(--gold)}
+:focus-visible{outline:2px solid var(--gold);outline-offset:4px;border-radius:2px}
+::-webkit-scrollbar{width:10px}::-webkit-scrollbar-track{background:var(--ink)}::-webkit-scrollbar-thumb{background:var(--ink-3);border:2px solid var(--ink);border-radius:10px}
+.wrap{width:100%;max-width:calc(var(--wrap) + var(--gut)*2);margin-inline:auto;padding-inline:var(--gut)}
+.g{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:fixed;left:16px;top:-70px;z-index:90;background:var(--gold);color:var(--ink);padding:10px 16px;font-weight:600;border-radius:999px;text-decoration:none;transition:top .3s var(--e-out)}
+.skip:focus{top:16px}
+.ink{background:var(--ink);color:var(--on-ink)}
+.num{font-variant-numeric:tabular-nums}
+
+/* type */
+.d1{font-family:var(--display);font-weight:500;letter-spacing:-.045em;line-height:.94;font-size:clamp(3.1rem,7.6vw,8.2rem)}
+.d2{font-family:var(--display);font-weight:500;letter-spacing:-.04em;line-height:1;font-size:clamp(2.4rem,5vw,5.2rem);text-wrap:balance}
+.d3{font-family:var(--display);font-weight:500;letter-spacing:-.03em;line-height:1.05;font-size:clamp(1.6rem,2.4vw,2.4rem);text-wrap:balance}
+.lede{font-size:clamp(1.06rem,1.2vw,1.22rem);line-height:1.55;color:var(--text-2);max-width:34em;text-wrap:pretty}
+.ink .lede{color:var(--on-ink-2)}
+.label{font-size:13px;letter-spacing:.01em;color:var(--text-3)}
+.ink .label{color:var(--on-ink-3)}
+
+/* buttons */
+.btn{--h:56px;position:relative;display:inline-flex;align-items:center;gap:14px;height:var(--h);padding:0 8px 0 26px;border-radius:999px;font:500 15px/1 var(--body);letter-spacing:.005em;text-decoration:none;white-space:nowrap;cursor:pointer;border:1px solid transparent;transition:background-color .4s var(--e-out),color .4s var(--e-out),border-color .4s var(--e-out),transform .2s var(--e-out)}
+.btn i{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;transition:transform .5s var(--e-out),background-color .4s var(--e-out)}
+.btn i svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.btn:active{transform:scale(.97)}
+.btn--gold{background:var(--gold);color:var(--ink)}
+.btn--gold i{background:var(--ink);color:var(--gold-hi)}
+.btn--ghost{border-color:rgba(242,238,229,.24);color:var(--on-ink);padding-right:26px}
+.btn--ink{background:var(--ink);color:var(--ivory)}
+.btn--ink i{background:var(--gold);color:var(--ink)}
+.btn--line{border-color:var(--rule);color:var(--text);padding-right:26px}
+.btn--sm{--h:46px;padding-left:20px;font-size:14px}
+.btn--sm i{width:32px;height:32px}
+@media (hover:hover){
+  .btn--gold:hover{background:var(--gold-hi)}
+  .btn:hover i{transform:translateX(3px) rotate(-45deg)}
+  .btn--ghost:hover{border-color:var(--on-ink);background:rgba(242,238,229,.06)}
+  .btn--line:hover{border-color:var(--text)}
+  .btn--ink:hover{background:var(--ink-3)}
+}
+
+/* intro curtain */
+.intro{position:fixed;inset:0;z-index:80;background:var(--ink);display:grid;place-items:center;pointer-events:none}
+.intro__mark{display:flex;align-items:baseline;gap:14px;color:var(--on-ink);overflow:hidden}
+.intro__mark b{font:500 clamp(2.4rem,5vw,3.6rem)/1 var(--display);letter-spacing:-.05em;display:inline-block}
+.intro__mark span{font:500 12px/1 var(--body);letter-spacing:.18em;text-transform:uppercase;color:var(--gold);display:inline-block}
+.intro__line{position:absolute;left:50%;bottom:calc(50% - 46px);width:120px;height:1px;margin-left:-60px;background:var(--gold);transform-origin:left;transform:scaleX(0)}
+html:not(.motion) .intro{display:none}
+
+/* header */
+.nav{position:fixed;inset:0 0 auto;z-index:60;color:var(--on-ink);transition:color .5s var(--e-out),transform .6s var(--e-out)}
+.nav::before{content:"";position:absolute;inset:0;background:rgba(242,238,229,.86);backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);border-bottom:1px solid var(--rule);opacity:0;transition:opacity .5s var(--e-out)}
+.nav.is-light{color:var(--text)}
+.nav.is-light::before{opacity:1}
+.nav.is-hidden{transform:translateY(-100%)}
+.nav__in{position:relative;height:var(--nav);display:flex;align-items:center;gap:40px}
+.mark{display:flex;align-items:baseline;gap:10px;text-decoration:none;flex:none}
+.mark b{font:500 34px/1 var(--display);letter-spacing:-.055em}
+.mark span{font:500 10.5px/1 var(--body);letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
+.nav.is-light .mark span{color:var(--gold-lo)}
+.nav__links{display:flex;gap:34px;margin-left:auto;font-size:14.5px}
+.nav__links a{text-decoration:none;opacity:.78;position:relative;padding:6px 0;transition:opacity .3s}
+.nav__links a::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:currentColor;transform:scaleX(0);transform-origin:right;transition:transform .5s var(--e-out)}
+.nav__links a:hover{opacity:1}
+.nav__links a:hover::after{transform:scaleX(1);transform-origin:left}
+.nav__tel{font-size:14.5px;text-decoration:none;opacity:.78}
+.nav__tel:hover{opacity:1}
+.nav .btn--gold{--h:46px}
+.burger{display:none}
+.menu{position:fixed;inset:0;z-index:55;background:var(--ink);color:var(--on-ink);padding:calc(var(--nav) + 24px) var(--gut) 40px;display:flex;flex-direction:column;gap:6px;visibility:hidden;clip-path:inset(0 0 100% 0);transition:clip-path .8s var(--e-io),visibility 0s .8s}
+.menu.is-open{visibility:visible;clip-path:inset(0 0 0 0);transition:clip-path .8s var(--e-io),visibility 0s}
+.menu a:not(.btn){font:500 2.4rem/1.1 var(--display);letter-spacing:-.04em;text-decoration:none;padding:12px 0;border-bottom:1px solid var(--rule-ink)}
+.menu .btn{margin-top:28px;align-self:flex-start}
+.menu__meta{margin-top:auto;color:var(--on-ink-2);font-size:15px;display:grid;gap:4px}
+
+/* hero */
+.hero{position:relative;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;isolation:isolate}
+.hero__glow{position:absolute;inset:-20% -10% auto auto;width:70vw;height:70vw;background:radial-gradient(closest-side,rgba(200,162,83,.16),rgba(200,162,83,0) 70%);z-index:-1;pointer-events:none}
+.hero__grain{position:absolute;inset:0;z-index:-1;opacity:.07;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.hero__main{padding-top:calc(var(--nav) + 6vh);align-items:center;flex:1}
+.hero__copy{grid-column:1/8;grid-row:1;position:relative;z-index:2}
+.hero__t .ln{display:block;overflow:hidden;padding-bottom:.08em;margin-bottom:-.08em}
+.hero__t .ln>span{display:block}
+.hero__t .gold{color:var(--gold)}
+.hero__lede{margin-top:clamp(28px,4vh,44px);max-width:31em}
+.hero__acts{display:flex;flex-wrap:wrap;gap:12px;margin-top:36px}
+.hero__art{grid-column:7/13;grid-row:1;position:relative;align-self:center;height:min(68vh,640px)}
+.stack{position:absolute;inset:0 -2% 0 8%}
+.stack svg{overflow:visible;width:100%;height:100%}
+.doc rect.sheet{fill:#1d1b16;stroke:rgba(242,238,229,.34);stroke-width:1}
+.doc .ln-l{stroke:rgba(242,238,229,.3);stroke-width:1.2;stroke-linecap:round}
+.doc .ln-g{stroke:var(--gold);stroke-width:1.2;stroke-linecap:round}
+.doc text{font:500 9.5px var(--body);letter-spacing:.14em;fill:var(--on-ink-3);text-transform:uppercase}
+.doc text.big{font:500 22px var(--display);letter-spacing:-.02em;fill:var(--on-ink);text-transform:none}
+.seal circle{fill:none;stroke:var(--gold);stroke-width:1.2}
+.seal text{font:600 10px var(--body);letter-spacing:.24em;fill:var(--gold)}
+.hero__base{position:relative;z-index:2;border-top:1px solid var(--rule-ink);margin-top:clamp(40px,7vh,72px)}
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:24px}
+.fact{padding:22px 0 28px;display:flex;flex-direction:column;gap:6px}
+.fact b{font:500 15px/1.3 var(--body);color:var(--on-ink)}
+.fact span{font-size:13.5px;color:var(--on-ink-3)}
+.stars{display:flex;gap:3px;color:var(--gold)}
+.fact .stars{color:var(--gold)}
+.stars svg{width:13px;height:13px;fill:currentColor}
+
+/* statement + 24h dial */
+.statement{padding-block:var(--sec);position:relative;overflow:hidden}
+.statement .g{align-items:center;row-gap:56px}
+.statement__t{grid-column:1/9;font:500 clamp(2rem,3.9vw,4rem)/1.08 var(--display);letter-spacing:-.035em;text-wrap:pretty;color:var(--text)}
+.statement__t .w{transition:none}
+.dial{grid-column:10/13;justify-self:end;width:min(100%,300px);aspect-ratio:1;position:relative}
+.dial svg{width:100%;height:100%;overflow:visible}
+.dial .tick{stroke:var(--rule);stroke-width:1.4;stroke-linecap:round}
+.dial .tick.on{stroke:var(--gold-lo)}
+.dial__c{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.dial__c b{display:block;font:500 clamp(3.4rem,6vw,5.6rem)/.9 var(--display);letter-spacing:-.05em}
+.dial__c span{display:block;margin-top:10px;font-size:13px;color:var(--text-3);max-width:12em}
+.statement__src{grid-column:1/9;display:flex;gap:16px;align-items:center;color:var(--text-3);font-size:14px}
+.statement__src::before{content:"";width:40px;height:1px;background:var(--gold-lo)}
+
+/* services: filing cabinet */
+.files{position:relative}
+.files__pin{min-height:100vh;min-height:100svh;display:flex;align-items:center;padding-block:calc(var(--nav) + 32px) 56px}
+.files__g{width:100%;align-items:center;row-gap:40px}
+.files__head{grid-column:1/6;align-self:center}
+.files__head .lede{margin-top:28px}
+.files__index{margin-top:44px;border-top:1px solid var(--rule-ink)}
+.files__index li{display:flex;align-items:center;gap:16px;padding:13px 0;border-bottom:1px solid var(--rule-ink);color:var(--on-ink-3);font-size:15px;transition:color .5s var(--e-out)}
+.files__index li i{width:7px;height:7px;border-radius:50%;border:1px solid currentColor;transition:background-color .5s var(--e-out),border-color .5s var(--e-out)}
+.files__index li.on{color:var(--on-ink)}
+.files__index li.on i{background:var(--gold);border-color:var(--gold)}
+.files__stage{grid-column:7/13;position:relative;height:min(64vh,560px);margin-top:110px;perspective:1600px}
+.folder{position:absolute;inset:44px 0 0 0;border-radius:18px;background:linear-gradient(180deg,#24211b,#1b1915);border:1px solid rgba(242,238,229,.1);padding:clamp(28px,3.4vw,48px);display:flex;flex-direction:column;transform-origin:50% 100%;box-shadow:0 -1px 0 rgba(242,238,229,.06) inset,0 30px 60px -30px rgba(0,0,0,.6)}
+.folder::before{content:attr(data-tab);position:absolute;top:-38px;left:calc(var(--i)*15.5% + 4px);height:38px;padding:0 20px;display:flex;align-items:center;border-radius:12px 12px 0 0;background:#24211b;border:1px solid rgba(242,238,229,.1);border-bottom:0;font:500 12.5px/1 var(--body);letter-spacing:.02em;color:var(--on-ink-2);white-space:nowrap}
+.folder__in{display:flex;flex-direction:column;height:100%;opacity:0;transform:translateY(10px);transition:opacity .45s var(--e-out),transform .6s var(--e-out)}
+.folder.is-front .folder__in{opacity:1;transform:none}
+html:not(.motion) .folder__in{opacity:1;transform:none}
+@media (max-width:760px){.folder__in{opacity:1!important;transform:none!important}}
+.folder h3{font:500 clamp(2rem,3.2vw,3.2rem)/1 var(--display);letter-spacing:-.04em;color:var(--on-ink)}
+.folder p{margin-top:20px;color:var(--on-ink-2);max-width:32em;font-size:16px}
+.folder dl{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--rule-ink)}
+.folder dl div{padding-top:18px;display:flex;flex-direction:column;gap:6px}
+.folder dl div+div{padding-left:24px;border-left:1px solid var(--rule-ink)}
+.folder dt{font-size:12.5px;color:var(--on-ink-3)}
+.folder dd{font-size:15.5px;line-height:1.4;color:var(--on-ink)}
+.folder dd.gold{color:var(--gold-hi)}
+.files__count{position:absolute;right:0;bottom:-36px;font-size:13px;color:var(--on-ink-3)}
+
+/* year */
+.year{padding-block:var(--sec)}
+.year__head{align-items:end;row-gap:24px;margin-bottom:clamp(56px,7vw,96px)}
+.year__head .d2{grid-column:1/8}
+.year__head .lede{grid-column:9/13}
+.cal{position:relative;--namecol:200px}
+.cal__months{margin-left:var(--namecol);display:grid;grid-template-columns:repeat(12,minmax(0,1fr));border-top:1px solid var(--text);font-size:13px;color:var(--text-3)}
+.cal__months span{padding-top:14px;border-left:1px solid var(--rule)}
+.cal__months span:first-child{border-left:0}
+.cal__lanes{display:grid;gap:0;margin-top:18px}
+.lane{position:relative;height:84px;border-bottom:1px solid var(--rule);margin-left:var(--namecol)}
+.lane__name{position:absolute;right:calc(100% + 24px);top:30px;width:calc(var(--namecol) - 24px);font-size:14px;line-height:1.3;color:var(--text-2)}
+.lane__pin{position:absolute;top:44px;width:1px;height:22px;background:var(--text);transform-origin:bottom}
+.lane__pin::before{content:"";position:absolute;left:-5px;top:-11px;width:11px;height:11px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px var(--ivory)}
+.lane__pin span{position:absolute;left:12px;top:-14px;font-size:12.5px;line-height:1.25;white-space:nowrap;color:var(--text)}
+.lane__pin span em{display:block;font-style:normal;color:var(--text-3)}
+.lane__tick{position:absolute;top:54px;width:1px;height:12px;background:var(--text-3)}
+.cal__lanes{position:relative}
+.cal__track{position:absolute;top:0;bottom:0;left:var(--namecol);right:0;pointer-events:none}
+.cal__now{position:absolute;top:-18px;bottom:0;width:1px;background:var(--gold-lo)}
+.cal__now span{position:absolute;top:-22px;left:-24px;width:48px;text-align:center;font-size:12px;color:var(--gold-lo)}
+.cal__note{margin-top:24px;font-size:13.5px;color:var(--text-3)}
+
+/* software */
+.soft{padding-block:0 var(--sec)}
+.soft__row{display:grid;grid-template-columns:3fr 9fr;column-gap:24px;align-items:center;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.soft__row p{padding:32px 0;font-size:15px;color:var(--text-2)}
+.soft__list{display:grid;grid-template-columns:repeat(6,minmax(0,1fr))}
+.soft__list li{padding:32px 0;text-align:center;border-left:1px solid var(--rule);font:500 clamp(1rem,1.5vw,1.35rem)/1 var(--display);letter-spacing:-.02em;color:var(--text)}
+
+/* steps */
+.steps{padding-block:var(--sec)}
+.steps__head{row-gap:24px;margin-bottom:clamp(56px,7vw,96px);align-items:end}
+.steps__head .d2{grid-column:1/8}
+.steps__head .lede{grid-column:9/13}
+.steps__list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:24px;position:relative}
+.steps__line{position:absolute;left:0;right:0;top:0;height:1px;background:var(--rule-ink)}
+.steps__fill{position:absolute;left:0;top:0;height:1px;width:100%;background:var(--gold);transform-origin:left}
+.step{padding-top:40px;position:relative}
+.step::before{content:"";position:absolute;top:-6px;left:0;width:11px;height:11px;border-radius:50%;background:var(--ink);border:1px solid var(--gold)}
+.step .d3{color:var(--on-ink);max-width:12em}
+.step p{margin-top:16px;color:var(--on-ink-2);max-width:26em;font-size:16px}
+.step a{color:var(--gold-hi)}
+.steps__acts{margin-top:clamp(56px,6vw,80px);display:flex;flex-wrap:wrap;gap:12px}
+
+/* proof */
+.proof{padding-block:var(--sec);overflow:hidden}
+.proof .g{align-items:end;row-gap:40px}
+.proof__big{grid-column:1/8;display:flex;align-items:flex-end;gap:28px}
+.proof__big b{font:500 clamp(9rem,22vw,22rem)/.78 var(--display);letter-spacing:-.07em;color:var(--text)}
+.proof__big .stars{margin-bottom:22px}
+.proof__big .stars svg{width:22px;height:22px}
+.proof__side{grid-column:9/13;padding-bottom:12px}
+.proof__side p{font:500 clamp(1.4rem,2vw,1.9rem)/1.2 var(--display);letter-spacing:-.025em;text-wrap:balance}
+.proof__side span{display:block;margin-top:14px;font-size:14px;color:var(--text-3)}
+
+/* offices */
+.offices{padding-block:0 var(--sec)}
+.offices__photo{position:relative;height:min(78vh,760px);border-radius:22px;overflow:hidden;background:var(--ink-2)}
+.offices__photo img{position:absolute;inset:-8% 0;width:100%;height:116%;object-fit:cover}
+.offices__photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(17,16,13,.05) 30%,rgba(17,16,13,.72) 100%)}
+.offices__over{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:clamp(28px,4vw,56px);color:var(--on-ink)}
+.offices__over .d2{max-width:11em}
+.offices__credit{position:absolute;right:16px;top:14px;z-index:2;font-size:11px;color:rgba(242,238,229,.6)}
+.offices__credit a{text-decoration:none}
+.locs{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px;margin-top:-1px}
+.loc{padding:36px 0 0;border-top:1px solid var(--rule)}
+.loc:nth-child(1){grid-column:1/5}
+.loc:nth-child(2){grid-column:5/9}
+.loc:nth-child(3){grid-column:9/13}
+.loc h3{font:500 1.35rem/1.15 var(--display);letter-spacing:-.025em}
+.loc p,.loc dl{margin-top:14px;color:var(--text-2);font-size:15.5px;line-height:1.55}
+.loc a{color:var(--text)}
+.loc dl div{display:flex;justify-content:space-between;gap:16px;padding:7px 0;border-bottom:1px solid var(--rule)}
+.loc dt{color:var(--text-2)}
+.loc dd{color:var(--text)}
+.loc .open{display:inline-flex;align-items:center;gap:8px;margin-top:16px;font-size:13.5px;color:var(--text-2)}
+.loc .open i{width:8px;height:8px;border-radius:50%;background:#7d9a6a}
+.loc .open.closed i{background:var(--text-3)}
+
+/* contact */
+.contact{padding-block:var(--sec)}
+.contact .g{row-gap:56px}
+.contact__copy{grid-column:1/6}
+.contact__copy .lede{margin-top:24px}
+.direct{margin-top:44px;border-top:1px solid var(--rule-ink)}
+.direct a,.direct div{display:flex;justify-content:space-between;gap:20px;padding:18px 0;border-bottom:1px solid var(--rule-ink);text-decoration:none}
+.direct span{color:var(--on-ink-3);font-size:14px}
+.direct b{font-weight:500}
+.direct a:hover b{color:var(--gold-hi)}
+.form{grid-column:7/13;display:grid;gap:26px;padding:clamp(28px,3.4vw,48px);border-radius:22px;background:var(--ink-2);border:1px solid var(--rule-ink)}
+.form__row{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.field{display:grid;gap:8px}
+.field label{font-size:13px;color:var(--on-ink-3)}
+.field input,.field select,.field textarea{width:100%;background:transparent;border:0;border-bottom:1px solid rgba(242,238,229,.22);padding:8px 0 12px;font-size:16.5px;color:var(--on-ink);border-radius:0;-webkit-appearance:none;appearance:none;transition:border-color .3s}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%23b4ad9f' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 2px center;background-size:16px;padding-right:28px}
+.field select option{background:var(--ink);color:var(--on-ink)}
+.field textarea{resize:none;min-height:76px}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-bottom-color:var(--gold)}
+.field.bad input{border-bottom-color:#d98c6f}
+.field .err{font-size:12.5px;color:#e3a48c;min-height:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips label{cursor:pointer;position:relative}
+.chips input{position:absolute;opacity:0;pointer-events:none}
+.chips span{display:inline-flex;height:38px;align-items:center;padding:0 16px;border-radius:999px;border:1px solid rgba(242,238,229,.18);font-size:14px;color:var(--on-ink-2);transition:all .3s var(--e-out)}
+.chips input:checked+span{background:var(--gold);border-color:var(--gold);color:var(--ink)}
+.chips input:focus-visible+span{outline:2px solid var(--gold);outline-offset:3px}
+.form .btn{justify-self:start}
+.form__status{font-size:15px;color:var(--gold-hi);line-height:1.5}
+.form__status:empty{display:none}
+
+/* footer */
+.foot{padding-block:clamp(72px,8vw,112px) 32px;border-top:1px solid var(--rule-ink)}
+.foot__big{font:500 clamp(4rem,15vw,15rem)/.82 var(--display);letter-spacing:-.07em;color:var(--on-ink);margin-bottom:clamp(48px,6vw,88px)}
+.foot__big span{color:var(--gold)}
+.foot .g{row-gap:32px;font-size:14.5px}
+.foot__col{display:grid;gap:10px;align-content:start}
+.foot__col:nth-child(1){grid-column:1/5}
+.foot__col:nth-child(2){grid-column:6/9}
+.foot__col:nth-child(3){grid-column:9/13}
+.foot__col p{color:var(--on-ink-2);max-width:26em}
+.foot a{color:var(--on-ink-2);text-decoration:none}
+.foot a:hover{color:var(--on-ink)}
+.foot__k{color:var(--on-ink-3);font-size:12.5px;margin-bottom:6px}
+.foot__base{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule-ink);display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;font-size:13px;color:var(--on-ink-3)}
+.foot__base a{color:var(--on-ink-2)}
+
+/* motion start states (only with JS motion) */
+html.motion .hero__t .ln>span{transform:translateY(108%)}
+html.motion [data-fade]{opacity:0;transform:translateY(18px)}
+html.motion [data-reveal]{opacity:0;transform:translateY(28px)}
+html.motion [data-stagger]>*{opacity:0;transform:translateY(24px)}
+
+/* responsive */
+@media (max-width:1100px){
+  .hero__copy{grid-column:1/9}
+  .hero__art{grid-column:8/13;opacity:.55}
+  .facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .files__head{grid-column:1/-1}
+  .files__stage{grid-column:1/-1}
+}
+@media (max-width:960px){
+  :root{--nav:72px}
+  .nav__links,.nav__tel,.nav .btn--gold{display:none}
+  .burger{display:grid;place-content:center;gap:6px;margin-left:auto;width:48px;height:48px;border-radius:50%;border:1px solid currentColor;background:none;cursor:pointer;position:relative;z-index:61;opacity:.9}
+  .burger i{display:block;width:18px;height:1.5px;background:currentColor;transition:transform .5s var(--e-out)}
+  .burger[aria-expanded="true"] i:first-child{transform:translateY(3.75px) rotate(45deg)}
+  .burger[aria-expanded="true"] i:last-child{transform:translateY(-3.75px) rotate(-45deg)}
+  .nav.menu-open{color:var(--on-ink)}
+  .nav.menu-open::before{opacity:0}
+  .statement__t,.statement__src{grid-column:1/-1}
+  .dial{grid-column:1/-1;justify-self:start;width:220px}
+  .year__head .d2,.year__head .lede,.steps__head .d2,.steps__head .lede{grid-column:1/-1}
+  .proof__big,.proof__side{grid-column:1/-1}
+  .loc:nth-child(n){grid-column:1/-1}
+  .contact__copy,.form{grid-column:1/-1}
+  .foot__col:nth-child(n){grid-column:1/-1}
+}
+@media (max-width:760px){
+  .hero__main{padding-top:calc(var(--nav) + 32px)}
+  .hero__copy{grid-column:1/-1}
+  .hero__art{position:absolute;inset:auto -30% 18% auto;width:110%;min-height:0;height:62vh;opacity:.22;pointer-events:none}
+  .hero__acts .btn{flex:1 1 auto;justify-content:space-between}
+  .fact{padding:16px 0 18px}
+  .fact b{font-size:14px}
+  .files__pin{min-height:0;display:block;padding-block:var(--sec)}
+  .files__stage{height:auto;perspective:none;display:grid;gap:52px;margin-top:52px}
+  .folder{position:relative;inset:auto;transform:none!important;opacity:1!important}
+  .folder::before{left:20px}
+  .folder dl{margin-top:28px;grid-template-columns:1fr}
+  .folder dl div+div{padding-left:0;border-left:0;padding-top:14px;margin-top:14px;border-top:1px solid var(--rule-ink)}
+  .files__index,.files__count{display:none}
+  .cal{overflow-x:auto;padding-bottom:8px;margin-inline:calc(var(--gut)*-1);padding-inline:var(--gut);scrollbar-width:none}
+  .cal::-webkit-scrollbar{display:none}
+  .cal__inner{min-width:880px}
+  .soft__row{grid-template-columns:1fr}
+  .soft__row p{padding:24px 0 0}
+  .soft__list{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .soft__list li{padding:22px 0;border-top:1px solid var(--rule)}
+  .soft__list li:nth-child(3n+1){border-left:0}
+  .steps__list{grid-template-columns:1fr;row-gap:44px}
+  .steps__line,.steps__fill{display:none}
+  .step{padding-top:0;padding-left:28px;border-left:1px solid var(--rule-ink)}
+  .step::before{top:6px;left:-6px}
+  .proof__big{gap:16px}
+  .offices__photo{height:68vh;border-radius:16px}
+  .form__row{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="intro" aria-hidden="true"><div class="intro__mark"><b>Omna</b><span>Tax &amp; Accounting</span></div><i class="intro__line"></i></div>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav" data-nav>
+  <div class="wrap nav__in">
+    <a class="mark" href="#top" aria-label="Omna Tax and Accounting, back to top"><b>Omna</b><span>Tax &amp; Accounting</span></a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="#services">Services</a>
+      <a href="#your-year">Your year</a>
+      <a href="#offices">Offices</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <a class="nav__tel num" href="tel:+17804990463">(780) 499-0463</a>
+    <a class="btn btn--gold btn--sm" href="#contact">Book a consultation<i><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5"/></svg></i></a>
+    <button class="burger" type="button" aria-expanded="false" aria-controls="menu" data-burger><span class="sr">Menu</span><i></i><i></i></button>
+  </div>
+</header>
+<div class="menu" id="menu" data-menu>
+  <a href="#services">Services</a>
+  <a href="#your-year">Your year</a>
+  <a href="#offices">Offices</a>
+  <a href="#contact">Contact</a>
+  <a class="btn btn--gold" href="#contact">Book a consultation<i><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5"/></svg></i></a>
+  <div class="menu__meta"><a class="num" href="tel:+17804990463">(780) 499-0463</a><a href="mailto:info@omnataxaccounting.ca">info@omnataxaccounting.ca</a></div>
+</div>
+
+<main id="main">
+
+<section class="hero ink" id="top" aria-labelledby="hero-title">
+  <div class="hero__glow"></div><div class="hero__grain"></div>
+  <div class="wrap g hero__main">
+    <div class="hero__copy">
+      <h1 class="d1 hero__t" id="hero-title">
+        <span class="ln"><span>Hand us the</span></span>
+        <span class="ln"><span>paperwork.</span></span>
+        <span class="ln"><span class="gold">Get your hours</span></span>
+        <span class="ln"><span class="gold">back.</span></span>
+      </h1>
+      <p class="lede hero__lede" data-fade>Bookkeeping, payroll, GST and tax returns for businesses, non-profits and individuals, from our office in downtown Edmonton.</p>
+      <div class="hero__acts" data-fade>
+        <a class="btn btn--gold" href="#contact">Book a consultation<i><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5"/></svg></i></a>
+        <a class="btn btn--ghost num" href="tel:+17804990463">Call (780) 499-0463</a>
+      </div>
+    </div>
+    <div class="hero__art" aria-hidden="true">
+      <div class="stack">
+        <svg viewBox="0 0 520 600" data-stack>
+          <!-- receipt -->
+          <g class="doc" data-doc="0">
+            <path class="sheet-r" d="M150 120h150v214l-12.5 8-12.5-8-12.5 8-12.5-8-12.5 8-12.5-8-12.5 8-12.5-8-12.5 8-12.5-8-12.5 8-12.5-8z" fill="#1c1a15" stroke="rgba(242,238,229,.28)"/>
+            <text x="168" y="148">Receipt</text>
+            <line class="ln-l" x1="168" y1="172" x2="282" y2="172"/><line class="ln-l" x1="168" y1="190" x2="250" y2="190"/><line class="ln-l" x1="168" y1="208" x2="270" y2="208"/><line class="ln-l" x1="168" y1="226" x2="236" y2="226"/>
+            <line class="ln-g" x1="168" y1="262" x2="282" y2="262"/>
+            <text x="168" y="292" class="big num">$ 84.20</text>
+          </g>
+          <!-- bank statement -->
+          <g class="doc" data-doc="1">
+            <rect class="sheet" x="120" y="100" width="280" height="360" rx="6"/>
+            <text x="144" y="134">Bank statement</text>
+            <line class="ln-g" x1="144" y1="150" x2="376" y2="150"/>
+            <g class="rows"><line class="ln-l" x1="144" y1="180" x2="300" y2="180"/><line class="ln-l" x1="336" y1="180" x2="376" y2="180"/><line class="ln-l" x1="144" y1="206" x2="270" y2="206"/><line class="ln-l" x1="336" y1="206" x2="376" y2="206"/><line class="ln-l" x1="144" y1="232" x2="310" y2="232"/><line class="ln-l" x1="336" y1="232" x2="376" y2="232"/><line class="ln-l" x1="144" y1="258" x2="250" y2="258"/><line class="ln-l" x1="336" y1="258" x2="376" y2="258"/><line class="ln-l" x1="144" y1="284" x2="290" y2="284"/><line class="ln-l" x1="336" y1="284" x2="376" y2="284"/><line class="ln-l" x1="144" y1="310" x2="260" y2="310"/><line class="ln-l" x1="336" y1="310" x2="376" y2="310"/></g>
+            <text x="144" y="420">Reconciled</text><path class="ln-g check" d="M340 410l8 8 18-18" fill="none"/>
+          </g>
+          <!-- T4 -->
+          <g class="doc" data-doc="2">
+            <rect class="sheet" x="110" y="90" width="300" height="200" rx="6"/>
+            <text x="134" y="124">T4 · Statement of remuneration</text>
+            <rect x="134" y="146" width="120" height="44" rx="3" fill="none" stroke="rgba(242,238,229,.2)"/>
+            <rect x="266" y="146" width="120" height="44" rx="3" fill="none" stroke="rgba(242,238,229,.2)"/>
+            <rect x="134" y="202" width="120" height="44" rx="3" fill="none" stroke="rgba(242,238,229,.2)"/>
+            <rect x="266" y="202" width="120" height="44" rx="3" fill="none" stroke="var(--gold)"/>
+            <line class="ln-l" x1="146" y1="174" x2="214" y2="174"/><line class="ln-l" x1="278" y1="174" x2="330" y2="174"/><line class="ln-l" x1="146" y1="230" x2="200" y2="230"/><line class="ln-g" x1="278" y1="230" x2="350" y2="230"/>
+          </g>
+          <!-- GST return -->
+          <g class="doc" data-doc="3">
+            <rect class="sheet" x="130" y="110" width="270" height="330" rx="6"/>
+            <text x="154" y="144">GST/HST return</text>
+            <line class="ln-l" x1="154" y1="176" x2="376" y2="176"/>
+            <text x="154" y="210">Line 101</text><line class="ln-l" x1="300" y1="206" x2="376" y2="206"/>
+            <text x="154" y="240">Line 105</text><line class="ln-l" x1="300" y1="236" x2="376" y2="236"/>
+            <text x="154" y="270">Line 108</text><line class="ln-l" x1="300" y1="266" x2="376" y2="266"/>
+            <text x="154" y="300">Line 109</text><line class="ln-g" x1="300" y1="296" x2="376" y2="296"/>
+            <line class="ln-l" x1="154" y1="340" x2="376" y2="340"/>
+          </g>
+          <!-- ledger (final) -->
+          <g class="doc ledger" data-doc="4">
+            <rect class="sheet" x="100" y="80" width="320" height="400" rx="8" style="fill:#201d17"/>
+            <text x="126" y="116">Your books · year end</text>
+            <line class="ln-g" x1="126" y1="132" x2="394" y2="132"/>
+            <g class="lrows">
+              <text x="126" y="168">Bookkeeping</text><text x="394" y="168" text-anchor="end" style="fill:var(--gold)">Done</text><line class="ln-l" x1="126" y1="182" x2="394" y2="182"/>
+              <text x="126" y="210">Payroll &amp; T4s</text><text x="394" y="210" text-anchor="end" style="fill:var(--gold)">Filed</text><line class="ln-l" x1="126" y1="224" x2="394" y2="224"/>
+              <text x="126" y="252">GST return</text><text x="394" y="252" text-anchor="end" style="fill:var(--gold)">Filed</text><line class="ln-l" x1="126" y1="266" x2="394" y2="266"/>
+              <text x="126" y="294">Corporate tax</text><text x="394" y="294" text-anchor="end" style="fill:var(--gold)">Filed</text><line class="ln-l" x1="126" y1="308" x2="394" y2="308"/>
+              <text x="126" y="336">Personal tax</text><text x="394" y="336" text-anchor="end" style="fill:var(--gold)">Filed</text><line class="ln-l" x1="126" y1="350" x2="394" y2="350"/>
+            </g>
+            <text x="126" y="440" class="big">Nothing left on your desk.</text>
+          </g>
+          <g class="seal" data-seal transform="translate(418 92)">
+            <circle r="46"/><circle r="38" stroke-dasharray="2 4"/>
+            <text text-anchor="middle" y="4">FILED</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="hero__base" data-fade>
+      <div class="facts">
+        <div class="fact"><span class="stars" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/></svg><svg viewBox="0 0 16 16"><path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/></svg><svg viewBox="0 0 16 16"><path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/></svg><svg viewBox="0 0 16 16"><path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/></svg><svg viewBox="0 0 16 16"><path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/></svg></span><b class="num">4.9 on Google, 144 reviews</b></div>
+        <div class="fact"><span>Two offices</span><b>Downtown and north Edmonton</b></div>
+        <div class="fact"><span>Saturdays too</span><b class="num">Open 10 am to 6 pm</b></div>
+        <div class="fact"><span>Any software</span><b>QuickBooks, Sage, Xero and more</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="statement" aria-label="Why owners hand it over">
+  <div class="wrap g">
+    <p class="statement__t" data-scrub>There are only 24 hours in a day. Spend yours selling, serving your customers and growing the business. We will keep the books, run the payroll and file the taxes.</p>
+    <div class="dial" aria-hidden="true">
+      <svg viewBox="-150 -150 300 300" data-dial></svg>
+      <div class="dial__c"><div><b class="num" data-hours>24</b><span>hours a day, and none of them spent on receipts</span></div></div>
+    </div>
+    <p class="statement__src" data-reveal>Bookkeeping can be a hassle if you do not do it every day. We remove the hassle.</p>
+  </div>
+</section>
+
+<section class="files ink" id="services" aria-labelledby="files-title" data-files>
+  <div class="files__pin">
+    <div class="wrap g files__g">
+      <div class="files__head">
+        <h2 class="d2" id="files-title" data-reveal>Six files you never have to open again.</h2>
+        <p class="lede" data-reveal>Each one comes off your desk and onto ours. You bring what you have, in whatever state it is in. It comes back finished and filed.</p>
+        <ol class="files__index" data-index>
+          <li class="on"><i></i>Bookkeeping</li>
+          <li><i></i>Payroll</li>
+          <li><i></i>GST returns</li>
+          <li><i></i>Personal and corporate tax</li>
+          <li><i></i>Business set-up</li>
+          <li><i></i>CRA reviews and audits</li>
+        </ol>
+      </div>
+      <div class="files__stage" data-stage>
+        <article class="folder" data-tab="Bookkeeping" style="--i:0">
+          <div class="folder__in"><h3>Bookkeeping</h3>
+          <p>Big or small, your records stay organized and your bank accounts reconciled. You never have to remember how your software works or how a transaction should be recorded.</p>
+          <dl><div><dt>You bring</dt><dd>Receipts, statements and whatever software you use</dd></div><div><dt>You get back</dt><dd class="gold">Clean, reconciled books</dd></div></dl></div>
+        </article>
+        <article class="folder" data-tab="Payroll" style="--i:1">
+          <div class="folder__in"><h3>Payroll</h3>
+          <p>Regular payroll prepared, monthly remittances filed, T4s done at year end, and the controls in place that keep payroll reliable.</p>
+          <dl><div><dt>You bring</dt><dd>Your team and your pay schedule</dd></div><div><dt>You get back</dt><dd class="gold">Paid staff, filed remittances, T4s</dd></div></dl></div>
+        </article>
+        <article class="folder" data-tab="GST" style="--i:2">
+          <div class="folder__in"><h3>GST returns</h3>
+          <p>Collecting and submitting sales tax is your responsibility. We file your GST, look for ways to lower what you pay, and tell you whether you need to register for PST.</p>
+          <dl><div><dt>You bring</dt><dd>Your sales, wherever you make them</dd></div><div><dt>You get back</dt><dd class="gold">A filed return and a clear answer on PST</dd></div></dl></div>
+        </article>
+        <article class="folder" data-tab="Tax" style="--i:3">
+          <div class="folder__in"><h3>Personal and corporate tax</h3>
+          <p>T1 personal returns and T2 corporate tax planning, prepared and filed for business owners, families and individuals.</p>
+          <dl><div><dt>You bring</dt><dd>Your slips, or your company's year</dd></div><div><dt>You get back</dt><dd class="gold">T1 or T2 prepared and filed</dd></div></dl></div>
+        </article>
+        <article class="folder" data-tab="Set-up" style="--i:4">
+          <div class="folder__in"><h3>Business set-up</h3>
+          <p>Starting out? A business plan, the right legal structure, registration with the tax authorities, a budget and cash flow analysis, and help getting financing.</p>
+          <dl><div><dt>You bring</dt><dd>An idea, or a business that is just starting</dd></div><div><dt>You get back</dt><dd class="gold">A plan, a structure, a registered business</dd></div></dl></div>
+        </article>
+        <article class="folder" data-tab="CRA" style="--i:5">
+          <div class="folder__in"><h3>CRA reviews and audits</h3>
+          <p>A review or an audit is stressful. We deal with the CRA for individuals, the self-employed and corporations, including GST, payroll and corporate income tax audits.</p>
+          <dl><div><dt>You bring</dt><dd>The letter from the CRA</dd></div><div><dt>You get back</dt><dd class="gold">Someone handling it for you</dd></div></dl></div>
+        </article>
+        <p class="files__count num" aria-hidden="true"><span data-count>1</span> of 6</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="year" id="your-year" aria-labelledby="year-title">
+  <div class="wrap">
+    <div class="g year__head">
+      <h2 class="d2" id="year-title" data-reveal>Your tax year, handled before it is due.</h2>
+      <p class="lede" data-reveal>Most of what we do has a CRA date attached. Here is how a typical year runs, so you can see what comes off your plate and when.</p>
+    </div>
+    <div class="cal" data-cal>
+      <div class="cal__inner">
+        <div class="cal__months"><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span></div>
+        <div class="cal__lanes">
+          <div class="lane" data-lane><span class="lane__name">Payroll</span>
+            <i class="lane__tick" style="left:4%"></i><i class="lane__tick" style="left:12.4%"></i><i class="lane__tick" style="left:20.8%"></i><i class="lane__tick" style="left:29.1%"></i><i class="lane__tick" style="left:37.5%"></i><i class="lane__tick" style="left:45.8%"></i><i class="lane__tick" style="left:54.1%"></i><i class="lane__tick" style="left:62.5%"></i><i class="lane__tick" style="left:70.8%"></i><i class="lane__tick" style="left:79.1%"></i><i class="lane__tick" style="left:87.5%"></i><i class="lane__tick" style="left:95.8%"></i>
+            <i class="lane__pin" style="left:16.4%"><span>Feb 28<em>T4 slips</em></span></i>
+          </div>
+          <div class="lane" data-lane><span class="lane__name">GST, quarterly filers</span>
+            <i class="lane__pin" style="left:8%"><span>Jan 31</span></i><i class="lane__pin" style="left:33%"><span>Apr 30</span></i><i class="lane__pin" style="left:58.3%"><span>Jul 31</span></i><i class="lane__pin" style="left:83.3%"><span>Oct 31</span></i>
+          </div>
+          <div class="lane" data-lane><span class="lane__name">Personal tax</span>
+            <i class="lane__pin" style="left:33%"><span>Apr 30<em>File and pay</em></span></i><i class="lane__pin" style="left:45.4%"><span>Jun 15<em>Self-employed filing</em></span></i>
+          </div>
+          <div class="lane" data-lane><span class="lane__name">Corporate tax</span>
+            <i class="lane__pin" style="left:50%"><span>Six months after your year end<em>T2 return, Dec 31 year ends</em></span></i>
+          </div>
+          <div class="cal__track" aria-hidden="true"><div class="cal__now" data-now><span>Today</span></div></div>
+        </div>
+      </div>
+    </div>
+    <p class="cal__note">Payroll remittances are due the 15th of each month for most employers. Dates move to the next business day when they land on a weekend.</p>
+  </div>
+</section>
+
+<section class="soft" aria-label="Software">
+  <div class="wrap">
+    <div class="soft__row">
+      <p>Already using software? We work in yours.</p>
+      <ul class="soft__list" data-stagger><li>QuickBooks</li><li>Sage</li><li>Xero</li><li>Stripe</li><li>Concur</li><li>Avalara</li></ul>
+    </div>
+  </div>
+</section>
+
+<section class="steps ink" aria-labelledby="steps-title">
+  <div class="wrap">
+    <div class="g steps__head">
+      <h2 class="d2" id="steps-title" data-reveal>Getting started takes one conversation.</h2>
+      <p class="lede" data-reveal>Nothing to prepare, no software to learn. Tell us what you need, the way that suits you.</p>
+    </div>
+    <ol class="steps__list" data-steps>
+      <span class="steps__line" aria-hidden="true"></span><span class="steps__fill" aria-hidden="true" data-fill></span>
+      <li class="step"><h3 class="d3">Call, email or send a note</h3><p>Reach us at <a class="num" href="tel:+17804990463">(780) 499-0463</a> or through the form below, with a line about what you need.</p></li>
+      <li class="step"><h3 class="d3">Meet one of our accountants</h3><p>At the office or by phone, whichever is easier for you. Saturdays work too.</p></li>
+      <li class="step"><h3 class="d3">Get a plan that fits</h3><p>We review your business and set out a plan that suits your budget and the way you like to manage things.</p></li>
+    </ol>
+    <div class="steps__acts" data-reveal>
+      <a class="btn btn--gold" href="#contact">Book a consultation<i><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5"/></svg></i></a>
+      <a class="btn btn--ghost" href="mailto:info@omnataxaccounting.ca">info@omnataxaccounting.ca</a>
+    </div>
+  </div>
+</section>
+
+<section class="proof" aria-label="Google rating">
+  <div class="wrap g">
+    <div class="proof__big">
+      <b class="num" data-count-to="4.9">4.9</b>
+      <span class="stars" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/></svg><svg viewBox="0 0 16 16"><path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/></svg><svg viewBox="0 0 16 16"><path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/></svg><svg viewBox="0 0 16 16"><path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/></svg><svg viewBox="0 0 16 16"><path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/></svg></span>
+    </div>
+    <div class="proof__side" data-reveal>
+      <p>Hundreds of Edmonton businesses, non-profits and families already hand us their paperwork.</p>
+      <span class="num">4.9 stars from 144 Google reviews</span>
+    </div>
+  </div>
+</section>
+
+<section class="offices" id="offices" aria-labelledby="offices-title">
+  <div class="wrap">
+    <figure class="offices__photo" data-photo>
+      <img src="assets/edmonton.jpg" alt="The downtown Edmonton skyline above the river valley" width="2400" height="1333" loading="lazy" decoding="async" data-parallax>
+      <figcaption class="offices__over"><h2 class="d2" id="offices-title">Two offices, both in Edmonton.</h2></figcaption>
+      <span class="offices__credit" data-credit></span>
+    </figure>
+    <div class="locs" data-stagger>
+      <div class="loc">
+        <h3>Downtown</h3>
+        <p>10747 107 Ave NW<br>Edmonton, AB T5H 3A1</p>
+        <p><a href="https://www.google.com/maps/search/?api=1&amp;query=Omna+Tax+%26+Accounting+10747+107+Ave+NW+Edmonton" target="_blank" rel="noopener">Get directions</a></p>
+      </div>
+      <div class="loc">
+        <h3>North Edmonton</h3>
+        <p>17312 76 St NW<br>Edmonton, AB T5Z 0P4</p>
+        <p><a href="https://www.google.com/maps/search/?api=1&amp;query=17312+76+St+NW+Edmonton+AB+T5Z+0P4" target="_blank" rel="noopener">Get directions</a></p>
+      </div>
+      <div class="loc">
+        <h3>Hours</h3>
+        <dl class="num"><div><dt>Monday to Friday</dt><dd>9 am to 5 pm</dd></div><div><dt>Saturday</dt><dd>10 am to 6 pm</dd></div><div><dt>Sunday and holidays</dt><dd>Closed</dd></div></dl>
+        <span class="open" data-open><i></i><span>Hours shown in Edmonton time</span></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="contact ink" id="contact" aria-labelledby="contact-title">
+  <div class="wrap g">
+    <div class="contact__copy">
+      <h2 class="d2" id="contact-title" data-reveal>Book a consultation.</h2>
+      <p class="lede" data-reveal>Tell us a little about what you need. We will set up a time at the office or by phone.</p>
+      <div class="direct" data-stagger>
+        <a href="tel:+17804990463"><span>Call</span><b class="num">(780) 499-0463</b></a>
+        <a href="tel:+17807608454"><span>Second line</span><b class="num">(780) 760-8454</b></a>
+        <a href="mailto:info@omnataxaccounting.ca"><span>Email</span><b>info@omnataxaccounting.ca</b></a>
+      </div>
+    </div>
+    <form class="form" novalidate data-form data-reveal>
+      <div class="form__row">
+        <div class="field"><label for="f-name">Name</label><input id="f-name" name="name" autocomplete="name" required><span class="err" data-err></span></div>
+        <div class="field"><label for="f-email">Email</label><input id="f-email" name="email" type="email" inputmode="email" autocomplete="email" required><span class="err" data-err></span></div>
+      </div>
+      <div class="field"><label for="f-phone">Phone, optional</label><input id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel"></div>
+      <fieldset class="field" style="border:0;padding:0;margin:0"><legend class="label" style="margin-bottom:10px;color:var(--on-ink-3)">What can we take off your plate?</legend>
+        <div class="chips">
+          <label><input type="checkbox" name="need" value="Bookkeeping"><span>Bookkeeping</span></label>
+          <label><input type="checkbox" name="need" value="Payroll"><span>Payroll</span></label>
+          <label><input type="checkbox" name="need" value="GST"><span>GST</span></label>
+          <label><input type="checkbox" name="need" value="Personal tax"><span>Personal tax</span></label>
+          <label><input type="checkbox" name="need" value="Corporate tax"><span>Corporate tax</span></label>
+          <label><input type="checkbox" name="need" value="Business set-up"><span>Business set-up</span></label>
+          <label><input type="checkbox" name="need" value="CRA review"><span>CRA review</span></label>
+        </div>
+      </fieldset>
+      <div class="field"><label for="f-msg">Anything else, optional</label><textarea id="f-msg" name="message" rows="2"></textarea></div>
+      <button class="btn btn--gold" type="submit">Request a consultation<i><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5"/></svg></i></button>
+      <p class="form__status" role="status" aria-live="polite" data-status></p>
+    </form>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot ink">
+  <div class="wrap">
+    <p class="foot__big" aria-hidden="true">Omna<span>.</span></p>
+    <div class="g">
+      <div class="foot__col"><p>Tax and accounting for businesses, non-profits and individuals, from downtown Edmonton.</p></div>
+      <div class="foot__col"><span class="foot__k">Visit</span><a href="#services">Services</a><a href="#your-year">Your year</a><a href="#offices">Offices</a><a href="#contact">Contact</a><a href="https://www.facebook.com/omnataxandaccounting" target="_blank" rel="noopener">Facebook</a></div>
+      <div class="foot__col"><span class="foot__k">Talk to us</span><a class="num" href="tel:+17804990463">(780) 499-0463</a><a class="num" href="tel:+17807608454">(780) 760-8454</a><a href="mailto:info@omnataxaccounting.ca">info@omnataxaccounting.ca</a></div>
+    </div>
+    <div class="foot__base"><span>&copy; 2026 Omna Tax &amp; Accounting</span><span data-credit-foot></span><a href="https://growthehype.ca" target="_blank" rel="noopener">Concept by Grow The Hype</a></div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var doc=document.documentElement, reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function $(s,c){return (c||document).querySelector(s)} function $$(s,c){return Array.prototype.slice.call((c||document).querySelectorAll(s))}
+
+  /* menu */
+  var burger=$('[data-burger]'), menu=$('[data-menu]'), nav=$('[data-nav]');
+  function setMenu(open){burger.setAttribute('aria-expanded',open);menu.classList.toggle('is-open',open);nav.classList.toggle('menu-open',open);document.body.style.overflow=open?'hidden':'';if(window.__lenis){open?window.__lenis.stop():window.__lenis.start()}}
+  burger&&burger.addEventListener('click',function(){setMenu(burger.getAttribute('aria-expanded')!=='true')});
+  $$('a',menu).forEach(function(a){a.addEventListener('click',function(){setMenu(false)})});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')setMenu(false)});
+
+  /* form */
+  var form=$('[data-form]');
+  form&&form.addEventListener('submit',function(e){
+    e.preventDefault(); var ok=true;
+    [['f-name',function(v){return v.trim().length>1},'Please add your name.'],['f-email',function(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)},'Please enter a valid email.']].forEach(function(r){
+      var el=document.getElementById(r[0]), f=el.closest('.field'), good=r[1](el.value); f.classList.toggle('bad',!good); f.querySelector('[data-err]').textContent=good?'':r[2]; if(!good)ok=false });
+    if(ok){$('[data-status]').textContent='This is a homepage concept. On your new site, this would go straight to your inbox.'}
+  });
+
+  /* dial ticks */
+  var dial=$('[data-dial]');
+  if(dial){var s='';for(var i=0;i<96;i++){var a=i/96*Math.PI*2-Math.PI/2,r1=(i%4===0)?118:126,r2=140;s+='<line class="tick" x1="'+(Math.cos(a)*r1).toFixed(1)+'" y1="'+(Math.sin(a)*r1).toFixed(1)+'" x2="'+(Math.cos(a)*r2).toFixed(1)+'" y2="'+(Math.sin(a)*r2).toFixed(1)+'"/>'}dial.innerHTML=s}
+
+  /* today marker on the calendar */
+  var now=$('[data-now]');
+  if(now){var d=new Date(),start=new Date(d.getFullYear(),0,1),end=new Date(d.getFullYear()+1,0,1);now.style.left=((d-start)/(end-start)*100).toFixed(2)+'%'}
+
+  /* open now (Edmonton time) */
+  var open=$('[data-open]');
+  if(open){try{var parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Edmonton',weekday:'short',hour:'numeric',minute:'numeric',hourCycle:'h23'}).formatToParts(new Date()).reduce(function(o,p){o[p.type]=p.value;return o},{});
+    var h=+parts.hour+(+parts.minute)/60, day=parts.weekday, isOpen=(['Mon','Tue','Wed','Thu','Fri'].indexOf(day)>=0&&h>=9&&h<17)||(day==='Sat'&&h>=10&&h<18);
+    open.classList.toggle('closed',!isOpen); open.querySelector('span').textContent=isOpen?'Open now':'Closed now, back '+(day==='Fri'&&h>=17||day==='Sat'&&h<10?'Saturday at 10 am':day==='Sat'||day==='Sun'?'Monday at 9 am':'tomorrow');}catch(e){}}
+
+  /* photo credit */
+  var credit=window.__photoCredit;
+  if(credit){$$('[data-credit],[data-credit-foot]').forEach(function(el){el.innerHTML=credit})}
+
+  function ready(){
+    if(!window.gsap||!window.ScrollTrigger||reduce){doc.classList.remove('motion');$('.intro')&&$('.intro').remove();return}
+    gsap.registerPlugin(ScrollTrigger);
+    window.__ready=true;
+    var lenis=window.Lenis?new Lenis({duration:1.15,smoothWheel:true}):null;
+    if(lenis){window.__lenis=lenis;lenis.on('scroll',ScrollTrigger.update);gsap.ticker.add(function(t){lenis.raf(t*1000)});gsap.ticker.lagSmoothing(0);
+      $$('a[href^="#"]').forEach(function(a){a.addEventListener('click',function(e){var id=a.getAttribute('href');if(id.length<2)return;var el=$(id);if(!el)return;e.preventDefault();lenis.scrollTo(el,{offset:id==='#top'?0:-20,duration:1.4})})})}
+    var E='expo.out', mq=gsap.matchMedia();
+
+    /* header: light over light sections, hide on scroll down */
+    var lastY=0;
+    ScrollTrigger.create({start:0,end:'max',onUpdate:function(self){var y=self.scroll();nav.classList.toggle('is-hidden',y>innerHeight&&y>lastY&&!menu.classList.contains('is-open'));lastY=y}});
+    $$('.statement,.year,.soft,.proof,.offices').forEach(function(sec){ScrollTrigger.create({trigger:sec,start:'top 60px',end:'bottom 60px',onToggle:function(s){nav.classList.toggle('is-light',s.isActive)}})});
+
+    /* intro + hero */
+    var tl=gsap.timeline({defaults:{ease:E}});
+    tl.from('.intro__mark b',{yPercent:110,duration:.9})
+      .from('.intro__mark span',{yPercent:110,opacity:0,duration:.8},'-=.65')
+      .to('.intro__line',{scaleX:1,duration:.7,ease:'power2.inOut'},'-=.5')
+      .to('.intro',{clipPath:'inset(0 0 100% 0)',duration:1,ease:'expo.inOut'},'+=.15')
+      .set('.intro',{display:'none'})
+      .to('.hero__t .ln>span',{yPercent:0,y:0,duration:1.3,stagger:.09},'-=.55')
+      .to('.hero [data-fade]',{opacity:1,y:0,duration:1.1,stagger:.1},'-=.9');
+
+    /* the paper stack: documents drift in, settle into the ledger, seal stamps */
+    var docs=$$('[data-doc]'), seal=$('[data-seal]');
+    var place=[{x:-150,y:-60,r:-14},{x:90,y:-90,r:9},{x:-110,y:120,r:7},{x:120,y:110,r:-10},{x:0,y:0,r:0}];
+    docs.forEach(function(d,i){gsap.set(d,{transformOrigin:'50% 50%',x:place[i].x*1.6,y:place[i].y*1.6+40,rotation:place[i].r*2,opacity:0})});
+    gsap.set(seal,{scale:2.2,opacity:0,transformOrigin:'0 0'});
+    tl.to(docs.slice(0,4),{x:function(i){return place[i].x},y:function(i){return place[i].y},rotation:function(i){return place[i].r},opacity:1,duration:1.6,stagger:.12,ease:'expo.out'},'-=1.4')
+      .to(docs.slice(0,4),{x:function(i){return [-92,-40,34,96][i]},y:function(i){return [-6,-30,-34,-4][i]},rotation:function(i){return [-11,-4.5,4,10][i]},opacity:1,duration:1.3,stagger:.05,ease:'expo.inOut'},'+=.2')
+      .fromTo(docs[4],{opacity:0,y:60,x:0,rotation:0},{opacity:1,y:0,duration:1,ease:'expo.out'},'-=.7')
+      .from('.lrows > *',{opacity:0,x:-8,duration:.5,stagger:.035},'-=.5')
+      .to(seal,{scale:1,opacity:1,duration:.5,ease:'back.out(2.2)'},'-=.2');
+    /* idle breathing + scroll drift */
+    gsap.to('[data-stack]',{y:-10,duration:3.2,ease:'sine.inOut',yoyo:true,repeat:-1,delay:4});
+    gsap.to('.stack',{yPercent:-12,ease:'none',scrollTrigger:{trigger:'.hero',start:'top top',end:'bottom top',scrub:true}});
+    gsap.to('.hero__t',{yPercent:-10,opacity:.25,ease:'none',scrollTrigger:{trigger:'.hero',start:'top top',end:'bottom top',scrub:true}});
+
+    /* statement: words brighten, dial fills */
+    var st=$('[data-scrub]');
+    if(st){var words=st.textContent.trim().split(/\s+/);st.setAttribute('aria-label',st.textContent.trim());st.innerHTML=words.map(function(w){return '<span class="w" aria-hidden="true">'+w+'</span>'}).join(' ');
+      gsap.fromTo(st.querySelectorAll('.w'),{opacity:.16},{opacity:1,stagger:.08,ease:'none',scrollTrigger:{trigger:st,start:'top 78%',end:'bottom 45%',scrub:.6}})}
+    var ticks=$$('.dial .tick'), hours=$('[data-hours]');
+    if(ticks.length){ScrollTrigger.create({trigger:'.statement',start:'top 70%',end:'bottom 50%',scrub:true,onUpdate:function(s){var n=Math.round(s.progress*ticks.length);ticks.forEach(function(t,i){t.classList.toggle('on',i<n)});if(hours)hours.textContent=Math.max(0,24-Math.round(s.progress*24))}})}
+
+    /* reveals */
+    $$('[data-reveal]').forEach(function(el){gsap.to(el,{opacity:1,y:0,duration:1.2,ease:E,scrollTrigger:{trigger:el,start:'top 88%',once:true}})});
+    $$('[data-stagger]').forEach(function(el){gsap.to(el.children,{opacity:1,y:0,duration:1.1,ease:E,stagger:.08,scrollTrigger:{trigger:el,start:'top 88%',once:true}})});
+
+    /* filing cabinet: pinned, each folder lifts away to show the next */
+    mq.add('(min-width: 761px)',function(){
+      var folders=$$('.folder'), idx=$$('[data-index] li'), count=$('[data-count]');
+      var ins=folders.map(function(f){return f.querySelector('.folder__in')});
+      function depthState(j){return {y:-j*30,scale:1-j*.04,opacity:j<4?1:0}}
+      folders.forEach(function(f,i){gsap.set(f,Object.assign({zIndex:folders.length-i},depthState(i)));f.classList.toggle('is-front',i===0)});
+      var ft=gsap.timeline({scrollTrigger:{trigger:'[data-files]',start:'top top',end:'+='+(folders.length*innerHeight*.7),pin:'.files__pin',scrub:.8,
+        onUpdate:function(s){var tt=s.progress*ft.duration(),a=Math.min(folders.length-1,Math.floor((tt+.55)/(1.9)));idx.forEach(function(li,i){li.classList.toggle('on',i===a)});var fr=Math.min(folders.length-1,Math.floor((tt+.2)/1.9));folders.forEach(function(f,i){f.classList.toggle('is-front',i===fr)});if(count)count.textContent=a+1}}});
+      var HOLD=.9, STEP=1;
+      folders.forEach(function(f,i){
+        if(i===folders.length-1)return;
+        var t=i*(HOLD+STEP)+HOLD;
+        ft.to(f,{y:'+=160',rotationX:-10,opacity:0,duration:STEP,ease:'power2.in'},t);
+        folders.slice(i+1).forEach(function(n,j){ft.to(n,Object.assign({duration:STEP,ease:'power2.inOut'},depthState(j)),t)});
+      });
+      ft.to({},{duration:HOLD});
+      ft.to({},{duration:.6});
+      return function(){folders.forEach(function(f){gsap.set(f,{clearProps:'all'})})};
+    });
+
+    /* calendar: pins rise as the year draws */
+    var lanes=$$('[data-lane]');
+    gsap.from('.cal__months',{scaleX:0,transformOrigin:'left',duration:1.4,ease:'expo.inOut',scrollTrigger:{trigger:'[data-cal]',start:'top 80%',once:true}});
+    lanes.forEach(function(l,i){gsap.from(l.querySelectorAll('.lane__pin,.lane__tick'),{scaleY:0,opacity:0,duration:.9,ease:E,stagger:.06,delay:.3+i*.12,scrollTrigger:{trigger:'[data-cal]',start:'top 75%',once:true}})});
+    gsap.from('[data-now]',{opacity:0,scaleY:0,transformOrigin:'top',duration:1,ease:E,delay:1.2,scrollTrigger:{trigger:'[data-cal]',start:'top 75%',once:true}});
+
+    /* steps line fills */
+    var fill=$('[data-fill]');
+    if(fill)gsap.fromTo(fill,{scaleX:0},{scaleX:1,ease:'none',scrollTrigger:{trigger:'[data-steps]',start:'top 80%',end:'bottom 60%',scrub:.6}});
+
+    /* proof: 4.9 counts up */
+    var big=$('[data-count-to]');
+    if(big){var o={v:0};gsap.to(o,{v:4.9,duration:1.8,ease:'expo.out',scrollTrigger:{trigger:big,start:'top 85%',once:true},onUpdate:function(){big.textContent=o.v.toFixed(1)}})}
+
+    /* offices photo: window opens, image drifts */
+    gsap.fromTo('[data-photo]',{clipPath:'inset(12% 8% 12% 8% round 22px)'},{clipPath:'inset(0% 0% 0% 0% round 22px)',ease:'none',scrollTrigger:{trigger:'[data-photo]',start:'top 90%',end:'top 25%',scrub:.6}});
+    gsap.fromTo('[data-parallax]',{yPercent:-6},{yPercent:6,ease:'none',scrollTrigger:{trigger:'[data-photo]',start:'top bottom',end:'bottom top',scrub:true}});
+
+    /* safety: nothing stays hidden */
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(!e.isIntersecting)return;setTimeout(function(){var el=e.target;if(getComputedStyle(el).opacity<.1){gsap.set(el,{opacity:1,y:0})}},1600)})});
+    $$('[data-reveal],[data-stagger]>*,[data-fade]').forEach(function(el){io.observe(el)});
+    window.addEventListener('load',function(){ScrollTrigger.refresh()});
+    document.fonts&&document.fonts.ready.then(function(){ScrollTrigger.refresh()});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready);else ready();
+})();
+</script>
+</body>
+</html>

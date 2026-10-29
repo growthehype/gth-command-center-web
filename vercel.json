@@ -20,7 +20,7 @@
     },
     "api/agent/preview.ts": {
       "maxDuration": 300,
-      "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
+      "includeFiles": "{node_modules/@sparticuz/chromium/bin/**,concepts/**}"
     }
   }
 }

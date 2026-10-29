@@ -5,7 +5,34 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
 import { getAdminClient } from './_lib/supabase-admin'
-import { advancePreview, leadsNeedingPreview } from './_lib/preview'
+import { advancePreview, leadsNeedingPreview, PREVIEW_HOST } from './_lib/preview'
+import fs from 'node:fs'
+import path from 'node:path'
+
+const TYPES: Record<string, string> = { html: 'text/html; charset=utf-8', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', svg: 'image/svg+xml', css: 'text/css', js: 'text/javascript', woff2: 'font/woff2', mp4: 'video/mp4' }
+
+async function publishBundled(slug: string, leadId: string) {
+  if (!/^[a-z0-9-]{2,80}$/.test(slug)) return { ok: false, error: 'bad slug' }
+  const root = path.join(process.cwd(), 'concepts', slug)
+  if (!fs.existsSync(root)) return { ok: false, error: 'no bundled concept for ' + slug }
+  const sb = getAdminClient()
+  const files: string[] = []
+  const walk = (d: string) => { for (const f of fs.readdirSync(d)) { const p = path.join(d, f); fs.statSync(p).isDirectory() ? walk(p) : files.push(p) } }
+  walk(root)
+  const done: string[] = []
+  for (const f of files) {
+    const rel = path.relative(root, f).split(path.sep).join('/')
+    const ext = rel.split('.').pop()!.toLowerCase()
+    const { error } = await sb.storage.from('lead-previews').upload(`${slug}/${rel}`, fs.readFileSync(f), { contentType: TYPES[ext] || 'application/octet-stream', upsert: true, cacheControl: '60' })
+    if (error) return { ok: false, error: `${rel}: ${error.message}` }
+    done.push(rel)
+  }
+  const { data: lead } = await sb.from('outreach_leads').select('enrichment_data').eq('id', leadId).single()
+  const e = (lead?.enrichment_data || {}) as any
+  const preview = { ...(e.preview || {}), slug, status: 'ready', url: `${PREVIEW_HOST}/${slug}/`, built_at: new Date().toISOString(), handmade: true, step: 'done', error: null, review: { score: null, notes: ['Hand-built in the Grow The Hype studio'] } }
+  await sb.from('outreach_leads').update({ enrichment_data: { ...e, preview } }).eq('id', leadId)
+  return { ok: true, url: preview.url, files: done }
+}
 
 const BUDGET_MS = Number(process.env.PREVIEW_BUDGET_MS) || 285_000
 
@@ -20,6 +47,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (agentToken) {
     const { data: ok } = await sb.rpc('agent_hunt_token_ok', { t: agentToken })
     if (ok !== true) return res.status(401).json({ error: 'Unauthorized' })
+
+    // Publish a hand-built concept bundled with the deployment (concepts/<slug>/...)
+    const body = (req.body ?? {}) as any
+    if (body.publish && body.slug && body.leadId) {
+      const r = await publishBundled(String(body.slug), String(body.leadId))
+      return res.status(200).json(r)
+    }
     const { data: configs } = await sb.from('agent_configs').select('id, agent_name, config').eq('enabled', true)
     const agents = (configs || []).filter((c: any) => c.config?.profile === 'gth' && c.config?.build_previews !== false)
     const done: any[] = []

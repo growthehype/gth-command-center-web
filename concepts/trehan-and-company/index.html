@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trehan &amp; Company | Homepage concept by Grow The Hype</title>
+<meta name="description" content="Accountants and tax consultants for individuals, the self-employed and small businesses since 2009. Offices off Whyte Ave and in Sherwood Park, free parking at both.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#f4f2ea">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..700&family=Instrument+Sans:wght@400..600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js" defer></script>
+<script>(function(d){d.classList.add("js");if(!matchMedia("(prefers-reduced-motion: reduce)").matches)d.classList.add("motion");setTimeout(function(){if(!window.__ready)d.classList.remove("motion")},3500)})(document.documentElement)</script>
+<style>
+:root{
+  --paper:#f4f2ea;--paper-2:#ebe8dd;--white:#fbfaf6;
+  --forest:#10241a;--forest-2:#173323;--forest-3:#1f4230;
+  --green:#3faa55;--green-hi:#7fd18f;--green-lo:#2b7f3e;
+  --brown:#5b3a1e;
+  --text:#14201a;--text-2:#55605a;--text-3:#869089;
+  --on-dark:#eef2ec;--on-dark-2:#a9b8ad;--on-dark-3:#76887c;
+  --rule:rgba(20,32,26,.13);--rule-d:rgba(238,242,236,.12);
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Instrument Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --e-out:cubic-bezier(.16,1,.3,1);--e-io:cubic-bezier(.76,0,.24,1);
+  --wrap:1360px;--gut:clamp(20px,4vw,64px);--sec:clamp(112px,14vw,196px);--nav:88px;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;background:var(--paper);scrollbar-color:#c9c5b6 var(--paper);scrollbar-width:thin}
+html.lenis,html.lenis body{height:auto}
+.lenis.lenis-smooth{scroll-behavior:auto!important}
+body{margin:0;background:var(--paper);color:var(--text);font:400 17px/1.6 var(--body);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overflow-x:clip}
+img,svg{display:block;max-width:100%}
+a{color:inherit;text-decoration-thickness:1px;text-underline-offset:.24em}
+h1,h2,h3,h4,p,ul,ol,dl,dd,figure,blockquote{margin:0}
+ul,ol{padding:0;list-style:none}
+button,input{font:inherit;color:inherit}
+::selection{background:var(--green);color:var(--forest)}
+:focus-visible{outline:2px solid var(--green);outline-offset:4px;border-radius:2px}
+::-webkit-scrollbar{width:10px}::-webkit-scrollbar-track{background:var(--paper)}::-webkit-scrollbar-thumb{background:#c9c5b6;border:2px solid var(--paper);border-radius:10px}
+.wrap{width:100%;max-width:calc(var(--wrap) + var(--gut)*2);margin-inline:auto;padding-inline:var(--gut)}
+.g{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:fixed;left:16px;top:-70px;z-index:90;background:var(--forest);color:var(--on-dark);padding:10px 16px;border-radius:999px;text-decoration:none;transition:top .3s var(--e-out)}
+.skip:focus{top:16px}
+.dark{background:var(--forest);color:var(--on-dark)}
+.num{font-variant-numeric:tabular-nums}
+.d1{font-family:var(--display);font-weight:500;font-variation-settings:"opsz" 96;letter-spacing:-.045em;line-height:.94;font-size:clamp(3rem,6.3vw,7.2rem)}
+.d2{font-family:var(--display);font-weight:500;font-variation-settings:"opsz" 96;letter-spacing:-.04em;line-height:1;font-size:clamp(2.4rem,5vw,5.2rem);text-wrap:balance}
+.d3{font-family:var(--display);font-weight:500;font-variation-settings:"opsz" 48;letter-spacing:-.03em;line-height:1.06;font-size:clamp(1.5rem,2.2vw,2.2rem);text-wrap:balance}
+.lede{font-size:clamp(1.06rem,1.2vw,1.22rem);line-height:1.55;color:var(--text-2);max-width:34em;text-wrap:pretty}
+.dark .lede{color:var(--on-dark-2)}
+
+.btn{--h:56px;display:inline-flex;align-items:center;gap:14px;height:var(--h);padding:0 8px 0 26px;border-radius:999px;font:500 15.5px/1 var(--body);text-decoration:none;white-space:nowrap;border:1px solid transparent;cursor:pointer;transition:background-color .4s var(--e-out),border-color .4s var(--e-out),transform .2s var(--e-out)}
+.btn i{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;transition:transform .5s var(--e-out)}
+.btn i svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.btn:active{transform:scale(.97)}
+.btn--green{background:var(--green);color:var(--forest)}
+.btn--green i{background:var(--forest);color:var(--green-hi)}
+.btn--forest{background:var(--forest);color:var(--on-dark)}
+.btn--forest i{background:var(--green);color:var(--forest)}
+.btn--line{border-color:var(--rule);color:var(--text);padding-right:26px}
+.dark .btn--line{border-color:rgba(238,242,236,.24);color:var(--on-dark)}
+.btn--sm{--h:46px;padding-left:20px;font-size:14.5px}
+.btn--sm i{width:32px;height:32px}
+@media (hover:hover){.btn:hover i{transform:translateX(3px) rotate(-45deg)}.btn--green:hover{background:var(--green-hi)}.btn--forest:hover{background:var(--forest-3)}.btn--line:hover{border-color:currentColor}}
+
+/* header */
+.nav{position:fixed;inset:0 0 auto;z-index:60;transition:transform .6s var(--e-out)}
+.nav::before{content:"";position:absolute;inset:0;background:rgba(244,242,234,.86);backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2);border-bottom:1px solid var(--rule);opacity:0;transition:opacity .5s var(--e-out)}
+.nav.is-solid::before{opacity:1}
+.nav.is-hidden{transform:translateY(-100%)}
+.nav__in{position:relative;height:var(--nav);display:flex;align-items:center;gap:36px}
+.brand{flex:none}
+.brand img{height:42px;width:auto}
+.nav__links{display:flex;gap:30px;margin-left:auto;font-size:14.5px}
+.nav__links a{text-decoration:none;color:var(--text-2);position:relative;padding:6px 0;transition:color .3s}
+.nav__links a::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:var(--text);transform:scaleX(0);transform-origin:right;transition:transform .5s var(--e-out)}
+.nav__links a:hover{color:var(--text)}
+.nav__links a:hover::after{transform:scaleX(1);transform-origin:left}
+.nav__tel{font-size:14.5px;text-decoration:none;color:var(--text-2)}
+.burger{display:none}
+.menu{position:fixed;inset:0;z-index:55;background:var(--forest);color:var(--on-dark);padding:calc(var(--nav) + 24px) var(--gut) 40px;display:flex;flex-direction:column;gap:4px;visibility:hidden;clip-path:inset(0 0 100% 0);transition:clip-path .8s var(--e-io),visibility 0s .8s}
+.menu.is-open{visibility:visible;clip-path:inset(0);transition:clip-path .8s var(--e-io),visibility 0s}
+.menu a:not(.btn){font:500 2.3rem/1.1 var(--display);letter-spacing:-.04em;text-decoration:none;padding:12px 0;border-bottom:1px solid var(--rule-d)}
+.menu .btn{margin-top:28px;align-self:flex-start}
+
+/* hero */
+.hero{position:relative;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;padding-top:var(--nav);overflow:hidden}
+.hero__main{flex:1;align-items:center;padding-block:clamp(24px,5vh,56px)}
+.hero__copy{grid-column:1/7;grid-row:1;position:relative;z-index:2}
+.hero__t .ln{display:block;overflow:hidden;padding-bottom:.1em;margin-bottom:-.1em}
+.hero__t .ln>span{display:block}
+.hero__t .green{color:var(--green-lo)}
+.hero__lede{margin-top:clamp(28px,4vh,40px);max-width:30em}
+.hero__acts{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px}
+.scan{grid-column:7/13;grid-row:1;position:relative;height:min(74vh,700px);border-radius:28px;background:var(--forest);overflow:hidden;isolation:isolate}
+.scan__cols{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:0 22px;mask-image:linear-gradient(180deg,transparent 0%,#000 18%,#000 82%,transparent 100%);-webkit-mask-image:linear-gradient(180deg,transparent 0%,#000 18%,#000 82%,transparent 100%)}
+.scan__col{display:flex;flex-direction:column;gap:14px;will-change:transform}
+.chip{display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:14px;background:var(--forest-2);border:1px solid var(--rule-d);font:500 14px/1.25 var(--body);color:var(--on-dark-2);transition:background-color .45s var(--e-out),color .45s var(--e-out),border-color .45s var(--e-out)}
+.chip i{flex:none;width:20px;height:20px;border-radius:50%;border:1px solid rgba(238,242,236,.28);display:grid;place-items:center;transition:all .45s var(--e-out)}
+.chip i svg{width:11px;height:11px;fill:none;stroke:var(--forest);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;opacity:0;transform:scale(.4);transition:all .45s var(--e-out)}
+.chip.on{background:#1d4a2e;border-color:rgba(127,209,143,.4);color:var(--on-dark)}
+.chip.on i{background:var(--green-hi);border-color:var(--green-hi)}
+.chip.on i svg{opacity:1;transform:none}
+.scan__band{position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;background:linear-gradient(90deg,transparent,var(--green-hi) 20%,var(--green-hi) 80%,transparent);box-shadow:0 0 24px 4px rgba(127,209,143,.35);z-index:2}
+.scan__label{position:absolute;left:22px;right:22px;bottom:20px;z-index:3;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--on-dark-3)}
+.scan__label b{font:500 15px var(--body);color:var(--on-dark)}
+.scan__label b span{color:var(--green-hi)}
+.hero__strip{border-top:1px solid var(--rule);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:24px}
+.hero__strip div{padding:20px 0 26px;display:flex;flex-direction:column;gap:4px}
+.hero__strip span{font-size:13.5px;color:var(--text-3)}
+.hero__strip b{font-weight:500;font-size:15.5px}
+.stars{display:inline-flex;gap:2px;color:var(--green-lo);vertical-align:-1px}
+.stars svg{width:13px;height:13px;fill:currentColor}
+
+/* prices */
+.prices{padding-block:var(--sec)}
+.prices__head{align-items:end;row-gap:24px;margin-bottom:clamp(48px,6vw,80px)}
+.prices__head .d2{grid-column:1/8}
+.prices__head .lede{grid-column:9/13}
+.tickets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.ticket{position:relative;border-radius:26px;padding:clamp(28px,3.4vw,48px);min-height:clamp(340px,34vw,460px);display:flex;flex-direction:column;overflow:hidden}
+.ticket--a{background:var(--white);border:1px solid var(--rule)}
+.ticket--b{background:var(--forest);color:var(--on-dark)}
+.ticket::after{content:"";position:absolute;left:-14px;top:58%;width:28px;height:28px;border-radius:50%;background:var(--paper);box-shadow:calc(100vw) 0 0 0 transparent}
+.ticket::before{content:"";position:absolute;right:-14px;top:58%;width:28px;height:28px;border-radius:50%;background:var(--paper);z-index:1}
+.ticket__perf{position:absolute;left:28px;right:28px;top:calc(58% + 14px);border-top:1.5px dashed var(--rule)}
+.ticket--b .ticket__perf{border-color:var(--rule-d)}
+.ticket__k{font-size:14px;color:var(--text-2)}
+.ticket--b .ticket__k{color:var(--on-dark-2)}
+.ticket__price{margin-top:auto;font:500 clamp(5.4rem,11vw,10.5rem)/.8 var(--display);font-variation-settings:"opsz" 96;letter-spacing:-.065em;display:flex;align-items:flex-start;padding-bottom:clamp(40px,5vw,64px)}
+.ticket__price sup{font-size:.36em;letter-spacing:-.02em;margin:.12em .06em 0 0;color:var(--green-lo)}
+.ticket--b .ticket__price sup{color:var(--green-hi)}
+.ticket__foot{display:flex;justify-content:space-between;align-items:end;gap:16px;padding-top:22px}
+.ticket__foot p{font-size:15px;color:var(--text-2);max-width:22em}
+.ticket--b .ticket__foot p{color:var(--on-dark-2)}
+.prices__note{margin-top:22px;font-size:14px;color:var(--text-3)}
+.prices__note a{color:var(--text-2)}
+
+/* services index */
+.svc{padding-block:var(--sec)}
+.svc__head{align-items:end;row-gap:24px;margin-bottom:clamp(48px,6vw,80px)}
+.svc__head .d2{grid-column:1/8}
+.svc__head .lede{grid-column:9/13}
+.svc__list{border-top:1px solid var(--rule-d)}
+.row{border-bottom:1px solid var(--rule-d)}
+.row button{all:unset;box-sizing:border-box;cursor:pointer;width:100%;display:grid;grid-template-columns:2fr 5fr 4fr 40px;column-gap:24px;align-items:center;padding:26px 0}
+.row button:focus-visible{outline:2px solid var(--green);outline-offset:4px}
+.row__k{font-size:13.5px;color:var(--on-dark-3)}
+.row__t{font:500 clamp(1.6rem,2.6vw,2.6rem)/1 var(--display);letter-spacing:-.035em;transition:transform .6s var(--e-out),color .4s}
+.row__s{font-size:15px;color:var(--on-dark-2)}
+.row__x{width:40px;height:40px;border-radius:50%;border:1px solid var(--rule-d);display:grid;place-items:center;transition:transform .6s var(--e-out),background-color .4s,border-color .4s}
+.row__x svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
+.row__body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .7s var(--e-out)}
+.row__body>div{overflow:hidden}
+.row__body p{display:grid;grid-template-columns:2fr 5fr 4fr 40px;column-gap:24px;padding:0 0 30px}
+.row__body p span{grid-column:2/4;color:var(--on-dark-2);max-width:40em}
+.row.open .row__body{grid-template-rows:1fr}
+.row.open .row__x{transform:rotate(45deg);background:var(--green);border-color:var(--green);color:var(--forest)}
+@media (hover:hover){.row button:hover .row__t{transform:translateX(10px);color:var(--green-hi)}}
+
+/* team + slogan */
+.team{padding-block:var(--sec) 0}
+.team__q{font:500 clamp(2.2rem,4.6vw,4.8rem)/1.02 var(--display);font-variation-settings:"opsz" 96;letter-spacing:-.04em;max-width:15em;text-wrap:balance}
+.team__q .w{display:inline}
+.team__by{margin-top:24px;font-size:14.5px;color:var(--text-3);display:flex;align-items:center;gap:14px}
+.team__by::before{content:"";width:40px;height:1px;background:var(--green-lo)}
+.team__photo{margin-top:clamp(56px,7vw,96px);position:relative;border-radius:28px;overflow:hidden;background:var(--white);border:1px solid var(--rule)}
+.team__photo img{width:100%;height:auto;mix-blend-mode:multiply}
+.team__photo figcaption{position:absolute;left:28px;bottom:22px;font-size:13.5px;color:var(--text-2);background:rgba(251,250,246,.9);padding:8px 14px;border-radius:999px}
+.team__facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:24px;margin-top:0}
+.team__facts div{padding:30px 0;border-bottom:1px solid var(--rule)}
+.team__facts b{display:block;font:500 clamp(2.4rem,4vw,3.8rem)/1 var(--display);letter-spacing:-.045em}
+.team__facts span{display:block;margin-top:10px;font-size:15px;color:var(--text-2);max-width:20em}
+
+/* words */
+.words{padding-block:var(--sec)}
+.words .g{row-gap:56px}
+.quote{grid-column:span 6;display:flex;flex-direction:column;gap:28px;padding-top:28px;border-top:1px solid var(--rule)}
+.quote blockquote{font:400 clamp(1.25rem,1.6vw,1.55rem)/1.45 var(--body);letter-spacing:-.01em;text-wrap:pretty}
+.quote blockquote::before{content:"\201C";display:block;font:500 4rem/.6 var(--display);color:var(--green-lo);margin-bottom:12px}
+.quote cite{font-style:normal;font-size:15px}
+.quote cite span{display:block;color:var(--text-3);font-size:14px}
+.rating{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:20px 40px;padding:28px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.rating b{font:500 clamp(3rem,5vw,4.6rem)/1 var(--display);letter-spacing:-.05em}
+.rating .stars svg{width:20px;height:20px}
+.rating p{color:var(--text-2)}
+
+/* locations */
+.locs{padding-block:var(--sec)}
+.locs .g{align-items:center;row-gap:56px}
+.locs__copy{grid-column:1/6}
+.locs__copy .lede{margin-top:24px}
+.map{grid-column:7/13;position:relative;aspect-ratio:1/.86;border-radius:28px;background:var(--forest-2);overflow:hidden}
+.map svg{width:100%;height:100%}
+.map .river{fill:none;stroke:#2f6b4a;stroke-width:22;stroke-linecap:round;opacity:.55}
+.map .road{fill:none;stroke:rgba(238,242,236,.12);stroke-width:1.2}
+.map .route{fill:none;stroke:var(--green-hi);stroke-width:2;stroke-dasharray:6 8;stroke-linecap:round}
+.map .pin circle.o{fill:var(--green-hi);opacity:.18}
+.map .pin circle.i{fill:var(--green-hi)}
+.map .pin text{font:500 15px var(--body);fill:var(--on-dark)}
+.map .pin text.s{font-size:12.5px;fill:var(--on-dark-3)}
+.map .lbl{font:500 11px var(--body);letter-spacing:.16em;fill:rgba(238,242,236,.32)}
+.offices{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:44px}
+.office{padding-top:22px;border-top:1px solid var(--rule-d)}
+.office h3{font:500 1.35rem/1.15 var(--display);letter-spacing:-.025em}
+.office p{margin-top:12px;color:var(--on-dark-2);font-size:15.5px;line-height:1.55}
+.office a{color:var(--on-dark)}
+.office .park{display:inline-flex;align-items:center;gap:8px;margin-top:14px;font-size:13.5px;color:var(--green-hi)}
+.office .park i{width:7px;height:7px;border-radius:50%;background:var(--green-hi)}
+
+/* book */
+.book{padding-block:var(--sec)}
+.book__card{border-radius:32px;background:var(--white);border:1px solid var(--rule);padding:clamp(32px,5vw,80px);display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px;row-gap:48px;align-items:center}
+.book__copy{grid-column:1/7}
+.book__copy .lede{margin-top:24px}
+.book__acts{display:flex;flex-wrap:wrap;gap:12px;margin-top:36px}
+.slots{grid-column:8/13;border-radius:22px;background:var(--paper);border:1px solid var(--rule);padding:24px}
+.slots__top{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--text-2);margin-bottom:18px}
+.slots__top b{font:500 1.15rem var(--display);letter-spacing:-.02em;color:var(--text)}
+.slots__days{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.slots__days span{text-align:center;padding:10px 0;border-radius:12px;font-size:13px;color:var(--text-2);border:1px solid transparent}
+.slots__days span b{display:block;font:500 1.2rem var(--display);color:var(--text)}
+.slots__days span.on{background:var(--forest);color:var(--on-dark-2)}
+.slots__days span.on b{color:var(--on-dark)}
+.slots__grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.slots__grid a{display:block;text-align:center;padding:13px 0;border-radius:12px;border:1px solid var(--rule);font-size:14px;text-decoration:none;transition:all .3s var(--e-out)}
+.slots__grid a:hover,.slots__grid a.on{background:var(--green);border-color:var(--green);color:var(--forest)}
+.slots__note{margin-top:14px;font-size:12.5px;color:var(--text-3)}
+
+/* footer */
+.foot{padding-block:clamp(72px,8vw,112px) 32px}
+.foot__big{font:500 clamp(3.6rem,11vw,11rem)/.86 var(--display);font-variation-settings:"opsz" 96;letter-spacing:-.06em;margin-bottom:clamp(48px,6vw,88px)}
+.foot__big span{color:var(--green-hi)}
+.foot .g{row-gap:32px;font-size:14.5px}
+.foot__col{display:grid;gap:9px;align-content:start}
+.foot__col:nth-child(1){grid-column:1/5}
+.foot__col:nth-child(2){grid-column:5/8}
+.foot__col:nth-child(3){grid-column:8/11}
+.foot__col:nth-child(4){grid-column:11/13}
+.foot__col p{color:var(--on-dark-2);max-width:24em}
+.foot a{color:var(--on-dark-2);text-decoration:none}
+.foot a:hover{color:var(--on-dark)}
+.foot__k{color:var(--on-dark-3);font-size:12.5px;margin-bottom:6px}
+.foot__base{margin-top:56px;padding-top:22px;border-top:1px solid var(--rule-d);display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;font-size:13px;color:var(--on-dark-3)}
+
+html.motion .hero__t .ln>span{transform:translateY(110%)}
+html.motion [data-fade]{opacity:0;transform:translateY(18px)}
+html.motion [data-reveal]{opacity:0;transform:translateY(28px)}
+html.motion [data-stagger]>*{opacity:0;transform:translateY(24px)}
+
+@media (max-width:1100px){
+  .hero__copy{grid-column:1/8}
+  .scan{grid-column:8/13}
+  .scan__cols{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .scan__col:nth-child(3){display:none}
+  .hero__strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .row button,.row__body p{grid-template-columns:1fr 6fr 40px}
+  .row__s{display:none}
+  .row__body p span{grid-column:2/3}
+}
+@media (max-width:960px){
+  :root{--nav:72px}
+  .nav__links,.nav__tel,.nav .btn--green{display:none}
+  .brand img{height:34px}
+  .burger{display:grid;place-content:center;gap:6px;margin-left:auto;width:48px;height:48px;border-radius:50%;border:1px solid var(--rule);background:var(--paper);cursor:pointer;position:relative;z-index:61}
+  .burger i{display:block;width:18px;height:1.5px;background:var(--text);transition:transform .5s var(--e-out)}
+  .burger[aria-expanded="true"] i:first-child{transform:translateY(3.75px) rotate(45deg)}
+  .burger[aria-expanded="true"] i:last-child{transform:translateY(-3.75px) rotate(-45deg)}
+  .prices__head .d2,.prices__head .lede,.svc__head .d2,.svc__head .lede{grid-column:1/-1}
+  .tickets{grid-template-columns:1fr}
+  .quote{grid-column:1/-1}
+  .locs__copy,.map{grid-column:1/-1}
+  .book__copy,.slots{grid-column:1/-1}
+  .foot__col:nth-child(n){grid-column:span 6}
+  .foot__col:nth-child(1){grid-column:1/-1}
+}
+@media (max-width:760px){
+  .hero__main{padding-top:24px}
+  .hero__copy{grid-column:1/-1}
+  .scan{grid-column:1/-1;grid-row:2;height:300px;margin-top:40px;border-radius:22px}
+  .scan__cols{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .hero__acts .btn{flex:1 1 auto;justify-content:space-between}
+  .hero__strip div{padding:14px 0 16px}
+  .team__facts{grid-template-columns:1fr}
+  .team__photo{border-radius:18px}
+  .team__photo figcaption{left:14px;bottom:12px;font-size:12px}
+  .offices{grid-template-columns:1fr}
+  .row button{grid-template-columns:1fr 40px;padding:22px 0}
+  .row__k{display:none}
+  .row__body p{grid-template-columns:1fr}
+  .row__body p span{grid-column:1}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav" data-nav>
+  <div class="wrap nav__in">
+    <a class="brand" href="#top" aria-label="Trehan and Company, back to top"><img src="assets/logo.png" alt="Trehan &amp; Company, Accountants &amp; Tax Consultants" width="475" height="78"></a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="#prices">Prices</a><a href="#services">Services</a><a href="#team">About</a><a href="#locations">Locations</a>
+    </nav>
+    <a class="nav__tel num" href="tel:+17804390050">(780) 439-0050</a>
+    <a class="btn btn--green btn--sm" href="https://trehantax.itfrontdesk.com/apptonline/landing.html?client_code=TREHANTX" target="_blank" rel="noopener">Book online<i><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5"/></svg></i></a>
+    <button class="burger" type="button" aria-expanded="false" aria-controls="menu" data-burger><span class="sr">Menu</span><i></i><i></i></button>
+  </div>
+</header>
+<div class="menu" id="menu" data-menu>
+  <a href="#prices">Prices</a><a href="#services">Services</a><a href="#team">About</a><a href="#locations">Locations</a>
+  <a class="btn btn--green" href="https://trehantax.itfrontdesk.com/apptonline/landing.html?client_code=TREHANTX" target="_blank" rel="noopener">Book an appointment<i><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5"/></svg></i></a>
+</div>
+
+<main id="main">
+<section class="hero" id="top" aria-labelledby="hero-title">
+  <div class="wrap g hero__main">
+    <div class="hero__copy">
+      <h1 class="d1 hero__t" id="hero-title">
+        <span class="ln"><span>Every deduction</span></span>
+        <span class="ln"><span>you are owed.</span></span>
+        <span class="ln"><span class="green">Filed on time.</span></span>
+      </h1>
+      <p class="lede hero__lede" data-fade>Personal, self-employed and corporate tax, bookkeeping and payroll for Edmontonians since 2009. Two offices, free parking at both.</p>
+      <div class="hero__acts" data-fade>
+        <a class="btn btn--forest" href="https://trehantax.itfrontdesk.com/apptonline/landing.html?client_code=TREHANTX" target="_blank" rel="noopener">Book an appointment<i><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5"/></svg></i></a>
+        <a class="btn btn--line num" href="tel:+17804390050">Call (780) 439-0050</a>
+      </div>
+    </div>
+    <div class="scan" aria-hidden="true" data-fade>
+      <div class="scan__cols" data-cols>
+        <div class="scan__col" data-col></div><div class="scan__col" data-col></div><div class="scan__col" data-col></div>
+      </div>
+      <div class="scan__band"></div>
+      <div class="scan__label"><span>Checked on every return</span><b class="num"><span data-claimed>0</span> claimed</b></div>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="hero__strip" data-fade>
+      <div><span>Since</span><b class="num">2009, in Edmonton</b></div>
+      <div><span>Two offices</span><b>Whyte Ave and Sherwood Park</b></div>
+      <div><span>Google</span><b class="num"><span class="stars" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/></svg><svg viewBox="0 0 16 16"><path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/></svg><svg viewBox="0 0 16 16"><path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/></svg><svg viewBox="0 0 16 16"><path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/></svg><svg viewBox="0 0 16 16"><path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/></svg></span> 4.6 from 190 reviews</b></div>
+      <div><span>Booking</span><b>Online, any time</b></div>
+    </div>
+  </div>
+</section>
+
+<section class="prices" id="prices" aria-labelledby="prices-title">
+  <div class="wrap">
+    <div class="g prices__head">
+      <h2 class="d2" id="prices-title" data-reveal>Compare and save. The price is on the page.</h2>
+      <p class="lede" data-reveal>No guessing what your return will cost before you walk in. Bookkeeping and year-end accounting for small and medium businesses, priced to compare.</p>
+    </div>
+    <div class="tickets" data-stagger>
+      <article class="ticket ticket--a">
+        <span class="ticket__k">Personal taxes</span>
+        <p class="ticket__price num" data-price="60"><sup>$</sup><span>60</span></p>
+        <i class="ticket__perf" aria-hidden="true"></i>
+        <div class="ticket__foot"><p>Your T1 return prepared accurately, with every deduction you qualify for.</p></div>
+      </article>
+      <article class="ticket ticket--b">
+        <span class="ticket__k">Corporate taxes</span>
+        <p class="ticket__price num" data-price="625"><sup>$</sup><span>625</span></p>
+        <i class="ticket__perf" aria-hidden="true"></i>
+        <div class="ticket__foot"><p>Every schedule for your federal and provincial corporate filings, prepared in line with the legislation.</p></div>
+      </article>
+    </div>
+    <p class="prices__note">As listed by Trehan &amp; Company. <a href="https://www.trehantax.com/our_prices.php" target="_blank" rel="noopener">See all prices</a></p>
+  </div>
+</section>
+
+<section class="svc dark" id="services" aria-labelledby="svc-title">
+  <div class="wrap">
+    <div class="g svc__head">
+      <h2 class="d2" id="svc-title" data-reveal>From your first return to your corporation.</h2>
+      <p class="lede" data-reveal>Eight services, one team. Open any of them to see what we take care of.</p>
+    </div>
+    <ul class="svc__list" data-acc>
+      <li class="row open"><button aria-expanded="true"><span class="row__k">Individuals</span><span class="row__t">Personal tax return</span><span class="row__s">T1, every eligible deduction</span><span class="row__x"><svg viewBox="0 0 14 14"><path d="M7 1v12M1 7h12"/></svg></span></button><div class="row__body"><div><p><span>Convenient, accurate and affordable preparation of your T1 personal return, with all the deductions and expenses you are entitled to claim.</span></p></div></div></li>
+      <li class="row"><button aria-expanded="false"><span class="row__k">Individuals</span><span class="row__t">Self-employed tax return</span><span class="row__s">Business income, expenses written off</span><span class="row__x"><svg viewBox="0 0 14 14"><path d="M7 1v12M1 7h12"/></svg></span></button><div class="row__body"><div><p><span>Not incorporated? You still file each year and report business or professional income. We prepare everything, claim the business expenses you can write off, and walk you through the return.</span></p></div></div></li>
+      <li class="row"><button aria-expanded="false"><span class="row__k">Business</span><span class="row__t">Corporate tax return</span><span class="row__s">Federal and provincial filings</span><span class="row__x"><svg viewBox="0 0 14 14"><path d="M7 1v12M1 7h12"/></svg></span></button><div class="row__body"><div><p><span>All required schedules and documentation for your Canadian federal and provincial corporate tax filings, in compliance with the legislation.</span></p></div></div></li>
+      <li class="row"><button aria-expanded="false"><span class="row__k">Business</span><span class="row__t">Bookkeeping</span><span class="row__s">Day-to-day records, handled</span><span class="row__x"><svg viewBox="0 0 14 14"><path d="M7 1v12M1 7h12"/></svg></span></button><div class="row__body"><div><p><span>Meaningful, well-organized records keep your business running efficiently every day. Our staff can take the day-to-day bookkeeping off your hands.</span></p></div></div></li>
+      <li class="row"><button aria-expanded="false"><span class="row__k">Business</span><span class="row__t">Payroll</span><span class="row__s">Remittances and T4s</span><span class="row__x"><svg viewBox="0 0 14 14"><path d="M7 1v12M1 7h12"/></svg></span></button><div class="row__body"><div><p><span>Guidance and preparation of regular payroll, monthly remittance returns, annual T4s and other government filings, plus the controls that keep payroll reliable.</span></p></div></div></li>
+      <li class="row"><button aria-expanded="false"><span class="row__k">Business</span><span class="row__t">GST return</span><span class="row__s">Sales tax, across jurisdictions</span><span class="row__x"><svg viewBox="0 0 14 14"><path d="M7 1v12M1 7h12"/></svg></span></button><div class="row__body"><div><p><span>Collecting and submitting sales taxes correctly, with tax-minimization strategies that improve your after-tax position.</span></p></div></div></li>
+      <li class="row"><button aria-expanded="false"><span class="row__k">Business</span><span class="row__t">Business set-up</span><span class="row__s">Structure, registration, financing</span><span class="row__x"><svg viewBox="0 0 14 14"><path d="M7 1v12M1 7h12"/></svg></span></button><div class="row__body"><div><p><span>Every part of starting out: choosing the legal structure, registering with the tax authorities, budgeting and cash flow analysis, and getting financing in place.</span></p></div></div></li>
+      <li class="row"><button aria-expanded="false"><span class="row__k">Everyone</span><span class="row__t">CRA compliance</span><span class="row__s">Reviews and audits</span><span class="row__x"><svg viewBox="0 0 14 14"><path d="M7 1v12M1 7h12"/></svg></span></button><div class="row__body"><div><p><span>When the CRA asks questions, we deal with them for you, for individuals, the self-employed and corporations.</span></p></div></div></li>
+    </ul>
+  </div>
+</section>
+
+<section class="team" id="team" aria-labelledby="team-title">
+  <div class="wrap">
+    <h2 class="sr" id="team-title">About Trehan &amp; Company</h2>
+    <p class="team__q" data-scrub>The difference between accountants is how they care for their clients.</p>
+    <p class="team__by" data-reveal>Trehan &amp; Company, Edmonton, since 2009</p>
+    <figure class="team__photo" data-photo>
+      <img src="assets/team.jpg" alt="The Trehan and Company team" width="1600" height="540" loading="lazy" decoding="async">
+      <figcaption>The Trehan &amp; Company team</figcaption>
+    </figure>
+    <div class="team__facts" data-stagger>
+      <div><b class="num">2009</b><span>Serving Edmonton and the surrounding areas since the day we opened.</span></div>
+      <div><b>One on one</b><span>You work closely with the same people, who get to know your affairs.</span></div>
+      <div><b>All year</b><span>Call us whenever something comes up, not only at tax time.</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="words" aria-labelledby="words-title">
+  <div class="wrap g">
+    <h2 class="sr" id="words-title">What clients say</h2>
+    <div class="rating" data-reveal>
+      <b class="num" data-count-to="4.6">4.6</b>
+      <span class="stars" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/></svg><svg viewBox="0 0 16 16"><path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/></svg><svg viewBox="0 0 16 16"><path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/></svg><svg viewBox="0 0 16 16"><path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/></svg><svg viewBox="0 0 16 16"><path d="M8 1.2l2 4.3 4.7.5-3.5 3.2 1 4.6L8 11.5l-4.2 2.3 1-4.6L1.3 6l4.7-.5z"/></svg></span>
+      <p class="num">From 190 Google reviews</p>
+    </div>
+    <figure class="quote" data-reveal>
+      <blockquote>We found Trehan &amp; Company, being able to offer diverse information on the pitfalls of setting up new business and the continuance of good accountancy practice. In addition to which, their payroll services and tax advice has been more than welcome.</blockquote>
+      <figcaption><cite>Pritpal Sekhon<span>M&amp;P Trucking</span></cite></figcaption>
+    </figure>
+    <figure class="quote" data-reveal>
+      <blockquote>Trehan &amp; Company have been our accountants for over three years which speaks volumes for the value we as an independent Company place upon their service.</blockquote>
+      <figcaption><cite>Harmeet Kapur<span>New Asian Village Restaurant</span></cite></figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="locs dark" id="locations" aria-labelledby="locs-title">
+  <div class="wrap g">
+    <div class="locs__copy">
+      <h2 class="d2" id="locs-title" data-reveal>Two offices. Free parking at both.</h2>
+      <p class="lede" data-reveal>Just off Whyte Ave on the south side, and on Wye Road in Sherwood Park. Pick whichever is closer.</p>
+      <div class="offices" data-stagger>
+        <div class="office"><h3>Whyte Ave</h3><p>8118 100 St NW, just off Whyte Ave<br>Edmonton, AB T6E 6V5</p><p><a class="num" href="tel:+17804390050">(780) 439-0050</a> ext. 1<br><a href="mailto:reception@trehantax.com">reception@trehantax.com</a></p><span class="park"><i></i>Free parking</span></div>
+        <div class="office"><h3>Sherwood Park</h3><p>#27, 99 Wye Rd<br>Sherwood Park, AB T8B 1C9</p><p><a class="num" href="tel:+17804390050">(780) 439-0050</a> ext. 3<br><a href="mailto:sherwood@trehantax.com">sherwood@trehantax.com</a></p><span class="park"><i></i>Free parking</span></div>
+      </div>
+    </div>
+    <div class="map" aria-hidden="true" data-map>
+      <svg viewBox="0 0 600 516">
+        <g class="roads"><path class="road" d="M0 120H600M0 260H600M0 380H600M120 0V516M260 0V516M420 0V516M60 0L280 516M600 60L330 516"/></g>
+        <path class="river" d="M-20 150C90 130 150 220 210 250S300 210 330 160 420 120 470 170 560 250 640 210" data-river/>
+        <text class="lbl" x="60" y="70">EDMONTON</text>
+        <text class="lbl" x="452" y="330">SHERWOOD PARK</text>
+        <path class="route" d="M232 330C300 360 380 380 470 372" data-route/>
+        <g class="pin" transform="translate(232 330)" data-pin><circle class="o" r="22"/><circle class="i" r="6"/><text x="-14" y="-26" text-anchor="end">Whyte Ave</text><text class="s" x="-14" y="-10" text-anchor="end">8118 100 St NW</text></g>
+        <g class="pin" transform="translate(470 372)" data-pin><circle class="o" r="22"/><circle class="i" r="6"/><text x="0" y="46" text-anchor="middle">Sherwood Park</text><text class="s" x="0" y="64" text-anchor="middle">99 Wye Rd</text></g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<section class="book" id="book" aria-labelledby="book-title">
+  <div class="wrap">
+    <div class="book__card">
+      <div class="book__copy">
+        <h2 class="d2" id="book-title" data-reveal>Pick a time. We will handle the rest.</h2>
+        <p class="lede" data-reveal>Book an appointment online, or call and speak with one of our experienced professionals.</p>
+        <div class="book__acts" data-reveal>
+          <a class="btn btn--forest" href="https://trehantax.itfrontdesk.com/apptonline/landing.html?client_code=TREHANTX" target="_blank" rel="noopener">Book an appointment<i><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5"/></svg></i></a>
+          <a class="btn btn--line num" href="tel:+17804390050">(780) 439-0050</a>
+        </div>
+      </div>
+      <div class="slots" data-slots>
+        <div class="slots__top"><b>Choose a day</b><span>Whyte Ave</span></div>
+        <div class="slots__days" data-days></div>
+        <div class="slots__grid"><a href="https://trehantax.itfrontdesk.com/apptonline/landing.html?client_code=TREHANTX" target="_blank" rel="noopener">Morning</a><a class="on" href="https://trehantax.itfrontdesk.com/apptonline/landing.html?client_code=TREHANTX" target="_blank" rel="noopener">Afternoon</a><a href="https://trehantax.itfrontdesk.com/apptonline/landing.html?client_code=TREHANTX" target="_blank" rel="noopener">Evening</a></div>
+        <p class="slots__note">Opens the Trehan &amp; Company booking page with real availability.</p>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="foot dark">
+  <div class="wrap">
+    <p class="foot__big" aria-hidden="true">Trehan &amp; Company<span>.</span></p>
+    <div class="g">
+      <div class="foot__col"><p>Accountants and tax consultants for individuals, the self-employed and small and medium businesses in Edmonton and area, since 2009.</p></div>
+      <div class="foot__col"><span class="foot__k">Whyte Ave</span><span>8118 100 St NW</span><a class="num" href="tel:+17804390050">(780) 439-0050 ext. 1</a><a href="mailto:reception@trehantax.com">reception@trehantax.com</a></div>
+      <div class="foot__col"><span class="foot__k">Sherwood Park</span><span>#27, 99 Wye Rd</span><a class="num" href="tel:+17804390050">(780) 439-0050 ext. 3</a><a href="mailto:sherwood@trehantax.com">sherwood@trehantax.com</a></div>
+      <div class="foot__col"><span class="foot__k">Follow</span><a href="https://www.facebook.com/TrehanTax" target="_blank" rel="noopener">Facebook</a><a href="https://twitter.com/trehantax" target="_blank" rel="noopener">X (Twitter)</a></div>
+    </div>
+    <div class="foot__base"><span>&copy; 2026 Trehan &amp; Company</span><a href="https://growthehype.ca" target="_blank" rel="noopener">Concept by Grow The Hype</a></div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var doc=document.documentElement,reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function $(s,c){return (c||document).querySelector(s)}function $$(s,c){return Array.prototype.slice.call((c||document).querySelectorAll(s))}
+  var nav=$('[data-nav]'),burger=$('[data-burger]'),menu=$('[data-menu]');
+  function setMenu(o){burger.setAttribute('aria-expanded',o);menu.classList.toggle('is-open',o);document.body.style.overflow=o?'hidden':'';if(window.__lenis){o?window.__lenis.stop():window.__lenis.start()}}
+  burger&&burger.addEventListener('click',function(){setMenu(burger.getAttribute('aria-expanded')!=='true')});
+  $$('a',menu).forEach(function(a){a.addEventListener('click',function(){setMenu(false)})});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')setMenu(false)});
+
+  /* accordion */
+  $$('[data-acc] .row button').forEach(function(b){b.addEventListener('click',function(){var row=b.closest('.row'),open=!row.classList.contains('open');$$('[data-acc] .row').forEach(function(r){r.classList.remove('open');r.querySelector('button').setAttribute('aria-expanded','false')});if(open){row.classList.add('open');b.setAttribute('aria-expanded','true')}if(window.ScrollTrigger)setTimeout(function(){ScrollTrigger.refresh()},750)})});
+
+  /* booking days: the next five weekdays */
+  var days=$('[data-days]');
+  if(days){var d=new Date(),out=[],names=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];while(out.length<5){d.setDate(d.getDate()+1);if(d.getDay()!==0&&d.getDay()!==6)out.push('<span'+(out.length===1?' class="on"':'')+'>'+names[d.getDay()]+'<b>'+d.getDate()+'</b></span>')}days.innerHTML=out.join('')}
+
+  /* deduction scanner */
+  var items=['RRSP contributions','Medical expenses','Childcare','Tuition','Moving expenses','Union dues','Charitable donations','Home office','Vehicle expenses','Professional dues','Caregiver amount','Disability tax credit','Pension income splitting','Student loan interest','Business expenses','Canada workers benefit','Spousal amount','Digital news subscriptions'];
+  var check='<svg viewBox="0 0 12 12"><path d="M2.5 6.2l2.3 2.3 4.7-5"/></svg>';
+  var cols=$$('[data-col]');
+  cols.forEach(function(c,ci){var list=items.slice(ci*6).concat(items.slice(0,ci*6));var html=list.concat(list).map(function(t){return '<span class="chip"><i>'+check+'</i>'+t+'</span>'}).join('');c.innerHTML=html});
+  var claimed=$('[data-claimed]'),band=$('.scan__band'),seen=new WeakSet(),count=0;
+  function scanTick(){var bb=band.getBoundingClientRect();$$('.chip').forEach(function(ch){var r=ch.getBoundingClientRect();if(r.top<bb.top&&!ch.classList.contains('on')&&r.bottom>bb.top-400){ch.classList.add('on');if(!seen.has(ch)){seen.add(ch);count++;if(claimed)claimed.textContent=Math.min(count,items.length)}}else if(r.top>bb.top+4){ch.classList.remove('on')}})}
+
+  function ready(){
+    if(!window.gsap||!window.ScrollTrigger||reduce){doc.classList.remove('motion');$$('.chip').slice(0,6).forEach(function(c){c.classList.add('on')});if(claimed)claimed.textContent=items.length;return}
+    gsap.registerPlugin(ScrollTrigger);window.__ready=true;
+    var lenis=window.Lenis?new Lenis({duration:1.15}):null;
+    if(lenis){window.__lenis=lenis;lenis.on('scroll',ScrollTrigger.update);gsap.ticker.add(function(t){lenis.raf(t*1000)});gsap.ticker.lagSmoothing(0);
+      $$('a[href^="#"]').forEach(function(a){a.addEventListener('click',function(e){var id=a.getAttribute('href');if(id.length<2)return;var el=$(id);if(!el)return;e.preventDefault();lenis.scrollTo(el,{offset:id==='#top'?0:-20,duration:1.4})})})}
+    var E='expo.out';
+    var last=0;ScrollTrigger.create({start:0,end:'max',onUpdate:function(s){var y=s.scroll();nav.classList.toggle('is-solid',y>20);nav.classList.toggle('is-hidden',y>innerHeight&&y>last&&!menu.classList.contains('is-open'));last=y}});
+
+    var tl=gsap.timeline({defaults:{ease:E}});
+    tl.to('.hero__t .ln>span',{y:0,yPercent:0,duration:1.4,stagger:.1,delay:.15})
+      .to('.hero [data-fade]',{opacity:1,y:0,duration:1.2,stagger:.1},'-=1');
+
+    /* columns scroll upward at different speeds; chips light as they cross the band */
+    cols.forEach(function(c,i){var h=c.scrollHeight/2;gsap.fromTo(c,{y:-(i*60)},{y:-h-(i*60),duration:[26,32,22][i],ease:'none',repeat:-1})});
+    gsap.ticker.add(scanTick);
+
+    $$('[data-reveal]').forEach(function(el){gsap.to(el,{opacity:1,y:0,duration:1.2,ease:E,scrollTrigger:{trigger:el,start:'top 88%',once:true}})});
+    $$('[data-stagger]').forEach(function(el){gsap.to(el.children,{opacity:1,y:0,duration:1.1,ease:E,stagger:.1,scrollTrigger:{trigger:el,start:'top 88%',once:true}})});
+
+    /* prices count up */
+    $$('[data-price]').forEach(function(p){var n=+p.getAttribute('data-price'),s=p.querySelector('span'),o={v:0};gsap.to(o,{v:n,duration:1.6,ease:'expo.out',scrollTrigger:{trigger:p,start:'top 90%',once:true},onUpdate:function(){s.textContent=Math.round(o.v)}})});
+    gsap.from('.ticket__perf',{scaleX:0,transformOrigin:'left',duration:1.2,ease:'expo.inOut',stagger:.15,scrollTrigger:{trigger:'.tickets',start:'top 80%',once:true}});
+
+    /* slogan brightens word by word */
+    var q=$('[data-scrub]');if(q){var w=q.textContent.trim().split(/\s+/);q.setAttribute('aria-label',q.textContent.trim());q.innerHTML=w.map(function(x){return '<span class="w" aria-hidden="true">'+x+'</span>'}).join(' ');gsap.fromTo(q.querySelectorAll('.w'),{opacity:.18},{opacity:1,stagger:.1,ease:'none',scrollTrigger:{trigger:q,start:'top 80%',end:'bottom 45%',scrub:.6}})}
+    gsap.fromTo('[data-photo]',{clipPath:'inset(10% 6% 10% 6% round 28px)'},{clipPath:'inset(0% 0% 0% 0% round 28px)',ease:'none',scrollTrigger:{trigger:'[data-photo]',start:'top 92%',end:'top 35%',scrub:.6}});
+
+    var r=$('[data-count-to]');if(r){var o={v:0},t=+r.getAttribute('data-count-to');gsap.to(o,{v:t,duration:1.6,ease:'expo.out',scrollTrigger:{trigger:r,start:'top 88%',once:true},onUpdate:function(){r.textContent=o.v.toFixed(1)},onComplete:function(){r.textContent=t.toFixed(1)}})}
+
+    /* map: river and route draw, pins pop */
+    var river=$('[data-river]'),route=$('[data-route]');
+    if(river){var L=river.getTotalLength();gsap.fromTo(river,{strokeDasharray:L,strokeDashoffset:L},{strokeDashoffset:0,duration:2.2,ease:'expo.inOut',scrollTrigger:{trigger:'[data-map]',start:'top 80%',once:true}})}
+    if(route){gsap.fromTo(route,{strokeDashoffset:300},{strokeDashoffset:0,duration:12,ease:'none',repeat:-1})}
+    gsap.from('[data-pin]',{scale:0,opacity:0,transformOrigin:'center',duration:1,ease:'back.out(2)',stagger:.25,delay:.8,scrollTrigger:{trigger:'[data-map]',start:'top 80%',once:true}});
+    gsap.to('[data-pin] circle.o',{scale:1.6,opacity:0,transformOrigin:'center',duration:2,ease:'sine.out',repeat:-1,stagger:.6});
+
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(!e.isIntersecting)return;setTimeout(function(){var el=e.target;if(+getComputedStyle(el).opacity<.1)gsap.set(el,{opacity:1,y:0})},1600)})});
+    $$('[data-reveal],[data-stagger]>*,[data-fade]').forEach(function(el){io.observe(el)});
+    window.addEventListener('load',function(){ScrollTrigger.refresh()});document.fonts&&document.fonts.ready.then(function(){ScrollTrigger.refresh()});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready);else ready();
+})();
+</script>
+</body>
+</html>
