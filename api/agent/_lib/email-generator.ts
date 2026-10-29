@@ -14,7 +14,7 @@ import {
 import { isGthAgent, GTH_WRITER_TOOLS } from './gth-profile'
 import { factCheckDraft, fetchShot } from './visual-audit'
 import { qualifyGthLead } from './qualifier'
-import { buildGthWriterPrompt, pickProofLink, proofUrls, validateVoice, repairVoice, type VoiceDraft as SequenceDraft } from './gth-voice'
+import { buildGthWriterPrompt, pickProofLink, proofUrls, validateVoice, repairVoice, requiredWorkLinks, ensureWorkLinks, type VoiceDraft as SequenceDraft } from './gth-voice'
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -203,7 +203,7 @@ function gthLeadBrief(lead: any, proof: string | null): string {
   parts.push(`Lead with this observation: ${qual?.observation || e.observation || 'none, keep it general but honest'}`)
   parts.push(`Pitch angle: ${qual?.pitch_angle || e.pitch_angle || 'website'}`)
   const concept = conceptUrl(lead)
-  if (concept) parts.push(`Homepage concept: Omar had a new homepage built for them, using their own logo, photos and details: ${concept} . In email 1, mention it once, warmly and plainly, as a quick look at what their homepage could be (for example "I put together a quick look at what your homepage could be, using your own photos and details: {link}"). This is the main thing to share; at most one other work link. Never call it a mockup or a template. In follow-up 1 you may refer back to it in a few words.`)
+  if (concept) parts.push(`Homepage concept: Omar had a new homepage built for them, using their own logo, photos and details: ${concept} . In email 1, mention it once, warmly and plainly, as a quick look at what their homepage could be (for example "I put together a quick look at what your homepage could be, using your own photos and details: {link}"). This is the main thing to share, and the two work links still go in email 1 after it. Never call it a mockup or a template. In follow-up 1 you may refer back to it in a few words.`)
   const shots = attachmentPlan(lead)
   if (shots.length) parts.push(`Attached to email 1: ${shots.length === 1 ? 'a screenshot' : 'screenshots'} of their ${shots.map(x => x.label).join(' and ')}. In email 1 mention once, briefly and naturally, that you attached ${shots.length === 1 ? 'a screenshot' : 'a couple of screenshots'} so they can see what you mean. Do not mention attachments in the follow-ups.`)
   return parts.join('\n')
@@ -214,7 +214,8 @@ async function writeGthSequence(lead: any, cfgInner: any): Promise<{ draft: Sequ
   const allowedLinks = [...proofUrls(cfgInner, lead.industry || '', lead.name || ''), (cfgInner?.booking_link || '').trim(), conceptUrl(lead) || ''].filter(Boolean) as string[]
   const brief = gthLeadBrief(lead, proof)
   const systemPrompt = buildGthWriterPrompt(cfgInner)
-  const validateSequence = (d: SequenceDraft) => validateVoice(d, allowedLinks)
+  const workLinks = requiredWorkLinks(cfgInner, lead.industry || '', lead.name || '')
+  const validateSequence = (d: SequenceDraft) => validateVoice(d, allowedLinks, { work: workLinks, concept: conceptUrl(lead) })
   const pick = (o: any, keys: string[]) => {
     for (const k of keys) if (typeof o?.[k] === 'string' && o[k].trim()) return o[k]
     return ''
@@ -312,9 +313,17 @@ async function buildSequence(lead: any, ctx: SeqCtx): Promise<{ ok: boolean; dra
       })
       if (fc.status === 'revised') {
         draft = { ...draft, ...fc.draft }
-        const allowed = [...proofUrls(inner, lead.industry || '', lead.name || ''), (inner?.booking_link || '').trim()].filter(Boolean) as string[]
-        issues = validateVoice(draft, allowed)
-        if (issues.length) { draft = repairVoice(draft); repaired = true; issues = validateVoice(draft, allowed) }
+        const allowed = [...proofUrls(inner, lead.industry || '', lead.name || ''), (inner?.booking_link || '').trim(), conceptUrl(lead) || ''].filter(Boolean) as string[]
+        const req = { work: requiredWorkLinks(inner, lead.industry || '', lead.name || ''), concept: conceptUrl(lead) }
+        issues = validateVoice(draft, allowed, req)
+        if (issues.length) { draft = ensureWorkLinks(repairVoice(draft), req.work, `${lead.industry || ''} ${lead.name || ''}`); repaired = true; issues = validateVoice(draft, allowed, req) }
+      }
+      // Standard: email 1 always shows two sites we built for businesses like theirs
+      {
+        const work = requiredWorkLinks(inner, lead.industry || '', lead.name || '')
+        const before = draft.email_1
+        draft = ensureWorkLinks(draft, work, `${lead.industry || ''} ${lead.name || ''}`)
+        if (draft.email_1 !== before) issues = issues.filter(i => !/must include the work link/.test(i))
       }
       const subject = (draft.subject || '').trim()
       steps = [

@@ -68,10 +68,10 @@ THE SEQUENCE (three emails, same thread)
    - The observation: one or two concrete things he noticed, taken only from the "Verified findings" in the brief. Say exactly what is there, e.g. "your homepage asks people to book a free consultation, but there isn't a way to actually book one online."
    - Why it matters to them, in one or two sentences.
    - What he would do about it, in one sentence, told as the result for their customers (for example "I'd love to help make it easy for someone on their phone to see what you do and book a consult in a couple of taps"). Match the pitch angle given. No service lists, no talk of brands or design.
-   - If "Work to show" links are given, mention them briefly in one or two lines, e.g. "Here are a couple we built recently: {link} and {link}." Use the note to describe each in plain words (for example a lead landing page). Use at most two links in the first email. If none are given, don't mention past work at all.
-   - A soft ask: a short call or a few ideas over email. ${booking ? `He may offer his booking link once: ${booking}` : 'Do not include any links other than the "Work to show" link.'}
+   - Work to show is REQUIRED when "Work to show" links are given, even when a homepage concept is shared too. Include exactly two of the websites in email 1, each written out in full on its own line, introduced in one plain sentence that says what they are, e.g. "Here are two we built recently for Edmonton accounting firms:" then the two links. Prefer full websites over landing pages for these two. If none are given, don't mention past work at all.
+   - A soft ask: a short call or a few ideas over email. ${booking ? `He may offer his booking link once: ${booking}` : 'Do not include any links other than the "Work to show" links and the homepage concept.'}
    - End on the polite thank you line. Do NOT sign off with a name: Omar's Gmail signature is added below the email.
-2) Follow-up, sent three days later, 40 to 90 words: friendly, no guilt, no "just checking in". Give one small, genuinely useful idea they could act on even without hiring him, tied to the same observation. End with a light, optional ask. No name sign-off.
+2) Follow-up, sent three days later, 40 to 90 words: friendly, no guilt, no "just checking in". Give one small, genuinely useful idea they could act on even without hiring him, tied to the same observation. If a "Work to show" link is a lead landing page, mention it here in one plain line on its own line (for example "This is a page we built that brings one of those firms new client inquiries:" then the link). End with a light, optional ask. No name sign-off.
 3) Final note, five days after that, 25 to 60 words: gracious, leaves the door open, wishes them a good season or a good week, no pressure. No name sign-off.
 
 SUBJECT LINE: 2 to 6 words, lowercase except names, specific to them, e.g. "booking at {business}", "your website", "quick idea for {business}". No clickbait, no "re:", no exclamation marks.
@@ -149,10 +149,37 @@ const LIMITS: Record<'email_1' | 'follow_up_1' | 'follow_up_2', [number, number]
   follow_up_2: [15, 75],
 }
 
-const words = (s: string) => (s.trim().match(/\S+/g) || []).length
+// Links don't count toward length: an email can carry the concept and two sites
+const URL_RE = /\b(?:https?:\/\/)?(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:ca|com|net|org|app|io|co)(?:\/\S*)?/gi
+const words = (s: string) => (s.replace(URL_RE, ' ').trim().match(/\S+/g) || []).length
+const norm = (u: string) => u.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/[.,)]+$/, '').replace(/\/$/, '')
+
+/** Work links that must appear in email 1: two full websites (landing pages only if there aren't two sites). */
+export function requiredWorkLinks(cfgInner: any, industry: string, name: string): ProofLink[] {
+  const all = pickProofLinks(cfgInner, industry, name)
+  const sites = all.filter(l => !/\/[^/]+/.test(norm(l.url)))
+  return [...sites, ...all.filter(l => !sites.includes(l))].slice(0, 2)
+}
+
+/** Guarantee the work links are in email 1, added before the ask if the writer left them out. */
+export function ensureWorkLinks(d: VoiceDraft, links: ProofLink[], industry = ''): VoiceDraft {
+  if (!links.length) return d
+  const body = d.email_1 || ''
+  const missing = links.filter(l => !(body.match(URL_RE) || []).some(u => norm(u) === norm(l.url)))
+  if (!missing.length) return d
+  const kind = /account|cpa|bookkeep|tax|chartered/i.test(industry) ? 'for accounting firms' : 'for local businesses'
+  const all = links.map(l => `https://${norm(l.url)}`)
+  const para = `Here are ${all.length === 1 ? 'one' : 'two'} we built recently ${kind}:\n${all.join('\n')}`
+  // Drop a partial mention so links aren't listed twice, then add before the ask
+  const paras = body.split(/\n{2,}/).filter(p => !links.some(l => p.toLowerCase().includes(norm(l.url))))
+  const askAt = paras.findIndex(p => /short call|few ideas|thanks for taking/i.test(p))
+  const at = askAt > 0 ? askAt : Math.max(1, paras.length - 1)
+  paras.splice(at, 0, para)
+  return { ...d, email_1: paras.join('\n\n') }
+}
 
 /** Every rule a draft breaks. Empty = clean. `allowedLinks` are the only URLs permitted. */
-export function validateVoice(d: VoiceDraft, allowedLinks: string[] = []): string[] {
+export function validateVoice(d: VoiceDraft, allowedLinks: string[] = [], required: { work?: ProofLink[]; concept?: string | null } = {}): string[] {
   const problems: string[] = []
   if (!d || typeof d !== 'object') return ['no draft returned']
   const sw = words(d.subject || '')
@@ -161,6 +188,11 @@ export function validateVoice(d: VoiceDraft, allowedLinks: string[] = []): strin
   for (const { re, label } of BANNED) if (re.test(d.subject || '')) problems.push(`subject uses "${label}"`)
 
   const allowed = allowedLinks.map(l => l.toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, ''))
+  const e1Links = (d.email_1 || '').match(URL_RE) || []
+  for (const w of required.work || []) {
+    if (!e1Links.some(u => norm(u) === norm(w.url))) problems.push(`email_1 must include the work link ${w.url}`)
+  }
+  if (required.concept && !e1Links.some(u => norm(u) === norm(required.concept!))) problems.push(`email_1 must include the homepage concept link ${required.concept}`)
   for (const key of ['email_1', 'follow_up_1', 'follow_up_2'] as const) {
     const body = d[key] || ''
     const [min, max] = LIMITS[key]
