@@ -1,2 +1,2 @@
-omna2 https://growthehype-previews.netlify.app/omna-tax-and-accounting/
-trehan2 https://growthehype-previews.netlify.app/trehan-and-company/
+omna https://growthehype-previews.netlify.app/omna-tax-and-accounting/?v=logo
+trehan https://growthehype-previews.netlify.app/trehan-and-company/?v=logo
