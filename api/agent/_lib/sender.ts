@@ -5,6 +5,7 @@ import { sendEmail, createDraft, updateDraft, findSentInThread } from './gmail-s
 import { checkRateLimit, incrementCounter, DEFAULT_LIMITS } from './rate-limiter'
 import { gthOptOutFooterHtml } from './gth-profile'
 import { loadAttachments } from './visual-audit'
+import { leadRecipients } from './lead-stage'
 
 interface SendParams {
   userId: string
@@ -77,13 +78,14 @@ export async function sendScheduledEmails(params: SendParams): Promise<SendResul
       const leadId = seq?.lead_id || step.lead_id
       const { data: lead } = await sb
         .from('outreach_leads')
-        .select('id, email, name, stage, enrichment_data')
+        .select('id, email, alt_emails, bounced_emails, name, stage, enrichment_data')
         .eq('id', leadId)
         .single()
 
-      if (!lead?.email) {
+      const recipients = lead ? leadRecipients(lead) : []
+      if (!recipients.length) {
         await sb.from('outreach_steps')
-          .update({ status: 'skipped', metadata: { ...(step.metadata || {}), skip_reason: 'no_email' }, updated_at: now })
+          .update({ status: 'skipped', metadata: { ...(step.metadata || {}), skip_reason: lead?.email ? 'every address bounced' : 'no_email' }, updated_at: now })
           .eq('id', step.id)
         skipped++
         continue
@@ -122,7 +124,7 @@ export async function sendScheduledEmails(params: SendParams): Promise<SendResul
       if (!claimed || claimed.length === 0) { skipped++; continue }
 
       const result = await sendEmail(userId, {
-        to: lead.email,
+        to: recipients.join(', '),
         subject: step.subject || '',
         body: step.body || '',
         threadId,
@@ -214,8 +216,9 @@ export async function draftStepToGmail(params: { userId: string; stepId: string;
     .single()
   if (error || !step) throw new Error('Email not found')
   if (['sent', 'replied'].includes(step.status)) throw new Error('This email has already gone out')
-  const { data: lead } = await sb.from('outreach_leads').select('id, email, name, enrichment_data').eq('id', step.outreach_sequences.lead_id).single()
-  if (!lead?.email) throw new Error('This lead has no email address')
+  const { data: lead } = await sb.from('outreach_leads').select('id, email, alt_emails, bounced_emails, name, enrichment_data').eq('id', step.outreach_sequences.lead_id).single()
+  const recipients = lead ? leadRecipients(lead) : []
+  if (!recipients.length) throw new Error(lead?.email ? 'Every address for this lead has bounced. Add one that works first.' : 'This lead has no email address')
   // First email carries the screenshots of what we saw on their site
   const attachments = step.step_number === 1 ? await loadAttachments(lead).catch(() => []) : []
 
@@ -232,7 +235,7 @@ export async function draftStepToGmail(params: { userId: string; stepId: string;
   }
 
   const mail = {
-    to: lead.email,
+    to: recipients.join(', '),
     subject: step.subject || '',
     body: step.body || '',
     threadId,

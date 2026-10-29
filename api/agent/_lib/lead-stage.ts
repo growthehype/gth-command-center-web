@@ -26,3 +26,14 @@ export async function advanceLead(leadId: string, stage: string, opts: { allowFi
   await sb.from('outreach_leads').update({ stage, last_contact: new Date().toISOString().slice(0, 10) }).eq('id', leadId)
   return true
 }
+
+/** Everyone at the business who should get outreach: main address plus extras, minus anything that bounced. */
+export function leadRecipients(lead: { email?: string | null; alt_emails?: string[] | null; bounced_emails?: string[] | null }): string[] {
+  const bounced = new Set((lead.bounced_emails || []).map(e => e.toLowerCase().trim()))
+  const out: string[] = []
+  for (const e of [lead.email, ...(lead.alt_emails || [])]) {
+    const v = String(e || '').toLowerCase().trim()
+    if (v && v.includes('@') && !bounced.has(v) && !out.includes(v)) out.push(v)
+  }
+  return out
+}

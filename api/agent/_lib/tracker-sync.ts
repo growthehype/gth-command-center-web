@@ -7,7 +7,10 @@
 //   next touch, so the automatic follow-ups never double up on someone.
 // - Replies in the outreach thread, even ones archived or filtered out of
 //   the inbox, then classified (interested, objection, not interested...)
-// - Bounces: the sequence stops and the tracker says to find another address
+// - Anyone else Omar adds to a lead's email (To or CC) is learned, and gets
+//   the follow-ups too
+// - Bounces: the bounced address is never used again. The sequence only stops
+//   when nobody at the business received it, and says to find another address
 // - Calendar invites accepted by the lead: Call booked
 // - A proposal or quote he sent after they replied: Proposal
 // A lead only ever moves forward on its own. Won and Closed are left alone.
@@ -15,7 +18,7 @@ import { getAdminClient } from './supabase-admin'
 import { searchMessageMeta, getThreadMeta, type MessageMeta } from './gmail-server'
 import { markStepSent, syncGmailDrafts } from './sender'
 import { classifyInbox } from './inbox-classifier'
-import { stageRank, advanceLead } from './lead-stage'
+import { stageRank, advanceLead, leadRecipients } from './lead-stage'
 
 const LIVE = ['draft', 'active', 'paused']
 const BOUNCE_FROM = /mailer-daemon|postmaster|mail delivery (subsystem|system)/i
@@ -23,6 +26,8 @@ const BOUNCE_SUBJ = /undeliver|delivery status notification|delivery has failed|
 const INVITE_OK = /^(accepted|invitation|updated invitation|new event)\b.*:/i
 const PROPOSAL = /\b(proposal|quote|estimate|scope of work|agreement|contract)\b/i
 
+const OWN_DOMAINS = /@growthehype\.ca$/i
+const SYSTEM_ADDR = /mailer-daemon|postmaster|no-?reply|notifications?@|calendar-notification/i
 const emails = (h: string) => [...String(h || '').matchAll(/[\w.+'-]+@[\w-]+(?:\.[\w-]+)+/g)].map(m => m[0].toLowerCase())
 
 /** Stop the automatic emails for a lead's live sequences. */
@@ -36,6 +41,80 @@ async function stopSequences(leadId: string, status: string, at: string) {
   return data?.length || 0
 }
 
+/**
+ * A bounce only ends the conversation if nobody at the business got the email.
+ * The bounced address is recorded and never used again; if someone else was
+ * on the email (To or CC), they become the main contact and follow-ups carry on.
+ * Returns 'seen' for a bounce already handled.
+ */
+async function handleBounce(leadId: string, seqId: string, bounce: MessageMeta, thread: MessageMeta[]): Promise<'full' | 'partial' | 'seen'> {
+  const sb = getAdminClient()
+  const { data: lead } = await sb.from('outreach_leads').select('id, email, alt_emails, bounced_emails, enrichment_data').eq('id', leadId).single()
+  if (!lead) return 'seen'
+  const known = [lead.email, ...(lead.alt_emails || [])].map((e: any) => String(e || '').toLowerCase()).filter(Boolean)
+  // Which address failed: named in the bounce, else the main address
+  const named = emails(`${bounce.snippet} ${bounce.subject}`).filter(a => !SYSTEM_ADDR.test(a) && !OWN_DOMAINS.test(a))
+  const failed = (named.find(a => known.includes(a)) || named[0] || String(lead.email || '').toLowerCase())
+  const already = (lead.bounced_emails || []).map((e: string) => e.toLowerCase())
+  if (already.includes(failed)) return 'seen'
+  const bounced = [...new Set([...already, failed])]
+  // Who else was on the emails we sent in this thread
+  const sentTo = new Set(thread.filter(x => x.labelIds.includes('SENT')).flatMap(x => [...emails(x.to), ...emails(x.cc)]))
+  const remaining = known.filter(a => !bounced.includes(a))
+  const reached = remaining.filter(a => sentTo.has(a))
+  const at = new Date().toISOString()
+  const patch: any = { bounced_emails: bounced }
+  if (remaining.length && String(lead.email || '').toLowerCase() === failed) {
+    patch.email = remaining[0]
+    patch.alt_emails = remaining.slice(1)
+    patch.enrichment_data = { ...(lead.enrichment_data || {}), email_history: [...((lead.enrichment_data as any)?.email_history || []), { email: failed, bounced_at: at }] }
+  }
+  await sb.from('outreach_leads').update(patch).eq('id', leadId)
+  if (reached.length) return 'partial'
+  await sb.from('outreach_sequences').update({ status: 'bounced', updated_at: at }).eq('id', seqId)
+  await sb.from('outreach_steps').update({ status: 'skipped', updated_at: at }).eq('sequence_id', seqId).in('status', ['pending', 'scheduled', 'approved', 'draft'])
+  return 'full'
+}
+
+/**
+ * Pick a stopped or bounced sequence back up (Omar moved the lead back to
+ * Emailed, or added an address that works). Unsent emails go back in line and
+ * the next one is scheduled from the last email that went out.
+ */
+export async function reopenSequence(params: { userId: string; leadId: string; addEmails?: string[]; cfgInner?: any }): Promise<{ ok: boolean; error?: string; next?: string | null; to?: string[] }> {
+  const sb = getAdminClient()
+  const { data: lead } = await sb.from('outreach_leads').select('id, user_id, email, alt_emails, bounced_emails').eq('id', params.leadId).single()
+  if (!lead || lead.user_id !== params.userId) return { ok: false, error: 'Lead not found' }
+  const add = (params.addEmails || []).map(e => e.toLowerCase().trim()).filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))
+  const bounced = (lead.bounced_emails || []).map((e: string) => e.toLowerCase()).filter((e: string) => !add.includes(e))
+  const pool = [...new Set([...add, ...[lead.email, ...(lead.alt_emails || [])].map((e: any) => String(e || '').toLowerCase()).filter(Boolean)])].filter(e => !bounced.includes(e))
+  if (!pool.length) return { ok: false, error: 'needs_address' }
+  const mainOk = lead.email && !bounced.includes(String(lead.email).toLowerCase())
+  const email = add.length && !mainOk ? add[0] : (mainOk ? String(lead.email).toLowerCase() : pool[0])
+  await sb.from('outreach_leads').update({ email, alt_emails: pool.filter(e => e !== email), bounced_emails: bounced }).eq('id', lead.id)
+
+  const { data: seq } = await sb.from('outreach_sequences').select('id, status, total_steps').eq('lead_id', lead.id).order('created_at', { ascending: false }).limit(1).maybeSingle()
+  if (!seq) return { ok: true, next: null, to: pool }
+  const at = new Date().toISOString()
+  const { data: steps } = await sb.from('outreach_steps').select('id, step_number, status, delay_hours, executed_at').eq('sequence_id', seq.id).order('step_number')
+  const all = steps || []
+  const lastSent = [...all].reverse().find((s: any) => s.status === 'sent')
+  const unsent = all.filter((s: any) => s.status === 'skipped' && (!lastSent || s.step_number > lastSent.step_number))
+  if (unsent.length) await sb.from('outreach_steps').update({ status: 'pending', updated_at: at }).in('id', unsent.map((s: any) => s.id))
+  let next: string | null = null
+  const nextStep = all.find((s: any) => lastSent && s.step_number === lastSent.step_number + 1)
+  if (lastSent && nextStep && ['skipped', 'pending'].includes(nextStep.status)) {
+    const gap = Math.max(24, (nextStep.delay_hours || 72) - (lastSent.delay_hours || 0))
+    const when = Math.max(Date.now() + 2 * 3600_000, new Date(lastSent.executed_at).getTime() + gap * 3600_000)
+    next = new Date(when).toISOString()
+    const auto = params.cfgInner?.auto_followups !== false
+    await sb.from('outreach_steps').update({ scheduled_at: next, ...(auto ? { status: 'scheduled', approval_status: 'approved' } : {}), updated_at: at }).eq('id', nextStep.id)
+  }
+  const done = lastSent && lastSent.step_number >= (seq.total_steps || all.length)
+  await sb.from('outreach_sequences').update({ status: lastSent ? (done ? 'completed' : 'active') : 'draft', updated_at: at }).eq('id', seq.id)
+  return { ok: true, next, to: pool }
+}
+
 export interface TrackerSync {
   drafts: number
   ownEmails: number
@@ -43,6 +122,8 @@ export interface TrackerSync {
   bounces: number
   calls: number
   proposals: number
+  learned?: number
+  partialBounces?: number
   classified: number
   error?: string
 }
@@ -55,9 +136,9 @@ export async function syncTracker(params: { userId: string; cfgInner?: any }): P
   // 1. Drafts sent from Gmail
   try { out.drafts = (await syncGmailDrafts({ userId, cfgInner })).nowSent } catch { /* keep going */ }
 
-  const { data: leads } = await sb.from('outreach_leads').select('id, email, name, stage').eq('user_id', userId).not('email', 'is', null)
+  const { data: leads } = await sb.from('outreach_leads').select('id, email, alt_emails, bounced_emails, name, stage').eq('user_id', userId).not('email', 'is', null)
   const byEmail = new Map<string, any>()
-  for (const l of leads || []) if (l.email) byEmail.set(String(l.email).toLowerCase().trim(), l)
+  for (const l of leads || []) for (const e of [l.email, ...(l.alt_emails || [])]) if (e) byEmail.set(String(e).toLowerCase().trim(), l)
   if (!byEmail.size) return out
 
   // 2. Emails Omar wrote to a lead himself (last 10 days)
@@ -74,9 +155,22 @@ export async function syncTracker(params: { userId: string; cfgInner?: any }): P
   const known = new Set((knownRows || []).map((r: any) => r.gmail_message_id))
 
   for (const m of sent) {
-    if (known.has(m.id) || m.labelIds.includes('DRAFT')) continue
-    const lead = [...emails(m.to), ...emails(m.cc)].map(a => byEmail.get(a)).find(Boolean)
+    if (m.labelIds.includes('DRAFT')) continue
+    const rcpt = [...emails(m.to), ...emails(m.cc)]
+    const lead = rcpt.map(a => byEmail.get(a)).find(Boolean)
     if (!lead) continue
+    // Anyone else Omar included on this business's email joins the lead
+    const extra = rcpt.filter(a => !byEmail.has(a) && !OWN_DOMAINS.test(a) && !SYSTEM_ADDR.test(a) && !(lead.bounced_emails || []).includes(a))
+    if (extra.length) {
+      lead.alt_emails = [...new Set([...(lead.alt_emails || []), ...extra])]
+      await sb.from('outreach_leads').update({ alt_emails: lead.alt_emails }).eq('id', lead.id)
+      for (const a of extra) byEmail.set(a, lead)
+      out.learned = (out.learned || 0) + extra.length
+    }
+    if (known.has(m.id)) continue
+    // Ignore emails that only went to addresses that bounced
+    const live = leadRecipients(lead)
+    if (!rcpt.some(a => live.includes(a))) continue
     const { data: seqs } = await sb.from('outreach_sequences').select('id, status, created_at').eq('lead_id', lead.id).order('created_at', { ascending: false }).limit(1)
     const seq = seqs?.[0]
 
@@ -112,7 +206,7 @@ export async function syncTracker(params: { userId: string; cfgInner?: any }): P
   // 3. Replies and bounces inside outreach threads (archived or filtered ones too)
   const since = new Date(Date.now() - 45 * 86400_000).toISOString()
   const { data: openSteps } = await sb.from('outreach_steps')
-    .select('gmail_thread_id, executed_at, outreach_sequences!inner(id, lead_id, status, user_id)')
+    .select('gmail_thread_id, gmail_message_id, executed_at, outreach_sequences!inner(id, lead_id, status, user_id)')
     .eq('user_id', userId).eq('status', 'sent').eq('step_number', 1)
     .not('gmail_thread_id', 'is', null).gte('executed_at', since)
     .in('outreach_sequences.status', ['active', 'completed'])
@@ -126,11 +220,11 @@ export async function syncTracker(params: { userId: string; cfgInner?: any }): P
       if (m.labelIds.includes('SENT') || m.labelIds.includes('DRAFT')) continue
       if (s.executed_at && m.internalDate < s.executed_at) continue
       if (BOUNCE_FROM.test(m.from) || BOUNCE_SUBJ.test(m.subject)) {
-        const at = new Date().toISOString()
-        await sb.from('outreach_sequences').update({ status: 'bounced', updated_at: at }).eq('id', seq.id)
-        await sb.from('outreach_steps').update({ status: 'skipped', updated_at: at }).eq('sequence_id', seq.id).in('status', ['pending', 'scheduled', 'approved', 'draft'])
-        out.bounces++
-        break
+        const r = await handleBounce(seq.lead_id, seq.id, m, msgs)
+        if (r === 'full') out.bounces++
+        if (r === 'partial') out.partialBounces = (out.partialBounces || 0) + 1
+        if (r !== 'seen') break
+        continue
       }
       replyIds.push(m.id)
     }

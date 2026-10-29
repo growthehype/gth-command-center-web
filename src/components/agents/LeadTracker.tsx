@@ -54,6 +54,7 @@ export interface TrackRow {
   next: string
   urgent: boolean
   threadId: string | null
+  bounced: boolean
 }
 
 const STEP_NAME: Record<number, string> = { 1: 'First email', 2: 'Follow-up', 3: 'Final note' }
@@ -108,7 +109,7 @@ function buildRow(seq: TrackSeq): TrackRow | null {
     case 'proposal': next = 'Check in if you have not heard back'; break
     case 'won': next = lead.converted_client_id ? 'Now a client' : 'Set them up as a client'; break
     case 'closed':
-      if (seq.status === 'bounced') { next = 'Email bounced. Find another address'; urgent = true; break }
+      if (seq.status === 'bounced') { next = 'Email bounced. Add an address that works'; urgent = true; break }
       next = seq.status === 'unsubscribed' || /lost|not/i.test(String(lead.stage)) ? 'Not interested for now' : 'No reply after the last note'; break
   }
 
@@ -119,7 +120,7 @@ function buildRow(seq: TrackSeq): TrackRow | null {
     : last ? `${STEP_NAME[last.step_number]} sent`
     : inDrafts ? 'Drafted' : 'Moved by you'
   const threadId = sent.find(s => s.gmail_thread_id)?.gmail_thread_id || null
-  return { lead, seq, stage, sentCount: sent.length, lastTouch: touch || draftedAt, lastLabel, next, urgent, threadId }
+  return { lead, seq, stage, sentCount: sent.length, lastTouch: touch || draftedAt, lastLabel, next, urgent, threadId, bounced: seq.status === 'bounced' && !manual }
 }
 
 export function useLeadTracker(agent: LeadAgent | null) {
@@ -168,8 +169,30 @@ export function useLeadTracker(agent: LeadAgent | null) {
   }, [sync])
 
   /** Move a lead by hand. Anything past "Following up" stops the automatic follow-ups. */
+  const [fixing, setFixing] = useState<TrackRow | null>(null)
+
+  /** Bounced, stopped or finished conversations restart properly instead of snapping back */
+  const reopen = useCallback(async (row: TrackRow, emails: string[]) => {
+    try {
+      const r = await callAgent({ mode: 'reopen_lead', configId: agent?.id, leadId: row.lead.id, emails })
+      const out = r?.results?.reopen
+      if (!out?.ok) {
+        if (out?.error === 'needs_address') { setFixing(row); return false }
+        showToast(out?.error || 'Could not reopen this lead', 'error'); return false
+      }
+      await supabase.from('outreach_leads').update({ stage: 'Contacted' }).eq('id', row.lead.id)
+      showToast(`${row.lead.name} is back to Emailed${out.next ? `. Next follow-up ${relativeDate(out.next)}` : ''}${out.to?.length ? ` to ${out.to.join(', ')}` : ''}.`, 'success')
+      await Promise.all([load(), useAppStore.getState().refreshLeads()])
+      return true
+    } catch (e: any) { showToast(e?.message || 'Could not reopen this lead', 'error'); return false }
+  }, [agent, load])
+
   const move = useCallback(async (row: TrackRow, to: TrackStage) => {
     const now = new Date().toISOString()
+    if ((to === 'emailed' || to === 'following') && ['bounced', 'stopped', 'completed', 'unsubscribed'].includes(row.seq.status)) {
+      if (row.seq.status === 'bounced') { setFixing(row); return }
+      await reopen(row, []); return
+    }
     const { error } = await supabase.from('outreach_leads')
       .update({ stage: STAGE_VALUE[to], last_contact: now.slice(0, 10) })
       .eq('id', row.lead.id)
@@ -191,7 +214,7 @@ export function useLeadTracker(agent: LeadAgent | null) {
     await Promise.all([load(), useAppStore.getState().refreshLeads()])
   }, [load])
 
-  return { rows, loading, reload: load, move, sync, syncing, syncedAt }
+  return { rows, loading, reload: load, move, sync, syncing, syncedAt, fixing, setFixing, reopen }
 }
 
 /* ========================================
@@ -238,6 +261,34 @@ function StageMenu({ row, onMove }: { row: TrackRow; onMove: (to: TrackStage) =>
   )
 }
 
+function AddressDialog({ row, onClose, onSave }: { row: TrackRow; onClose: () => void; onSave: (emails: string[]) => Promise<boolean> }) {
+  const lead: any = row.lead
+  const known = [lead.email, ...(lead.alt_emails || [])].filter(Boolean) as string[]
+  const bounced: string[] = (lead.bounced_emails || []).length ? lead.bounced_emails : [lead.email].filter(Boolean)
+  const [text, setText] = useState(known.filter(e => !bounced.includes(e)).join('\n'))
+  const [busy, setBusy] = useState(false)
+  const list = text.split(/[\s,;]+/).map(s => s.trim().toLowerCase()).filter(Boolean)
+  const bad = list.filter(e => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e))
+  const ref = useRef<HTMLTextAreaElement>(null)
+  useEffect(() => { ref.current?.focus(); const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }; document.addEventListener('keydown', esc); return () => document.removeEventListener('keydown', esc) }, [onClose])
+  return (
+    <div className="lt-dlg" role="dialog" aria-modal="true" aria-labelledby="lt-dlg-h" onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}>
+      <form className="lt-dlg-card" onSubmit={async e => { e.preventDefault(); if (!list.length || bad.length) return; setBusy(true); const ok = await onSave(list); setBusy(false); if (ok) onClose() }}>
+        <h3 id="lt-dlg-h">Who should get the emails at {row.lead.name}?</h3>
+        <p className="lt-dlg-sub">{bounced.length ? <>Bounced: <s>{bounced.join(', ')}</s>. That address won't be used again.</> : 'Add the addresses that work.'}</p>
+        <label className="lt-dlg-l" htmlFor="lt-dlg-t">Addresses that work, one per line</label>
+        <textarea id="lt-dlg-t" ref={ref} value={text} onChange={e => setText(e.target.value)} rows={3} placeholder="name@business.ca" />
+        {bad.length > 0 && <p className="lt-dlg-err">Check {bad.join(', ')}</p>}
+        <p className="lt-dlg-hint">Follow-ups go to everyone listed, in the same thread. If you already emailed them from Gmail, the tracker links it up on its next check.</p>
+        <div className="lt-dlg-acts">
+          <button type="button" className="lt-clear" onClick={onClose}>Cancel</button>
+          <button type="submit" className="lt-dlg-go" disabled={busy || !list.length || bad.length > 0}>{busy ? <Loader2 size={14} className="animate-spin" /> : null}Save and keep following up</button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
 function Dots({ count }: { count: number }) {
   return (
     <span className="lt-dots" aria-label={`${count} of 3 emails sent`}>
@@ -273,6 +324,7 @@ export default function LeadTracker({ agent, onOpenLead }: { agent: LeadAgent; o
 
   return (
     <div className="lt">
+      {t.fixing && <AddressDialog row={t.fixing} onClose={() => t.setFixing(null)} onSave={emails => t.reopen(t.fixing!, emails)} />}
       {/* Stage rail */}
       <div className="lt-rail" role="tablist" aria-label="Stages">
         {TRACK_STAGES.map((s, i) => (
@@ -316,7 +368,9 @@ export default function LeadTracker({ agent, onOpenLead }: { agent: LeadAgent; o
                 <Dots count={r.sentCount} />
                 <span>{r.lastLabel}{r.lastTouch ? ` ${relativeDate(r.lastTouch)}` : ''}</span>
               </div>
-              <p className={`lt-next ${r.urgent ? 'lt-next--urgent' : ''}`}>{r.next}</p>
+              {r.bounced
+                ? <button className="lt-next lt-next--urgent lt-next--btn" onClick={() => t.setFixing(r)}>{r.next} →</button>
+                : <p className={`lt-next ${r.urgent ? 'lt-next--urgent' : ''}`}>{r.next}</p>}
               <div className="lt-actions">
                 {r.threadId && (
                   <a className="lt-icon" href={`https://mail.google.com/mail/u/0/#all/${r.threadId}`} target="_blank" rel="noreferrer" title="Open the thread in Gmail" aria-label="Open the thread in Gmail">

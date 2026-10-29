@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getAdminClient } from './_lib/supabase-admin'
 import { advancePreview, leadsNeedingPreview, PREVIEW_HOST } from './_lib/preview'
 import { draftStepToGmail } from './_lib/sender'
+import { reopenSequence } from './_lib/tracker-sync'
 import { draftForLead } from './_lib/email-generator'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -67,6 +68,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const r = await draftForLead({ userId: l.user_id, agentConfig: cfg, leadId: String(body.redraftLead) })
         return res.status(200).json({ ok: true, ...r })
       } catch (e: any) { return res.status(200).json({ ok: false, error: String(e?.message || e).slice(0, 300) }) }
+    }
+    // Pick a lead back up after a bounce (never sends)
+    if (body.reopenLead) {
+      const { data: l } = await sb.from('outreach_leads').select('user_id').eq('id', String(body.reopenLead)).single()
+      if (!l) return res.status(404).json({ error: 'lead not found' })
+      const { data: cfg } = await sb.from('agent_configs').select('config').eq('id', String(body.configId || '')).maybeSingle()
+      return res.status(200).json(await reopenSequence({ userId: l.user_id, leadId: String(body.reopenLead), addEmails: body.emails || [], cfgInner: cfg?.config || {} }))
     }
     // Put one approved email into Omar's Gmail Drafts (never sends)
     if (body.gmailDraft && body.stepId) {

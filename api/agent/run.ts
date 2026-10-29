@@ -5,7 +5,7 @@ import { getAdminClient, getAgentConfig, getAgentConfigById, updateAgentRun } fr
 import { runAgentTick } from './_lib/orchestrator'
 import { runActions, summariseRun } from './_lib/actions'
 import { sendScheduledEmails, draftStepToGmail } from './_lib/sender'
-import { syncTracker } from './_lib/tracker-sync'
+import { syncTracker, reopenSequence } from './_lib/tracker-sync'
 import { rescoreLeads, huntLeads } from './_lib/qualifier'
 import { isGthAgent } from './_lib/gth-profile'
 import { draftForLead, generateOutreach } from './_lib/email-generator'
@@ -83,6 +83,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!stepId) return res.status(400).json({ error: 'Missing stepId', step })
       const r = await draftStepToGmail({ userId, stepId, cfgInner: cfg?.config || {} })
       return res.status(200).json({ status: 'completed', results: { gmail_draft: r } })
+    }
+
+    // Pick a bounced or closed lead back up, optionally with addresses that work
+    if (mode === 'reopen_lead') {
+      step = 'reopen_lead'
+      const { leadId, emails } = (req.body ?? {}) as any
+      if (!leadId) return res.status(400).json({ error: 'Missing leadId', step })
+      const cfg = configId ? await getAgentConfigById(configId) : null
+      if (cfg && cfg.user_id !== userId) return res.status(403).json({ error: 'Config does not belong to this user', step })
+      const r = await reopenSequence({ userId, leadId, addEmails: Array.isArray(emails) ? emails : [], cfgInner: cfg?.config || {} })
+      return res.status(200).json({ status: 'completed', results: { reopen: r } })
     }
 
     // Find leads now (GTH): screen pending businesses, search for more, stop at a few 60+
