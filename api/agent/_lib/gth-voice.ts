@@ -201,6 +201,7 @@ export function validateVoice(d: VoiceDraft, allowedLinks: string[] = [], requir
     const last = body.trim().split('\n').pop()?.trim() || ''
     if (/^(omar|omar alladina|-+\s*omar|cheers,?|thanks,?|best,?|regards,?)$/i.test(last)) problems.push(`${key} must not end with a sign-off or name (the Gmail signature adds it)`)
     if (/^\s*([-*•]|\d+\.)\s+/m.test(body)) problems.push(`${key} uses a list`)
+    if (/^\s*subject\s*:/i.test(body)) problems.push(`${key} starts with a "Subject:" line`)
     for (const { re, label } of BANNED) if (re.test(body)) problems.push(`${key} uses "${label}"`)
     for (const { re, label } of CHAR_RULES) {
       re.lastIndex = 0
@@ -220,7 +221,8 @@ export function validateVoice(d: VoiceDraft, allowedLinks: string[] = [], requir
 
 export function repairVoice(d: VoiceDraft): VoiceDraft {
   const fix = (raw: string): string => {
-    let body = (raw || '').replace(/\r/g, '')
+    // Writers sometimes repeat the subject line at the top of the body
+    let body = (raw || '').replace(/\r/g, '').replace(/^\s*subject\s*:[^\n]*\n+/i, '')
     for (const { re, fix: f } of CHAR_RULES) { re.lastIndex = 0; body = body.replace(re, f) }
     body = body.split('\n').map(line => {
       const sentences = line.match(/[^.?]+[.?]?\s*/g) || [line]
