@@ -74,7 +74,11 @@ THE SEQUENCE (three emails, same thread)
 2) Follow-up, sent three days later, 40 to 90 words: friendly, no guilt, no "just checking in". Give one small, genuinely useful idea they could act on even without hiring him, tied to the same observation. If a "Work to show" link is a lead landing page, mention it here in one plain line on its own line (for example "This is a page we built that brings one of those firms new client inquiries:" then the link). End with a light, optional ask. No name sign-off.
 3) Final note, five days after that, 25 to 60 words: gracious, leaves the door open, wishes them a good season or a good week, no pressure. No name sign-off.
 
-SUBJECT LINE: 2 to 6 words, lowercase except names, specific to them, e.g. "booking at {business}", "your website", "quick idea for {business}". No clickbait, no "re:", no exclamation marks.
+SUBJECT LINE: the one line that decides whether they open it, so it must name them and say the most concrete, surprising true thing in the email. 3 to 9 words. Use their business name as people say it.
+- If a homepage concept was built for them, the subject says so plainly: "I built {business} a new homepage". Nothing else is stronger.
+- Otherwise lead with the specific thing you found or the outcome for their customers, e.g. "{business}, your site says Not secure", "booking a consult at {business}", "{business} patients can't book online".
+- Never vague or generic: no "a quick note", "a homepage idea", "your website", "quick question", "following up".
+- No clickbait, no "re:", no exclamation marks, no emojis.
 
 HARD RULES (break one and the email is thrown out)
 - Only use facts from the brief. Never invent clients, results, numbers, prices, timelines, awards, or anything about their site that is not in Verified findings.
@@ -183,7 +187,8 @@ export function validateVoice(d: VoiceDraft, allowedLinks: string[] = [], requir
   const problems: string[] = []
   if (!d || typeof d !== 'object') return ['no draft returned']
   const sw = words(d.subject || '')
-  if (sw < 1 || sw > 8) problems.push(`subject should be 2 to 6 words (got ${sw})`)
+  if (sw < 3 || sw > 9) problems.push(`subject should be 3 to 9 words (got ${sw})`)
+  if (/^(a )?(quick (note|idea|question)|homepage idea|your website|following up)\b/i.test((d.subject || '').trim())) problems.push('subject is too vague: name them and say the concrete thing')
   if (/[!]|re:/i.test(d.subject || '')) problems.push('subject has "!" or "re:"')
   for (const { re, label } of BANNED) if (re.test(d.subject || '')) problems.push(`subject uses "${label}"`)
 
@@ -236,7 +241,7 @@ export function repairVoice(d: VoiceDraft): VoiceDraft {
   }
   let subject = (d.subject || '').replace(/!/g, '').replace(/^re:\s*/i, '')
   for (const { re, fix: f } of CHAR_RULES) { re.lastIndex = 0; subject = subject.replace(re, f) }
-  subject = subject.trim().split(/\s+/).slice(0, 6).join(' ')
+  subject = subject.trim().split(/\s+/).slice(0, 9).join(' ')
   return {
     subject: subject || 'quick idea',
     email_1: fix(d.email_1),
