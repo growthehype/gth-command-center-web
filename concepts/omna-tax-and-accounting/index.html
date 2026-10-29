@@ -81,7 +81,8 @@ input,textarea{caret-color:var(--gold)}
 
 /* intro curtain */
 .intro{position:fixed;inset:0;z-index:80;background:var(--ink);display:grid;place-items:center;pointer-events:none}
-.intro__mark{display:flex;align-items:baseline;gap:14px;color:var(--on-ink);overflow:hidden}
+.intro__mark{overflow:hidden;padding:6px 0}
+.intro__mark img{height:clamp(44px,5vw,64px);width:auto;display:block}
 .intro__mark b{font:500 clamp(2.4rem,5vw,3.6rem)/1 var(--display);letter-spacing:-.05em;display:inline-block}
 .intro__mark span{font:500 12px/1 var(--body);letter-spacing:.18em;text-transform:uppercase;color:var(--gold);display:inline-block}
 .intro__line{position:absolute;left:50%;bottom:calc(50% - 46px);width:120px;height:1px;margin-left:-60px;background:var(--gold);transform-origin:left;transform:scaleX(0)}
@@ -94,10 +95,13 @@ html:not(.motion) .intro{display:none}
 .nav.is-light::before{opacity:1}
 .nav.is-hidden{transform:translateY(-100%)}
 .nav__in{position:relative;height:var(--nav);display:flex;align-items:center;gap:40px}
-.mark{display:flex;align-items:baseline;gap:10px;text-decoration:none;flex:none}
-.mark b{font:500 34px/1 var(--display);letter-spacing:-.055em}
-.mark span{font:500 10.5px/1 var(--body);letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
-.nav.is-light .mark span{color:var(--gold-lo)}
+.mark{position:relative;display:block;flex:none;height:38px}
+.mark img{height:38px;width:auto;display:block;transition:opacity .5s var(--e-out)}
+.mark .mark__d{position:absolute;left:0;top:0;opacity:0}
+.nav.is-light .mark .mark__w{opacity:0}
+.nav.is-light .mark .mark__d{opacity:1}
+.nav.menu-open .mark .mark__w{opacity:1}
+.nav.menu-open .mark .mark__d{opacity:0}
 .nav__links{display:flex;gap:34px;margin-left:auto;font-size:14.5px}
 .nav__links a{text-decoration:none;opacity:.78;position:relative;padding:6px 0;transition:opacity .3s}
 .nav__links a::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:currentColor;transform:scaleX(0);transform-origin:right;transition:transform .5s var(--e-out)}
@@ -299,8 +303,11 @@ html:not(.motion) .folder__in{opacity:1;transform:none}
 
 /* footer */
 .foot{padding-block:clamp(72px,8vw,112px) 32px;border-top:1px solid var(--rule-ink)}
-.foot__big{font:500 clamp(4rem,15vw,15rem)/.82 var(--display);letter-spacing:-.07em;color:var(--on-ink);margin-bottom:clamp(48px,6vw,88px)}
-.foot__big span{color:var(--gold)}
+.foot__top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:40px;padding-bottom:clamp(48px,6vw,80px);margin-bottom:clamp(40px,5vw,64px);border-bottom:1px solid var(--rule-ink)}
+.foot__top img{height:clamp(44px,4.4vw,60px);width:auto}
+.foot__line{font:500 clamp(2.2rem,4.6vw,4.6rem)/1 var(--display);letter-spacing:-.04em;text-align:right;color:var(--on-ink)}
+.foot__line span{color:var(--gold)}
+@media (max-width:760px){.foot__line{text-align:left}}
 .foot .g{row-gap:32px;font-size:14.5px}
 .foot__col{display:grid;gap:10px;align-content:start}
 .foot__col:nth-child(1){grid-column:1/5}
@@ -378,12 +385,12 @@ html.motion [data-stagger]>*{opacity:0;transform:translateY(24px)}
 </style>
 </head>
 <body>
-<div class="intro" aria-hidden="true"><div class="intro__mark"><b>Omna</b><span>Tax &amp; Accounting</span></div><i class="intro__line"></i></div>
+<div class="intro" aria-hidden="true"><div class="intro__mark"><img src="assets/logo-white.png" alt="" width="383" height="61"></div><i class="intro__line"></i></div>
 <a class="skip" href="#main">Skip to content</a>
 
 <header class="nav" data-nav>
   <div class="wrap nav__in">
-    <a class="mark" href="#top" aria-label="Omna Tax and Accounting, back to top"><b>Omna</b><span>Tax &amp; Accounting</span></a>
+    <a class="mark" href="#top" aria-label="Omna Tax and Accounting, back to top"><img class="mark__w" src="assets/logo-white.png" alt="Omna Tax &amp; Accounting" width="383" height="61"><img class="mark__d" src="assets/logo.png" alt="" aria-hidden="true" width="385" height="64"></a>
     <nav class="nav__links" aria-label="Primary">
       <a href="#services">Services</a>
       <a href="#your-year">Your year</a>
@@ -697,7 +704,7 @@ html.motion [data-stagger]>*{opacity:0;transform:translateY(24px)}
 
 <footer class="foot ink">
   <div class="wrap">
-    <p class="foot__big" aria-hidden="true">Omna<span>.</span></p>
+    <div class="foot__top"><img src="assets/logo-white.png" alt="Omna Tax &amp; Accounting" width="383" height="61" loading="lazy"><p class="foot__line">Hand us the paperwork.<br><span>Get your hours back.</span></p></div>
     <div class="g">
       <div class="foot__col"><p>Tax and accounting for businesses, non-profits and individuals, from downtown Edmonton.</p></div>
       <div class="foot__col"><span class="foot__k">Visit</span><a href="#services">Services</a><a href="#your-year">Your year</a><a href="#offices">Offices</a><a href="#contact">Contact</a><a href="https://www.facebook.com/omnataxandaccounting" target="_blank" rel="noopener">Facebook</a></div>
@@ -762,8 +769,7 @@ html.motion [data-stagger]>*{opacity:0;transform:translateY(24px)}
 
     /* intro + hero */
     var tl=gsap.timeline({defaults:{ease:E}});
-    tl.from('.intro__mark b',{yPercent:110,duration:.9})
-      .from('.intro__mark span',{yPercent:110,opacity:0,duration:.8},'-=.65')
+    tl.from('.intro__mark img',{yPercent:110,duration:1})
       .to('.intro__line',{scaleX:1,duration:.7,ease:'power2.inOut'},'-=.5')
       .to('.intro',{clipPath:'inset(0 0 100% 0)',duration:1,ease:'expo.inOut'},'+=.15')
       .set('.intro',{display:'none'})
