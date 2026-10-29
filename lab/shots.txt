@@ -1,3 +1,2 @@
-cozy https://cozy-concha-180e3d.netlify.app/
-stl http://www.smiththompsonlaw.ca/
-yeg http://yeghomerenovations.com/
+stl https://growthehype-previews.netlify.app/smith-thompson-law/?v=1
+yeg https://growthehype-previews.netlify.app/yeg-home-renovations/?v=1
