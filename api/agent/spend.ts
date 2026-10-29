@@ -4,7 +4,7 @@
 //   50%: lean mode, lead hunting runs one shift a day, concept builds stop
 //   75%: background hunting and concept builds stop; Gmail tracking keeps running
 // Everything returns to normal on the first of the next month.
-// The URL carries the agent token as ?key=..., checked against Supabase Vault.
+// The URL carries its own key as ?key=... (Vault secret spend_webhook_key).
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { getAdminClient } from './_lib/supabase-admin'
 
@@ -12,7 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
   const sb = getAdminClient()
   const key = String(req.query.key || '')
-  const { data: ok } = await sb.rpc('agent_hunt_token_ok', { t: key })
+  const { data: ok } = await sb.rpc('spend_key_ok', { t: key })
   if (ok !== true) return res.status(401).json({ error: 'Unauthorized' })
 
   const body = (typeof req.body === 'string' ? JSON.parse(req.body || '{}') : req.body) || {}
