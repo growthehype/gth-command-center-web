@@ -396,8 +396,10 @@ export function attachmentPlan(lead: any): { url: string; filename: string; labe
   const qual = lead?.enrichment_data?.qual
   const visual = qual?.visual
   const preview = lead?.enrichment_data?.preview
+  // Short, readable file names: "Trehan & Company - Accountants..." -> trehan-company
+  const slug = String(lead?.name || 'website').split(/\s+[-|–:]\s+/)[0].toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 32).replace(/-$/, '') || 'website'
   // Their homepage concept leads, then the one screenshot that best shows the problem
-  const concept = preview?.status === 'ready' && preview?.image ? { url: String(preview.image), filename: `${String(lead.name || 'website').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40)}-new-homepage-idea.jpg`, label: 'concept' } : null
+  const concept = preview?.status === 'ready' && preview?.image ? { url: String(preview.image), filename: `${slug}-new-homepage-idea.jpg`, label: 'concept' } : null
   if (!visual?.checked || !visual.urls) return concept ? [concept] : []
   const letters: string[] = []
   for (const f of visual.findings || []) {
@@ -407,7 +409,6 @@ export function attachmentPlan(lead: any): { url: string; filename: string; labe
     }
   }
   if (!letters.length && qual?.design?.verdict === 'dated') letters.push('B', 'A')
-  const slug = String(lead.name || 'website').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'website'
   const out: { url: string; filename: string; label: string }[] = concept ? [concept] : []
   const pick = preview?.attach_shot as string | undefined
   if (pick && SHOT_KEYS[pick]) {
