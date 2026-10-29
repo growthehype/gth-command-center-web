@@ -1,20 +1,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowUpRight, ChevronDown, Loader2, Mail, Check } from 'lucide-react'
+import { ArrowUpRight, ChevronDown, Loader2, Mail, Check, RefreshCw } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAppStore, type OutreachLead } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
 import { relativeDate } from '@/lib/utils'
 import type { LeadAgent } from '@/components/outreach/LeadAgents'
+import { callAgent } from '@/hooks/useAgentWorkspace'
 
 /*
  * Lead tracker: where every contacted business stands after the first email.
- * The stage is worked out from what actually happened (emails sent, replies
- * the inbox check picked up) and Omar can move a lead by hand at any point.
+ * The stage is worked out from what actually happened in Omar's Gmail: drafts
+ * he sent, emails he wrote himself, replies, bounces, accepted invites and
+ * proposals (see api/agent/_lib/tracker-sync.ts). It checks Gmail when the
+ * tracker opens and every few minutes while it is on screen. Omar can still
+ * move a lead by hand at any point.
  */
 
-export type TrackStage = 'emailed' | 'following' | 'replied' | 'call' | 'proposal' | 'won' | 'closed'
+export type TrackStage = 'drafted' | 'emailed' | 'following' | 'replied' | 'call' | 'proposal' | 'won' | 'closed'
 
 export const TRACK_STAGES: { key: TrackStage; label: string; hint: string }[] = [
+  { key: 'drafted', label: 'In drafts', hint: 'Ready in your Gmail drafts. Send it when you are happy with it.' },
   { key: 'emailed', label: 'Emailed', hint: 'First email sent, waiting to hear back' },
   { key: 'following', label: 'Following up', hint: 'A follow-up has gone out' },
   { key: 'replied', label: 'Replied', hint: 'They wrote back. Your move.' },
@@ -26,6 +31,7 @@ export const TRACK_STAGES: { key: TrackStage; label: string; hint: string }[] = 
 
 /** What lead.stage is saved as when Omar moves a lead by hand */
 const STAGE_VALUE: Record<TrackStage, string> = {
+  drafted: 'qualified',
   emailed: 'Contacted',
   following: 'Contacted',
   replied: 'Responded',
@@ -35,7 +41,7 @@ const STAGE_VALUE: Record<TrackStage, string> = {
   closed: 'Closed Lost',
 }
 
-interface TrackStep { id: string; step_number: number; status: string; scheduled_at: string | null; executed_at: string | null; gmail_thread_id: string | null }
+interface TrackStep { id: string; step_number: number; status: string; scheduled_at: string | null; executed_at: string | null; gmail_thread_id: string | null; metadata?: any }
 interface TrackSeq { id: string; status: string; replied_at: string | null; created_at: string; lead: OutreachLead | null; steps: TrackStep[] }
 
 export interface TrackRow {
@@ -70,7 +76,9 @@ function buildRow(seq: TrackSeq): TrackRow | null {
   const steps = [...(seq.steps || [])].sort((a, b) => a.step_number - b.step_number)
   const sent = steps.filter(s => ['sent', 'replied'].includes(s.status) && s.executed_at)
   const manual = manualStage(lead.stage)
-  if (!sent.length && !manual) return null
+  const first = steps.find(s => s.step_number === 1)
+  const inDrafts = !sent.length && first?.status === 'approved' && first?.metadata?.via === 'gmail_draft'
+  if (!sent.length && !manual && !inDrafts) return null
 
   const last = sent[sent.length - 1] || null
   const upcoming = steps.find(s => ['scheduled', 'pending', 'approved'].includes(s.status))
@@ -78,7 +86,9 @@ function buildRow(seq: TrackSeq): TrackRow | null {
 
   let stage: TrackStage
   if (manual) stage = manual
+  else if (inDrafts) stage = 'drafted'
   else if (seq.status === 'replied') stage = 'replied'
+  else if (seq.status === 'bounced') stage = 'closed'
   else if (seq.status === 'unsubscribed') stage = 'closed'
   else if (seqDone) stage = 'closed'
   else stage = sent.length > 1 ? 'following' : 'emailed'
@@ -86,6 +96,7 @@ function buildRow(seq: TrackSeq): TrackRow | null {
   let next = ''
   let urgent = false
   switch (stage) {
+    case 'drafted': next = 'Send it from your Gmail drafts'; urgent = true; break
     case 'emailed':
     case 'following':
       if (upcoming?.status === 'scheduled' && upcoming.scheduled_at) next = `${STEP_NAME[upcoming.step_number]} goes out ${relativeDate(upcoming.scheduled_at)}`
@@ -96,13 +107,19 @@ function buildRow(seq: TrackSeq): TrackRow | null {
     case 'call': next = 'Have the call, then send a proposal'; break
     case 'proposal': next = 'Check in if you have not heard back'; break
     case 'won': next = lead.converted_client_id ? 'Now a client' : 'Set them up as a client'; break
-    case 'closed': next = seq.status === 'unsubscribed' || /lost|not/i.test(String(lead.stage)) ? 'Not interested for now' : 'No reply after the last note'; break
+    case 'closed':
+      if (seq.status === 'bounced') { next = 'Email bounced. Find another address'; urgent = true; break }
+      next = seq.status === 'unsubscribed' || /lost|not/i.test(String(lead.stage)) ? 'Not interested for now' : 'No reply after the last note'; break
   }
 
   const touch = seq.replied_at && ['replied', 'call', 'proposal', 'won'].includes(stage) ? seq.replied_at : last?.executed_at || null
-  const lastLabel = seq.replied_at && touch === seq.replied_at ? 'They replied' : last ? `${STEP_NAME[last.step_number]} sent` : 'Moved by you'
+  const draftedAt = inDrafts ? first?.metadata?.gmail_draft_at || null : null
+  const lastLabel = seq.replied_at && touch === seq.replied_at ? 'They replied'
+    : last?.metadata?.via === 'gmail_own' ? 'You emailed them'
+    : last ? `${STEP_NAME[last.step_number]} sent`
+    : inDrafts ? 'Drafted' : 'Moved by you'
   const threadId = sent.find(s => s.gmail_thread_id)?.gmail_thread_id || null
-  return { lead, seq, stage, sentCount: sent.length, lastTouch: touch, lastLabel, next, urgent, threadId }
+  return { lead, seq, stage, sentCount: sent.length, lastTouch: touch || draftedAt, lastLabel, next, urgent, threadId }
 }
 
 export function useLeadTracker(agent: LeadAgent | null) {
@@ -113,7 +130,7 @@ export function useLeadTracker(agent: LeadAgent | null) {
   const load = useCallback(async () => {
     if (!agent || demo) { setRows([]); setLoading(false); return }
     const { data, error } = await supabase.from('outreach_sequences')
-      .select('id, status, replied_at, created_at, lead:outreach_leads(*), steps:outreach_steps(id, step_number, status, scheduled_at, executed_at, gmail_thread_id)')
+      .select('id, status, replied_at, created_at, lead:outreach_leads(*), steps:outreach_steps(id, step_number, status, scheduled_at, executed_at, gmail_thread_id, metadata)')
       .eq('agent_config_id', agent.id)
       .order('created_at', { ascending: false })
       .limit(1000)
@@ -133,6 +150,22 @@ export function useLeadTracker(agent: LeadAgent | null) {
   }, [agent, demo])
 
   useEffect(() => { setLoading(true); load() }, [load])
+
+  // Check Gmail when the tracker opens and every 4 minutes while it's visible
+  const [syncing, setSyncing] = useState(false)
+  const [syncedAt, setSyncedAt] = useState<Date | null>(null)
+  const sync = useCallback(async () => {
+    if (!agent || demo) return
+    setSyncing(true)
+    try { await callAgent({ mode: 'sync_drafts', agentType: agent.agent_type, configId: agent.id }); setSyncedAt(new Date()) } catch { /* offline is fine */ }
+    setSyncing(false)
+    await load()
+  }, [agent, demo, load])
+  useEffect(() => {
+    sync()
+    const id = window.setInterval(() => { if (document.visibilityState === 'visible') sync() }, 240_000)
+    return () => window.clearInterval(id)
+  }, [sync])
 
   /** Move a lead by hand. Anything past "Following up" stops the automatic follow-ups. */
   const move = useCallback(async (row: TrackRow, to: TrackStage) => {
@@ -158,7 +191,7 @@ export function useLeadTracker(agent: LeadAgent | null) {
     await Promise.all([load(), useAppStore.getState().refreshLeads()])
   }, [load])
 
-  return { rows, loading, reload: load, move }
+  return { rows, loading, reload: load, move, sync, syncing, syncedAt }
 }
 
 /* ========================================
@@ -186,7 +219,7 @@ function StageMenu({ row, onMove }: { row: TrackRow; onMove: (to: TrackStage) =>
       </button>
       {open && (
         <ul className="lt-menu-list" role="listbox">
-          {TRACK_STAGES.filter(s => s.key !== 'following').map(s => (
+          {TRACK_STAGES.filter(s => s.key !== 'following' && s.key !== 'drafted').map(s => (
             <li key={s.key}>
               <button role="option" aria-selected={s.key === row.stage} onClick={async e => {
                 e.stopPropagation(); setOpen(false)
@@ -233,7 +266,7 @@ export default function LeadTracker({ agent, onOpenLead }: { agent: LeadAgent; o
       <div className="ah-empty">
         <Mail size={22} />
         <p className="ah-empty-title">No conversations yet</p>
-        <p>Once an email goes out, the business shows up here and moves along on its own: emailed, followed up, replied. You move it to call booked, proposal or won.</p>
+        <p>Once an email is in your Gmail drafts or goes out, the business shows up here and moves along on its own: emailed, followed up, replied, call booked, proposal. You only move it to won.</p>
       </div>
     )
   }
@@ -260,7 +293,13 @@ export default function LeadTracker({ agent, onOpenLead }: { agent: LeadAgent; o
             ? <>{openCount} open conversation{openCount === 1 ? '' : 's'}{yourMove ? <> · <strong>{yourMove} need{yourMove === 1 ? 's' : ''} you</strong></> : ''}</>
             : <>{TRACK_STAGES.find(s => s.key === filter)?.hint}</>}
         </p>
-        {filter !== 'open' && <button className="lt-clear" onClick={() => setFilter('open')}>Show all open</button>}
+        <div className="lt-bar-r">
+          {filter !== 'open' && <button className="lt-clear" onClick={() => setFilter('open')}>Show all open</button>}
+          <button className="lt-sync" onClick={() => t.sync()} disabled={t.syncing} title="Check Gmail for sends, replies and bounces now">
+            <RefreshCw size={12} className={t.syncing ? 'animate-spin' : ''} />
+            {t.syncing ? 'Checking Gmail' : t.syncedAt ? `Gmail checked ${t.syncedAt.toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit' })}` : 'Check Gmail'}
+          </button>
+        </div>
       </div>
 
       {shown.length === 0 ? (

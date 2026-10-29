@@ -1,4 +1,5 @@
 // AI cold email generation engine
+import { isPersonName } from './website-analyzer'
 import { attachmentPlan } from './visual-audit'
 import { PREVIEW_MIN_SCORE } from './preview'
 import { getAdminClient } from './supabase-admin'
@@ -136,6 +137,8 @@ async function generateEmailsForLead(
 function firstName(full?: string | null): string | null {
   if (!full) return null
   const cleaned = full.replace(/^(dr\.?|mr\.?|mrs\.?|ms\.?)\s+/i, '').trim()
+  // Scraped text sometimes lands here ("you will realize"); only greet real names
+  if (!isPersonName(cleaned) && !/^[A-Z][a-z'’-]+$/.test(cleaned)) return null
   const first = cleaned.split(/\s+/)[0]
   return first && /^[A-Za-z'-]{2,}$/.test(first) ? first : null
 }

@@ -1,13 +1,16 @@
 // Inbox monitoring and reply classification engine
 import { getAdminClient } from './supabase-admin'
-import { listNewMessages, getMessageContent } from './gmail-server'
+import { searchMessageMeta, getMessageContent } from './gmail-server'
 import { askClaude, extractToolUse, REPLY_CLASSIFIER_PROMPT, REPLY_CLASSIFIER_TOOLS } from './claude'
+import { advanceLead } from './lead-stage'
 
 // ─── Types ──────────────────────────────────────────────────────
 
 interface ClassifyParams {
   userId: string
   agentRunId: string
+  /** Replies found inside outreach threads (may be archived or filtered) */
+  extraMessageIds?: string[]
 }
 
 interface ClassifyResult {
@@ -47,7 +50,7 @@ function classificationToStage(classification: string): string | null {
 // ─── Main Export ────────────────────────────────────────────────
 
 export async function classifyInbox(params: ClassifyParams): Promise<ClassifyResult> {
-  const { userId, agentRunId } = params
+  const { userId, agentRunId, extraMessageIds = [] } = params
   const sb = getAdminClient()
 
   let classified = 0
@@ -60,7 +63,7 @@ export async function classifyInbox(params: ClassifyParams): Promise<ClassifyRes
     try {
       // Read state doesn't matter: Omar may open a reply before the agent runs.
       // Already-classified messages are skipped below.
-      messages = await listNewMessages(userId, 'in:inbox newer_than:14d -from:me')
+      messages = await searchMessageMeta(userId, 'in:inbox newer_than:14d -from:me -category:promotions -category:social', 150)
     } catch (gmailErr: any) {
       const msg = String(gmailErr?.message || gmailErr || '')
       // Gmail not linked is NOT a real failure for a lead-gen agent;
@@ -72,6 +75,7 @@ export async function classifyInbox(params: ClassifyParams): Promise<ClassifyRes
       throw gmailErr
     }
 
+    for (const id of extraMessageIds) if (!messages.some((m: any) => m.id === id)) messages.push({ id })
     if (!messages || messages.length === 0) {
       return { classified: 0, replies: 0, meetings: 0 }
     }
@@ -98,6 +102,13 @@ export async function classifyInbox(params: ClassifyParams): Promise<ClassifyRes
       .in('gmail_message_id', messageIds)
 
     const classifiedSet = new Set((alreadyClassified || []).map((c: any) => c.gmail_message_id))
+
+    // Only open messages that could be from a lead: a known address, an
+    // outreach thread, or a reply the thread check already found
+    const { data: threadRows } = await sb.from('outreach_steps').select('gmail_thread_id').eq('user_id', userId).not('gmail_thread_id', 'is', null)
+    const outreachThreads = new Set((threadRows || []).map((r: any) => r.gmail_thread_id))
+    const extra = new Set(extraMessageIds)
+    messages = messages.filter((m: any) => extra.has(m.id) || !m.from || leadsByEmail.has(extractEmail(m.from)) || outreachThreads.has(m.threadId))
 
     // 4. Process each message
     for (const msg of messages) {
@@ -222,13 +233,9 @@ export async function classifyInbox(params: ClassifyParams): Promise<ClassifyRes
         }
 
         // Update lead stage based on classification
+        // Forward only: a lead already at Call booked or Proposal stays there
         const newStage = classificationToStage(classification)
-        if (newStage) {
-          await sb
-            .from('outreach_leads')
-            .update({ stage: newStage })
-            .eq('id', matchedLead.id)
-        }
+        if (newStage) await advanceLead(matchedLead.id, newStage)
       } catch (msgErr) {
         console.error(`Error processing message ${msg.id}:`, msgErr)
         continue

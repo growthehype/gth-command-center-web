@@ -63,7 +63,7 @@ interface SendEmailParams {
 
 /** Build the raw MIME message: HTML body with signature, plus optional attachments. */
 function buildMime(params: SendEmailParams): string {
-  const htmlBody = escapeHtml(params.body).replace(/\n/g, '<br>')
+  const htmlBody = linkify(escapeHtml(params.body)).replace(/\n/g, '<br>')
   const html = `<html><body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #222;">${htmlBody}${GTH_EMAIL_SIGNATURE}${params.footerHtml || ''}</body></html>`
   const headers = [
     `To: ${params.to}`,
@@ -99,6 +99,11 @@ function buildMime(params: SendEmailParams): string {
   }
   parts.push(`--${boundary}--`)
   return [...headers, `Content-Type: multipart/mixed; boundary="${boundary}"`, '', ...parts].join('\r\n')
+}
+
+/** Turn bare web addresses into links so they are clickable in every mail app. */
+function linkify(s: string): string {
+  return s.replace(/\bhttps?:\/\/[^\s<]+[^\s<.,;:!?)'"]/g, u => `<a href="${u}" target="_blank" style="color:#1a56db;">${u}</a>`)
 }
 
 function escapeHtml(s: string): string {
@@ -171,8 +176,93 @@ export async function createDraft(userId: string, params: SendEmailParams): Prom
   return { draftId: d.id, messageId: d.message?.id, threadId: d.message?.threadId }
 }
 
+/** Replace the content of a draft that is still in Omar's Drafts. Returns null if the draft is gone. */
+export async function updateDraft(userId: string, draftId: string, params: SendEmailParams): Promise<{ draftId: string; messageId: string; threadId: string } | null> {
+  const token = await getAccessToken(userId)
+  const message: any = { raw: Buffer.from(buildMime(params), 'utf-8').toString('base64url') }
+  if (params.threadId) message.threadId = params.threadId
+  const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/drafts/${draftId}`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: draftId, message }),
+  })
+  if (res.status === 404 || res.status === 400) return null
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(`Gmail draft update failed (${res.status}): ${JSON.stringify(err)}`)
+  }
+  const d = await res.json()
+  return { draftId: d.id, messageId: d.message?.id, threadId: d.message?.threadId }
+}
+
+export interface MessageMeta {
+  id: string
+  threadId: string
+  labelIds: string[]
+  from: string
+  to: string
+  cc: string
+  subject: string
+  rfcMessageId: string | null
+  internalDate: string
+  snippet: string
+  hasPdf: boolean
+}
+
+function metaOf(m: any): MessageMeta {
+  const h = (n: string) => (m.payload?.headers || []).find((x: any) => String(x.name).toLowerCase() === n)?.value || ''
+  const parts: any[] = []
+  const walk = (p: any) => { if (!p) return; parts.push(p); (p.parts || []).forEach(walk) }
+  walk(m.payload)
+  return {
+    id: m.id,
+    threadId: m.threadId,
+    labelIds: m.labelIds || [],
+    from: h('from'),
+    to: h('to'),
+    cc: h('cc'),
+    subject: h('subject'),
+    rfcMessageId: h('message-id') || null,
+    internalDate: new Date(Number(m.internalDate) || Date.now()).toISOString(),
+    snippet: m.snippet || '',
+    hasPdf: parts.some(p => /pdf/i.test(p.mimeType || '') || /\.pdf$/i.test(p.filename || '')),
+  }
+}
+
+/** Every message in a thread, headers only. Null if the thread is gone. */
+export async function getThreadMeta(userId: string, threadId: string): Promise<MessageMeta[] | null> {
+  const token = await getAccessToken(userId)
+  const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Subject&metadataHeaders=Message-ID`, { headers: { Authorization: `Bearer ${token}` } })
+  if (!res.ok) return null
+  const t = await res.json()
+  return (t.messages || []).map(metaOf)
+}
+
+/** Search Gmail and return headers for up to max messages (newest first). */
+export async function searchMessageMeta(userId: string, q: string, max = 100): Promise<MessageMeta[]> {
+  const token = await getAccessToken(userId)
+  const ids: string[] = []
+  let page: string | undefined
+  do {
+    const r = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(q)}&maxResults=${Math.min(100, max)}${page ? `&pageToken=${page}` : ''}`, { headers: { Authorization: `Bearer ${token}` } })
+    if (!r.ok) throw new Error(`Gmail search failed (${r.status})`)
+    const d = await r.json()
+    for (const m of d.messages || []) ids.push(m.id)
+    page = d.nextPageToken
+  } while (page && ids.length < max)
+  const out: MessageMeta[] = []
+  for (let i = 0; i < ids.length; i += 10) {
+    const batch = await Promise.all(ids.slice(i, i + 10).map(async id => {
+      const r = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Subject&metadataHeaders=Message-ID`, { headers: { Authorization: `Bearer ${token}` } })
+      return r.ok ? metaOf(await r.json()) : null
+    }))
+    for (const m of batch) if (m) out.push(m)
+  }
+  return out
+}
+
 /** If the thread now has a message Omar sent, return it (id, time, Message-ID). */
-export async function findSentInThread(userId: string, threadId: string): Promise<{ id: string; sentAt: string; rfcMessageId: string | null } | null> {
+export async function findSentInThread(userId: string, threadId: string, exclude: string[] = []): Promise<{ id: string; sentAt: string; rfcMessageId: string | null } | null> {
   const token = await getAccessToken(userId)
   const res = await fetch(
     `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}?format=metadata&metadataHeaders=Message-ID`,
@@ -181,7 +271,9 @@ export async function findSentInThread(userId: string, threadId: string): Promis
   if (res.status === 404) return null
   if (!res.ok) return null
   const t = await res.json()
-  const sent = (t.messages || []).find((m: any) => (m.labelIds || []).includes('SENT') && !(m.labelIds || []).includes('DRAFT'))
+  // Newest message Omar sent that isn't one we already recorded (a follow-up
+  // draft lives in the same thread as the emails before it)
+  const sent = [...(t.messages || [])].reverse().find((m: any) => (m.labelIds || []).includes('SENT') && !(m.labelIds || []).includes('DRAFT') && !exclude.includes(m.id))
   if (!sent) return null
   const h = (sent.payload?.headers || []).find((x: any) => String(x.name).toLowerCase() === 'message-id')
   return { id: sent.id, sentAt: new Date(Number(sent.internalDate) || Date.now()).toISOString(), rfcMessageId: h?.value || null }
@@ -196,22 +288,25 @@ interface GmailMessage {
   internalDate: string
 }
 
-export async function listNewMessages(userId: string, query?: string): Promise<GmailMessage[]> {
+export async function listNewMessages(userId: string, query?: string, max = 20): Promise<GmailMessage[]> {
   const token = await getAccessToken(userId)
   const q = query || 'is:unread'
-
-  const res = await fetch(
-    `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(q)}&maxResults=20`,
-    { headers: { Authorization: `Bearer ${token}` } },
-  )
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(`Gmail list failed (${res.status}): ${JSON.stringify(err)}`)
-  }
-
-  const data = await res.json()
-  return data.messages || []
+  const out: GmailMessage[] = []
+  let page: string | undefined
+  do {
+    const res = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(q)}&maxResults=${Math.min(100, max)}${page ? `&pageToken=${page}` : ''}`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    )
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(`Gmail list failed (${res.status}): ${JSON.stringify(err)}`)
+    }
+    const data = await res.json()
+    out.push(...(data.messages || []))
+    page = data.nextPageToken
+  } while (page && out.length < max)
+  return out.slice(0, max)
 }
 
 // ─── Get Full Message Content ───────────────────────────────────

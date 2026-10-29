@@ -1,7 +1,7 @@
 // Email sending engine: sends steps Omar has approved (status 'scheduled')
 // through his Gmail, threads follow-ups, and queues the next step for review.
 import { getAdminClient } from './supabase-admin'
-import { sendEmail, createDraft, findSentInThread } from './gmail-server'
+import { sendEmail, createDraft, updateDraft, findSentInThread } from './gmail-server'
 import { checkRateLimit, incrementCounter, DEFAULT_LIMITS } from './rate-limiter'
 import { gthOptOutFooterHtml } from './gth-profile'
 import { loadAttachments } from './visual-audit'
@@ -231,7 +231,7 @@ export async function draftStepToGmail(params: { userId: string; stepId: string;
     replyTo = prev?.metadata?.rfc_message_id || undefined
   }
 
-  const d = await createDraft(params.userId, {
+  const mail = {
     to: lead.email,
     subject: step.subject || '',
     body: step.body || '',
@@ -239,18 +239,70 @@ export async function draftStepToGmail(params: { userId: string; stepId: string;
     replyToMessageId: replyTo,
     footerHtml: gthOptOutFooterHtml(params.cfgInner),
     attachments,
-  })
+  }
+  // Already in his Drafts (e.g. the email was rewritten): replace it there
+  // instead of leaving an old copy behind. Falls back to a new draft if he
+  // deleted the old one.
+  const existing = step.metadata?.gmail_draft_id as string | undefined
+  let d = existing ? await updateDraft(params.userId, existing, { ...mail, threadId: threadId || step.gmail_thread_id || undefined }).catch(() => null) : null
+  if (!d) d = await createDraft(params.userId, mail)
 
   const now = new Date().toISOString()
   await sb.from('outreach_steps').update({
     status: 'approved',
     approval_status: step.metadata?.edited ? 'edited' : 'approved',
     gmail_thread_id: d.threadId,
-    metadata: { ...(step.metadata || {}), gmail_draft_id: d.draftId, gmail_draft_at: now, via: 'gmail_draft' },
+    metadata: { ...(step.metadata || {}), gmail_draft_id: d.draftId, gmail_draft_at: now, via: 'gmail_draft', draft_replaced: !!existing && d.draftId === existing },
     updated_at: now,
   }).eq('id', step.id)
   await sb.from('outreach_sequences').update({ status: 'active', updated_at: now }).eq('id', step.sequence_id).eq('status', 'draft')
   return { draftId: d.draftId, lead: lead.name }
+}
+
+/**
+ * Record that a step went out from Omar's Gmail (from a draft, or an email he
+ * wrote himself) and line up the next one, exactly like an automatic send.
+ */
+export async function markStepSent(step: any, found: { id: string; sentAt: string; rfcMessageId: string | null; threadId?: string }, cfgInner: any, extraMeta: Record<string, any> = {}) {
+  const sb = getAdminClient()
+  const seq = step.outreach_sequences
+  const { data: claimed } = await sb.from('outreach_steps').update({
+    status: 'sent',
+    executed_at: found.sentAt,
+    gmail_message_id: found.id,
+    ...(found.threadId ? { gmail_thread_id: found.threadId } : {}),
+    metadata: { ...(step.metadata || {}), rfc_message_id: found.rfcMessageId, ...extraMeta },
+    updated_at: new Date().toISOString(),
+  }).eq('id', step.id).neq('status', 'sent').select('id')
+  if (!claimed?.length) return false
+
+  const total = seq?.total_steps || 3
+  if (step.step_number < total) {
+    const { data: next } = await sb.from('outreach_steps')
+      .select('id, delay_hours').eq('sequence_id', step.sequence_id).eq('step_number', step.step_number + 1).maybeSingle()
+    if (next) {
+      const gap = Math.max(24, (next.delay_hours || 72) - (step.delay_hours || 0))
+      const auto = cfgInner?.auto_followups !== false
+      await sb.from('outreach_steps').update({
+        scheduled_at: new Date(new Date(found.sentAt).getTime() + gap * 3600_000).toISOString(),
+        ...(auto ? { status: 'scheduled', approval_status: 'approved' } : {}),
+        updated_at: new Date().toISOString(),
+      }).eq('id', next.id).eq('status', 'pending')
+    }
+    await sb.from('outreach_sequences').update({ status: 'active', current_step: step.step_number, updated_at: new Date().toISOString() }).eq('id', step.sequence_id).in('status', ['draft', 'active', 'paused'])
+  } else {
+    await sb.from('outreach_sequences').update({ status: 'completed', current_step: step.step_number, updated_at: new Date().toISOString() }).eq('id', step.sequence_id).in('status', ['draft', 'active', 'paused'])
+  }
+  if (step.step_number === 1) {
+    // Only move leads still at the start; never pull back a lead Omar moved on
+    const { data: lead } = await sb.from('outreach_leads').select('stage').eq('id', seq.lead_id).single()
+    const st = String(lead?.stage || '').toLowerCase()
+    await sb.from('outreach_leads').update({
+      last_contact: found.sentAt.slice(0, 10),
+      ...(!st || /new|lead|qualified|researched|prospect/.test(st) ? { stage: 'contacted' } : {}),
+    }).eq('id', seq.lead_id)
+  }
+  return true
 }
 
 /** Mark Gmail-drafted emails as sent once Omar has sent them from Gmail. */
@@ -267,38 +319,11 @@ export async function syncGmailDrafts(params: { userId: string; cfgInner?: any }
   for (const step of steps || []) {
     if (step.metadata?.via !== 'gmail_draft') continue
     let found: Awaited<ReturnType<typeof findSentInThread>> = null
-    try { found = await findSentInThread(params.userId, step.gmail_thread_id) } catch { continue }
+    const { data: done } = await sb.from('outreach_steps').select('gmail_message_id').eq('sequence_id', step.sequence_id).not('gmail_message_id', 'is', null)
+    const exclude = (done || []).map((d: any) => d.gmail_message_id)
+    try { found = await findSentInThread(params.userId, step.gmail_thread_id, exclude) } catch { continue }
     if (!found) continue
-    const seq = step.outreach_sequences
-    await sb.from('outreach_steps').update({
-      status: 'sent',
-      executed_at: found.sentAt,
-      gmail_message_id: found.id,
-      metadata: { ...(step.metadata || {}), rfc_message_id: found.rfcMessageId },
-      updated_at: new Date().toISOString(),
-    }).eq('id', step.id)
-
-    const total = seq?.total_steps || 3
-    if (step.step_number < total) {
-      const { data: next } = await sb.from('outreach_steps')
-        .select('id, delay_hours').eq('sequence_id', step.sequence_id).eq('step_number', step.step_number + 1).maybeSingle()
-      if (next) {
-        const gap = Math.max(24, (next.delay_hours || 72) - (step.delay_hours || 0))
-        const auto = params.cfgInner?.auto_followups !== false
-        await sb.from('outreach_steps').update({
-          scheduled_at: new Date(new Date(found.sentAt).getTime() + gap * 3600_000).toISOString(),
-          ...(auto ? { status: 'scheduled', approval_status: 'approved' } : {}),
-          updated_at: new Date().toISOString(),
-        }).eq('id', next.id).eq('status', 'pending')
-      }
-      await sb.from('outreach_sequences').update({ status: 'active', current_step: step.step_number }).eq('id', step.sequence_id)
-    } else {
-      await sb.from('outreach_sequences').update({ status: 'completed', current_step: step.step_number }).eq('id', step.sequence_id)
-    }
-    if (step.step_number === 1) {
-      await sb.from('outreach_leads').update({ stage: 'contacted', last_contact: found.sentAt.slice(0, 10) }).eq('id', seq.lead_id)
-    }
-    nowSent++
+    if (await markStepSent(step, found, params.cfgInner)) nowSent++
   }
   return { checked: (steps || []).length, nowSent }
 }

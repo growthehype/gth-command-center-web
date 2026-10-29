@@ -6,6 +6,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
 import { getAdminClient } from './_lib/supabase-admin'
 import { advancePreview, leadsNeedingPreview, PREVIEW_HOST } from './_lib/preview'
+import { draftStepToGmail } from './_lib/sender'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -29,7 +30,9 @@ async function publishBundled(slug: string, leadId: string) {
   }
   const { data: lead } = await sb.from('outreach_leads').select('enrichment_data').eq('id', leadId).single()
   const e = (lead?.enrichment_data || {}) as any
-  const preview = { ...(e.preview || {}), slug, status: 'ready', url: `${PREVIEW_HOST}/${slug}/`, built_at: new Date().toISOString(), handmade: true, step: 'done', error: null, review: { score: null, notes: ['Hand-built in the Grow The Hype studio'] } }
+  // share.jpg: the page as a picture, attached to the first email and used for link previews
+  const image = done.includes('share.jpg') ? `${PREVIEW_HOST}/${slug}/share.jpg` : (e.preview?.image || null)
+  const preview = { ...(e.preview || {}), slug, status: 'ready', image, url: `${PREVIEW_HOST}/${slug}/`, built_at: new Date().toISOString(), handmade: true, step: 'done', error: null, review: { score: null, notes: ['Hand-built in the Grow The Hype studio'] } }
   await sb.from('outreach_leads').update({ enrichment_data: { ...e, preview } }).eq('id', leadId)
   return { ok: true, url: preview.url, files: done }
 }
@@ -53,6 +56,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (body.publish && body.slug && body.leadId) {
       const r = await publishBundled(String(body.slug), String(body.leadId))
       return res.status(200).json(r)
+    }
+    // Put one approved email into Omar's Gmail Drafts (never sends)
+    if (body.gmailDraft && body.stepId) {
+      const { data: st } = await sb.from('outreach_steps').select('user_id, outreach_sequences!inner(agent_config_id)').eq('id', String(body.stepId)).single()
+      if (!st) return res.status(404).json({ error: 'step not found' })
+      const { data: cfg } = await sb.from('agent_configs').select('config').eq('id', (st as any).outreach_sequences.agent_config_id).maybeSingle()
+      try {
+        const r = await draftStepToGmail({ userId: st.user_id, stepId: String(body.stepId), cfgInner: cfg?.config || {} })
+        return res.status(200).json({ ok: true, ...r })
+      } catch (e: any) { return res.status(200).json({ ok: false, error: String(e?.message || e).slice(0, 300) }) }
     }
     const { data: configs } = await sb.from('agent_configs').select('id, agent_name, config').eq('enabled', true)
     const agents = (configs || []).filter((c: any) => c.config?.profile === 'gth' && c.config?.build_previews !== false)

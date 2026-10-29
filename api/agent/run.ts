@@ -4,7 +4,8 @@ import { createClient } from '@supabase/supabase-js'
 import { getAdminClient, getAgentConfig, getAgentConfigById, updateAgentRun } from './_lib/supabase-admin'
 import { runAgentTick } from './_lib/orchestrator'
 import { runActions, summariseRun } from './_lib/actions'
-import { sendScheduledEmails, draftStepToGmail, syncGmailDrafts } from './_lib/sender'
+import { sendScheduledEmails, draftStepToGmail } from './_lib/sender'
+import { syncTracker } from './_lib/tracker-sync'
 import { rescoreLeads, huntLeads } from './_lib/qualifier'
 import { isGthAgent } from './_lib/gth-profile'
 import { draftForLead, generateOutreach } from './_lib/email-generator'
@@ -75,7 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const cfg = configId ? await getAgentConfigById(configId) : null
       if (cfg && cfg.user_id !== userId) return res.status(403).json({ error: 'Config does not belong to this user', step })
       if (mode === 'sync_drafts') {
-        const r = await syncGmailDrafts({ userId, cfgInner: cfg?.config || {} })
+        const r = await syncTracker({ userId, cfgInner: cfg?.config || {} })
         return res.status(200).json({ status: 'completed', results: { sync_drafts: r } })
       }
       const { stepId } = (req.body ?? {}) as any

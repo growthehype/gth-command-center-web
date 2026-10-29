@@ -8,8 +8,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { getAdminClient, createAgentRun, updateAgentRun } from '../_lib/supabase-admin'
 import { huntLeads } from '../_lib/qualifier'
 import { generateOutreach } from '../_lib/email-generator'
-import { syncGmailDrafts } from '../_lib/sender'
-import { classifyInbox } from '../_lib/inbox-classifier'
+import { syncTracker } from '../_lib/tracker-sync'
 
 export const DEFAULT_SHIFTS: [number, number][] = [[7, 9], [13, 15], [17, 19]]
 
@@ -38,16 +37,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const agents = (configs || []).filter((c: any) => c.config?.profile === 'gth' && c.config?.background_hunt !== false)
   const out: any[] = []
 
-  // Keep the lead tracker current: drafts Omar sent from Gmail, and replies
+  // Keep the lead tracker current from Gmail: sends, replies, bounces, invites
   const users = [...new Set(agents.map((c: any) => c.user_id))]
   for (const userId of users) {
     const cfg = agents.find((c: any) => c.user_id === userId)
     await Promise.race([
       (async () => {
-        await syncGmailDrafts({ userId, cfgInner: cfg?.config }).catch(() => null)
-        await classifyInbox({ userId, agentRunId: null as any }).catch(() => null)
+        const t = await syncTracker({ userId, cfgInner: cfg?.config }).catch(() => null)
+        if (t) out.push({ tracker: t })
       })(),
-      new Promise(r => setTimeout(r, 30_000)),
+      new Promise(r => setTimeout(r, 60_000)),
     ])
   }
 

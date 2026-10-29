@@ -395,7 +395,10 @@ const SHOT_KEYS: Record<string, { key: 'mobile_top' | 'desktop_top' | 'desktop_m
 export function attachmentPlan(lead: any): { url: string; filename: string; label: string }[] {
   const qual = lead?.enrichment_data?.qual
   const visual = qual?.visual
-  if (!visual?.checked || !visual.urls) return []
+  const preview = lead?.enrichment_data?.preview
+  // Their homepage concept leads, then the one screenshot that best shows the problem
+  const concept = preview?.status === 'ready' && preview?.image ? { url: String(preview.image), filename: `${String(lead.name || 'website').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40)}-new-homepage-idea.jpg`, label: 'concept' } : null
+  if (!visual?.checked || !visual.urls) return concept ? [concept] : []
   const letters: string[] = []
   for (const f of visual.findings || []) {
     for (const m of String(f.evidence || '').matchAll(/Screenshot\s+([ABCD])/gi)) {
@@ -405,7 +408,13 @@ export function attachmentPlan(lead: any): { url: string; filename: string; labe
   }
   if (!letters.length && qual?.design?.verdict === 'dated') letters.push('B', 'A')
   const slug = String(lead.name || 'website').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'website'
-  const out: { url: string; filename: string; label: string }[] = []
+  const out: { url: string; filename: string; label: string }[] = concept ? [concept] : []
+  const pick = preview?.attach_shot as string | undefined
+  if (pick && SHOT_KEYS[pick]) {
+    const i = letters.indexOf(pick)
+    if (i >= 0) letters.splice(i, 1)
+    letters.unshift(pick)
+  }
   for (const l of letters) {
     const spec = SHOT_KEYS[l]
     const url = spec && visual.urls[spec.key]

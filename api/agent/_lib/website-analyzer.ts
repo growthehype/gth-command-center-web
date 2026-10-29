@@ -99,6 +99,16 @@ function stripHtml(html: string): string {
 
 const TITLE_RE = /\b(CEO|President|Founder|Owner|Principal|Director|Managing\s+Partner|General\s+Manager|Partner)\b/gi
 
+const NOT_NAME = /^(by|the|our|and|for|with|from|contact|call|book|corporate|services?|manager|tax|city|team|office|company|group|law|financial|management|business(es)?|consultation|accounting|professional|chartered|partners?|staff|client|home|about|meet|read|more|learn|view|all|st|ave|street|road|drive|suite)$/i
+
+/** "Jane Smith" yes; "you will realize", "Corporate Services City", "By Paul Barrette" no. */
+export function isPersonName(raw: string): boolean {
+  const n = String(raw || '').trim()
+  const W = "(?:Mc|Mac|O['’])?[A-Z][a-z]+(?:-[A-Z][a-z]+)?"
+  if (!new RegExp(`^${W}(?: (?:[A-Z]\\. )?${W}){1,2}$`).test(n)) return false
+  return !n.split(' ').some(w => NOT_NAME.test(w.replace(/[.'’-]/g, '')))
+}
+
 function extractDecisionMakers(html: string): { name: string; title: string }[] {
   const results: { name: string; title: string }[] = []
 
@@ -134,10 +144,10 @@ function extractDecisionMakers(html: string): { name: string; title: string }[] 
 
   let match
   while ((match = nameNearTitle.exec(text)) !== null) {
-    if (match[1].length < 40) results.push({ name: match[1].trim(), title: match[2].trim() })
+    if (match[1].length < 40 && isPersonName(match[1])) results.push({ name: match[1].trim(), title: match[2].trim() })
   }
   while ((match = titleNearName.exec(text)) !== null) {
-    if (match[2].length < 40) results.push({ name: match[2].trim(), title: match[1].trim() })
+    if (match[2].length < 40 && isPersonName(match[2])) results.push({ name: match[2].trim(), title: match[1].trim() })
   }
 
   // Dedupe by name
