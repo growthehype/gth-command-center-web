@@ -2985,7 +2985,12 @@ button.brf-goal:hover { border-color: var(--color-border-hard); }
   [data-theme="light"] .cal-view-tab.tabbar-tab--active { background: #0A0B0D; }
 
   /* Modals fill the phone width */
-  .modal-container { width: calc(100vw - 20px) !important; max-width: calc(100vw - 20px) !important; max-height: calc(100dvh - 24px); overflow-y: auto; }
+  .modal-container { width: calc(100vw - 20px) !important; max-width: calc(100vw - 20px) !important; max-height: calc(100dvh - 24px) !important; display: flex; flex-direction: column; overflow: hidden; }
+  /* Header (and its X) stays put; only the body scrolls */
+  .modal-container .modal-head { flex: none; padding: 12px 12px 12px 20px; }
+  .modal-container .modal-body { flex: 1 1 auto; min-height: 0; max-height: none !important; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding-left: 18px; padding-right: 18px; }
+  .modal-close-btn { width: 44px; height: 44px; border-radius: 10px; }
+  .modal-close-btn svg { width: 20px; height: 20px; }
 }
 
 /* ── Client window ── */

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { X } from 'lucide-react'
+import { createPortal } from 'react-dom'
 
 interface ModalProps {
   open: boolean
@@ -73,7 +74,7 @@ export default function Modal({ open, onClose, title, children, width = '480px' 
 
   if (!open) return null
 
-  return (
+  return createPortal(
     <div
       ref={overlayRef}
       className="fixed inset-0 flex items-center justify-center z-[100] modal-backdrop"
@@ -86,16 +87,17 @@ export default function Modal({ open, onClose, title, children, width = '480px' 
         className="modal-container bg-surface overflow-hidden w-[95vw]"
         style={{ maxWidth: width, maxHeight: '85vh' }}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+        <div className="modal-head flex items-center justify-between px-6 py-4 border-b border-border">
           <h3 className="font-[800]" style={{ fontSize: '16px', letterSpacing: '-0.01em' }}>{title}</h3>
           <button onClick={() => onCloseRef.current()} className="modal-close-btn cursor-pointer" aria-label="Close modal">
             <X size={15} />
           </button>
         </div>
-        <div className="px-6 py-5 overflow-y-auto" style={{ maxHeight: 'calc(85vh - 60px)' }}>
+        <div className="modal-body px-6 py-5 overflow-y-auto" style={{ maxHeight: 'calc(85vh - 60px)' }}>
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
