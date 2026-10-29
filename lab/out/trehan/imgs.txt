@@ -1,0 +1,26 @@
+<img src="img/logo_bbb.png" alt="">
+<img src="img/logo_edmonton.png" alt="">
+<img src="img/logo_strath.png" alt="">
+<img src="img/logopba-new.png" alt="">
+<img src="img/facebook-icon.png" alt="Facebook">
+<img src="img/twitter-icon.png" alt="Twitter">
+<img src="img/linked-icon.png" alt="Linked">
+<img src="img/google-plus-icon.png" alt="Google Plus">
+<img src="img/logo.png" alt="Trehan &amp; Company">
+<img src="img/min_logo.png" alt="Trehan &amp; Company">
+<img src="img/Website banner.jpg" alt="banner">
+<img src="img/slide1.jpg" alt="Trehan Staff" />
+<img src="img/slide2.jpg" alt="Trehan Premises" />
+<img src="img/slogan.png" alt="slogan">
+<img src="img/ramneek.png" alt="" class="img-responsive">
+<img src="img/gurpreet.png" alt="" class="img-responsive">
+<img src="img/Mandy-Kang.png" alt="" class="img-responsive">
+<img src="img/Iqbal-Singh.png" alt="" class="img-responsive">
+<img src="img/Raman-Kaur.png" alt="" class="img-responsive">
+<img src="img/facebook-icon.png" alt="Facebook" />
+<img src="img/twitter-icon.png" alt="Twitter" />
+<img src="img/linked-icon.png" alt="Linked" />
+<img src="img/google-plus-icon.png" alt="Google Plus" />
+<img src="http://www.hitwebcounter.com/counter/counter.php?page=6113566&style=0005&nbdigits=6&type=page&initCount=134999" title="" alt="" border="0">
+<img height="1" width="1" style="border-style:none;" alt="" src="//googleads.g.doubleclick.net/pagead/viewthroughconversion/958013837/?value=0&amp;guid=ON&amp;script=0"/>
+<img src="https://io.clickguard.com/n/cHJvdGVjdG9y/4YHQPdMq" alt="noscript"/>
