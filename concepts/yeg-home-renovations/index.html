@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edmonton Home Renovations | Homepage concept by Grow The Hype</title>
+<meta name="description" content="Renovations, additions, second storeys, bathrooms and exterior work across Edmonton. Over 60 years in residential construction, one project at a time. Free site consultations.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Edmonton Home Renovations | Homepage concept by Grow The Hype">
+<meta property="og:description" content="Renovations, additions, second storeys, bathrooms and exterior work across Edmonton. Over 60 years in residential construction, one project at a time. Free site consultations.">
+<meta property="og:url" content="https://growthehype-previews.netlify.app/yeg-home-renovations/">
+<meta property="og:image" content="https://growthehype-previews.netlify.app/yeg-home-renovations/share.jpg">
+<meta property="og:image:width" content="1600">
+<meta property="og:image:height" content="1000">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#f3efe8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400..800&family=Hanken+Grotesk:wght@400..700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.13/dist/lenis.min.js" defer></script>
+<script>(function(d){d.classList.add("js");if(!matchMedia("(prefers-reduced-motion: reduce)").matches)d.classList.add("motion");setTimeout(function(){if(!window.__ready){d.classList.remove("motion");d.classList.add("static")}},3500)})(document.documentElement)</script>
+<style>
+:root{
+  --paper:#f3efe8;--paper-2:#ebe5db;--card:#fbf9f5;
+  --ink:#1b1c1a;--ink-2:#4a4b46;--ink-3:#7a7a72;
+  --slate:#232a28;--slate-2:#2d3532;--on-slate:#efebe3;--on-slate-2:#aeb2aa;
+  --oak:#b5793f;--oak-hi:#c98d52;--oak-lo:#8f5c2b;--oak-soft:rgba(181,121,63,.12);
+  --rule:rgba(27,28,26,.13);--rule-s:rgba(239,235,227,.13);
+  --display:"Archivo",ui-sans-serif,system-ui,sans-serif;
+  --body:"Hanken Grotesk",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --e-out:cubic-bezier(.16,1,.3,1);--e-io:cubic-bezier(.76,0,.24,1);
+  --wrap:1360px;--gut:clamp(20px,4vw,60px);--sec:clamp(104px,12vw,184px);--nav:82px;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;background:var(--paper)}
+html.lenis,html.lenis body{height:auto}
+.lenis.lenis-smooth{scroll-behavior:auto!important}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.6 var(--body);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overflow-x:clip}
+img,svg{display:block;max-width:100%}
+a{color:inherit;text-underline-offset:.22em;text-decoration-thickness:1px}
+h1,h2,h3,h4,p,ul,ol,figure,blockquote{margin:0}
+ul,ol{padding:0;list-style:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+::selection{background:var(--oak);color:#fff}
+:focus-visible{outline:2px solid var(--oak);outline-offset:3px;border-radius:3px}
+.wrap{width:100%;max-width:calc(var(--wrap) + var(--gut)*2);margin-inline:auto;padding-inline:var(--gut)}
+.g{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px}
+.skip{position:fixed;left:16px;top:-70px;z-index:90;background:var(--oak);color:#fff;padding:10px 16px;font-weight:600;text-decoration:none;transition:top .3s var(--e-out)}
+.skip:focus{top:16px}
+.num{font-variant-numeric:tabular-nums}
+
+/* type */
+.kick{display:inline-flex;align-items:center;gap:10px;font:600 12px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--oak-lo)}
+.kick::before{content:"";width:8px;height:8px;background:var(--oak)}
+.slate .kick{color:var(--oak-hi)}
+.d1{font-family:var(--display);font-weight:760;letter-spacing:-.045em;line-height:.92;font-size:clamp(3.2rem,7.4vw,7.6rem)}
+.d2{font-family:var(--display);font-weight:720;letter-spacing:-.035em;line-height:.98;font-size:clamp(2.3rem,4.6vw,4.6rem);text-wrap:balance}
+.d3{font-family:var(--display);font-weight:700;letter-spacing:-.025em;line-height:1.05;font-size:clamp(1.5rem,2.1vw,2.1rem);text-wrap:balance}
+.lede{font-size:clamp(1.06rem,1.2vw,1.2rem);line-height:1.6;color:var(--ink-2);max-width:34em;text-wrap:pretty}
+.slate .lede{color:var(--on-slate-2)}
+.oak{color:var(--oak)}
+
+/* buttons */
+.btn{--h:54px;display:inline-flex;align-items:center;gap:14px;height:var(--h);padding:0 6px 0 24px;font:600 15px/1 var(--body);text-decoration:none;white-space:nowrap;border:1px solid transparent;border-radius:2px;transition:background-color .35s var(--e-out),color .35s var(--e-out),border-color .35s var(--e-out),transform .2s var(--e-out)}
+.btn i{display:grid;place-items:center;width:42px;height:42px;transition:transform .5s var(--e-out)}
+.btn i svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.btn:active{transform:scale(.98)}
+.btn--oak{background:var(--oak);color:#fff}
+.btn--oak i{background:rgba(0,0,0,.14)}
+.btn--ink{background:var(--ink);color:var(--paper)}
+.btn--ink i{background:var(--oak)}
+.btn--line{border-color:var(--rule);padding-right:24px}
+.slate .btn--line{border-color:rgba(239,235,227,.28);color:var(--on-slate)}
+.btn--sm{--h:46px;padding-left:18px;font-size:14px}
+.btn--sm i{width:34px;height:34px}
+@media (hover:hover){
+  .btn--oak:hover{background:var(--oak-lo)}
+  .btn--ink:hover{background:var(--slate-2)}
+  .btn:hover i{transform:translateX(3px)}
+  .btn--line:hover{border-color:var(--ink)}
+  .slate .btn--line:hover{border-color:var(--on-slate)}
+}
+
+/* header */
+.nav{position:fixed;inset:0 0 auto;z-index:60;transition:transform .6s var(--e-out)}
+.nav::before{content:"";position:absolute;inset:0;background:rgba(243,239,232,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid transparent;transition:border-color .4s}
+.nav.is-scrolled::before{border-bottom-color:var(--rule)}
+.nav.is-hidden{transform:translateY(-100%)}
+.nav__in{position:relative;height:var(--nav);display:flex;align-items:center;gap:36px}
+.wm{display:flex;flex-direction:column;text-decoration:none;font-family:var(--display);line-height:.9;flex:none}
+.wm b{font-weight:780;font-size:19px;letter-spacing:-.03em}
+.wm span{font-weight:500;font-size:19px;letter-spacing:-.03em;color:var(--oak)}
+.nav__links{display:flex;gap:30px;margin-left:auto;font-size:15px;font-weight:500}
+.nav__links a{text-decoration:none;color:var(--ink-2);position:relative;padding:6px 0;transition:color .25s}
+.nav__links a::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1.5px;background:var(--oak);transform:scaleX(0);transform-origin:right;transition:transform .45s var(--e-out)}
+.nav__links a:hover{color:var(--ink)}
+.nav__links a:hover::after{transform:scaleX(1);transform-origin:left}
+.nav__tel{font-weight:600;text-decoration:none;font-size:15px}
+.burger{display:none}
+.menu{position:fixed;inset:0;z-index:55;background:var(--paper);padding:calc(var(--nav) + 18px) var(--gut) 32px;display:flex;flex-direction:column;visibility:hidden;clip-path:inset(0 0 100% 0);transition:clip-path .7s var(--e-io),visibility 0s .7s}
+.menu.is-open{visibility:visible;clip-path:inset(0 0 0 0);transition:clip-path .7s var(--e-io),visibility 0s}
+.menu a:not(.btn){font:720 2rem/1.1 var(--display);letter-spacing:-.035em;text-decoration:none;padding:12px 0;border-bottom:1px solid var(--rule)}
+.menu .btn{margin-top:26px;align-self:flex-start}
+.menu__meta{margin-top:auto;color:var(--ink-3);font-size:15px;display:grid;gap:2px}
+
+/* hero */
+.hero{position:relative;padding-top:calc(var(--nav) + clamp(28px,5vh,64px));padding-bottom:clamp(40px,6vh,72px)}
+.hero .g{align-items:end;row-gap:40px}
+.hero__copy{grid-column:1/6;padding-bottom:6px}
+.hero__copy .kick{margin-bottom:28px}
+.ln{display:block;overflow:hidden;padding-bottom:.08em;margin-bottom:-.08em}
+.ln>span{display:block}
+.hero__lede{margin-top:30px;max-width:30em}
+.hero__acts{display:flex;flex-wrap:wrap;gap:10px;margin-top:32px}
+.hero__meta{display:flex;gap:28px;margin-top:36px;padding-top:22px;border-top:1px solid var(--rule)}
+.hero__meta div{font-size:13.5px;line-height:1.4;color:var(--ink-3)}
+.hero__meta b{display:block;font:700 15px/1.3 var(--body);color:var(--ink)}
+.stars{display:inline-flex;gap:2px;margin-right:6px;vertical-align:-1px}
+.stars svg{width:12px;height:12px;fill:var(--oak)}
+.hero__ba{grid-column:6/13}
+
+/* before / after */
+.ba{position:relative;overflow:hidden;background:var(--paper-2);user-select:none;-webkit-user-select:none;touch-action:pan-y;cursor:ew-resize;--p:50%}
+.ba img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
+.ba__after{clip-path:inset(0 0 0 var(--p))}
+.ba__line{position:absolute;top:0;bottom:0;left:var(--p);width:2px;margin-left:-1px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.06)}
+.ba__knob{position:absolute;top:50%;left:var(--p);width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 10px 30px -8px rgba(0,0,0,.4);transition:transform .3s var(--e-out)}
+.ba:hover .ba__knob{transform:scale(1.06)}
+.ba__knob svg{width:24px;height:24px;fill:none;stroke:var(--ink);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ba__tag{position:absolute;top:16px;font:600 11px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;padding:8px 10px;background:rgba(27,28,26,.72);color:#fff;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:opacity .3s}
+.ba__tag--b{left:16px}
+.ba__tag--a{right:16px;background:var(--oak)}
+.ba input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:ew-resize;margin:0}
+.hero .ba{aspect-ratio:5/3.6}
+.ba__cap{display:flex;justify-content:space-between;gap:16px;margin-top:12px;font-size:13.5px;color:var(--ink-3)}
+.ba__cap b{color:var(--ink);font-weight:600}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);margin-top:clamp(48px,7vh,88px)}
+.stat{padding:28px 24px 26px 0}
+.stat+.stat{padding-left:24px;border-left:1px solid var(--rule)}
+.stat b{display:block;font:760 clamp(2.6rem,4vw,3.8rem)/1 var(--display);letter-spacing:-.05em}
+.stat b sup{font-size:.45em;vertical-align:.95em;margin-left:2px;color:var(--oak)}
+.stat>span{display:block;margin-top:10px;font-size:14.5px;color:var(--ink-2);max-width:14em;line-height:1.4}
+
+/* sections */
+.sec{padding:var(--sec) 0}
+.slate{background:var(--slate);color:var(--on-slate)}
+.head{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px;align-items:end;margin-bottom:clamp(40px,5vw,72px)}
+.head__t{grid-column:1/8}
+.head__t .kick{margin-bottom:22px}
+.head__l{grid-column:9/13}
+
+/* gallery */
+.gal{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:start}
+.gal .ba{aspect-ratio:2/1}
+.rooms{display:grid;gap:8px}
+.room{display:grid;grid-template-columns:88px 1fr;gap:14px;align-items:center;padding:8px;border:1px solid var(--rule);background:transparent;text-align:left;transition:background-color .25s,border-color .25s}
+.room img{width:88px;height:56px;object-fit:cover;filter:saturate(.85)}
+.room b{display:block;font:700 16px/1.2 var(--display);letter-spacing:-.01em}
+.room small{display:block;font-size:13px;color:var(--ink-3);margin-top:3px}
+.room:hover{background:var(--card)}
+.room[aria-selected="true"]{background:var(--card);border-color:var(--ink)}
+.gal__hint{margin-top:16px;font-size:13.5px;color:var(--ink-3);display:flex;align-items:center;gap:8px}
+.gal__hint svg{width:18px;height:18px;fill:none;stroke:var(--oak);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* services */
+.svc{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.sv{background:var(--card);border:1px solid var(--rule);display:flex;flex-direction:column}
+.sv__ph{aspect-ratio:4/3;overflow:hidden}
+.sv__ph img{width:100%;height:100%;object-fit:cover;transition:transform 1.2s var(--e-out)}
+.sv:hover .sv__ph img{transform:scale(1.04)}
+.sv__b{padding:24px 24px 26px}
+.sv__b h3{font:720 24px/1.1 var(--display);letter-spacing:-.025em}
+.sv__b p{margin-top:8px;font-size:15px;color:var(--ink-3)}
+.sv ul{margin-top:18px;border-top:1px solid var(--rule)}
+.sv li{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--rule);font-size:15.5px}
+.sv li::after{content:"";width:6px;height:6px;border-right:1.5px solid var(--ink-3);border-top:1.5px solid var(--ink-3);transform:rotate(45deg);opacity:.6}
+
+/* one at a time */
+.build{position:relative}
+.build__pin{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(32px,5vw,80px);align-items:center;min-height:100vh;padding:calc(var(--nav) + 20px) 0 40px}
+.build__copy .kick{margin-bottom:22px}
+.build__copy .lede{margin-top:22px}
+.bsteps{margin-top:36px;border-top:1px solid var(--rule-s)}
+.bstep{display:grid;grid-template-columns:52px 1fr;gap:4px;padding:18px 0;border-bottom:1px solid var(--rule-s);opacity:.38;transition:opacity .5s var(--e-out)}
+.bstep.on{opacity:1}
+.bstep b{font:700 14px/1.5 var(--display);color:var(--oak-hi)}
+.bstep h3{font:700 19px/1.3 var(--display);letter-spacing:-.015em}
+.bstep p{margin-top:4px;font-size:15px;line-height:1.55;color:var(--on-slate-2);max-width:30em}
+.house{position:relative;aspect-ratio:1;max-height:76vh;width:100%;margin-inline:auto}
+.house svg{width:100%;height:100%;overflow:visible}
+.house .bp line{stroke:rgba(239,235,227,.06)}
+.house .s{fill:none;stroke:var(--on-slate);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.house .s.oakl{stroke:var(--oak-hi)}
+.house .s.thin{stroke-width:1.2;stroke:rgba(239,235,227,.45)}
+.house .fillw{fill:rgba(201,141,82,.18);stroke:none}
+.house text{font:600 11px var(--body);letter-spacing:.14em;text-transform:uppercase;fill:var(--on-slate-2)}
+.house .dim{stroke:rgba(239,235,227,.35);stroke-width:1}
+.house__stage{position:absolute;left:0;bottom:-6px;font:600 12px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--oak-hi)}
+
+/* contracts */
+.ct{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--rule);background:var(--card)}
+.ctab{padding:24px 26px;text-align:left;border:0;border-bottom:1px solid var(--rule);background:transparent;position:relative;transition:background-color .25s}
+.ctab+.ctab{border-left:1px solid var(--rule)}
+.ctab small{display:block;font:600 12px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.ctab b{display:block;margin-top:10px;font:720 22px/1.15 var(--display);letter-spacing:-.025em}
+.ctab::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;background:var(--oak);transform:scaleX(0);transform-origin:left;transition:transform .5s var(--e-out)}
+.ctab[aria-selected="true"]{background:#fff}
+.ctab[aria-selected="true"]::after{transform:scaleX(1)}
+.ctab:hover{background:#fff}
+.ctp{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,4vw,64px);padding:clamp(28px,3.4vw,48px);background:#fff;min-height:360px}
+.ctp__copy h3{font:720 clamp(1.5rem,2vw,2rem)/1.1 var(--display);letter-spacing:-.025em}
+.ctp__copy p{margin-top:14px;font-size:16.5px;line-height:1.65;color:var(--ink-2)}
+.ctp__best{margin-top:22px;display:flex;gap:12px;padding:16px 18px;background:var(--oak-soft);font-size:15px}
+.ctp__best b{flex:none;font-weight:700}
+.ctp__viz{display:flex;flex-direction:column;justify-content:center}
+.bar{display:flex;height:76px;border:1px solid var(--rule);background:var(--paper)}
+.bar i{display:flex;align-items:flex-end;padding:10px 12px;font:600 12.5px/1.2 var(--body);font-style:normal;color:#fff;transition:flex-grow .8s var(--e-out),background-color .5s}
+.bar .m{background:var(--slate-2)}
+.bar .l{background:#58605b}
+.bar .f{background:var(--oak)}
+.bar .one{background:var(--ink)}
+.bar .room2{background:transparent;color:var(--ink-3);border-left:1px dashed var(--ink-3)}
+.viz__k{display:flex;justify-content:space-between;margin-top:12px;font-size:13.5px;color:var(--ink-3)}
+.viz__note{margin-top:22px;font-size:14.5px;line-height:1.55;color:var(--ink-2);padding-left:14px;border-left:2px solid var(--oak)}
+.ctp>*{transition:opacity .35s var(--e-out),transform .45s var(--e-out)}
+.ctp.is-out>*{opacity:0;transform:translateY(8px)}
+
+/* projects */
+.proj+.proj{margin-top:clamp(56px,7vw,96px)}
+.proj__h{display:flex;justify-content:space-between;align-items:baseline;gap:24px;padding-bottom:18px;border-bottom:1px solid var(--rule-s);margin-bottom:22px}
+.proj__h h3{font:720 clamp(1.8rem,2.6vw,2.6rem)/1 var(--display);letter-spacing:-.035em}
+.proj__h span{font-size:14px;color:var(--on-slate-2)}
+.strip{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(300px,32%);gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:14px;scrollbar-width:thin;scrollbar-color:var(--oak) transparent;cursor:grab}
+.strip.drag{cursor:grabbing;scroll-snap-type:none}
+.strip figure{scroll-snap-align:start;margin:0}
+.strip .ph{aspect-ratio:3/2;overflow:hidden;background:var(--slate-2)}
+.strip img{width:100%;height:100%;object-fit:cover;pointer-events:none;transition:transform 1s var(--e-out)}
+.strip figure:hover img{transform:scale(1.03)}
+.strip figcaption{margin-top:10px;font-size:13.5px;color:var(--on-slate-2)}
+.strip::-webkit-scrollbar{height:4px}.strip::-webkit-scrollbar-thumb{background:var(--oak)}
+
+/* quote */
+.quote{padding:var(--sec) 0}
+.quote blockquote{grid-column:2/12;font:640 clamp(1.8rem,3.4vw,3.3rem)/1.14 var(--display);letter-spacing:-.03em;text-wrap:balance}
+.quote blockquote::before{content:"";display:block;width:56px;height:5px;background:var(--oak);margin-bottom:36px}
+.quote cite{grid-column:2/12;display:flex;align-items:center;gap:14px;margin-top:32px;font-style:normal;font-size:15px;color:var(--ink-3)}
+.quote cite b{color:var(--ink);font-weight:700}
+
+/* contact */
+.contact .g{row-gap:48px}
+.contact__copy{grid-column:1/6}
+.contact__copy .kick{margin-bottom:22px}
+.contact__copy .lede{margin-top:22px}
+.info{margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:28px 24px;padding-top:28px;border-top:1px solid var(--rule-s)}
+.info small{display:block;font:600 11.5px/1 var(--body);letter-spacing:.16em;text-transform:uppercase;color:var(--on-slate-2);margin-bottom:10px}
+.info p,.info a{font-size:16px;line-height:1.5;text-decoration:none}
+.info a:hover{color:var(--oak-hi)}
+.open{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13.5px;color:var(--on-slate-2)}
+.open i{width:8px;height:8px;border-radius:50%;background:#7bc47f;box-shadow:0 0 0 4px rgba(123,196,127,.18)}
+.open.closed i{background:var(--on-slate-2);box-shadow:none}
+.form{grid-column:7/13;background:var(--paper);color:var(--ink);padding:clamp(24px,3vw,40px)}
+.form h3{font:720 24px/1.1 var(--display);letter-spacing:-.025em}
+.form>p{margin-top:6px;font-size:14.5px;color:var(--ink-3)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.field label{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:6px}
+.field input,.field textarea{width:100%;height:50px;padding:0 14px;border:1px solid var(--rule);border-bottom-color:rgba(27,28,26,.35);background:#fff;font-size:16px;border-radius:0;transition:border-color .2s}
+.field textarea{height:96px;padding:12px 14px;resize:vertical}
+.field input:focus,.field textarea:focus{outline:0;border-color:var(--oak)}
+.field.bad input{border-color:#b3402f}
+.field [data-err]{display:block;font-size:12.5px;color:#b3402f;margin-top:4px}
+.form fieldset{border:0;padding:0;margin:18px 0 0}
+.form legend{font-size:13px;font-weight:600;color:var(--ink-2);margin-bottom:8px;padding:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{position:relative}
+.chip input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.chip span{display:inline-flex;align-items:center;height:38px;padding:0 14px;border:1px solid var(--rule);background:#fff;font-size:14px;font-weight:500;transition:background-color .2s,border-color .2s,color .2s}
+.chip input:checked+span{background:var(--ink);border-color:var(--ink);color:#fff}
+.chip input:focus-visible+span{outline:2px solid var(--oak);outline-offset:2px}
+.form__end{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-top:22px;flex-wrap:wrap}
+.form__end small{font-size:13px;color:var(--ink-3)}
+[data-status]{display:block;margin-top:12px;font-size:14px;color:var(--oak-lo);font-weight:600}
+
+/* footer */
+.foot{background:var(--slate);color:var(--on-slate);border-top:1px solid var(--rule-s)}
+.foot__in{display:flex;justify-content:space-between;align-items:flex-end;gap:32px;padding:56px 0 30px;flex-wrap:wrap}
+.foot .wm b,.foot .wm span{font-size:clamp(2rem,4vw,3.4rem)}
+.foot .wm span{color:var(--oak-hi)}
+.foot__links{display:flex;gap:28px;flex-wrap:wrap;font-size:14.5px}
+.foot__links a{text-decoration:none;color:var(--on-slate-2)}
+.foot__links a:hover{color:var(--on-slate)}
+.foot__legal{display:flex;justify-content:space-between;gap:20px;padding:20px 0 32px;border-top:1px solid var(--rule-s);font-size:13px;color:var(--on-slate-2);flex-wrap:wrap}
+
+/* motion */
+html.motion .ln>span{transform:translateY(105%)}
+html.motion [data-fade]{opacity:0;transform:translateY(16px)}
+html.motion [data-reveal]{opacity:0;transform:translateY(28px)}
+html.motion [data-stagger]>*{opacity:0;transform:translateY(24px)}
+html.motion .hero__ba{clip-path:inset(100% 0 0 0)}
+html.static .ln>span,html.static [data-fade],html.static [data-reveal],html.static [data-stagger]>*{opacity:1!important;transform:none!important}
+html.static .hero__ba{clip-path:none!important}
+
+@media (max-width:1100px){
+  .nav__links{display:none}
+  .hero__copy,.hero__ba{grid-column:1/13}
+  .head__t,.head__l{grid-column:1/13}
+  .head__l{margin-top:18px}
+  .gal{grid-template-columns:1fr}
+  .rooms{grid-template-columns:repeat(3,1fr)}
+  .svc{grid-template-columns:1fr 1fr}
+  .build{padding:var(--sec) 0 calc(var(--sec) - 20px)}
+  .build__pin{grid-template-columns:1fr;min-height:0;padding:0}
+  .house{max-width:520px;margin-top:24px}
+  .contact__copy,.form{grid-column:1/13}
+}
+@media (max-width:760px){
+  :root{--nav:68px}
+  body{font-size:16px}
+  .nav__tel,.nav .btn{display:none}
+  .burger{display:grid;place-items:center;margin-left:auto;width:44px;height:44px;border:1px solid var(--rule);background:transparent}
+  .burger span{display:block;width:18px;height:1.5px;background:var(--ink);position:relative}
+  .burger span::before,.burger span::after{content:"";position:absolute;left:0;width:18px;height:1.5px;background:var(--ink);transition:transform .4s var(--e-out)}
+  .burger span::before{top:-6px}.burger span::after{top:6px}
+  .burger[aria-expanded="true"] span{background:transparent}
+  .burger[aria-expanded="true"] span::before{transform:translateY(6px) rotate(45deg)}
+  .burger[aria-expanded="true"] span::after{transform:translateY(-6px) rotate(-45deg)}
+  .wm b,.wm span{font-size:17px}
+  .hero .ba{aspect-ratio:4/3.4}
+  .hero__meta{flex-wrap:wrap;gap:16px 24px}
+  .stats{grid-template-columns:1fr 1fr}
+  .stat:nth-child(3){padding-left:0;border-left:0}
+  .stat:nth-child(n+3){border-top:1px solid var(--rule)}
+  .gal .ba{aspect-ratio:4/3}
+  .rooms{grid-template-columns:1fr 1fr}
+  .room{grid-template-columns:64px 1fr;gap:10px}
+  .room img{width:64px;height:44px}
+  .svc{grid-template-columns:1fr}
+  .ct{grid-template-columns:1fr}
+  .ctab+.ctab{border-left:0}
+  .ctp{grid-template-columns:1fr}
+  .strip{grid-auto-columns:82%}
+  .quote blockquote,.quote cite{grid-column:1/13}
+  .info{grid-template-columns:1fr}
+  .row{grid-template-columns:1fr}
+  .ba__knob{width:46px;height:46px;margin:-23px 0 0 -23px}
+}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="nav" data-nav>
+  <div class="wrap nav__in">
+    <a class="wm" href="#top" aria-label="Edmonton Home Renovations, home"><b>Edmonton Home</b><span>Renovations</span></a>
+    <nav class="nav__links" aria-label="Main">
+      <a href="#before-after">Before and after</a>
+      <a href="#services">What we do</a>
+      <a href="#how">How we work</a>
+      <a href="#contracts">Contracts</a>
+      <a href="#projects">Projects</a>
+    </nav>
+    <a class="nav__tel num" href="tel:+17809068993">(780) 906-8993</a>
+    <a class="btn btn--ink btn--sm" href="#contact">Free site consultation<i><svg viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></i></a>
+    <button class="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu" data-burger><span></span></button>
+  </div>
+</header>
+<div class="menu" id="menu" data-menu>
+  <a href="#before-after">Before and after</a>
+  <a href="#services">What we do</a>
+  <a href="#how">How we work</a>
+  <a href="#contracts">Contracts</a>
+  <a href="#projects">Projects</a>
+  <a class="btn btn--oak" href="#contact">Book a free site consultation<i><svg viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></i></a>
+  <div class="menu__meta"><a class="num" href="tel:+17809068993">(780) 906-8993</a><span>Monday to Friday, 9 am to 5 pm</span></div>
+</div>
+
+<main id="main">
+<section class="hero" id="top">
+  <div class="wrap">
+    <div class="g">
+      <div class="hero__copy">
+        <p class="kick" data-fade>Renovations and additions · Edmonton</p>
+        <h1 class="d1"><span class="ln"><span>One home</span></span><span class="ln"><span>at a <span class="oak">time.</span></span></span></h1>
+        <p class="lede hero__lede" data-fade>Renovations, additions and second storeys across Edmonton, from a builder with over 60 years in residential construction. We take on one project at a time, and we are hands on until yours is done.</p>
+        <div class="hero__acts" data-fade>
+          <a class="btn btn--oak" href="#contact">Book a free site consultation<i><svg viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></i></a>
+          <a class="btn btn--line num" href="tel:+17809068993">(780) 906-8993</a>
+        </div>
+        <div class="hero__meta" data-fade>
+          <div><b><span class="stars" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.6 6.1.7-4.5 4.2 1.2 6L10 15l-5.4 3 1.2-6L1.3 7.8l6.1-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.6 6.1.7-4.5 4.2 1.2 6L10 15l-5.4 3 1.2-6L1.3 7.8l6.1-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.6 6.1.7-4.5 4.2 1.2 6L10 15l-5.4 3 1.2-6L1.3 7.8l6.1-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.6 6.1.7-4.5 4.2 1.2 6L10 15l-5.4 3 1.2-6L1.3 7.8l6.1-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.6 6.1.7-4.5 4.2 1.2 6L10 15l-5.4 3 1.2-6L1.3 7.8l6.1-.7z"/></svg></span>5.0 on Google</b>From 8 reviews</div>
+          <div><b>Transparent agreements</b>Fixed price, cost plus or design-build</div>
+        </div>
+      </div>
+      <div class="hero__ba">
+        <div class="ba" data-ba style="--p:62%">
+          <img src="assets/ba-front-before.jpg" alt="The house before the renovation" width="988" height="489">
+          <img class="ba__after" src="assets/ba-front-after.jpg" alt="The same house after: new stone, siding, roof and garage doors" width="988" height="489">
+          <span class="ba__tag ba__tag--b">Before</span><span class="ba__tag ba__tag--a">After</span>
+          <span class="ba__line"></span><span class="ba__knob"><svg viewBox="0 0 24 24"><path d="M9 7l-5 5 5 5M15 7l5 5-5 5"/></svg></span>
+          <input type="range" min="0" max="100" value="62" aria-label="Drag to compare before and after">
+        </div>
+        <p class="ba__cap"><span><b>Estates project</b> · Front of house</span><span>Drag to compare</span></p>
+      </div>
+    </div>
+
+    <div class="stats" data-stagger>
+      <div class="stat"><b class="num"><span data-count="60">60</span><sup>+</sup></b><span>Years in residential construction</span></div>
+      <div class="stat"><b class="num">1</b><span>Project at a time, so yours keeps moving</span></div>
+      <div class="stat"><b class="num">3</b><span>Ways to contract, to fit how you want to pay</span></div>
+      <div class="stat"><b class="num">$0</b><span>For a site consultation and your options</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="before-after" style="padding-top:clamp(48px,6vw,96px)">
+  <div class="wrap">
+    <div class="head">
+      <div class="head__t"><p class="kick" data-reveal>Before and after</p><h2 class="d2" data-reveal>Same house. A different home.</h2></div>
+      <p class="lede head__l" data-reveal>Real rooms from our own projects. Pick one and drag the line to see what changed.</p>
+    </div>
+    <div class="gal" data-reveal>
+      <div>
+        <div class="ba" data-ba data-gal style="--p:50%">
+          <img data-b src="assets/ba-kitchen-before.jpg" alt="Kitchen before" width="988" height="489">
+          <img class="ba__after" data-a src="assets/ba-kitchen-after.jpg" alt="Kitchen after" width="988" height="489">
+          <span class="ba__tag ba__tag--b">Before</span><span class="ba__tag ba__tag--a">After</span>
+          <span class="ba__line"></span><span class="ba__knob"><svg viewBox="0 0 24 24"><path d="M9 7l-5 5 5 5M15 7l5 5-5 5"/></svg></span>
+          <input type="range" min="0" max="100" value="50" aria-label="Drag to compare before and after">
+        </div>
+        <p class="gal__hint"><svg viewBox="0 0 24 24"><path d="M9 7l-5 5 5 5M15 7l5 5-5 5"/></svg><span data-gal-cap>Kitchen · Ottewell project</span></p>
+      </div>
+      <div class="rooms" role="tablist" aria-label="Rooms">
+        <button class="room" role="tab" aria-selected="true" data-room="kitchen" data-cap="Kitchen · Ottewell project"><img src="assets/ba-kitchen-after.jpg" alt=""><span><b>Kitchen</b><small>Ottewell</small></span></button>
+        <button class="room" role="tab" aria-selected="false" data-room="living" data-cap="Living room · Ottewell project"><img src="assets/ba-living-after.jpg" alt=""><span><b>Living room</b><small>Ottewell</small></span></button>
+        <button class="room" role="tab" aria-selected="false" data-room="laundry" data-cap="Laundry · Estates project"><img src="assets/ba-laundry-after.jpg" alt=""><span><b>Laundry</b><small>Estates</small></span></button>
+        <button class="room" role="tab" aria-selected="false" data-room="family" data-cap="Family room · Estates project"><img src="assets/ba-family-after.jpg" alt=""><span><b>Family room</b><small>Estates</small></span></button>
+        <button class="room" role="tab" aria-selected="false" data-room="dining" data-cap="Kitchen and dining · Estates project"><img src="assets/ba-dining-after.jpg" alt=""><span><b>Kitchen and dining</b><small>Estates</small></span></button>
+        <button class="room" role="tab" aria-selected="false" data-room="front" data-cap="Front of house · Estates project"><img src="assets/ba-front-after.jpg" alt=""><span><b>Front of house</b><small>Estates</small></span></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="services" style="padding-top:0">
+  <div class="wrap">
+    <div class="head">
+      <div class="head__t"><p class="kick" data-reveal>What we do</p><h2 class="d2" data-reveal>From a small fix to a second storey.</h2></div>
+      <p class="lede head__l" data-reveal>Whether the work happens in stages, all at once, or while you keep living in the house, we plan it around you and your budget.</p>
+    </div>
+    <div class="svc" data-stagger>
+      <article class="sv"><div class="sv__ph"><img src="assets/ottewell-kitchen.jpg" alt="Renovated kitchen with a white island and oak floors" width="1280" height="854" loading="lazy"></div>
+        <div class="sv__b"><h3>Inside</h3><p>Rooms that work the way you live now.</p>
+          <ul><li>Renovations</li><li>Bathrooms</li><li>Legal basement suites</li><li>Small renovations</li></ul></div></article>
+      <article class="sv"><div class="sv__ph"><img src="assets/estates-open.jpg" alt="Open living, kitchen and dining space" width="1024" height="679" loading="lazy"></div>
+        <div class="sv__b"><h3>More room</h3><p>Grow the home you already love.</p>
+          <ul><li>Additions</li><li>Second storey additions</li><li>Sun rooms</li><li>Beam replacement</li></ul></div></article>
+      <article class="sv"><div class="sv__ph"><img src="assets/estates-entry.jpg" alt="New stone entry steps and front door" width="1088" height="722" loading="lazy"></div>
+        <div class="sv__b"><h3>Outside</h3><p>Protect it, and make it look the part.</p>
+          <ul><li>Roof replacements</li><li>Exterior replacements</li><li>Windows and doors</li><li>Decks and railings</li></ul></div></article>
+    </div>
+  </div>
+</section>
+
+<section class="slate build" id="how">
+  <div class="wrap">
+    <div class="build__pin" data-build>
+      <div class="build__copy">
+        <p class="kick">How we work</p>
+        <h2 class="d2">One project. Start to finish.</h2>
+        <p class="lede">We only run one project at a time. That means fewer delays, steady progress, and someone on site who can solve the unexpected right away.</p>
+        <ol class="bsteps">
+          <li class="bstep on" data-bstep><b>01</b><div><h3>Free site consultation</h3><p>We walk through your home, talk about what you want, and lay out your renovation options.</p></div></li>
+          <li class="bstep" data-bstep><b>02</b><div><h3>A target budget and a clear scope</h3><p>You get a targeted renovation cost and a plan in writing, so nothing is a surprise.</p></div></li>
+          <li class="bstep" data-bstep><b>03</b><div><h3>The contract that suits you</h3><p>Fixed price, cost plus, or design-build. Then we start as soon as possible.</p></div></li>
+          <li class="bstep" data-bstep><b>04</b><div><h3>Hands on until it is done</h3><p>Immediate access to trades and labour, regular updates, and creative fixes on site when something unforeseen comes up.</p></div></li>
+        </ol>
+      </div>
+      <div class="house" aria-hidden="true">
+        <svg viewBox="0 0 520 520">
+          <g class="bp"><line x1="0" y1="40" x2="520" y2="40"/><line x1="0" y1="120" x2="520" y2="120"/><line x1="0" y1="200" x2="520" y2="200"/><line x1="0" y1="280" x2="520" y2="280"/><line x1="0" y1="360" x2="520" y2="360"/><line x1="0" y1="440" x2="520" y2="440"/><line x1="40" y1="0" x2="40" y2="520"/><line x1="120" y1="0" x2="120" y2="520"/><line x1="200" y1="0" x2="200" y2="520"/><line x1="280" y1="0" x2="280" y2="520"/><line x1="360" y1="0" x2="360" y2="520"/><line x1="440" y1="0" x2="440" y2="520"/></g>
+          <!-- 1: site and foundation -->
+          <g data-stage="0">
+            <path class="s thin" d="M20 440H500"/>
+            <path class="s" d="M70 440V418H450V440"/>
+            <path class="dim" d="M70 470H450M70 464V476M450 464V476"/>
+          </g>
+          <!-- 2: frame and scope -->
+          <g data-stage="1">
+            <path class="s" d="M90 418V250H330V418"/>
+            <path class="s thin" d="M130 418V250M170 418V250M210 418V250M250 418V250M290 418V250M90 334H330"/>
+            <path class="s" d="M330 418V300H430V418"/>
+            <path class="dim" d="M470 300V418M464 300H476M464 418H476"/>
+          </g>
+          <!-- 3: roof -->
+          <g data-stage="2">
+            <path class="s" d="M70 254L210 150L350 254"/>
+            <path class="s" d="M318 300L380 256L450 304"/>
+            <path class="s" d="M250 190V160H276V210"/>
+          </g>
+          <!-- 4: finished: windows, door, garage, warm light -->
+          <g data-stage="3">
+            <rect class="fillw" x="116" y="272" width="54" height="44"/>
+            <rect class="fillw" x="246" y="272" width="54" height="44"/>
+            <path class="s oakl" d="M116 272H170V316H116ZM143 272V316M246 272H300V316H246ZM273 272V316"/>
+            <path class="s oakl" d="M190 418V350H230V418M222 386H224"/>
+            <path class="s" d="M346 418V330H414V418M346 352H414M346 374H414M346 396H414"/>
+            <path class="s thin" d="M160 440V448H260V440"/>
+          </g>
+        </svg>
+        <span class="house__stage" data-stage-label>Step 1 · Walk-through</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="contracts">
+  <div class="wrap">
+    <div class="head">
+      <div class="head__t"><p class="kick" data-reveal>Contracts</p><h2 class="d2" data-reveal>Choose how you want to pay.</h2></div>
+      <p class="lede head__l" data-reveal>Three ways to work together, all with transparent agreements. Tap each one to see how the money works.</p>
+    </div>
+    <div class="ct" data-reveal>
+      <button class="ctab" aria-selected="true" data-ct="fixed"><small>Option 1</small><b>Fixed price</b></button>
+      <button class="ctab" aria-selected="false" data-ct="cost"><small>Option 2</small><b>Cost plus</b></button>
+      <button class="ctab" aria-selected="false" data-ct="design"><small>Option 3</small><b>Design-build</b></button>
+      <div class="ctp" data-ctp></div>
+    </div>
+  </div>
+</section>
+
+<section class="slate sec" id="projects">
+  <div class="wrap">
+    <div class="head" style="margin-bottom:clamp(36px,4vw,56px)">
+      <div class="head__t"><p class="kick" data-reveal>Projects</p><h2 class="d2" data-reveal>A small sampling of our work.</h2></div>
+      <p class="lede head__l" data-reveal>Two homes we renovated. Drag or scroll sideways to walk through them.</p>
+    </div>
+    <div class="proj" data-reveal>
+      <div class="proj__h"><h3>Estates</h3><span>Kitchen, living, ensuite, entry and exterior</span></div>
+      <div class="strip" data-strip>
+        <figure><div class="ph"><img src="assets/estates-front.jpg" alt="Front of the Estates home with new stone and garage doors" loading="lazy"></div><figcaption>Front of house</figcaption></figure>
+        <figure><div class="ph"><img src="assets/estates-kitchen.jpg" alt="White kitchen with a large island and French doors" loading="lazy"></div><figcaption>Kitchen</figcaption></figure>
+        <figure><div class="ph"><img src="assets/estates-living.jpg" alt="Living room with a feature wall and fireplace" loading="lazy"></div><figcaption>Living room</figcaption></figure>
+        <figure><div class="ph"><img src="assets/estates-builtins.jpg" alt="Built-in shelving and a window bench" loading="lazy"></div><figcaption>Built-ins</figcaption></figure>
+        <figure><div class="ph"><img src="assets/estates-ensuite.jpg" alt="Ensuite with a glass shower and soaker tub" loading="lazy"></div><figcaption>Ensuite</figcaption></figure>
+        <figure><div class="ph"><img src="assets/estates-entry.jpg" alt="Stone entry steps" loading="lazy"></div><figcaption>Entry</figcaption></figure>
+      </div>
+    </div>
+    <div class="proj" data-reveal>
+      <div class="proj__h"><h3>Ottewell</h3><span>Kitchen, living, entry and laundry</span></div>
+      <div class="strip" data-strip>
+        <figure><div class="ph"><img src="assets/ottewell-kitchen.jpg" alt="Kitchen with an island and pendant lights" loading="lazy"></div><figcaption>Kitchen</figcaption></figure>
+        <figure><div class="ph"><img src="assets/ottewell-living.jpg" alt="Open living room with large windows" loading="lazy"></div><figcaption>Living room</figcaption></figure>
+        <figure><div class="ph"><img src="assets/ottewell-open.jpg" alt="Open plan living, dining and kitchen" loading="lazy"></div><figcaption>Open plan</figcaption></figure>
+        <figure><div class="ph"><img src="assets/ottewell-range.jpg" alt="Gas cooktop with a tiled backsplash" loading="lazy"></div><figcaption>Cooktop and backsplash</figcaption></figure>
+        <figure><div class="ph"><img src="assets/ottewell-entry.jpg" alt="Front entry with new doors and flooring" loading="lazy"></div><figcaption>Entry</figcaption></figure>
+        <figure><div class="ph"><img src="assets/ottewell-laundry.jpg" alt="Laundry room" loading="lazy"></div><figcaption>Laundry</figcaption></figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="quote">
+  <div class="wrap g">
+    <blockquote data-reveal>“Edmonton Home Renovations has done renovation and addition work on several of my properties over the last 30 years. I continue to hire them because of their hard work, honest agreements, and last but not least, their experience in residential construction.”</blockquote>
+    <cite data-reveal><b>Bruce Carson</b> · Client for 30 years</cite>
+  </div>
+</section>
+
+<section class="slate sec contact" id="contact">
+  <div class="wrap">
+    <div class="g">
+      <div class="contact__copy">
+        <p class="kick" data-reveal>Free site consultation</p>
+        <h2 class="d2" data-reveal>Tell us about your home.</h2>
+        <p class="lede" data-reveal>A few details are enough. We will get back to you to set up a walk-through, talk through your options and give you a targeted cost.</p>
+        <div class="info" data-stagger>
+          <div><small>Call</small><a class="num" href="tel:+17809068993">(780) 906-8993</a><div class="open" data-open><i></i><span>Monday to Friday, 9 am to 5 pm</span></div></div>
+          <div><small>Email</small><a href="mailto:yeghomerenovations@gmail.com">yeghomerenovations@gmail.com</a></div>
+          <div><small>Address</small><p>11018 122 St NW<br>Edmonton, AB T5M 0B3</p></div>
+          <div><small>Hours</small><p>Monday to Friday<br>9 am to 5 pm</p></div>
+        </div>
+      </div>
+      <form class="form" novalidate data-form data-reveal>
+        <h3>Book your free site consultation</h3>
+        <p>No cost and no obligation.</p>
+        <div class="row">
+          <div class="field"><label for="f-name">Your name</label><input id="f-name" autocomplete="name"><span data-err></span></div>
+          <div class="field"><label for="f-phone">Phone</label><input id="f-phone" autocomplete="tel" inputmode="tel"><span data-err></span></div>
+        </div>
+        <div class="row" style="grid-template-columns:1fr">
+          <div class="field"><label for="f-email">Email</label><input id="f-email" autocomplete="email" inputmode="email"><span data-err></span></div>
+        </div>
+        <fieldset><legend>What are you thinking about?</legend>
+          <div class="chips">
+            <label class="chip"><input type="checkbox" checked><span>Kitchen</span></label>
+            <label class="chip"><input type="checkbox"><span>Bathroom</span></label>
+            <label class="chip"><input type="checkbox"><span>Basement suite</span></label>
+            <label class="chip"><input type="checkbox"><span>Addition or second storey</span></label>
+            <label class="chip"><input type="checkbox"><span>Roof or exterior</span></label>
+            <label class="chip"><input type="checkbox"><span>Windows and doors</span></label>
+            <label class="chip"><input type="checkbox"><span>Something else</span></label>
+          </div>
+        </fieldset>
+        <fieldset><legend>When would you like to start?</legend>
+          <div class="chips">
+            <label class="chip"><input type="radio" name="when" checked><span>As soon as possible</span></label>
+            <label class="chip"><input type="radio" name="when"><span>In the next few months</span></label>
+            <label class="chip"><input type="radio" name="when"><span>Just planning</span></label>
+          </div>
+        </fieldset>
+        <div class="field" style="margin-top:18px"><label for="f-msg">Tell us a little about the project</label><textarea id="f-msg"></textarea></div>
+        <div class="form__end"><small>Open Monday to Friday, 9 am to 5 pm.</small><button class="btn btn--oak" type="submit">Request my consultation<i><svg viewBox="0 0 16 16"><path d="M3 8h10M9 4l4 4-4 4"/></svg></i></button></div>
+        <span data-status role="status"></span>
+      </form>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot__in">
+      <a class="wm" href="#top" aria-label="Back to top"><b>Edmonton Home</b><span>Renovations</span></a>
+      <nav class="foot__links" aria-label="Footer"><a href="#before-after">Before and after</a><a href="#services">What we do</a><a href="#how">How we work</a><a href="#contracts">Contracts</a><a href="#projects">Projects</a><a href="#contact">Contact</a></nav>
+    </div>
+    <div class="foot__legal"><span>© 2026 Edmonton Home Renovations · 11018 122 St NW, Edmonton · <a class="num" href="tel:+17809068993">(780) 906-8993</a></span><span>Concept by Grow The Hype</span></div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var doc=document.documentElement, reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function $(s,c){return (c||document).querySelector(s)} function $$(s,c){return Array.prototype.slice.call((c||document).querySelectorAll(s))}
+
+  /* menu */
+  var burger=$('[data-burger]'), menu=$('[data-menu]'), nav=$('[data-nav]');
+  function setMenu(open){burger.setAttribute('aria-expanded',open);menu.classList.toggle('is-open',open);document.body.style.overflow=open?'hidden':'';if(window.__lenis){open?window.__lenis.stop():window.__lenis.start()}}
+  burger&&burger.addEventListener('click',function(){setMenu(burger.getAttribute('aria-expanded')!=='true')});
+  $$('a',menu).forEach(function(a){a.addEventListener('click',function(){setMenu(false)})});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')setMenu(false)});
+
+  /* before / after sliders */
+  function setP(ba,v){v=Math.max(0,Math.min(100,v));ba.style.setProperty('--p',v+'%');var r=$('input',ba);if(r)r.value=v;var tb=$('.ba__tag--b',ba),ta=$('.ba__tag--a',ba);if(tb)tb.style.opacity=v<14?0:1;if(ta)ta.style.opacity=v>86?0:1}
+  $$('[data-ba]').forEach(function(ba){
+    var r=$('input',ba);
+    r.addEventListener('input',function(){ba.__touched=true;setP(ba,+r.value)});
+    var drag=false;
+    function at(e){var b=ba.getBoundingClientRect();var x=(e.touches?e.touches[0].clientX:e.clientX)-b.left;return x/b.width*100}
+    ba.addEventListener('pointerdown',function(e){drag=true;ba.__touched=true;if(ba.__tw)ba.__tw.kill();setP(ba,at(e));ba.setPointerCapture&&ba.setPointerCapture(e.pointerId)});
+    ba.addEventListener('pointermove',function(e){if(drag)setP(ba,at(e))});
+    ba.addEventListener('pointerup',function(){drag=false});
+    ba.addEventListener('pointercancel',function(){drag=false});
+  });
+
+  /* gallery rooms */
+  var gal=$('[data-gal]');
+  $$('[data-room]').forEach(function(btn){btn.addEventListener('click',function(){
+    var k=btn.dataset.room;$$('[data-room]').forEach(function(b){b.setAttribute('aria-selected',b===btn)});
+    var b=$('[data-b]',gal),a=$('[data-a]',gal);
+    gal.style.opacity=.35;setTimeout(function(){b.src='assets/ba-'+k+'-before.jpg';a.src='assets/ba-'+k+'-after.jpg';b.alt=btn.dataset.cap.split(' · ')[0]+' before';a.alt=btn.dataset.cap.split(' · ')[0]+' after';$('[data-gal-cap]').textContent=btn.dataset.cap;setP(gal,50);gal.style.opacity=1},180)})});
+  gal&&(gal.style.transition='opacity .25s');
+
+  /* contracts */
+  var CT={
+    fixed:{t:'One agreed price, set before work starts.',d:'Together we design the right blueprint for your renovation. Once it is complete, we agree on a final price for the work and the design, with every detail listed. Anything unforeseen outside the agreed work is handled as a change order, so you always know before it happens.',best:'You want one number up front.',bar:'<i class="one" style="flex:1">One agreed price</i><i class="room2" style="flex:.22">Change orders</i>',k:['Agreed before work starts','Only if something changes'],note:'You know the total before a single wall comes down.'},
+    cost:{t:'Pay what the work costs, plus a management fee.',d:'We design the blueprint and break down all of the work together. Together we hire the trades and get it done. You pay the actual cost of labour and materials, and the management fee is a percentage of the total or an agreed fixed amount.',best:'You want to see every cost.',bar:'<i class="m" style="flex:.46">Materials</i><i class="l" style="flex:.38">Labour</i><i class="f" style="flex:.16">Fee</i>',k:['At cost, fully transparent','Builder\'s fee'],note:'Nothing is hidden inside a lump sum. You see what everything costs.'},
+    design:{t:'You set the budget. We design what fits inside it.',d:'We design the blueprint together at the beginning. You set the budget, and we work out what fits within it. Once you agree, we build exactly that.',best:'You have a number in mind and want the most from it.',bar:'<i class="one" style="flex:.86">Design and build within your budget</i><i class="room2" style="flex:.14">Your limit</i>',k:['Scope shaped to the budget','You set the line'],note:'The budget comes first, and the design follows it.'}
+  };
+  var ctp=$('[data-ctp]');
+  function ctRender(k){var c=CT[k];ctp.innerHTML='<div class="ctp__copy"><h3>'+c.t+'</h3><p>'+c.d+'</p><div class="ctp__best"><b>Best when</b><span>'+c.best+'</span></div></div><div class="ctp__viz"><div class="bar">'+c.bar+'</div><div class="viz__k"><span>'+c.k[0]+'</span><span>'+c.k[1]+'</span></div><p class="viz__note">'+c.note+'</p></div>';$$('[data-ct]').forEach(function(b){b.setAttribute('aria-selected',b.dataset.ct===k)})}
+  ctRender('fixed');
+  $$('[data-ct]').forEach(function(b){b.addEventListener('click',function(){ctp.classList.add('is-out');setTimeout(function(){ctRender(b.dataset.ct);requestAnimationFrame(function(){requestAnimationFrame(function(){ctp.classList.remove('is-out')})})},220)})});
+
+  /* drag-to-scroll strips */
+  $$('[data-strip]').forEach(function(s){var down=false,x0=0,l0=0,moved=false;
+    s.addEventListener('pointerdown',function(e){if(e.pointerType!=='mouse')return;down=true;moved=false;x0=e.clientX;l0=s.scrollLeft;s.classList.add('drag')});
+    window.addEventListener('pointermove',function(e){if(!down)return;var dx=e.clientX-x0;if(Math.abs(dx)>3)moved=true;s.scrollLeft=l0-dx});
+    window.addEventListener('pointerup',function(){if(!down)return;down=false;s.classList.remove('drag')})});
+
+  /* open now */
+  var open=$('[data-open]');
+  if(open){try{var pt=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Edmonton',weekday:'short',hour:'numeric',minute:'numeric',hourCycle:'h23'}).formatToParts(new Date()).reduce(function(o,p){o[p.type]=p.value;return o},{});
+    var h=+pt.hour+(+pt.minute)/60, wd=['Mon','Tue','Wed','Thu','Fri'].indexOf(pt.weekday)>=0, on=wd&&h>=9&&h<17;
+    open.classList.toggle('closed',!on);open.querySelector('span').textContent=on?'Open now, until 5 pm':'Closed now, back '+(wd&&h<9?'at 9 am':(pt.weekday==='Fri'||!wd)?'Monday at 9 am':'tomorrow at 9 am')}catch(e){}}
+
+  /* form */
+  var form=$('[data-form]');
+  form&&form.addEventListener('submit',function(e){e.preventDefault();var ok=true;
+    [['f-name',function(v){return v.trim().length>1},'Please add your name.'],['f-phone',function(v){return v.replace(/\D/g,'').length>=10||document.getElementById('f-email').value.indexOf('@')>0},'Please add a phone number or email.']].forEach(function(r){var el=document.getElementById(r[0]),f=el.closest('.field'),good=r[1](el.value);f.classList.toggle('bad',!good);f.querySelector('[data-err]').textContent=good?'':r[2];if(!good)ok=false});
+    if(ok)$('[data-status]').textContent='This is a homepage concept. On your new site, this would go straight to your inbox.'});
+
+  function ready(){
+    if(!window.gsap||!window.ScrollTrigger||reduce){doc.classList.remove('motion');return}
+    gsap.registerPlugin(ScrollTrigger);
+    window.__ready=true;
+    var lenis=window.Lenis?new Lenis({duration:1.15,smoothWheel:true}):null;
+    if(lenis){window.__lenis=lenis;lenis.on('scroll',ScrollTrigger.update);gsap.ticker.add(function(t){lenis.raf(t*1000)});gsap.ticker.lagSmoothing(0);
+      $$('a[href^="#"]').forEach(function(a){a.addEventListener('click',function(e){var id=a.getAttribute('href');if(id.length<2)return;var el=$(id);if(!el)return;e.preventDefault();lenis.scrollTo(el,{offset:id==='#top'?0:-(innerWidth<761?60:72),duration:1.3})})})}
+    var E='expo.out';
+
+    var lastY=0;
+    ScrollTrigger.create({start:0,end:'max',onUpdate:function(s){var y=s.scroll();nav.classList.toggle('is-scrolled',y>10);nav.classList.toggle('is-hidden',y>innerHeight*.9&&y>lastY&&!menu.classList.contains('is-open'));lastY=y}});
+
+    /* hero: words rise, photo opens, slider sweeps once to show the change */
+    var hb=$('.hero [data-ba]'), sweep={v:96};
+    setP(hb,96);
+    var tl=gsap.timeline({defaults:{ease:E},delay:.1});
+    tl.to('.hero .kick',{opacity:1,y:0,duration:.9})
+      .to('.hero h1 .ln>span',{y:0,yPercent:0,duration:1.25,stagger:.1},'-=.6')
+      .to('.hero [data-fade]:not(.kick)',{opacity:1,y:0,duration:1,stagger:.08},'-=.8')
+      .to('.hero__ba',{clipPath:'inset(0% 0 0 0)',duration:1.4,ease:'expo.inOut'},.2)
+      .fromTo('.hero__ba img',{scale:1.12},{scale:1,duration:2,ease:'expo.out'},.4);
+    hb.__tw=gsap.to(sweep,{v:38,duration:2.2,ease:'power3.inOut',delay:1.5,onUpdate:function(){if(!hb.__touched)setP(hb,sweep.v)}});
+
+    $$('[data-reveal]').forEach(function(el){gsap.to(el,{opacity:1,y:0,duration:1.1,ease:E,scrollTrigger:{trigger:el,start:'top 88%',once:true}})});
+    $$('[data-stagger]').forEach(function(el){gsap.to(el.children,{opacity:1,y:0,duration:1,ease:E,stagger:.08,scrollTrigger:{trigger:el,start:'top 88%',once:true}})});
+    $$('[data-count]').forEach(function(el){var o={v:0},to=+el.dataset.count;gsap.to(o,{v:to,duration:1.8,ease:'expo.out',scrollTrigger:{trigger:el,start:'top 92%',once:true},onUpdate:function(){el.textContent=Math.round(o.v)}})});
+
+    /* gallery slider nudges when it arrives */
+    var gs={v:78};
+    ScrollTrigger.create({trigger:gal,start:'top 75%',once:true,onEnter:function(){setP(gal,78);gal.__tw=gsap.to(gs,{v:50,duration:1.6,ease:'power3.inOut',onUpdate:function(){if(!gal.__touched)setP(gal,gs.v)}})}});
+
+    /* the house builds itself as the steps go by */
+    var stages=$$('[data-stage]'), bsteps=$$('[data-bstep]'), lab=$('[data-stage-label]'), names=['Walk-through','Scope and budget','Contract','Built and finished'];
+    var strokes=stages.map(function(g){return $$('path,rect',g).filter(function(p){return p.getTotalLength})});
+    strokes.forEach(function(list){list.forEach(function(p){var L=p.getTotalLength();p.style.strokeDasharray=L;p.style.strokeDashoffset=L})});
+    stages.forEach(function(g){$$('text,.fillw',g).forEach(function(t){t.style.opacity=0})});
+    function draw(i,f){var list=strokes[i];list.forEach(function(p){var L=p.getTotalLength();p.style.strokeDashoffset=L*(1-f)});$$('text,.fillw',stages[i]).forEach(function(t){t.style.opacity=f>.7?(f-.7)/.3:0})}
+    function progress(pr){var n=stages.length,x=pr*n;for(var i=0;i<n;i++){draw(i,Math.max(0,Math.min(1,x-i)))}var a=Math.min(n-1,Math.floor(x));bsteps.forEach(function(s,i){s.classList.toggle('on',i<=a)});if(lab)lab.textContent='Step '+(a+1)+' · '+names[a]}
+    var mm=gsap.matchMedia();
+    mm.add('(min-width:1101px)',function(){
+      var st=ScrollTrigger.create({trigger:'[data-build]',start:'top top',end:'+='+(innerHeight*2.2),pin:true,scrub:.6,onUpdate:function(s){progress(Math.min(1,s.progress*1.08))}});
+      progress(.02);
+      return function(){st.kill()};
+    });
+    mm.add('(max-width:1100px)',function(){
+      var st=ScrollTrigger.create({trigger:'.house',start:'top 85%',end:'bottom 35%',scrub:.6,onUpdate:function(s){progress(s.progress)}});
+      progress(0);
+      return function(){st.kill()};
+    });
+
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(!e.isIntersecting)return;setTimeout(function(){var el=e.target;if(getComputedStyle(el).opacity<.1)gsap.set(el,{opacity:1,y:0})},1600)})});
+    $$('[data-reveal],[data-stagger]>*,[data-fade]').forEach(function(el){io.observe(el)});
+    window.addEventListener('load',function(){ScrollTrigger.refresh()});
+    document.fonts&&document.fonts.ready.then(function(){ScrollTrigger.refresh()});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready);else ready();
+})();
+</script>
+</body>
+</html>
