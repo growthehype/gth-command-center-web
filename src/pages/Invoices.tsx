@@ -124,7 +124,9 @@ function getInvoiceStatus(inv: Invoice): { label: string; badgeClass: string; to
 }
 
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount)
+  // Whole dollars stay clean ($850); anything with cents shows them ($2,598.75)
+  const cents = Math.abs(Math.round(amount * 100)) % 100 !== 0
+  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 }).format(amount)
 }
 
 const todayStr = () => format(new Date(), 'yyyy-MM-dd')
@@ -596,7 +598,7 @@ export default function Invoices() {
       const payload = {
         num: builderNum,
         client_id: builderClientId,
-        amount: Math.round(builderTotal),
+        amount: Math.round(builderTotal * 100) / 100,
         sent_date: builderDate,
         due_date: builderDueDate,
         status: 'draft',
@@ -641,7 +643,7 @@ export default function Invoices() {
       const payload = {
         num: builderNum,
         client_id: builderClientId,
-        amount: Math.round(builderTotal),
+        amount: Math.round(builderTotal * 100) / 100,
         sent_date: builderDate,
         due_date: builderDueDate,
         status: 'draft',
@@ -662,7 +664,7 @@ export default function Invoices() {
       setPendingSendInvoiceId(invoiceId)
       setEmailTo(builderClientEmail)
       setEmailSubject(`Invoice ${builderNum} from Grow The Hype`)
-      setEmailBody(`Hi ${getBuilderClientName()},\n\nPlease find attached invoice ${builderNum} for ${formatCurrency(Math.round(builderTotal))}.\n\nDue date: ${builderDueDate}\n\nThank you for your business!\n\nBest regards,\n${builderFromName}`)
+      setEmailBody(`Hi ${getBuilderClientName()},\n\nPlease find attached invoice ${builderNum} for ${formatCurrency(Math.round(builderTotal * 100) / 100)}.\n\nDue date: ${builderDueDate}\n\nThank you for your business!\n\nBest regards,\n${builderFromName}`)
       setEmailModalOpen(true)
     } catch (err: any) {
       showToast(err?.message || 'Failed to save invoice', 'error')
