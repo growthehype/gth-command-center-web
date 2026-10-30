@@ -1,2 +1,4 @@
-chromium-v131.0.1-pack.tar -> 200 0 https://release-assets.githubusercontent.com/github-production-release-asset/541732486/b8da128d-8f52-45b0-a16a-46a894087b0e?sp=r&sv=2018-11-09&sr=b&spr=https&se=2026-10-29T18%3A16%3A57Z&rscd=attachment%3B+filename%3Dchromium-v131.0.1-pack.tar&rsct=application%2Foctet-stream&skoid=96c2d410-5711-43a1-aedd-ab1947aa7ab0&sktid=398a6654-997b-47e9-b12b-9515b896b4de&skt=2026-10-29T17%3A16%3A39Z&ske=2026-10-29T18%3A16%3A57Z&sks=b&skv=2018-11-09&sig=5uqY0XhhskXuo7LfLcLetNrFaE3Z4ujQ6T0r96e%2FLD8%3D&jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmVsZWFzZS1hc3NldHMuZ2l0aHVidXNlcmNvbnRlbnQuY29tIiwia2V5Ijoia2V5MSIsImV4cCI6MTc5MzI5NjU4NSwibmJmIjoxNzkzMjk0Nzg1LCJwYXRoIjoicmVsZWFzZWFzc2V0cHJvZHVjdGlvbi5ibG9iLmNvcmUud2luZG93cy5uZXQifQ.WkWdq6R4fHBw2Ai4daEjLP-P4wuCxFQfaETi9AWG4bI&response-content-disposition=attachment%3B%20filename%3Dchromium-v131.0.1-pack.tar&response-content-type=application%2Foctet-stream len=content-length: 66201600
-chromium-v131.0.1-pack.x64.tar -> 404 0 https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.x64.tar len=content-length: 9
+scripts  https://gth-command-center-web-ljda.vercel.app/assets/index-CMG6NA56.js
+parent BODY
+box {"x":323,"y":25,"width":44,"height":44}
+top el <path d="m6 6 12 12"></path>
