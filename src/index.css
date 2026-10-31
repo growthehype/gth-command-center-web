@@ -3042,9 +3042,25 @@ button.brf-goal:hover { border-color: var(--color-border-hard); }
 [data-theme="light"] .cw-input { background: #fff; border-color: var(--color-border-hard) !important; }
 
 @media (max-width: 767px) {
-  .cw-overlay { padding: 0; align-items: stretch; }
-  .cw-window { max-width: none; min-height: 100dvh; border-radius: 0; border: none; }
-  .cw-inner { padding: 16px 14px 28px; }
+  .cw-overlay { padding: 0; align-items: flex-start; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+  /* Grows with its content so the panel never ends mid-scroll */
+  .cw-window { max-width: none; min-height: 100dvh !important; border-radius: 0; border: none; flex: none; }
+  .cw-tabs { top: env(safe-area-inset-top); z-index: 6; max-width: calc(100% - 52px); background: #0A0A0A; }
+  [data-theme="light"] .cw-tabs { background: var(--plate-raised); }
+  /* Content starts below the clock and notch, ends above the home bar */
+  .cw-inner { padding: calc(max(16px, env(safe-area-inset-top)) + 4px) 14px calc(28px + env(safe-area-inset-bottom)); }
+  /* The X floats in the top corner so it is always one tap away, however far you scroll */
+  .cw-window .modal-close-btn, .ld-close {
+    position: fixed; z-index: 120;
+    top: calc(max(10px, env(safe-area-inset-top)) + 4px); right: max(12px, env(safe-area-inset-right));
+    width: 44px; height: 44px; border-radius: 999px;
+    background: rgba(18, 18, 18, 0.92); border: 1px solid rgba(255, 255, 255, 0.16); color: var(--color-polar);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.9);
+    display: grid; place-items: center;
+  }
+  [data-theme="light"] .cw-window .modal-close-btn, [data-theme="light"] .ld-close { background: rgba(255, 255, 255, 0.94); border-color: var(--color-border-hard); }
+  .ld-head, .cw-head { padding-right: 52px; }
   .cw-field { grid-template-columns: minmax(0, 1fr); gap: 2px; padding: 10px 0; }
   .cw-field-value, .cw-field-edit { margin: 0; }
 }
