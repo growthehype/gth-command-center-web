@@ -458,23 +458,7 @@ export default function Settings() {
           </div>
           <div>
             <label className="label text-steel block mb-1.5">API Key</label>
-            <div className="relative">
-              <input
-                type={aiKeyVisible ? 'text' : 'password'}
-                value={aiKey}
-                onChange={e => setAiKey(e.target.value)}
-                onBlur={() => { saveSetting('ai_api_key', aiKey) }}
-                className={inputClass}
-                style={{ fontSize: '14px', paddingRight: '36px' }}
-                placeholder="sk-ant-..."
-              />
-              <button
-                onClick={() => setAiKeyVisible(!aiKeyVisible)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-dim hover:text-steel transition-colors cursor-pointer"
-              >
-                {aiKeyVisible ? <EyeOff size={12} /> : <Eye size={12} />}
-              </button>
-            </div>
+            <p className="text-dim" style={{ fontSize: '13px' }}>Stored securely on the server. It never loads in your browser.</p>
           </div>
           <div>
             <label className="label text-steel block mb-1.5">Model</label>

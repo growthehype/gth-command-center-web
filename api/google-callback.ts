@@ -4,7 +4,11 @@ import { createClient } from '@supabase/supabase-js'
 
 const GOOGLE_CLIENT_ID = '272925349594-4dtb910g2m3jp2433na7r9eac297hoot.apps.googleusercontent.com'
 
+// Everything shown on this page is escaped: the error text can come from the URL
+const esc = (v: string) => String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
+
 function errorPage(res: VercelResponse, title: string, detail: string, homeUrl: string) {
+  title = esc(title); detail = esc(detail.slice(0, 300))
   res.setHeader('Content-Type', 'text/html')
   return res.send(`<!DOCTYPE html>
 <html><head><title>Connection Error</title>
@@ -66,15 +70,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const tokens = await tokenRes.json()
 
     if (!tokenRes.ok || !tokens.access_token) {
-      // Diagnostic info to help pinpoint the mismatch.
-      const secretLen = clientSecret.length
-      const secretPrefix = clientSecret.slice(0, 7)
-      const secretSuffix = clientSecret.slice(-4)
       console.error('[google-callback] Token exchange failed:', JSON.stringify(tokens))
       return errorPage(
         res,
         'Token exchange failed',
-        `Google: ${tokens.error || 'unknown'} — ${tokens.error_description || 'no description'}. redirect_uri: ${redirectUri}. Client secret state: length=${secretLen}, prefix="${secretPrefix}", suffix="${secretSuffix}". If prefix is NOT "GOCSPX-" — the Vercel env var has the wrong value.`,
+        `Google: ${tokens.error || 'unknown'}. ${tokens.error_description || ''} Please try connecting again.`,
         baseUrl,
       )
     }
@@ -82,6 +82,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ── Server-side: persist refresh token to Supabase immediately ──
     // This runs on the server so the token is saved reliably regardless of
     // what happens in the browser (localStorage issues, tab closes, etc.)
+    let savedServerSide = false
     if (tokens.refresh_token) {
       try {
         const sbUrl = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim().replace(/\\n/g, '')
@@ -118,7 +119,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
             if (sbUser) {
               // Save to integrations table
-              await sb.from('integrations').upsert(
+              const { error: saveErr } = await sb.from('integrations').upsert(
                 {
                   user_id: sbUser.id,
                   provider: 'gmail',
@@ -128,6 +129,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 },
                 { onConflict: 'user_id,provider' },
               )
+              savedServerSide = !saveErr
 
               // Also write to legacy table as belt-and-suspenders (older code paths
               // may still read from here until fully migrated)
@@ -176,8 +178,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 <script>
   try {
     var tokenData = {
-      access_token: ${JSON.stringify(tokens.access_token)},
-      refresh_token: ${JSON.stringify(tokens.refresh_token || '')},
+      access_token: ${JSON.stringify(tokens.access_token).replace(/</g, '\\u003c')},
+      refresh_token: ${JSON.stringify(savedServerSide ? '' : (tokens.refresh_token || ''))},
       expires_at: ${expiresAt}
     };
     localStorage.setItem('gth_gmail_token', JSON.stringify({

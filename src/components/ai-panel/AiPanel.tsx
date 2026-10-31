@@ -605,8 +605,9 @@ ${store.clients.filter(c => c.status === 'active').map(c => `- ${c.name}: ${c.se
 - If asked something vague, ask a clarifying question rather than guessing
 - Proactively suggest next actions when relevant`
 
-  // Use server-side proxy when no user-provided key, or the key is set to 'proxy'
-  const useProxy = !apiKey || apiKey === 'proxy'
+  // Always go through the server proxy: the Anthropic key lives only on the server
+  void apiKey
+  const useProxy = true
   const url = useProxy ? '/api/ai-proxy' : 'https://api.anthropic.com/v1/messages'
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (useProxy) {
