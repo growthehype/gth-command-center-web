@@ -377,15 +377,16 @@ export const campaigns = {
 // ============================================
 export const credentials = {
   async getAll() {
-    const { data, error } = await supabase.from('credentials').select('*').eq(...scope()).order('platform')
+    // Passwords are encrypted in the database vault; this returns them decrypted for the signed-in owner only
+    const { data, error } = await supabase.rpc('credentials_list')
     if (error) throw error
-    return data || []
+    return (data || []) as any[]
   },
   async create(d: any) {
     const userId = await uid()
     const { data, error } = await supabase.from('credentials').insert({ ...d, user_id: userId, ...(_currentTenantId ? { tenant_id: _currentTenantId } : {}), created_at: new Date().toISOString() }).select().single()
     if (error) throw error
-    return data
+    return { ...data, fields: d.fields ?? null, fields_secret: undefined }
   },
   async update(id: string, d: any) {
     const { error } = await supabase.from('credentials').update(d).eq('id', id)
