@@ -88,7 +88,8 @@ export async function buildInvoice(p: Plan, opts: { issueDate?: string; num?: st
   if (!EMAIL_RE.test(to)) problems.push('No valid email address to send to')
   if (p.cc && p.cc.split(',').some(e => !EMAIL_RE.test(e.trim()))) problems.push('A copy (CC) address is not valid')
   if (!(Number(p.amount) > 0)) problems.push('Amount is missing')
-  const issue = opts.issueDate || today()
+  // A preview of a future invoice is dated the day it will go out
+  const issue = opts.issueDate || (sendDate(p) > today() ? sendDate(p) : today())
   const period = p.next_date
   const due = p.cadence === 'yearly' ? (period > issue ? period : issue) : addDays(issue, p.due_days || 0)
   const sub = r2(Number(p.amount))
