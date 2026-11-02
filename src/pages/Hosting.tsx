@@ -10,7 +10,7 @@ type Plan = {
   id: string; client_id: string; cadence: 'monthly' | 'yearly'; amount: number; tax_rate: number; description: string
   next_date: string; notice_days: number; due_days: number; send_to: string | null; cc: string | null; contact_name: string | null
   invoice_prefix: string | null; payment_instructions: string; status: 'active' | 'paused' | 'ended'; verified: boolean
-  auto_send: boolean; bill_day: number | null; started_on: string | null; notes: string | null; last_invoice_id: string | null; last_run_at: string | null
+  auto_send: boolean; bill_day: number | null; ends_on: string | null; started_on: string | null; notes: string | null; last_invoice_id: string | null; last_run_at: string | null
 }
 type LogRow = { id: string; plan_id: string; period: string; kind: string; invoice_id: string | null; detail: string | null; created_at: string }
 type Preview = { num: string; to: string; cc: string; subject: string; body: string; total: number; tax: number; due: string; issue: string; label: string; problems: string[]; pdfBase64: string }
@@ -38,7 +38,7 @@ async function callHosting(payload: any) {
 const EMPTY = {
   client_id: '', cadence: 'monthly' as 'monthly' | 'yearly', amount: '', tax_rate: '5', description: 'Website hosting',
   next_date: '', notice_days: '30', due_days: '0', send_to: '', cc: '', contact_name: '', invoice_prefix: '',
-  payment_instructions: 'Please send payment by Interac e-Transfer to omar@growthehype.ca', auto_send: true, status: 'active' as Plan['status'], notes: '',
+  payment_instructions: 'Please send payment by Interac e-Transfer to omar@growthehype.ca', ends_on: '', auto_send: true, status: 'active' as Plan['status'], notes: '',
 }
 
 export default function Hosting() {
@@ -60,7 +60,7 @@ export default function Hosting() {
       const t = todayStr()
       const cs = useAppStore.getState().clients.slice(0, 4)
       const base = { tax_rate: 5, description: 'Website hosting', notice_days: 30, due_days: 0, send_to: null, cc: null, contact_name: null, invoice_prefix: null, payment_instructions: EMPTY.payment_instructions, auto_send: true, started_on: t, notes: null, last_invoice_id: null, last_run_at: null }
-      setPlans(cs.map((c, i) => ({ ...base, id: 'demo-' + i, client_id: c.id, cadence: i % 2 ? 'yearly' : 'monthly', amount: i % 2 ? 420 : 35, next_date: addDays(t, [12, 24, 3, 160][i] ?? 20), bill_day: null, status: i === 3 ? 'paused' : 'active', verified: i !== 2 } as Plan)))
+      setPlans(cs.map((c, i) => ({ ...base, id: 'demo-' + i, client_id: c.id, cadence: i % 2 ? 'yearly' : 'monthly', amount: i % 2 ? 420 : 35, next_date: addDays(t, [12, 24, 3, 160][i] ?? 20), bill_day: null, ends_on: null, status: i === 3 ? 'paused' : 'active', verified: i !== 2 } as Plan)))
       setLoading(false); return
     }
     const [{ data: p }, { data: l }] = await Promise.all([
@@ -101,7 +101,7 @@ export default function Hosting() {
     setForm({
       client_id: p.client_id, cadence: p.cadence, amount: String(p.amount), tax_rate: String(p.tax_rate), description: p.description,
       next_date: p.next_date, notice_days: String(p.notice_days), due_days: String(p.due_days), send_to: p.send_to || '', cc: p.cc || '',
-      contact_name: p.contact_name || '', invoice_prefix: p.invoice_prefix || '', payment_instructions: p.payment_instructions,
+      contact_name: p.contact_name || '', ends_on: p.ends_on || '', invoice_prefix: p.invoice_prefix || '', payment_instructions: p.payment_instructions,
       auto_send: p.auto_send, status: p.status, notes: p.notes || '',
     })
     setFormOpen(true)
@@ -130,7 +130,7 @@ export default function Hosting() {
       notice_days: Math.max(0, Math.min(120, Number(form.notice_days) || 30)), due_days: Math.max(0, Math.min(60, Number(form.due_days) || 0)),
       send_to: form.send_to.trim() || null, cc: form.cc.trim() || null, contact_name: form.contact_name.trim() || null,
       invoice_prefix: form.invoice_prefix.trim().toUpperCase() || null, payment_instructions: form.payment_instructions.trim() || EMPTY.payment_instructions,
-      auto_send: form.auto_send, status: form.status, notes: form.notes.trim() || null, updated_at: new Date().toISOString(),
+      ends_on: /^\d{4}-\d{2}-\d{2}$/.test(form.ends_on) ? form.ends_on : null, auto_send: form.auto_send, status: form.status, notes: form.notes.trim() || null, updated_at: new Date().toISOString(),
     }
     // Any change to who or how much gets billed needs a fresh approval before auto-sending again
     if (editing && (editing.amount !== row.amount || Number(editing.tax_rate) !== row.tax_rate || (editing.send_to || null) !== row.send_to || editing.client_id !== row.client_id)) row.verified = false
@@ -386,6 +386,10 @@ export default function Hosting() {
                   <label className="label text-dim block mb-1.5">Invoice prefix</label>
                   <input className={ic} value={form.invoice_prefix} onChange={e => setForm(f => ({ ...f, invoice_prefix: e.target.value.toUpperCase().replace(/[^A-Z]/g, '') }))} placeholder="Auto from past invoices" />
                 </div>
+              </div>
+              <div>
+                <label className="label text-dim block mb-1.5">Billing ends (optional)</label>
+                <input type="date" className={ic} value={form.ends_on} onChange={e => setForm(f => ({ ...f, ends_on: e.target.value }))} />
               </div>
               <div>
                 <label className="label text-dim block mb-1.5">Payment instructions</label>

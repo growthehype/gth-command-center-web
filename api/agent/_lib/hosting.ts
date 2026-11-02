@@ -24,7 +24,7 @@ export type Plan = {
   amount: number; tax_rate: number; description: string; next_date: string
   notice_days: number; due_days: number; send_to: string | null; cc: string | null
   contact_name: string | null; invoice_prefix: string | null; payment_instructions: string
-  status: string; verified: boolean; auto_send: boolean; bill_day: number | null
+  status: string; verified: boolean; auto_send: boolean; bill_day: number | null; ends_on?: string | null
 }
 
 // ── dates (all in Edmonton time, as plain YYYY-MM-DD) ──
@@ -179,8 +179,13 @@ export async function runHosting() {
   const out: any[] = []
   for (const p of (plans || []) as Plan[]) {
     let plan = p
+    // A plan with an end date stops once its next period would start after it
+    if (plan.ends_on && plan.next_date > plan.ends_on) {
+      await sb.from('hosting_plans').update({ status: 'ended', updated_at: new Date().toISOString() }).eq('id', plan.id)
+      out.push({ plan: plan.id, status: 'ended' }); continue
+    }
     // At most 2 periods per run so a long gap never fires a burst of invoices
-    for (let i = 0; i < 2 && sendDate(plan) <= t; i++) {
+    for (let i = 0; i < 2 && sendDate(plan) <= t && !(plan.ends_on && plan.next_date > plan.ends_on); i++) {
       const r = await billPlan(plan)
       out.push({ plan: plan.id, ...r })
       if (r.status === 'already_billed' || r.status === 'error') break
