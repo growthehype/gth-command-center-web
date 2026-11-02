@@ -51,6 +51,8 @@ export async function getAccessToken(userId: string): Promise<string> {
 
 interface SendEmailParams {
   to: string
+  /** Optional comma-separated copy recipients */
+  cc?: string
   subject: string
   body: string
   replyToMessageId?: string
@@ -67,6 +69,7 @@ function buildMime(params: SendEmailParams): string {
   const html = `<html><body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #222;">${htmlBody}${GTH_EMAIL_SIGNATURE}${params.footerHtml || ''}</body></html>`
   const headers = [
     `To: ${params.to}`,
+    ...(params.cc ? [`Cc: ${params.cc}`] : []),
     `Subject: ${encodeHeader(params.subject)}`,
     'MIME-Version: 1.0',
   ]

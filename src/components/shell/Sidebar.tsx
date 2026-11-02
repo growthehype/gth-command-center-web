@@ -6,8 +6,7 @@ import {
   Send, Package, Mail, Target, KeyRound,
   Pencil, Settings, Link2,
   Inbox, HardDrive, Bot, ChevronDown, Search, Pin, PinOff, Clock,
-  PanelLeftClose, PanelLeft, Plus, ChevronRight, X, Shield, LogOut
-} from 'lucide-react'
+  PanelLeftClose, PanelLeft, Plus, ChevronRight, X, Shield, LogOut, Server } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 interface NavItem {
@@ -62,6 +61,7 @@ const navGroups: NavGroup[] = [
     label: 'Revenue',
     items: [
       { id: 'invoices', label: 'Invoices', icon: Receipt, badgeKey: 'unpaidInvoices', shortcut: 'i' },
+      { id: 'hosting', label: 'Hosting', icon: Server },
       { id: 'financials', label: 'Financials', icon: TrendingUp },
     ],
     quickCreateAction: 'newInvoice',

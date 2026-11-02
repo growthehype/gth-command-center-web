@@ -27,6 +27,7 @@ import Projects from '@/pages/Projects'
 import Tasks from '@/pages/Tasks'
 import Meetings from '@/pages/Meetings'
 import Invoices from '@/pages/Invoices'
+import Hosting from '@/pages/Hosting'
 import Financials from '@/pages/Financials'
 import Profitability from '@/pages/Profitability'
 import Outreach from '@/pages/Outreach'
@@ -70,6 +71,7 @@ const pageMap: Record<string, React.ComponentType> = {
   projects: Projects,
   tasks: Tasks,
   invoices: Invoices,
+  hosting: Hosting,
   financials: tabbed([
     { id: 'overview', label: 'Overview', component: Financials },
     { id: 'profitability', label: 'Profitability', component: Profitability },

@@ -169,6 +169,7 @@ export default function CommandPalette() {
       ['email-templates', 'Email templates', LayoutTemplate],
       ['goals', 'Goals', Target],
       ['invoices', 'Invoices', FileText],
+      ['hosting', 'Hosting', DollarSign],
       ['financials', 'Financials', DollarSign],
       ['profitability', 'Profitability', TrendingUp],
       ['credentials', 'Credentials', Shield],

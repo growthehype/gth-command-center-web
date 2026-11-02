@@ -133,7 +133,7 @@ export function generateInvoicePDF(data: InvoiceData): jsPDF {
 
   // Logo — large, prominent
   try {
-    doc.addImage(GTH_LOGO_BASE64, 'PNG', L, y - 2, 32, 32)
+    doc.addImage(GTH_LOGO_BASE64, 'PNG', L, y - 2, 32, 32, 'gth-logo', 'FAST')
   } catch { /* skip */ }
 
   // Right side — "INVOICE" title
