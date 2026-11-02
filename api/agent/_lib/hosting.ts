@@ -6,7 +6,7 @@
 // invoice (unique index on hosting_log), so a retry can never double-bill.
 import { getAdminClient } from './supabase-admin'
 import { sendEmail } from './gmail-server'
-import { generateInvoicePDF } from '../../../src/lib/invoice-pdf'
+import { generateInvoicePDF } from './invoice-pdf'
 
 const TZ = 'America/Edmonton'
 const EMAIL_RE = /^[^\s@,;]+@[^\s@,;]+\.[a-z]{2,}$/i
