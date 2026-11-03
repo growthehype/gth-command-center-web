@@ -4,6 +4,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
 import { getAdminClient } from './agent/_lib/supabase-admin'
+import { createDraft } from './agent/_lib/gmail-server'
+import { generateInvoicePDF } from './agent/_lib/invoice-pdf'
 import { runHosting, buildInvoice, billPlan, sendWaitingInvoice, rebuildSaved, type Plan } from './agent/_lib/hosting'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -21,6 +23,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!plan) return res.status(404).json({ error: 'Plan not found' })
       const b = await buildInvoice(plan as Plan)
       return res.status(200).json({ num: b.num, to: b.to, cc: b.cc, subject: b.subject, body: b.body, total: b.total, due: b.due, issue: b.issue, problems: b.problems, pdfBytes: b.pdfBase64.length })
+    }
+    // Put any saved CRM invoice into Omar's Gmail drafts with its PDF attached (never sends)
+    if (body.draftInvoice) {
+      const { data: inv } = await sb.from('invoices').select('*').eq('id', String(body.draftInvoice)).single()
+      if (!inv) return res.status(404).json({ error: 'Invoice not found' })
+      const { data: cl } = await sb.from('clients').select('name, email').eq('id', inv.client_id).single()
+      const n = JSON.parse(inv.notes || '{}')
+      const pdf = generateInvoicePDF({
+        invoiceNum: inv.num, date: inv.sent_date, dueDate: inv.due_date, fromName: n.from_name, fromEmail: n.from_email, fromPhone: n.from_phone,
+        fromAddress: n.from_address, fromWebsite: n.from_website, gstNumber: n.gst_number, clientName: cl?.name || '', clientEmail: cl?.email || '',
+        clientPhone: n.client_phone || undefined, clientAddress: n.client_address || undefined, clientContactName: n.client_contact_name || undefined,
+        lineItems: n.line_items || [], taxRate: Number(n.tax_rate) || 0, taxLabel: n.tax_label, currency: n.currency, paymentTerms: n.payment_terms,
+        paymentInstructions: n.payment_instructions, memo: n.memo || '', termsText: n.terms_text || undefined,
+      } as any)
+      const d = await createDraft(inv.user_id, {
+        to: String(body.to || cl?.email || ''), cc: body.cc ? String(body.cc) : undefined, subject: String(body.subject || `Invoice ${inv.num}`), body: String(body.body || ''),
+        attachments: [{ filename: `Invoice-${inv.num}.pdf`, contentType: 'application/pdf', base64: Buffer.from(pdf.output('arraybuffer')).toString('base64') }],
+      })
+      return res.status(200).json({ ok: true, draftId: d.draftId })
     }
     return res.status(400).json({ error: 'Unknown action' })
   }
