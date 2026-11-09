@@ -5,7 +5,7 @@ import { sendEmail, createDraft, updateDraft, findSentInThread } from './gmail-s
 import { checkRateLimit, incrementCounter, DEFAULT_LIMITS } from './rate-limiter'
 import { gthOptOutFooterHtml } from './gth-profile'
 import { loadAttachments } from './visual-audit'
-import { leadRecipients } from './lead-stage'
+import { leadRecipients, FOLLOWUPS_ENABLED } from './lead-stage'
 
 interface SendParams {
   userId: string
@@ -63,6 +63,15 @@ export async function sendScheduledEmails(params: SendParams): Promise<SendResul
       if (seq && STOPPED_SEQUENCE_STATES.includes(seq.status)) {
         await sb.from('outreach_steps')
           .update({ status: 'skipped', metadata: { ...(step.metadata || {}), skip_reason: `sequence ${seq.status}` }, updated_at: now })
+          .eq('id', step.id)
+        skipped++
+        continue
+      }
+
+      // Follow-up emails are off: never send anything after the first email
+      if (!FOLLOWUPS_ENABLED && step.step_number > 1) {
+        await sb.from('outreach_steps')
+          .update({ status: 'skipped', metadata: { ...(step.metadata || {}), skip_reason: 'follow-ups are off' }, updated_at: now })
           .eq('id', step.id)
         skipped++
         continue
@@ -158,15 +167,16 @@ export async function sendScheduledEmails(params: SendParams): Promise<SendResul
           const gapHours = Math.max(24, (nextStep.delay_hours || 72) - (step.delay_hours || 0))
           // Once Omar approves the first email, follow-ups go out on their own
           // (a reply or opt-out stops them). He can turn this off per agent.
-          const autoFollow = params.cfgInner?.auto_followups !== false
-          await sb.from('outreach_steps')
-            .update({
-              scheduled_at: new Date(Date.now() + gapHours * 3600_000).toISOString(),
-              ...(autoFollow ? { status: 'scheduled', approval_status: 'approved' } : {}),
-              updated_at: sentAt,
-            })
-            .eq('id', nextStep.id)
-            .eq('status', 'pending')
+          if (FOLLOWUPS_ENABLED) {
+            await sb.from('outreach_steps')
+              .update({ scheduled_at: new Date(Date.now() + gapHours * 3600_000).toISOString(), updated_at: sentAt })
+              .eq('id', nextStep.id)
+              .eq('status', 'pending')
+          } else {
+            await sb.from('outreach_steps')
+              .update({ status: 'skipped', metadata: { skip_reason: 'follow-ups are off' }, updated_at: sentAt })
+              .eq('sequence_id', step.sequence_id).gt('step_number', step.step_number).in('status', ['pending', 'scheduled', 'approved', 'draft'])
+          }
         }
         await sb.from('outreach_sequences')
           .update({ status: 'active', current_step: step.step_number, updated_at: sentAt })
@@ -285,12 +295,15 @@ export async function markStepSent(step: any, found: { id: string; sentAt: strin
       .select('id, delay_hours').eq('sequence_id', step.sequence_id).eq('step_number', step.step_number + 1).maybeSingle()
     if (next) {
       const gap = Math.max(24, (next.delay_hours || 72) - (step.delay_hours || 0))
-      const auto = cfgInner?.auto_followups !== false
-      await sb.from('outreach_steps').update({
-        scheduled_at: new Date(new Date(found.sentAt).getTime() + gap * 3600_000).toISOString(),
-        ...(auto ? { status: 'scheduled', approval_status: 'approved' } : {}),
-        updated_at: new Date().toISOString(),
-      }).eq('id', next.id).eq('status', 'pending')
+      if (FOLLOWUPS_ENABLED) {
+        await sb.from('outreach_steps').update({
+          scheduled_at: new Date(new Date(found.sentAt).getTime() + gap * 3600_000).toISOString(),
+          updated_at: new Date().toISOString(),
+        }).eq('id', next.id).eq('status', 'pending')
+      } else {
+        await sb.from('outreach_steps').update({ status: 'skipped', metadata: { skip_reason: 'follow-ups are off' }, updated_at: new Date().toISOString() })
+          .eq('sequence_id', step.sequence_id).gt('step_number', step.step_number).in('status', ['pending', 'scheduled', 'approved', 'draft'])
+      }
     }
     await sb.from('outreach_sequences').update({ status: 'active', current_step: step.step_number, updated_at: new Date().toISOString() }).eq('id', step.sequence_id).in('status', ['draft', 'active', 'paused'])
   } else {

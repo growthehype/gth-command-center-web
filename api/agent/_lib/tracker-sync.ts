@@ -18,7 +18,7 @@ import { getAdminClient } from './supabase-admin'
 import { searchMessageMeta, getThreadMeta, type MessageMeta } from './gmail-server'
 import { markStepSent, syncGmailDrafts } from './sender'
 import { classifyInbox } from './inbox-classifier'
-import { stageRank, advanceLead, leadRecipients } from './lead-stage'
+import { stageRank, advanceLead, leadRecipients, FOLLOWUPS_ENABLED } from './lead-stage'
 
 const LIVE = ['draft', 'active', 'paused']
 const BOUNCE_FROM = /mailer-daemon|postmaster|mail delivery (subsystem|system)/i
@@ -99,18 +99,17 @@ export async function reopenSequence(params: { userId: string; leadId: string; a
   const { data: steps } = await sb.from('outreach_steps').select('id, step_number, status, delay_hours, executed_at').eq('sequence_id', seq.id).order('step_number')
   const all = steps || []
   const lastSent = [...all].reverse().find((s: any) => s.status === 'sent')
-  const unsent = all.filter((s: any) => s.status === 'skipped' && (!lastSent || s.step_number > lastSent.step_number))
+  const unsent = all.filter((s: any) => s.status === 'skipped' && (!lastSent || s.step_number > lastSent.step_number) && (FOLLOWUPS_ENABLED || s.step_number === 1))
   if (unsent.length) await sb.from('outreach_steps').update({ status: 'pending', updated_at: at }).in('id', unsent.map((s: any) => s.id))
   let next: string | null = null
   const nextStep = all.find((s: any) => lastSent && s.step_number === lastSent.step_number + 1)
-  if (lastSent && nextStep && ['skipped', 'pending'].includes(nextStep.status)) {
+  if (FOLLOWUPS_ENABLED && lastSent && nextStep && ['skipped', 'pending'].includes(nextStep.status)) {
     const gap = Math.max(24, (nextStep.delay_hours || 72) - (lastSent.delay_hours || 0))
     const when = Math.max(Date.now() + 2 * 3600_000, new Date(lastSent.executed_at).getTime() + gap * 3600_000)
     next = new Date(when).toISOString()
-    const auto = params.cfgInner?.auto_followups !== false
-    await sb.from('outreach_steps').update({ scheduled_at: next, ...(auto ? { status: 'scheduled', approval_status: 'approved' } : {}), updated_at: at }).eq('id', nextStep.id)
+    await sb.from('outreach_steps').update({ scheduled_at: next, updated_at: at }).eq('id', nextStep.id)
   }
-  const done = lastSent && lastSent.step_number >= (seq.total_steps || all.length)
+  const done = lastSent && FOLLOWUPS_ENABLED && lastSent.step_number >= (seq.total_steps || all.length)
   await sb.from('outreach_sequences').update({ status: lastSent ? (done ? 'completed' : 'active') : 'draft', updated_at: at }).eq('id', seq.id)
   return { ok: true, next, to: pool }
 }

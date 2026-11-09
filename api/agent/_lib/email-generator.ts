@@ -1,3 +1,4 @@
+import { FOLLOWUPS_ENABLED } from './lead-stage'
 // AI cold email generation engine
 import { isPersonName } from './website-analyzer'
 import { attachmentPlan } from './visual-audit'
@@ -44,6 +45,8 @@ const SEQUENCE_STEPS = [
   { stepNumber: 2, type: 'email', delayHours: 72, label: 'follow_up_1' },
   { stepNumber: 3, type: 'email', delayHours: 120, label: 'break_up' },
 ] as const
+// Follow-ups are off: only the first email is created
+const ACTIVE_STEPS = FOLLOWUPS_ENABLED ? SEQUENCE_STEPS : SEQUENCE_STEPS.slice(0, 1)
 
 // ─── Generate Emails for a Single Lead ──────────────────────────
 
@@ -353,8 +356,8 @@ async function buildSequence(lead: any, ctx: SeqCtx): Promise<{ ok: boolean; dra
         agent_type: agentType,
         sequence_name: gth ? 'GTH intro' : 'Outreach',
         status: 'draft',
-        total_steps: SEQUENCE_STEPS.length,
-        max_steps: SEQUENCE_STEPS.length,
+        total_steps: ACTIVE_STEPS.length,
+        max_steps: ACTIVE_STEPS.length,
         current_step: 1,
       })
       .select('id')
@@ -365,7 +368,7 @@ async function buildSequence(lead: any, ctx: SeqCtx): Promise<{ ok: boolean; dra
     }
 
     const now = new Date().toISOString()
-    const rows = SEQUENCE_STEPS.map((step, i) => ({
+    const rows = ACTIVE_STEPS.map((step, i) => ({
       sequence_id: sequence.id,
       user_id: userId,
       lead_id: lead.id,

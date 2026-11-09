@@ -279,7 +279,7 @@ function AddressDialog({ row, onClose, onSave }: { row: TrackRow; onClose: () =>
         <label className="lt-dlg-l" htmlFor="lt-dlg-t">Addresses that work, one per line</label>
         <textarea id="lt-dlg-t" ref={ref} value={text} onChange={e => setText(e.target.value)} rows={3} placeholder="name@business.ca" />
         {bad.length > 0 && <p className="lt-dlg-err">Check {bad.join(', ')}</p>}
-        <p className="lt-dlg-hint">Follow-ups go to everyone listed, in the same thread. If you already emailed them from Gmail, the tracker links it up on its next check.</p>
+        <p className="lt-dlg-hint">The email goes to everyone listed. If you already emailed them from Gmail, the tracker links it up on its next check.</p>
         <div className="lt-dlg-acts">
           <button type="button" className="lt-clear" onClick={onClose}>Cancel</button>
           <button type="submit" className="lt-dlg-go" disabled={busy || !list.length || bad.length > 0}>{busy ? <Loader2 size={14} className="animate-spin" /> : null}Save and keep following up</button>

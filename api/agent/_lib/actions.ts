@@ -63,12 +63,10 @@ export async function executeAgentAction(
       })
 
     case 'send_emails':
-      return sendScheduledEmails({
-        userId,
-        agentRunId: runId,
-        dailyLimit: Number(inner.daily_email_limit) || undefined,
-        cfgInner: inner,
-      })
+      // Background runs never send email. Lead emails go out only when Omar
+      // taps Send in the CRM or sends them himself from Gmail.
+      void sendScheduledEmails
+      return { sent: 0, skipped: 0, errors: 0, reason: 'sending needs Omar' }
 
     default:
       return { skipped: true, reason: `Unknown action: ${action.type}` }

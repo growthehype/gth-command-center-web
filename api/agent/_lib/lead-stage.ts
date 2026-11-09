@@ -3,6 +3,13 @@
 import { getAdminClient } from './supabase-admin'
 
 /** Where a saved lead.stage sits in the pipeline. 6 = won, 7 = closed, both final. */
+/**
+ * Omar's rule: lead emails never go out without his say-so, and there are no
+ * follow-up emails. Only the first email exists, and it sends only when he
+ * taps Send (or sends it himself from Gmail). Flip this only if he asks.
+ */
+export const FOLLOWUPS_ENABLED = false
+
 export function stageRank(raw: string | null | undefined): number {
   const s = String(raw || '').toLowerCase().replace(/[_-]/g, ' ')
   if (/won/.test(s)) return 6

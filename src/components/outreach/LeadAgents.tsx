@@ -474,13 +474,10 @@ export function AgentSettingsModal({ open, agent, clients, leadCount, onClose, o
           <label><span>Booking link (optional)</span>
             <input className="cw-input" value={f.booking_link} onChange={e => set('booking_link', e.target.value)} placeholder="Your calendar link, offered once in first emails" />
           </label>
-          <label className="la-toggle">
+          <div className="la-toggle">
             <span>Follow-ups</span>
-            <button type="button" role="switch" aria-checked={f.auto_followups} className={`la-switch ${f.auto_followups ? 'la-switch--on' : ''}`} onClick={() => set('auto_followups', !f.auto_followups)}>
-              <i />
-            </button>
-            <em>{f.auto_followups ? 'Send on their own after you approve the first email' : 'Each follow-up waits for your approval'}</em>
-          </label>
+            <em>Off. Each lead gets one email, and only when you send it.</em>
+          </div>
         </div>
 
         <label><span>Work to show</span>

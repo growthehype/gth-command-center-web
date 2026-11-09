@@ -207,7 +207,7 @@ export default function ApprovalQueue({ queue, loading, isRunning, onApprove, on
       <div className="card text-center" style={{ padding: '44px 24px', borderRadius: 14 }}>
         <p className="font-display text-polar" style={{ fontSize: 16, fontWeight: 700 }}>Nothing waiting for you</p>
         <p className="text-dim mt-2 mx-auto" style={{ fontSize: 12.5, maxWidth: 420, lineHeight: 1.6 }}>
-          New drafts land here after each run. Follow-ups show up here too once they're due, so every email still goes past you first.
+          New drafts land here after each run. Nothing goes out until you send it.
         </p>
         <button className="btn-primary mt-5" onClick={onRun} disabled={isRunning}>
           {isRunning ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
