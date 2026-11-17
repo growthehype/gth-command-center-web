@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js'
 import { getAdminClient } from './agent/_lib/supabase-admin'
 import { createDraft } from './agent/_lib/gmail-server'
 import { generateInvoicePDF } from './agent/_lib/invoice-pdf'
+import { runInboxTasks } from './agent/_lib/inbox-tasks'
 import { runHosting, buildInvoice, billPlan, sendWaitingInvoice, rebuildSaved, type Plan } from './agent/_lib/hosting'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -18,6 +19,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data: ok } = await sb.rpc('agent_hunt_token_ok', { t: agentToken })
     if (ok !== true) return res.status(401).json({ error: 'Unauthorized' })
     if (body.run) return res.status(200).json(await runHosting())
+    // Hourly: client emails that ask for something become CRM tasks
+    if (body.inboxTasks) return res.status(200).json(await runInboxTasks())
     if (body.preview) {
       const { data: plan } = await sb.from('hosting_plans').select('*').eq('id', String(body.preview)).single()
       if (!plan) return res.status(404).json({ error: 'Plan not found' })

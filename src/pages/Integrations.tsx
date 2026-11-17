@@ -3,6 +3,7 @@ import { Link2, Check, Send, ExternalLink, Calendar, Mail, MessageSquare, Messag
 import { useAppStore } from '@/lib/store'
 import { integrations } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
+import { supabase } from '@/lib/supabase'
 
 // ── Types ──
 
@@ -437,6 +438,48 @@ function PlannedCard({ def }: { def: IntegrationDef }) {
 
 // ── Main page ──
 
+// ── Claude connector ──
+const CONNECTOR_URL = 'https://app.growthehype.ca/api/mcp'
+function ClaudeCard() {
+  const [conns, setConns] = useState<{ client_name: string; connected_at: string; last_used_at: string | null }[] | null>(null)
+  const load = () => { supabase.rpc('claude_connections').then(({ data }) => setConns((data as any) || [])) }
+  useEffect(load, [])
+  const copy = async () => { try { await navigator.clipboard.writeText(CONNECTOR_URL); showToast('Connector link copied', 'success') } catch { showToast(CONNECTOR_URL, 'info' as any) } }
+  const disconnect = async () => {
+    if (!window.confirm('Disconnect Claude from the Command Center? You can connect again any time.')) return
+    await supabase.rpc('disconnect_claude'); showToast('Claude disconnected', 'success'); load()
+  }
+  const on = !!conns?.length
+  const last = conns?.map(c => c.last_used_at).filter(Boolean).sort().pop()
+  return (
+    <div className="card p-5 flex flex-col">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <Zap size={18} className="text-polar" />
+          <div>
+            <p className="text-polar font-[700]" style={{ fontSize: '15px' }}>Claude</p>
+            <p className="text-dim" style={{ fontSize: '12.5px' }}>{conns === null ? 'Checking…' : on ? `Connected${last ? ` · last used ${new Date(last).toLocaleString('en-CA', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}` : ''}` : 'Not connected'}</p>
+          </div>
+        </div>
+        <span className={`badge ${on ? 'badge-ok' : 'badge-neutral'}`}>{on ? 'On' : 'Off'}</span>
+      </div>
+      <p className="text-steel mt-3" style={{ fontSize: '13px', lineHeight: 1.55 }}>
+        Claude keeps your tasks, projects and client notes up to date from any chat. It can create draft invoices, but never sends email or deletes anything.
+      </p>
+      {!on && <ol className="text-dim mt-3 space-y-1" style={{ fontSize: '12.5px', lineHeight: 1.5, listStyle: 'decimal', paddingLeft: 18 }}>
+        <li>In Claude, open Settings, then Connectors, then Add custom connector.</li>
+        <li>Name it Command Center and paste the link below.</li>
+        <li>Click Connect, then Allow on the page that opens.</li>
+      </ol>}
+      <div className="mt-4 flex gap-2 flex-wrap">
+        <button className="btn-primary flex items-center gap-2" onClick={copy}><Link2 size={12} /> Copy connector link</button>
+        {on && <button className="btn-ghost" onClick={disconnect}>Disconnect</button>}
+      </div>
+      <p className="mono text-dim mt-2" style={{ fontSize: '11.5px', overflowWrap: 'anywhere' }}>{CONNECTOR_URL}</p>
+    </div>
+  )
+}
+
 export default function Integrations() {
   const [configs, setConfigs] = useState<Record<string, IntegrationConfig>>({})
   const [loading, setLoading] = useState(true)
@@ -493,6 +536,7 @@ export default function Integrations() {
           <span className="w-1.5 h-1.5 rounded-full bg-ok" /> Built-in
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <ClaudeCard />
           {builtIn.map(def => <BuiltInCard key={def.provider} def={def} />)}
         </div>
       </section>

@@ -1,0 +1,432 @@
+// The Command Center tools that Claude can use through the connector.
+// Every query is scoped to the signed-in user. Nothing here sends email,
+// deletes records or marks invoices paid: those stay with Omar in the CRM.
+import { getAdminClient } from './supabase-admin'
+
+const TZ = 'America/Edmonton'
+const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+const addDays = (d: string, n: number) => { const t = new Date(d + 'T12:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10) }
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+const money = (n: number) => '$' + Number(n || 0).toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+export class ToolError extends Error {}
+
+const str = (v: any, max = 2000) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
+const date = (v: any, field: string) => {
+  if (v === undefined || v === null || v === '') return undefined
+  if (!DATE_RE.test(String(v))) throw new ToolError(`${field} must be YYYY-MM-DD`)
+  return String(v)
+}
+
+// ── shared lookups ──
+async function resolveClient(userId: string, ref: any, required = true) {
+  const sb = getAdminClient()
+  const q = str(ref, 200)
+  if (!q) { if (required) throw new ToolError('Say which client (name or id).'); return null }
+  if (/^[0-9a-f-]{36}$/i.test(q)) {
+    const { data } = await sb.from('clients').select('*').eq('user_id', userId).eq('id', q).maybeSingle()
+    if (data) return data
+  }
+  const { data } = await sb.from('clients').select('*').eq('user_id', userId).ilike('name', `%${q.replace(/[%_]/g, '')}%`).limit(6)
+  const rows = data || []
+  if (rows.length === 1) return rows[0]
+  const exact = rows.find(r => r.name.toLowerCase() === q.toLowerCase())
+  if (exact) return exact
+  if (!rows.length) {
+    // Try each word (e.g. "Jeff's carpet" -> "Jeff's Reliable Carpet Care")
+    const words = q.split(/\s+/).filter(w => w.length > 2)
+    for (const w of words) {
+      const { data: d2 } = await sb.from('clients').select('*').eq('user_id', userId).ilike('name', `%${w.replace(/[%_]/g, '')}%`).limit(6)
+      if (d2?.length === 1) return d2[0]
+    }
+    throw new ToolError(`No client matches "${q}". Use add_client to create one, or find_client to search.`)
+  }
+  throw new ToolError(`"${q}" matches several clients: ${rows.map(r => `${r.name} (${r.id})`).join('; ')}. Use the exact name or id.`)
+}
+
+async function logActivity(userId: string, type: string, description: string, entity?: string, entityId?: string | null) {
+  await getAdminClient().from('activity_log').insert({ user_id: userId, type, entity: entity || null, entity_id: entityId || null, description: description.slice(0, 500), timestamp: new Date().toISOString() }).then(() => {}, () => {})
+}
+async function touchClient(clientId?: string | null) {
+  if (clientId) await getAdminClient().from('clients').update({ last_activity: today(), updated_at: new Date().toISOString() }).eq('id', clientId).then(() => {}, () => {})
+}
+const clientNames = async (userId: string) => {
+  const { data } = await getAdminClient().from('clients').select('id, name').eq('user_id', userId)
+  return new Map((data || []).map(c => [c.id, c.name]))
+}
+
+// ── tool definitions (MCP schema) ──
+export const TOOLS = [
+  {
+    name: 'get_overview',
+    description: "Omar's day at a glance: overdue and upcoming tasks, active projects, invoices waiting or unpaid, hosting invoices coming up, and recent activity. Call this first when asked what's going on or what needs doing.",
+    inputSchema: { type: 'object', properties: {} },
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'find_client',
+    description: 'Look up a client by name (partial is fine). Returns their details, contacts, open tasks, projects, recent invoices and recent activity.',
+    inputSchema: { type: 'object', properties: { query: { type: 'string', description: 'Client name or part of it' } }, required: ['query'] },
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'list_tasks',
+    description: 'List tasks. Defaults to open tasks, soonest due first.',
+    inputSchema: { type: 'object', properties: {
+      status: { type: 'string', enum: ['open', 'done', 'all'] },
+      client: { type: 'string', description: 'Client name or id to filter by' },
+      due_before: { type: 'string', description: 'YYYY-MM-DD' },
+      limit: { type: 'number' },
+    } },
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'add_task',
+    description: 'Add a task to the CRM. Use a short action ("Send Banwest the homepage for review"). If the same open task already exists for that client, the existing one is returned instead of a duplicate.',
+    inputSchema: { type: 'object', properties: {
+      text: { type: 'string' },
+      client: { type: 'string', description: 'Client name or id (optional)' },
+      due_date: { type: 'string', description: 'YYYY-MM-DD (optional)' },
+      priority: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'] },
+      description: { type: 'string', description: 'Extra detail (optional)' },
+    }, required: ['text'] },
+  },
+  {
+    name: 'update_task',
+    description: 'Update a task: mark it done (or not done), rename it, change its due date, priority or detail. Get task ids from list_tasks, find_client or get_overview.',
+    inputSchema: { type: 'object', properties: {
+      task_id: { type: 'string' },
+      done: { type: 'boolean' },
+      text: { type: 'string' },
+      due_date: { type: 'string', description: 'YYYY-MM-DD, or "none" to clear' },
+      priority: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'] },
+      description: { type: 'string' },
+    }, required: ['task_id'] },
+  },
+  {
+    name: 'list_projects',
+    description: 'List projects (status is backlog, progress, review or done). Defaults to projects that are not done.',
+    inputSchema: { type: 'object', properties: { client: { type: 'string' }, include_done: { type: 'boolean' } } },
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'save_project',
+    description: 'Create a project or update one. Give project_id to update; otherwise give client and title (an existing project with that title for the client is updated instead of duplicated). Status: backlog, progress, review or done.',
+    inputSchema: { type: 'object', properties: {
+      project_id: { type: 'string' },
+      client: { type: 'string' },
+      title: { type: 'string' },
+      status: { type: 'string', enum: ['backlog', 'progress', 'review', 'done'] },
+      description: { type: 'string' },
+      due_date: { type: 'string', description: 'YYYY-MM-DD' },
+      priority: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'] },
+    } },
+  },
+  {
+    name: 'log_update',
+    description: "Record what happened on a client's work (e.g. \"Homepage v2 built and sent for review\"). Shows in the client's activity and marks them as recently active. Use after finishing work for a client.",
+    inputSchema: { type: 'object', properties: { client: { type: 'string' }, note: { type: 'string' } }, required: ['client', 'note'] },
+  },
+  {
+    name: 'update_client',
+    description: "Update a client's details. Only the fields you pass change; nothing is cleared. Status: active, prospect, paused or done.",
+    inputSchema: { type: 'object', properties: {
+      client: { type: 'string' },
+      status: { type: 'string', enum: ['active', 'prospect', 'paused', 'done'] },
+      service: { type: 'string' }, contact: { type: 'string' }, email: { type: 'string' },
+      phone: { type: 'string' }, website: { type: 'string' }, mrr: { type: 'number' },
+    }, required: ['client'] },
+  },
+  {
+    name: 'add_client',
+    description: 'Add a new client. If a client with the same name exists, it is returned instead.',
+    inputSchema: { type: 'object', properties: {
+      name: { type: 'string' }, contact: { type: 'string' }, email: { type: 'string' }, phone: { type: 'string' },
+      website: { type: 'string' }, service: { type: 'string' }, status: { type: 'string', enum: ['active', 'prospect'] },
+    }, required: ['name'] },
+  },
+  {
+    name: 'list_invoices',
+    description: 'List invoices with their status (draft, sent, paid, overdue).',
+    inputSchema: { type: 'object', properties: { client: { type: 'string' }, status: { type: 'string', enum: ['draft', 'sent', 'paid', 'overdue', 'unpaid', 'all'] }, limit: { type: 'number' } } },
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'create_invoice_draft',
+    description: "Create a DRAFT invoice in the CRM, numbered in the client's own series. It is never sent: Omar reviews and sends it from the Invoices page. Rates are before GST.",
+    inputSchema: { type: 'object', properties: {
+      client: { type: 'string' },
+      line_items: { type: 'array', items: { type: 'object', properties: { description: { type: 'string' }, qty: { type: 'number' }, rate: { type: 'number' } }, required: ['description', 'qty', 'rate'] } },
+      tax_rate: { type: 'number', description: 'GST percent, default 5' },
+      payment_terms: { type: 'string', description: 'e.g. "Due on Receipt" or "Net 15" (default Due on Receipt)' },
+      due_date: { type: 'string', description: 'YYYY-MM-DD (default today)' },
+      memo: { type: 'string' },
+    }, required: ['client', 'line_items'] },
+  },
+]
+
+// ── implementations ──
+type Args = Record<string, any>
+
+async function getOverview(userId: string) {
+  const sb = getAdminClient()
+  const t = today()
+  const names = await clientNames(userId)
+  const [{ data: tasks }, { data: projects }, { data: invoices }, { data: plans }, { data: acts }] = await Promise.all([
+    sb.from('tasks').select('id, text, due_date, priority, client_id').eq('user_id', userId).eq('done', false).order('due_date', { ascending: true, nullsFirst: false }).limit(60),
+    sb.from('projects').select('id, title, status, due_date, client_id').eq('user_id', userId).neq('status', 'done').limit(40),
+    sb.from('invoices').select('id, num, amount, status, due_date, client_id').eq('user_id', userId).in('status', ['draft', 'sent', 'overdue']).order('due_date').limit(40),
+    sb.from('hosting_plans').select('client_id, cadence, amount, next_date, notice_days, verified, status').eq('user_id', userId).eq('status', 'active'),
+    sb.from('activity_log').select('description, timestamp').eq('user_id', userId).order('timestamp', { ascending: false }).limit(10),
+  ])
+  const task = (x: any) => ({ id: x.id, text: x.text, due: x.due_date || null, priority: x.priority || null, client: names.get(x.client_id) || null })
+  const open = tasks || []
+  const soon = addDays(t, 7)
+  const sendOn = (p: any) => p.cadence === 'yearly' ? addDays(p.next_date, -p.notice_days) : p.next_date
+  return {
+    today: t,
+    overdue_tasks: open.filter(x => x.due_date && x.due_date < t).map(task),
+    due_today: open.filter(x => x.due_date === t).map(task),
+    due_this_week: open.filter(x => x.due_date && x.due_date > t && x.due_date <= soon).map(task),
+    no_due_date: open.filter(x => !x.due_date).slice(0, 15).map(task),
+    active_projects: (projects || []).map(p => ({ id: p.id, title: p.title, status: p.status, due: p.due_date || null, client: names.get(p.client_id) || null })),
+    invoices_draft: (invoices || []).filter(i => i.status === 'draft').map(i => ({ num: i.num, total: money(i.amount), client: names.get(i.client_id) || null })),
+    invoices_unpaid: (invoices || []).filter(i => i.status !== 'draft').map(i => ({ num: i.num, total: money(i.amount), due: i.due_date, client: names.get(i.client_id) || null, overdue: !!i.due_date && i.due_date < t })),
+    hosting_next_14_days: (plans || []).filter(p => sendOn(p) <= addDays(t, 14)).map(p => ({ client: names.get(p.client_id), cadence: p.cadence, sends: sendOn(p), amount_before_gst: money(p.amount), needs_first_approval: !p.verified })),
+    recent_activity: (acts || []).map(a => `${a.timestamp.slice(0, 10)}: ${a.description}`),
+  }
+}
+
+async function findClient(userId: string, a: Args) {
+  const sb = getAdminClient()
+  const c = await resolveClient(userId, a.query)
+  const [{ data: contacts }, { data: tasks }, { data: projects }, { data: invoices }, { data: acts }, { data: plan }] = await Promise.all([
+    sb.from('contacts').select('name, role, email, phone, is_primary').eq('client_id', c.id).limit(20),
+    sb.from('tasks').select('id, text, due_date, priority, done').eq('client_id', c.id).eq('done', false).order('due_date', { nullsFirst: false }),
+    sb.from('projects').select('id, title, status, due_date, description').eq('client_id', c.id).order('updated_at', { ascending: false }).limit(10),
+    sb.from('invoices').select('num, amount, status, sent_date, due_date').eq('client_id', c.id).order('created_at', { ascending: false }).limit(6),
+    sb.from('activity_log').select('description, timestamp').eq('user_id', userId).eq('entity_id', c.id).order('timestamp', { ascending: false }).limit(10),
+    sb.from('hosting_plans').select('cadence, amount, next_date, status').eq('client_id', c.id).maybeSingle(),
+  ])
+  return {
+    client: { id: c.id, name: c.name, status: c.status, service: c.service, contact: c.contact, email: c.email, phone: c.phone, website: c.website, mrr: c.mrr, last_activity: c.last_activity, notes: c.notes },
+    contacts: contacts || [],
+    open_tasks: (tasks || []).map(x => ({ id: x.id, text: x.text, due: x.due_date, priority: x.priority })),
+    projects: projects || [],
+    recent_invoices: (invoices || []).map(i => ({ ...i, amount: money(i.amount) })),
+    hosting: plan ? { ...plan, amount: money(plan.amount) } : null,
+    recent_activity: (acts || []).map(x => `${x.timestamp.slice(0, 10)}: ${x.description}`),
+  }
+}
+
+async function listTasks(userId: string, a: Args) {
+  const sb = getAdminClient()
+  const names = await clientNames(userId)
+  let q = sb.from('tasks').select('id, text, description, due_date, priority, done, client_id, completed_at').eq('user_id', userId)
+  const status = a.status || 'open'
+  if (status === 'open') q = q.eq('done', false)
+  if (status === 'done') q = q.eq('done', true)
+  if (a.client) q = q.eq('client_id', (await resolveClient(userId, a.client)).id)
+  const before = date(a.due_before, 'due_before')
+  if (before) q = q.lte('due_date', before)
+  const { data } = await q.order(status === 'done' ? 'completed_at' : 'due_date', { ascending: status !== 'done', nullsFirst: false }).limit(Math.min(Number(a.limit) || 50, 200))
+  return (data || []).map(x => ({ id: x.id, text: x.text, detail: x.description || undefined, due: x.due_date || null, priority: x.priority || null, done: !!x.done, client: names.get(x.client_id) || null }))
+}
+
+async function addTask(userId: string, a: Args) {
+  const sb = getAdminClient()
+  const text = str(a.text, 300)
+  if (!text) throw new ToolError('Task text is required.')
+  const client = a.client ? await resolveClient(userId, a.client) : null
+  // No duplicates: same open task for the same client
+  let dq = sb.from('tasks').select('id, text, due_date').eq('user_id', userId).eq('done', false).ilike('text', text.replace(/[%_]/g, ''))
+  dq = client ? dq.eq('client_id', client.id) : dq.is('client_id', null)
+  const { data: dup } = await dq.limit(1)
+  if (dup?.length) return { already_exists: true, task: dup[0] }
+  const row: any = { user_id: userId, text, description: str(a.description) || null, priority: a.priority || 'medium', done: false, client_id: client?.id || null, due_date: date(a.due_date, 'due_date') || null, created_at: new Date().toISOString() }
+  const { data, error } = await sb.from('tasks').insert(row).select('id, text, due_date, priority').single()
+  if (error) throw new ToolError(error.message)
+  await logActivity(userId, 'task', `Task added${client ? ` for ${client.name}` : ''}: ${text}`, 'task', data.id)
+  await touchClient(client?.id)
+  return { created: true, task: { ...data, client: client?.name || null } }
+}
+
+async function updateTask(userId: string, a: Args) {
+  const sb = getAdminClient()
+  const { data: t } = await sb.from('tasks').select('*').eq('user_id', userId).eq('id', str(a.task_id, 60)).maybeSingle()
+  if (!t) throw new ToolError('Task not found. Get the id from list_tasks.')
+  const patch: any = {}
+  if (typeof a.done === 'boolean') { patch.done = a.done; patch.completed_at = a.done ? new Date().toISOString() : null }
+  if (str(a.text)) patch.text = str(a.text, 300)
+  if (a.due_date === 'none') patch.due_date = null; else if (a.due_date) patch.due_date = date(a.due_date, 'due_date')
+  if (a.priority) patch.priority = a.priority
+  if (typeof a.description === 'string') patch.description = str(a.description) || null
+  if (!Object.keys(patch).length) throw new ToolError('Nothing to change.')
+  const { data, error } = await sb.from('tasks').update(patch).eq('id', t.id).select('id, text, done, due_date, priority').single()
+  if (error) throw new ToolError(error.message)
+  if (patch.done === true) await logActivity(userId, 'task', `Task done: ${t.text}`, 'task', t.id)
+  await touchClient(t.client_id)
+  return { updated: true, task: data }
+}
+
+async function listProjects(userId: string, a: Args) {
+  const sb = getAdminClient()
+  const names = await clientNames(userId)
+  let q = sb.from('projects').select('id, title, status, priority, due_date, description, client_id, updated_at').eq('user_id', userId)
+  if (!a.include_done) q = q.neq('status', 'done')
+  if (a.client) q = q.eq('client_id', (await resolveClient(userId, a.client)).id)
+  const { data } = await q.order('updated_at', { ascending: false }).limit(60)
+  return (data || []).map(p => ({ ...p, client: names.get(p.client_id) || null, client_id: undefined }))
+}
+
+async function saveProject(userId: string, a: Args) {
+  const sb = getAdminClient()
+  const now = new Date().toISOString()
+  let existing: any = null
+  let client: any = null
+  if (a.project_id) {
+    const { data } = await sb.from('projects').select('*').eq('user_id', userId).eq('id', str(a.project_id, 60)).maybeSingle()
+    if (!data) throw new ToolError('Project not found.')
+    existing = data
+  } else {
+    const title = str(a.title, 200)
+    if (!title) throw new ToolError('Give project_id, or client and title.')
+    client = a.client ? await resolveClient(userId, a.client) : null
+    let q = sb.from('projects').select('*').eq('user_id', userId).ilike('title', title.replace(/[%_]/g, ''))
+    q = client ? q.eq('client_id', client.id) : q.is('client_id', null)
+    const { data } = await q.limit(1)
+    existing = data?.[0] || null
+  }
+  const patch: any = { updated_at: now }
+  if (a.status) patch.status = a.status
+  if (typeof a.description === 'string' && a.description.trim()) patch.description = str(a.description, 4000)
+  if (a.due_date) patch.due_date = date(a.due_date, 'due_date')
+  if (a.priority) patch.priority = a.priority
+  if (existing) {
+    if (a.title && a.project_id) patch.title = str(a.title, 200)
+    const { data, error } = await sb.from('projects').update(patch).eq('id', existing.id).select('id, title, status, due_date').single()
+    if (error) throw new ToolError(error.message)
+    if (a.status && a.status !== existing.status) await logActivity(userId, 'project', `${existing.title}: ${existing.status} → ${a.status}`, 'project', existing.id)
+    await touchClient(existing.client_id)
+    return { updated: true, project: data }
+  }
+  const row = { user_id: userId, client_id: client?.id || null, title: str(a.title, 200), status: a.status || 'backlog', priority: a.priority || 'medium', description: patch.description || null, due_date: patch.due_date || null, created_at: now, updated_at: now }
+  const { data, error } = await sb.from('projects').insert(row).select('id, title, status, due_date').single()
+  if (error) throw new ToolError(error.message)
+  await logActivity(userId, 'project', `Project added${client ? ` for ${client.name}` : ''}: ${row.title}`, 'project', data.id)
+  await touchClient(client?.id)
+  return { created: true, project: data }
+}
+
+async function logUpdate(userId: string, a: Args) {
+  const c = await resolveClient(userId, a.client)
+  const note = str(a.note, 500)
+  if (!note) throw new ToolError('Note is required.')
+  await logActivity(userId, 'note', `${c.name}: ${note}`, 'client', c.id)
+  await touchClient(c.id)
+  return { logged: true, client: c.name }
+}
+
+async function updateClient(userId: string, a: Args) {
+  const sb = getAdminClient()
+  const c = await resolveClient(userId, a.client)
+  const patch: any = {}
+  for (const k of ['status', 'service', 'contact', 'email', 'phone', 'website']) if (str(a[k])) patch[k] = str(a[k], 300)
+  if (typeof a.mrr === 'number' && a.mrr >= 0) patch.mrr = a.mrr
+  if (patch.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(patch.email)) throw new ToolError('That email address does not look valid.')
+  if (!Object.keys(patch).length) throw new ToolError('Nothing to change.')
+  patch.updated_at = new Date().toISOString()
+  const { error } = await sb.from('clients').update(patch).eq('id', c.id)
+  if (error) throw new ToolError(error.message)
+  const changed = Object.keys(patch).filter(k => k !== 'updated_at')
+  await logActivity(userId, 'client', `${c.name}: updated ${changed.join(', ')}`, 'client', c.id)
+  return { updated: true, client: c.name, changed }
+}
+
+async function addClient(userId: string, a: Args) {
+  const sb = getAdminClient()
+  const name = str(a.name, 200)
+  if (!name) throw new ToolError('Client name is required.')
+  const { data: dup } = await sb.from('clients').select('id, name').eq('user_id', userId).ilike('name', name.replace(/[%_]/g, '')).limit(1)
+  if (dup?.length) return { already_exists: true, client: dup[0] }
+  if (str(a.email) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str(a.email))) throw new ToolError('That email address does not look valid.')
+  const now = new Date().toISOString()
+  const { data, error } = await sb.from('clients').insert({
+    user_id: userId, name, contact: str(a.contact) || null, email: str(a.email) || null, phone: str(a.phone) || null,
+    website: str(a.website) || null, service: str(a.service) || null, status: a.status || 'active', mrr: 0, last_activity: today(), created_at: now, updated_at: now,
+  }).select('id, name').single()
+  if (error) throw new ToolError(error.message)
+  await logActivity(userId, 'client', `Client added: ${name}`, 'client', data.id)
+  return { created: true, client: data }
+}
+
+async function listInvoices(userId: string, a: Args) {
+  const sb = getAdminClient()
+  const names = await clientNames(userId)
+  let q = sb.from('invoices').select('num, amount, status, sent_date, due_date, paid_at, client_id').eq('user_id', userId)
+  const s = a.status || 'all'
+  if (s === 'unpaid') q = q.in('status', ['sent', 'overdue'])
+  else if (s !== 'all') q = q.eq('status', s)
+  if (a.client) q = q.eq('client_id', (await resolveClient(userId, a.client)).id)
+  const { data } = await q.order('created_at', { ascending: false }).limit(Math.min(Number(a.limit) || 30, 100))
+  return (data || []).map(i => ({ num: i.num, client: names.get(i.client_id) || null, total: money(i.amount), status: i.status, issued: i.sent_date, due: i.due_date, paid: i.paid_at ? i.paid_at.slice(0, 10) : null }))
+}
+
+async function createInvoiceDraft(userId: string, a: Args) {
+  const sb = getAdminClient()
+  const c = await resolveClient(userId, a.client)
+  const items = Array.isArray(a.line_items) ? a.line_items : []
+  const lines = items.map((x: any) => ({ description: str(x?.description, 300), qty: Number(x?.qty), rate: Number(x?.rate) }))
+  if (!lines.length || lines.some((l: any) => !l.description || !(l.qty > 0) || !(l.rate >= 0))) throw new ToolError('Each line item needs a description, a quantity above 0 and a rate.')
+  const tax = typeof a.tax_rate === 'number' ? a.tax_rate : 5
+  const sub = Math.round(lines.reduce((s: number, l: any) => s + l.qty * l.rate, 0) * 100) / 100
+  const total = Math.round(sub * (1 + tax / 100) * 100) / 100
+  // Next number in the client's own series (TC02, LPA09...)
+  const { data: theirs } = await sb.from('invoices').select('num').eq('client_id', c.id).order('created_at', { ascending: false })
+  let pre = (theirs || []).map(r => String(r.num).match(/^([A-Z]+)\d+$/)?.[1]).find(Boolean) || c.name.split(/[^A-Za-z]+/).filter((w: string) => w && !/^(and|the|of|inc|ltd|llp)$/i.test(w)).map((w: string) => w[0]).join('').toUpperCase().slice(0, 4) || 'GTH'
+  const { data: all } = await sb.from('invoices').select('num').eq('user_id', userId).ilike('num', `${pre}%`)
+  const n = Math.max(0, ...(all || []).map(r => Number(String(r.num).slice(pre.length)) || 0))
+  const num = pre + String(n + 1).padStart(2, '0')
+  const { data: last } = await sb.from('invoices').select('notes').eq('user_id', userId).not('notes', 'is', null).order('created_at', { ascending: false }).limit(1)
+  let from: any = {}
+  try { from = JSON.parse(last?.[0]?.notes || '{}') } catch { /* defaults below */ }
+  const issue = today()
+  const due = date(a.due_date, 'due_date') || issue
+  const notes = {
+    line_items: lines, tax_rate: tax, tax_label: 'GST', gst_number: from.gst_number || '720385129', currency: 'CAD',
+    payment_terms: str(a.payment_terms, 60) || 'Due on Receipt', payment_instructions: from.payment_instructions || 'Payments can be made via e-transfer',
+    terms_text: '', memo: str(a.memo, 300),
+    from_name: from.from_name || 'Grow The Hype Inc.', from_email: from.from_email || 'omar@growthehype.ca', from_phone: from.from_phone || '7809664986',
+    from_address: from.from_address || '983 Lamb Crescent', from_website: from.from_website || 'www.growthehype.ca',
+    client_phone: '', client_address: '', client_contact_name: c.contact || '',
+  }
+  const { data, error } = await sb.from('invoices').insert({ user_id: userId, num, client_id: c.id, amount: total, sent_date: issue, due_date: due, status: 'draft', notes: JSON.stringify(notes) }).select('id').single()
+  if (error) throw new ToolError(error.message)
+  await logActivity(userId, 'invoice', `Draft invoice ${num} for ${c.name} (${money(total)})`, 'invoice', data.id)
+  return { created: true, invoice: num, client: c.name, subtotal: money(sub), gst: money(total - sub), total: money(total), status: 'draft (not sent; Omar sends it from the Invoices page)' }
+}
+
+export async function callTool(userId: string, name: string, args: Args) {
+  switch (name) {
+    case 'get_overview': return getOverview(userId)
+    case 'find_client': return findClient(userId, args)
+    case 'list_tasks': return listTasks(userId, args)
+    case 'add_task': return addTask(userId, args)
+    case 'update_task': return updateTask(userId, args)
+    case 'list_projects': return listProjects(userId, args)
+    case 'save_project': return saveProject(userId, args)
+    case 'log_update': return logUpdate(userId, args)
+    case 'update_client': return updateClient(userId, args)
+    case 'add_client': return addClient(userId, args)
+    case 'list_invoices': return listInvoices(userId, args)
+    case 'create_invoice_draft': return createInvoiceDraft(userId, args)
+    default: throw new ToolError(`Unknown tool ${name}`)
+  }
+}
+
+export const SERVER_INSTRUCTIONS = `This is Omar's Command Center, the CRM for Grow The Hype. Keep it current without being asked:
+- When a conversation works on a client (a website, invoice, email, design, plan), update the CRM as you go: add tasks for agreed next steps, mark finished tasks done, move the project's status, and call log_update with one short line on what was done.
+- Before adding a task or client, check with find_client so nothing is duplicated.
+- Use clear, short task names in plain Canadian English.
+- Invoices are only ever created as drafts. Never claim an email or invoice was sent.
+- When Omar asks what's on his plate, call get_overview.`
