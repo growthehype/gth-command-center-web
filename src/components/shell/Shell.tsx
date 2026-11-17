@@ -28,6 +28,7 @@ import Tasks from '@/pages/Tasks'
 import Meetings from '@/pages/Meetings'
 import Invoices from '@/pages/Invoices'
 import Hosting from '@/pages/Hosting'
+import HomePage from '@/pages/Home'
 import Financials from '@/pages/Financials'
 import Profitability from '@/pages/Profitability'
 import Outreach from '@/pages/Outreach'
@@ -58,6 +59,7 @@ interface ShellProps {
 }
 
 const pageMap: Record<string, React.ComponentType> = {
+  home: HomePage,
   briefing: DailyBriefing,
   dashboard: Dashboard,
   calendar: tabbed([

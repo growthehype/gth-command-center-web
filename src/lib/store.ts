@@ -220,7 +220,7 @@ export const useAppStore = create<AppStore>((set) => ({
       clients: [], tasks: [], projects: [], invoices: [], leads: [], events: [],
       campaigns: [], contacts: [], meetings: [], services: [], templates: [],
       goals: [], activity: [], credentials: [], sops: [], timeEntries: [],
-      settings: {}, runningTimer: null, currentPage: 'briefing', pageTab: null,
+      settings: {}, runningTimer: null, currentPage: 'home', pageTab: null,
     })
   },
 
@@ -252,7 +252,7 @@ export const useAppStore = create<AppStore>((set) => ({
   settings: {},
   dataLoaded: false,
 
-  currentPage: 'briefing', pageTab: null,
+  currentPage: 'home', pageTab: null,
   selectedClientId: null,
   clientWindowId: null,
   selectedProjectId: null,

@@ -6,7 +6,7 @@ import {
   Send, Package, Mail, Target, KeyRound,
   Pencil, Settings, Link2,
   Inbox, HardDrive, Bot, ChevronDown, Search, Pin, PinOff, Clock,
-  PanelLeftClose, PanelLeft, Plus, ChevronRight, X, Shield, LogOut, Server } from 'lucide-react'
+  PanelLeftClose, PanelLeft, Plus, ChevronRight, X, Shield, LogOut, Server, Home } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 interface NavItem {
@@ -29,6 +29,7 @@ const navGroups: NavGroup[] = [
     key: 'command',
     label: 'Command',
     items: [
+      { id: 'home', label: 'Home', icon: Home, shortcut: 'h' },
       { id: 'briefing', label: 'Briefing', icon: Sparkles, shortcut: 'b' },
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, shortcut: 'd' },
       { id: 'calendar', label: 'Calendar', icon: Calendar, shortcut: 'c' },
