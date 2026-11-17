@@ -35,8 +35,8 @@ export default function VoiceAssistant({ events }: { events: Ev[] }) {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
         body: JSON.stringify({ ...payload, history, events, now: new Date().toLocaleString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' }) }),
       })
-      const j = await res.json()
-      if (!res.ok) throw new Error(j.error || 'Something went wrong')
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j.answer) throw new Error(j.error || "Couldn't reach your Command Center. Check your connection and try again.")
       setAnswer(j.answer)
       setHistory(h => [...h, { role: 'user' as const, content: payload.mode === 'rundown' ? 'Give me my rundown.' : payload.question! }, { role: 'assistant' as const, content: j.answer }].slice(-8))
       if (j.changed?.length) { refreshTasks?.(); refreshProjects?.(); refreshActivity?.(); refreshClients?.() }
