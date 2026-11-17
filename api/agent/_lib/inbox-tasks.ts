@@ -25,7 +25,8 @@ const TOOL = {
         items: {
           type: 'object',
           properties: {
-            text: { type: 'string', description: 'Short action for Omar, starting with a verb, e.g. "Update the hours on the Jasper site"' },
+            text: { type: 'string', description: 'Short action for Omar, starting with a verb, 10 words or fewer, e.g. "Update the hours on the Jasper site"' },
+            detail: { type: 'string', description: 'Any specifics from the email that Omar needs to do it (optional)' },
             due_date: { type: 'string', description: 'YYYY-MM-DD only if the email gives or clearly implies a date' },
             priority: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'] },
           },
@@ -40,7 +41,7 @@ const TOOL = {
 const PROMPT = `You read one email sent to Omar, who runs Grow The Hype, a creative and digital agency. The sender is one of his clients.
 List only the concrete things the client is asking Omar to do or deliver (a change to their website, an invoice question to answer, a file to send, a meeting to set up, a decision they need from him).
 Do not create tasks for thank-you notes, confirmations, payment notices ("this has been paid"), FYIs, newsletters, or anything already done.
-Use short task names in plain Canadian English. Return an empty list when nothing is being asked. Never invent details.`
+Keep each task name to 10 words or fewer and put the specifics in detail. Plain Canadian English. Return an empty list when nothing is being asked. Never invent details.`
 
 export async function runInboxTasks() {
   const sb = getAdminClient()
@@ -94,7 +95,7 @@ export async function runInboxTasks() {
           const res: any = await callTool(userId, 'add_task', {
             text, client: clientId, priority: t.priority || 'medium',
             due_date: /^\d{4}-\d{2}-\d{2}$/.test(String(t.due_date || '')) ? t.due_date : undefined,
-            description: `From ${msg.from}: "${msg.subject}" (${msg.date})\nhttps://mail.google.com/mail/u/0/#all/${m.threadId}`,
+            description: `${t.detail ? String(t.detail).slice(0, 600) + '\n\n' : ''}From ${msg.from}: "${msg.subject}" (${msg.date})\nhttps://mail.google.com/mail/u/0/#all/${m.threadId}`,
           })
           if (res?.task?.id) { ids.push(res.task.id); if (res.created) { created++; await sb.from('tasks').update({ tags: 'from-email' }).eq('id', res.task.id) } }
         }
