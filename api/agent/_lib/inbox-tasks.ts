@@ -56,6 +56,7 @@ const THREAD_TOOL = {
     type: 'object',
     properties: {
       is_client_work: { type: 'boolean', description: 'True only for Grow The Hype business with a client or prospective client (websites, design, ads, proposals, quotes, meetings, approvals, content). False for personal mail, vendors, suppliers, software support, newsletters, receipts, and invoices or payment emails.' },
+      client: { type: 'string', description: 'When several possible clients are listed, the one this conversation is mainly about (exact name from the list)' },
       business_name: { type: 'string', description: "The other party's business name if clear" },
       contact_name: { type: 'string', description: "The other party's first name if clear" },
       keep_ids: { type: 'array', items: { type: 'string' }, description: 'Ids of the existing open items (given below) that are still not done' },
@@ -137,7 +138,8 @@ export async function runInboxTasks(opts: { days?: number } = {}) {
           // Not a conversation Omar is part of (newsletters, notifications)
           if (!others.length || !others.some(match)) { await sb.from('email_task_log').upsert({ message_id: key, user_id: userId, outcome: `seen:${last.id}` }); continue }
         }
-        let clientId = others.map(match).find(Boolean) || null
+        const candidates = [...new Set(others.map(match).filter(Boolean) as string[])]
+        let clientId = candidates[0] || null
         stats.threads++
         // Read the last few messages in full
         const recent = meta.slice(-5)
@@ -152,9 +154,13 @@ export async function runInboxTasks(opts: { days?: number } = {}) {
         const waits = (existing || []).filter(t => (t.tags || '').includes('waiting'))
         const r = await askClaude({
           systemPrompt: THREAD_PROMPT, tier: 'fast', maxTokens: 900, tools: [THREAD_TOOL],
-          messages: [{ role: 'user', content: `${clientId ? `Client in the CRM: ${idx.name.get(clientId)}\n` : ''}Existing open items for Omar from this thread:\n${todos.map(t => `- [${t.id}] ${t.text}`).join('\n') || '(none)'}\n\nConversation (oldest first):\n${bodies.join('\n\n')}` }],
+          messages: [{ role: 'user', content: `${candidates.length > 1 ? `Possible clients (pick one in "client"): ${candidates.map(c => idx.name.get(c)).join('; ')}\n` : clientId ? `Client in the CRM: ${idx.name.get(clientId)}\n` : ''}Existing open items for Omar from this thread:\n${todos.map(t => `- [${t.id}] ${t.text}`).join('\n') || '(none)'}\n\nConversation (oldest first):\n${bodies.join('\n\n')}` }],
         })
         const st = extractToolUse(r)?.input || {}
+        if (candidates.length > 1 && st.client) {
+          const pick = candidates.find(c => (idx.name.get(c) || '').toLowerCase() === String(st.client).toLowerCase())
+          if (pick) clientId = pick
+        }
         if (!st.is_client_work) {
           await sb.from('email_task_log').upsert({ message_id: key, user_id: userId, outcome: `seen:${last.id}` })
           continue
