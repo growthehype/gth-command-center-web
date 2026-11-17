@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { tasks as tasksApi } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
 import { isGoogleConnected, fetchGoogleEvents } from '@/lib/google-calendar'
+import CountUp from '@/components/ui/CountUp'
+import { Ring, Bars, Stack, Donut, Funnel, StageMeter } from '@/components/home/viz'
 
 // ── dates (browser local time) ──
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -165,6 +167,27 @@ export default function Home() {
     { label: 'Meetings', n: stageCount(/meeting|proposal/i) },
   ]
 
+  // ── Visuals ──
+  const doneToday = tasks.filter(t => t.done && (t.completed_at || '').slice(0, 10) === today).length
+  const leftToday = open.filter(t => t.due_date && t.due_date <= today).length
+  const months = Array.from({ length: 6 }, (_, i) => { const d = new Date(Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 1 - (5 - i), 1); return { key: `${d.getFullYear()}-${pad(d.getMonth() + 1)}`, label: d.toLocaleDateString('en-CA', { month: 'short' }) } })
+  const cashBars = months.map(m => ({
+    label: m.label, current: m.key === m0,
+    value: invoices.filter(i => i.status === 'paid' && (i.paid_at || '').startsWith(m.key)).reduce((s, i) => s + Number(i.amount), 0),
+    back: invoices.filter(i => i.status !== 'draft' && (i.sent_date || '').startsWith(m.key)).reduce((s, i) => s + Number(i.amount), 0),
+  }))
+  const unpaid = invoices.filter(i => i.status === 'sent' || i.status === 'overdue')
+  const aging = [
+    { label: 'Not due yet', tone: 'ok', value: unpaid.filter(i => !i.due_date || i.due_date >= today).reduce((s, i) => s + Number(i.amount), 0) },
+    { label: '1 to 30 days late', tone: 'warn', value: unpaid.filter(i => i.due_date && i.due_date < today && diff(today, i.due_date) <= 30).reduce((s, i) => s + Number(i.amount), 0) },
+    { label: 'Over 30 days late', tone: 'err', value: unpaid.filter(i => i.due_date && diff(today, i.due_date) > 30).reduce((s, i) => s + Number(i.amount), 0) },
+  ]
+  const hostingShare = Object.values(plans.reduce((acc: Record<string, { label: string; value: number }>, p) => {
+    const k = p.client_id; acc[k] = acc[k] || { label: cname(k) || 'Client', value: 0 }; acc[k].value += p.cadence === 'monthly' ? p.amount : p.amount / 12; return acc
+  }, {})).sort((a, b) => b.value - a.value)
+  const weekLoad = (d: string) => gOn(d).length + crmEventsOn(d).length + dueOn(d).length + plansOn(d).length + invDueOn(d).length
+  const weekMax = Math.max(1, ...Array.from({ length: 7 }, (_, i) => weekLoad(addDays(today, i))))
+
   const submit = async () => {
     const p = parseCapture(capture, today, clients)
     if (!p.text) return
@@ -213,10 +236,36 @@ export default function Home() {
         </form>
       </header>
 
+      <div className="hm-pulse">
+        <button className="hm-pt hm-rise" style={{ ['--i' as string]: 0 }} onClick={() => setHorizon('today')}>
+          <Ring value={doneToday} total={doneToday + leftToday} label={leftToday ? String(leftToday) : '✓'} sub={leftToday ? 'left' : 'clear'} />
+          <div className="hm-pt-txt"><p className="hm-k">Today</p><p className="hm-pt-n"><CountUp value={doneToday} /> done</p><p className="hm-pt-s">{leftToday ? `${leftToday} due or late` : 'Nothing due'}</p></div>
+        </button>
+        <button className="hm-pt hm-rise" style={{ ['--i' as string]: 1 }} onClick={() => setHorizon('month')}>
+          <div className="hm-pt-txt hm-pt-wide">
+            <p className="hm-k">Collected this month</p>
+            <p className="hm-pt-n"><CountUp value={Math.round(collected)} format={n => money(n)} /></p>
+            <Bars data={cashBars} height={44} format={n => money(n)} />
+          </div>
+        </button>
+        <button className="hm-pt hm-rise" style={{ ['--i' as string]: 2 }} onClick={() => setCurrentPage('invoices')}>
+          <div className="hm-pt-txt hm-pt-wide">
+            <p className="hm-k">Waiting on clients</p>
+            <p className="hm-pt-n"><CountUp value={Math.round(outstanding)} format={n => money(n)} /></p>
+            <Stack parts={aging} />
+            <p className="hm-legend">{aging.map(a => <span key={a.label} className={`is-${a.tone}`}>{a.label}</span>)}</p>
+          </div>
+        </button>
+        <button className="hm-pt hm-rise" style={{ ['--i' as string]: 3 }} onClick={() => setCurrentPage('hosting')}>
+          <Donut parts={hostingShare.length ? hostingShare : [{ label: 'none', value: 0 }]} center={money(recurring)} sub="/ month" />
+          <div className="hm-pt-txt"><p className="hm-k">Hosting income</p><p className="hm-pt-n"><CountUp value={plans.length} /> sites</p><p className="hm-pt-s">{money(recurring * 12)} a year</p></div>
+        </button>
+      </div>
+
       <div className="hm-grid">
         <div className="hm-main">
           {/* Needs you */}
-          <section className="hm-card">
+          <section className="hm-card hm-rise">
             <div className="hm-head"><h2>Needs you</h2><span className="hm-count">{needs.length}</span></div>
             {needs.length === 0 ? <p className="hm-empty"><Check size={14} /> You're clear. New asks from client emails land here automatically.</p> : (
               <ul className="hm-needs">
@@ -236,7 +285,7 @@ export default function Home() {
           </section>
 
           {/* Horizon */}
-          <section className="hm-card">
+          <section className="hm-card hm-rise">
             <div className="hm-head">
               <div className="hm-seg" role="tablist">
                 {(['today', 'week', 'month'] as const).map(h => <button key={h} role="tab" aria-selected={horizon === h} className={horizon === h ? 'is-on' : ''} onClick={() => setHorizon(h)}>{h === 'today' ? 'Today' : h === 'week' ? 'This week' : 'This month'}</button>)}
@@ -284,6 +333,7 @@ export default function Home() {
                   return (
                     <div key={d} className={`hm-day ${d === today ? 'is-today' : ''}`}>
                       <p className="hm-day-h"><span>{dayName(d)}</span><b>{Number(d.slice(8))}</b></p>
+                      <span className="hm-load"><i style={{ width: `${(weekLoad(d) / weekMax) * 100}%` }} /></span>
                       {items.length === 0 ? <span className="hm-day-none" /> : items.slice(0, 5).map((it, i) => <p key={i} className={`hm-day-i is-${it.k}`}>{it.t}</p>)}
                       {items.length > 5 && <p className="hm-day-more">+{items.length - 5} more</p>}
                     </div>
@@ -295,6 +345,11 @@ export default function Home() {
             {horizon === 'month' && (
               <div className="hm-month">
                 <div className="hm-bar"><i style={{ width: `${monthPct}%` }} /><span>{new Date().toLocaleDateString('en-CA', { month: 'long' })} · {monthPct}% through</span></div>
+                <div className="hm-chart">
+                  <p className="hm-k">Collected vs invoiced, last 6 months</p>
+                  <Bars data={cashBars} height={120} format={n => money(n)} />
+                  <p className="hm-legend"><span className="is-fill">Collected</span><span className="is-back">Invoiced</span></p>
+                </div>
                 <div className="hm-stats">
                   <div><p className="hm-k">Invoiced</p><p className="hm-n">{money(invoiced)}</p></div>
                   <div><p className="hm-k">Collected</p><p className="hm-n">{money(collected)}</p></div>
@@ -317,7 +372,7 @@ export default function Home() {
 
         <aside className="hm-side">
           {/* Clients */}
-          <section className="hm-card">
+          <section className="hm-card hm-rise">
             <div className="hm-head"><h2>Clients</h2><button className="hm-link" onClick={() => setCurrentPage('clients')}>All <ArrowRight size={12} /></button></div>
             <ul className="hm-clients">
               {clientRows.slice(0, 9).map(r => (
@@ -326,7 +381,7 @@ export default function Home() {
                     <span className="hm-cl-n">{r.c.name}</span>
                     <span className="hm-cl-m">
                       {r.late ? <b className="is-err">{r.late} late</b> : r.open ? <b>{r.open} open</b> : <span>no open tasks</span>}
-                      {r.proj && <span className="hm-pill">{r.proj.status === 'progress' ? 'In progress' : r.proj.status === 'review' ? 'In review' : 'Backlog'}</span>}
+                      {r.proj && <span className="hm-stage-w"><StageMeter status={r.proj.status} />{r.proj.status === 'progress' ? 'In progress' : r.proj.status === 'review' ? 'In review' : 'Backlog'}</span>}
                       {r.idle !== null && r.idle > 14 && <span className="hm-quiet">quiet {r.idle}d</span>}
                     </span>
                     {r.next && <span className="hm-cl-next">Next: {r.next.text} · {when(r.next.due_date!, today)}</span>}
@@ -337,13 +392,13 @@ export default function Home() {
           </section>
 
           {/* Pipeline */}
-          <section className="hm-card">
+          <section className="hm-card hm-rise">
             <div className="hm-head"><h2>Pipeline</h2><button className="hm-link" onClick={() => setCurrentPage('agents')}>Open <ArrowRight size={12} /></button></div>
-            <div className="hm-pipe">{pipe.map(p => <div key={p.label}><p className="hm-n">{p.n}</p><p className="hm-k">{p.label}</p></div>)}</div>
+            <Funnel rows={pipe} />
           </section>
 
           {/* Claude log */}
-          <section className="hm-card">
+          <section className="hm-card hm-rise">
             <div className="hm-head"><h2>What changed</h2><span className="hm-live"><i /> Live</span></div>
             {activity.length === 0 ? <p className="hm-empty">Updates from Claude, your inbox and the hosting job show up here.</p> : (
               <ul className="hm-log">
