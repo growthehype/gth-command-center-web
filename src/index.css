@@ -4016,7 +4016,7 @@ button.brf-goal:hover { border-color: var(--color-border-hard); }
 @media (max-width: 1100px) { .hm-pulse { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 767px) {
   /* Swipeable row on phones */
-  .hm-pulse { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -14px 16px; padding: 2px 14px 6px; scrollbar-width: none; }
+  .hm-pulse { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 14px; margin: 0 -14px 16px; padding: 2px 14px 6px; scrollbar-width: none; }
   .hm-pulse::-webkit-scrollbar { display: none; }
   .hm-pt { flex: 0 0 82%; scroll-snap-align: start; padding: 14px; min-height: 132px; }
   .hm-pt-n { font-size: 21px; }
