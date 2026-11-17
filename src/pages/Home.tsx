@@ -146,7 +146,7 @@ export default function Home() {
   const monthPct = Math.round((Number(today.slice(8)) / Number(monthEnd.slice(8))) * 100)
 
   // ── Clients that need attention first ──
-  const clientRows = useMemo(() => clients.filter(c => c.status === 'active').map(c => {
+  const clientRows = useMemo(() => clients.filter(c => c.status === 'active' || (c.status !== 'prospect' && (projects.some(p => p.client_id === c.id && p.status !== 'done') || open.some(t => t.client_id === c.id)))).map(c => {
     const ct = open.filter(t => t.client_id === c.id)
     const proj = projects.find(p => p.client_id === c.id && p.status !== 'done')
     const late = ct.filter(t => t.due_date && t.due_date < today).length
