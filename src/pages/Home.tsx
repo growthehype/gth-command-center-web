@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowRight, Check, CornerDownLeft, Mail, Receipt, Server, CalendarDays, Sparkles, AlertCircle, Send, Building2, Bot, CircleDollarSign } from 'lucide-react'
+import { ArrowRight, Check, CornerDownLeft, Mail, Receipt, Server, CalendarDays, Sparkles, AlertCircle, Send, Building2, Bot, CircleDollarSign, Hourglass, ExternalLink } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase'
 import { tasks as tasksApi } from '@/lib/api'
@@ -94,7 +94,10 @@ export default function Home() {
     setBusy(null)
   }
 
-  const open = tasks.filter(t => !t.done)
+  const isWaiting = (t: { tags?: string | null }) => (t.tags || '').includes('waiting')
+  const open = tasks.filter(t => !t.done && !isWaiting(t))
+  const waitingList = tasks.filter(t => !t.done && isWaiting(t)).sort((a, b) => (a.due_date || '9') < (b.due_date || '9') ? -1 : 1)
+  const mailLink = (d?: string | null) => (d || '').match(/https:\/\/mail\.google\.com\/\S+/)?.[0] || null
   const hostingInv = (n?: string | null) => { try { return !!JSON.parse(n || '{}').hosting_plan_id } catch { return false } }
   const sendOn = (p: Plan) => p.cadence === 'yearly' ? addDays(p.next_date, -p.notice_days) : p.next_date
   const withTax = (p: Plan) => Math.round(p.amount * (1 + p.tax_rate / 100) * 100) / 100
@@ -102,6 +105,8 @@ export default function Home() {
   // ── Needs you, most urgent first ──
   const needs = useMemo<Need[]>(() => {
     const out: Need[] = []
+    for (const t of waitingList.filter(t => t.due_date && t.due_date <= today))
+      out.push({ key: 'w' + t.id, tone: 'warn', icon: Hourglass, kind: 'Check in', title: t.text.replace(/^Waiting on /, ''), meta: `${t.client_name ? t.client_name + ' · ' : ''}no reply since ${ago(t.created_at)}`, action: { label: 'Replied', run: () => complete(t.id, t.text) }, open: () => { const l = mailLink(t.description); l ? window.open(l, '_blank') : openTask(t.id) } })
     for (const t of open.filter(t => t.due_date && t.due_date < today).sort((a, b) => (a.due_date! < b.due_date! ? -1 : 1)))
       out.push({ key: 't' + t.id, tone: 'err', icon: AlertCircle, kind: 'Late', title: t.text, meta: `${t.client_name ? t.client_name + ' · ' : ''}due ${when(t.due_date!, today)}`, action: { label: 'Done', run: () => complete(t.id, t.text) }, open: () => openTask(t.id) })
     for (const i of invoices.filter(i => (i.status === 'sent' || i.status === 'overdue') && i.due_date && i.due_date < today))
@@ -282,6 +287,31 @@ export default function Home() {
               </ul>
             )}
             {needs.length > 8 && <button className="hm-more" onClick={() => setCurrentPage('tasks')}>See all {needs.length}</button>}
+          </section>
+
+          {/* Waiting on others */}
+          <section className="hm-card hm-rise">
+            <div className="hm-head"><h2>Waiting on</h2><span className="hm-count is-soft">{waitingList.length}</span></div>
+            {waitingList.length === 0 ? <p className="hm-empty"><Hourglass size={14} /> When you send a proposal, a site to approve or a meeting request, it shows here until they reply.</p> : (
+              <ul className="hm-wait">
+                {waitingList.slice(0, 8).map(t => {
+                  const days = Math.max(0, Math.round((Date.now() - new Date(t.created_at).getTime()) / 86400000))
+                  const due = t.due_date && t.due_date <= today
+                  const link = mailLink(t.description)
+                  return (
+                    <li key={t.id} className={due ? 'is-due' : ''}>
+                      <span className="hm-wait-age"><b>{days}</b>{days === 1 ? 'day' : 'days'}</span>
+                      <button className="hm-wait-body" onClick={() => openTask(t.id)}>
+                        <span className="hm-wait-t">{t.text.replace(/^Waiting on /, '')}</span>
+                        <span className="hm-wait-m">{t.client_name || 'No client'}{t.due_date ? ` · ${due ? 'check in now' : `check in ${when(t.due_date, today)}`}` : ''}</span>
+                      </button>
+                      {link && <a className="hm-icon-btn" href={link} target="_blank" rel="noreferrer" aria-label="Open the email"><ExternalLink size={13} /></a>}
+                      <button className="hm-chip" onClick={() => complete(t.id, t.text)} disabled={busy === t.id}><Check size={12} /> Replied</button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </section>
 
           {/* Horizon */}

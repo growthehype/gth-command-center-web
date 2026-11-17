@@ -89,6 +89,7 @@ export const TOOLS = [
       due_date: { type: 'string', description: 'YYYY-MM-DD (optional)' },
       priority: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'] },
       description: { type: 'string', description: 'Extra detail (optional)' },
+      waiting: { type: 'boolean', description: 'True when this is something Omar is waiting on someone else for (e.g. "Waiting on Wendy to approve the new website"). Shows in the Waiting on list.' },
     }, required: ['text'] },
   },
   {
@@ -173,18 +174,20 @@ async function getOverview(userId: string) {
   const t = today()
   const names = await clientNames(userId)
   const [{ data: tasks }, { data: projects }, { data: invoices }, { data: plans }, { data: acts }] = await Promise.all([
-    sb.from('tasks').select('id, text, due_date, priority, client_id').eq('user_id', userId).eq('done', false).order('due_date', { ascending: true, nullsFirst: false }).limit(60),
+    sb.from('tasks').select('id, text, due_date, priority, client_id, tags').eq('user_id', userId).eq('done', false).order('due_date', { ascending: true, nullsFirst: false }).limit(60),
     sb.from('projects').select('id, title, status, due_date, client_id').eq('user_id', userId).neq('status', 'done').limit(40),
     sb.from('invoices').select('id, num, amount, status, due_date, client_id').eq('user_id', userId).in('status', ['draft', 'sent', 'overdue']).order('due_date').limit(40),
     sb.from('hosting_plans').select('client_id, cadence, amount, next_date, notice_days, verified, status').eq('user_id', userId).eq('status', 'active'),
     sb.from('activity_log').select('description, timestamp').eq('user_id', userId).order('timestamp', { ascending: false }).limit(10),
   ])
   const task = (x: any) => ({ id: x.id, text: x.text, due: x.due_date || null, priority: x.priority || null, client: names.get(x.client_id) || null })
-  const open = tasks || []
+  const open = (tasks || []).filter(x => !(x.tags || '').includes('waiting'))
+  const waiting = (tasks || []).filter(x => (x.tags || '').includes('waiting'))
   const soon = addDays(t, 7)
   const sendOn = (p: any) => p.cadence === 'yearly' ? addDays(p.next_date, -p.notice_days) : p.next_date
   return {
     today: t,
+    waiting_on_others: waiting.map(task),
     overdue_tasks: open.filter(x => x.due_date && x.due_date < t).map(task),
     due_today: open.filter(x => x.due_date === t).map(task),
     due_this_week: open.filter(x => x.due_date && x.due_date > t && x.due_date <= soon).map(task),
@@ -244,6 +247,7 @@ async function addTask(userId: string, a: Args) {
   const { data: dup } = await dq.limit(1)
   if (dup?.length) return { already_exists: true, task: dup[0] }
   const row: any = { user_id: userId, text, description: str(a.description) || null, priority: a.priority || 'medium', done: false, client_id: client?.id || null, due_date: date(a.due_date, 'due_date') || null, created_at: new Date().toISOString() }
+  if (a.waiting) row.tags = 'waiting'
   const { data, error } = await sb.from('tasks').insert(row).select('id, text, due_date, priority').single()
   if (error) throw new ToolError(error.message)
   await logActivity(userId, 'task', `Task added${client ? ` for ${client.name}` : ''}: ${text}`, 'task', data.id)
@@ -426,6 +430,7 @@ export async function callTool(userId: string, name: string, args: Args) {
 
 export const SERVER_INSTRUCTIONS = `This is Omar's Command Center, the CRM for Grow The Hype. Keep it current without being asked:
 - When a conversation works on a client (a website, invoice, email, design, plan), update the CRM as you go: add tasks for agreed next steps, mark finished tasks done, move the project's status, and call log_update with one short line on what was done.
+- When something goes to a client or prospect and Omar is now waiting on them (a proposal, a site to approve, a meeting to book), add_task with waiting=true, e.g. "Waiting on Wendy to approve the new website", due on the day to check in. New prospects get add_client with status prospect first.
 - Before adding a task or client, check with find_client so nothing is duplicated.
 - Use clear, short task names in plain Canadian English.
 - Invoices are only ever created as drafts. Never claim an email or invoice was sent.

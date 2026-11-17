@@ -20,7 +20,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (ok !== true) return res.status(401).json({ error: 'Unauthorized' })
     if (body.run) return res.status(200).json(await runHosting())
     // Hourly: client emails that ask for something become CRM tasks
-    if (body.inboxTasks) return res.status(200).json(await runInboxTasks())
+    if (body.inboxTasks) return res.status(200).json(await runInboxTasks({ days: Number(body.days) || 2 }))
     if (body.preview) {
       const { data: plan } = await sb.from('hosting_plans').select('*').eq('id', String(body.preview)).single()
       if (!plan) return res.status(404).json({ error: 'Plan not found' })

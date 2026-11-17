@@ -18,6 +18,12 @@
     "api/agent/preview.ts": {
       "maxDuration": 300,
       "includeFiles": "concepts/**"
+    },
+    "api/hosting.ts": {
+      "maxDuration": 300
+    },
+    "api/mcp.ts": {
+      "maxDuration": 60
     }
   },
   "headers": [

@@ -4025,3 +4025,17 @@ button.brf-goal:hover { border-color: var(--color-border-hard); }
   .hm-rise, .hm-need, .hm-ag, .hm-list li, .hm-clients li, .hm-log li, .hm-week .hm-day, .hm-load i { animation: none !important; }
   .vz-ring-arc, .vz-bar-track i, .vz-seg, .vz-fun-track i { transition: none !important; }
 }
+/* Home: waiting on */
+.hm-count.is-soft { background: rgba(255,255,255,.1); color: var(--color-polar); }
+.hm-wait { display: flex; flex-direction: column; }
+.hm-wait li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.05); animation: hmFade .45s cubic-bezier(.22,1,.36,1) both; }
+.hm-wait li:last-child { border-bottom: 0; }
+.hm-wait-age { flex: none; width: 46px; display: flex; flex-direction: column; align-items: center; line-height: 1; font-size: 10px; color: var(--color-dim); }
+.hm-wait-age b { font-size: 19px; font-weight: 800; color: var(--color-polar); margin-bottom: 3px; font-variant-numeric: tabular-nums; }
+.hm-wait li.is-due .hm-wait-age b { color: #F5B43C; }
+.hm-wait-body { flex: 1; min-width: 0; display: flex; flex-direction: column; text-align: left; }
+.hm-wait-t { font-size: 14px; font-weight: 600; color: var(--color-polar); }
+.hm-wait-m { font-size: 12.5px; color: var(--color-dim); }
+.hm-wait li.is-due .hm-wait-m { color: #F5B43C; }
+.hm-icon-btn { flex: none; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; color: var(--color-dim); transition: color .2s, background .2s; }
+.hm-icon-btn:hover { color: var(--color-polar); background: rgba(255,255,255,.06); }
