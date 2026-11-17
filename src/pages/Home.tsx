@@ -6,6 +6,7 @@ import { tasks as tasksApi } from '@/lib/api'
 import { showToast } from '@/components/ui/Toast'
 import { isGoogleConnected, fetchGoogleEvents } from '@/lib/google-calendar'
 import CountUp from '@/components/ui/CountUp'
+import VoiceAssistant from '@/components/home/VoiceAssistant'
 import { Ring, Bars, Stack, Donut, Funnel, StageMeter } from '@/components/home/viz'
 
 // ── dates (browser local time) ──
@@ -227,6 +228,10 @@ export default function Home() {
           <p className="hm-date">{new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
           <h1 className="hm-greet">{greet}, {first}.</h1>
           <p className="hm-sum">{dataLoaded ? summary : 'Loading your day…'}</p>
+          <VoiceAssistant events={[
+            ...gEvents.map(e => ({ date: e.date, time: e.allDay ? undefined : e.startTime, title: e.title })),
+            ...events.filter(e => e.date >= today && e.date <= addDays(today, 7)).map(e => ({ date: e.date, time: e.start_time || undefined, title: e.title + (e.client_name ? ` (${e.client_name})` : '') })),
+          ]} />
         </div>
         <form className="hm-capture" onSubmit={e => { e.preventDefault(); submit() }}>
           <input ref={inputRef} value={capture} onChange={e => setCapture(e.target.value)} placeholder="Add a task: “Send Tarin the BC page friday”" aria-label="Add a task" />

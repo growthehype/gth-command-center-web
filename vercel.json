@@ -24,6 +24,9 @@
     },
     "api/mcp.ts": {
       "maxDuration": 60
+    },
+    "api/voice.ts": {
+      "maxDuration": 60
     }
   },
   "headers": [
