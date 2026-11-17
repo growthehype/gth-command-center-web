@@ -3,7 +3,7 @@
 // asks Claude whether the email asks Omar to do something. Each request
 // becomes a task linked to the client and the email. Nothing is replied to.
 import { getAdminClient } from './supabase-admin'
-import { listNewMessages, getMessageContent } from './gmail-server'
+import { listNewMessages, getMessageContent, getThreadMeta } from './gmail-server'
 import { askClaude, extractToolUse } from './claude'
 import { callTool } from './crm-tools'
 
@@ -43,33 +43,52 @@ List only the concrete things the client is asking Omar to do or deliver (a chan
 Do not create tasks for thank-you notes, confirmations, payment notices ("this has been paid"), FYIs, newsletters, or anything already done.
 Keep each task name to 10 words or fewer and put the specifics in detail. Plain Canadian English. Return an empty list when nothing is being asked. Never invent details.`
 
-const SENT_TOOL = {
-  name: 'record_handoff',
-  description: 'Describe what this email Omar sent means for his work.',
+// ── Thread-based sync ──────────────────────────────────────────
+// Each email conversation with a client or prospect is read as a whole, so the
+// CRM always reflects where it stands now: what Omar still has to do, and what
+// he is waiting on them for. When they reply, the waiting item closes; when Omar
+// does the work, the next read drops it.
+
+const THREAD_TOOL = {
+  name: 'thread_state',
+  description: 'Where this email conversation stands for Omar right now.',
   input_schema: {
     type: 'object',
     properties: {
-      is_client_work: { type: 'boolean', description: 'True only if this is Grow The Hype business with a client or prospective client (a proposal, website, design, strategy, quote, meeting, approval, files). False for personal mail, vendors, suppliers, software support, cold outreach templates, and invoices or payment emails.' },
-      waiting: { type: 'boolean', description: 'True if Omar is now waiting on the recipient (to review, approve, decide, send something, book or attend a meeting).' },
-      waiting_text: { type: 'string', description: 'Who and what, e.g. "Feizal to review the strategy and proposal" or "Wendy to approve the new website". Under 12 words.' },
-      business_name: { type: 'string', description: "The recipient's business name, if clear from the email" },
-      contact_name: { type: 'string', description: "The recipient's first name, if clear" },
-      check_back_days: { type: 'number', description: 'How many days until Omar should check in if there is no reply (2 to 7)' },
+      is_client_work: { type: 'boolean', description: 'True only for Grow The Hype business with a client or prospective client (websites, design, ads, proposals, quotes, meetings, approvals, content). False for personal mail, vendors, suppliers, software support, newsletters, receipts, and invoices or payment emails.' },
+      business_name: { type: 'string', description: "The other party's business name if clear" },
+      contact_name: { type: 'string', description: "The other party's first name if clear" },
+      keep_ids: { type: 'array', items: { type: 'string' }, description: 'Ids of the existing open items (given below) that are still not done' },
+      new_todos: {
+        type: 'array',
+        description: 'Things Omar still has to do that are not already in the existing items. Only real requests or commitments still open at the end of the thread.',
+        items: { type: 'object', properties: {
+          text: { type: 'string', description: 'Verb first, 10 words or fewer' },
+          detail: { type: 'string' },
+          due_date: { type: 'string', description: 'YYYY-MM-DD only if stated or clearly implied' },
+          priority: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'] },
+        }, required: ['text'] },
+      },
+      waiting_on: { type: 'string', description: 'If the last word is Omar\'s and he is waiting on them (to review, approve, decide, send, book or attend), who and what in under 12 words, e.g. "Wendy to approve the new website". Empty if the ball is in Omar\'s court or nothing is pending.' },
+      check_back_days: { type: 'number', description: 'Days after Omar\'s last message to check in if they stay quiet (2 to 7)' },
     },
-    required: ['is_client_work', 'waiting'],
+    required: ['is_client_work'],
   },
 }
-const SENT_PROMPT = `You read one email that Omar (Grow The Hype, a creative and digital agency in Edmonton) sent. Decide whether it is client work and whether he is now waiting on the other person.
-Waiting examples: he sent a proposal, a website or design for approval, a strategy, a quote, a question that needs an answer, or asked to set up a meeting.
-Not waiting: thank-you notes, confirmations, "sounds good", personal mail, emails to vendors or software companies, invoices and payment reminders (those are tracked elsewhere).
-Never invent names or details that are not in the email. Plain Canadian English.`
+const THREAD_PROMPT = `You read an email conversation between Omar (Grow The Hype, a creative and digital agency in Edmonton) and someone else, oldest to newest, and report where it stands right now.
+- Things Omar has clearly already done later in the thread are not open.
+- If the other person spoke last and asked for something, that is Omar's to do, not waiting.
+- If Omar spoke last and handed something over or asked something, he is waiting on them.
+- Invoices and payments are tracked elsewhere: do not create items for them.
+- Never invent names, dates or details. Plain Canadian English.`
 
 const gmailLink = (threadId: string) => `https://mail.google.com/mail/u/0/#all/${threadId}`
 const addDaysIso = (iso: string, n: number) => { const d = new Date(iso); d.setDate(d.getDate() + n); if (d.getDay() === 6) d.setDate(d.getDate() + 2); if (d.getDay() === 0) d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10) }
+const isMe = (from: string) => /growthehype\.(ca|com)/i.test(from)
 
-/** Every hour: client emails become tasks, Omar's sent emails become "waiting on" items, and replies close them. */
 export async function runInboxTasks(opts: { days?: number } = {}) {
   const sb = getAdminClient()
+  const deadline = Date.now() + 250_000 // the rest is picked up on the next run
   const days = Math.min(30, Math.max(1, Number(opts.days) || 2))
   const { data: integ } = await sb.from('integrations').select('user_id').eq('provider', 'gmail')
   const users = [...new Set((integ || []).map(r => r.user_id))]
@@ -90,92 +109,98 @@ export async function runInboxTasks(opts: { days?: number } = {}) {
         if (ct.email) byEmail.set(ct.email.toLowerCase(), ct.client_id)
         const d = domainOf(ct.email); if (d && !FREE_MAIL.test(d)) byDomain.set(d, ct.client_id)
       }
-      return { byEmail, byDomain, name: new Map((clients || []).map(c => [c.id, c.name])) }
+      return { byEmail, byDomain, name: new Map((clients || []).map(c => [c.id, c.name])), list: clients || [] }
     }
     let idx = await loadClients()
     const match = (addr: string) => idx.byEmail.get(addr) || idx.byDomain.get(domainOf(addr))
     const addrs = (h: string) => (h.match(/[^\s<>,;"]+@[^\s<>,;"]+\.[a-z]{2,}/gi) || []).map(a => a.toLowerCase())
-    // Cold outreach threads are tracked by the lead tracker, not here
     const { data: outreach } = await sb.from('outreach_steps').select('gmail_thread_id').eq('user_id', userId).not('gmail_thread_id', 'is', null)
     const outreachThreads = new Set((outreach || []).map(r => r.gmail_thread_id))
-    const stats = { inbound: 0, outbound: 0, created: 0, waiting: 0, closed: 0, prospects: 0 }
+    const stats = { threads: 0, todos: 0, waiting: 0, closed: 0, prospects: 0 }
 
-    const claim = async (id: string) => { const { error } = await sb.from('email_task_log').insert({ message_id: id, user_id: userId, outcome: 'checking' }); return !error }
-    const settle = (id: string, outcome: string, taskId?: string | null) => sb.from('email_task_log').update({ outcome, task_id: taskId || null }).eq('message_id', id)
-    const release = (id: string) => sb.from('email_task_log').delete().eq('message_id', id)
-    const openWaiting = async (threadId: string) => {
-      const { data } = await sb.from('tasks').select('id, text, client_id').eq('user_id', userId).eq('done', false).ilike('tags', '%waiting%').ilike('description', `%${threadId}%`)
-      return data || []
-    }
+    let msgs: { id: string; threadId: string }[] = []
+    try { msgs = await listNewMessages(userId, `newer_than:${days}d -category:promotions -category:social -category:updates -in:spam -in:trash`, days > 2 ? 250 : 80) } catch (e: any) { summary.push({ userId, error: String(e?.message || e).slice(0, 200) }); continue }
+    const threads = [...new Set(msgs.map(m => m.threadId))].filter(t => !outreachThreads.has(t))
 
-    // ── Inbound: replies close "waiting" items; client requests become tasks ──
-    let inbox: { id: string; threadId: string }[] = []
-    try { inbox = await listNewMessages(userId, `in:inbox newer_than:${days}d -from:me -category:promotions -category:social`, days > 2 ? 150 : 60) } catch (e: any) { summary.push({ userId, error: String(e?.message || e).slice(0, 200) }); continue }
-    for (const m of inbox) {
-      if (!(await claim(m.id))) continue
+    for (const threadId of threads) {
+      if (Date.now() > deadline) { summary.push({ note: 'time limit, continuing next run' }); break }
       try {
-        stats.inbound++
-        const msg = await getMessageContent(userId, m.id)
-        const from = (msg.from.match(/<([^>]+)>/)?.[1] || msg.from).trim().toLowerCase()
-        // They answered: whatever Omar was waiting on in this thread is no longer waiting
-        for (const w of await openWaiting(m.threadId)) {
-          await sb.from('tasks').update({ done: true, completed_at: new Date().toISOString() }).eq('id', w.id)
-          await sb.from('activity_log').insert({ user_id: userId, type: 'task', entity: 'client', entity_id: w.client_id, description: `${msg.from.replace(/<.*>/, '').trim()} replied: ${w.text.replace(/^Waiting on /, '')}`, timestamp: new Date().toISOString() })
-          stats.closed++
+        const meta = await getThreadMeta(userId, threadId)
+        if (!meta?.length) continue
+        const last = meta[meta.length - 1]
+        // Only re-read a conversation when something new happened in it
+        const key = `thread:${threadId}`
+        const { data: state } = await sb.from('email_task_log').select('outcome').eq('message_id', key).maybeSingle()
+        if (state?.outcome === `seen:${last.id}`) continue
+        const others = [...new Set(meta.flatMap(m => addrs(`${m.from},${m.to},${m.cc}`)))].filter(a => !/growthehype\.(ca|com)$/.test(a))
+        if (!others.length || !meta.some(m => isMe(m.from))) {
+          // Not a conversation Omar is part of (newsletters, notifications)
+          if (!others.length || !others.some(match)) { await sb.from('email_task_log').upsert({ message_id: key, user_id: userId, outcome: `seen:${last.id}` }); continue }
         }
-        const clientId = match(from)
-        if (!clientId) { await settle(m.id, 'not a client'); continue }
-        const body = (msg.bodyText || msg.snippet || '').replace(/\n>.*$/gs, '').slice(0, 4000)
-        const r = await askClaude({ systemPrompt: PROMPT, tier: 'fast', maxTokens: 600, tools: [TOOL], messages: [{ role: 'user', content: `Client: ${idx.name.get(clientId)}\nFrom: ${msg.from}\nDate: ${msg.date}\nSubject: ${msg.subject}\n\n${body}` }] })
-        const ids: string[] = []
-        for (const t of (extractToolUse(r)?.input?.tasks || []).slice(0, 5)) {
-          const text = String(t?.text || '').trim(); if (!text) continue
-          const res: any = await callTool(userId, 'add_task', {
-            text, client: clientId, priority: t.priority || 'medium',
-            due_date: /^\d{4}-\d{2}-\d{2}$/.test(String(t.due_date || '')) ? t.due_date : undefined,
-            description: `${t.detail ? String(t.detail).slice(0, 600) + '\n\n' : ''}From ${msg.from}: "${msg.subject}" (${msg.date})\n${gmailLink(m.threadId)}`,
-          })
-          if (res?.task?.id) { ids.push(res.task.id); if (res.created) { stats.created++; await sb.from('tasks').update({ tags: 'from-email' }).eq('id', res.task.id) } }
+        let clientId = others.map(match).find(Boolean) || null
+        stats.threads++
+        // Read the last few messages in full
+        const recent = meta.slice(-5)
+        const bodies: string[] = []
+        for (const m of recent) {
+          const c = await getMessageContent(userId, m.id)
+          const body = (c.bodyText || c.snippet || '').replace(/\nOn .{10,120}wrote:[\s\S]*$/, '').replace(/\n>.*$/gs, '').slice(0, 1800)
+          bodies.push(`--- ${isMe(c.from) ? 'OMAR' : c.from} · ${c.date}\nSubject: ${c.subject}\n${body}`)
         }
-        await settle(m.id, ids.length ? `tasks: ${ids.length}` : 'nothing asked', ids[0])
-      } catch (e: any) { await release(m.id); summary.push({ message: m.id, error: String(e?.message || e).slice(0, 200) }) }
-    }
-
-    // ── Outbound: what Omar sent and is now waiting on ──
-    let sent: { id: string; threadId: string }[] = []
-    try { sent = await listNewMessages(userId, `in:sent newer_than:${days}d`, days > 2 ? 150 : 60) } catch { sent = [] }
-    for (const m of sent) {
-      if (outreachThreads.has(m.threadId)) continue
-      if (!(await claim(m.id))) continue
-      try {
-        stats.outbound++
-        const msg = await getMessageContent(userId, m.id)
-        const to = addrs(`${msg.to}`).filter(a => !/growthehype\.(ca|com)$/.test(a))
-        if (!to.length) { await settle(m.id, 'internal'); continue }
-        let clientId = to.map(match).find(Boolean) || null
-        const body = (msg.bodyText || msg.snippet || '').replace(/\n>.*$/gs, '').replace(/\n--\s*\n[\s\S]*$/, '').slice(0, 3500)
-        const r = await askClaude({ systemPrompt: SENT_PROMPT, tier: 'fast', maxTokens: 400, tools: [SENT_TOOL], messages: [{ role: 'user', content: `${clientId ? `Known client: ${idx.name.get(clientId)}\n` : ''}To: ${msg.to}\nDate: ${msg.date}\nSubject: ${msg.subject}\n\n${body}` }] })
-        const h = extractToolUse(r)?.input || {}
-        if (!h.is_client_work || !h.waiting || !String(h.waiting_text || '').trim()) { await settle(m.id, h.is_client_work ? 'sent, not waiting' : 'not client work'); continue }
-        // A new business we are pitching or working with becomes a prospect
+        const { data: existing } = await sb.from('tasks').select('id, text, tags').eq('user_id', userId).eq('done', false).ilike('description', `%${threadId}%`)
+        const todos = (existing || []).filter(t => !(t.tags || '').includes('waiting'))
+        const waits = (existing || []).filter(t => (t.tags || '').includes('waiting'))
+        const r = await askClaude({
+          systemPrompt: THREAD_PROMPT, tier: 'fast', maxTokens: 900, tools: [THREAD_TOOL],
+          messages: [{ role: 'user', content: `${clientId ? `Client in the CRM: ${idx.name.get(clientId)}\n` : ''}Existing open items for Omar from this thread:\n${todos.map(t => `- [${t.id}] ${t.text}`).join('\n') || '(none)'}\n\nConversation (oldest first):\n${bodies.join('\n\n')}` }],
+        })
+        const st = extractToolUse(r)?.input || {}
+        if (!st.is_client_work) {
+          await sb.from('email_task_log').upsert({ message_id: key, user_id: userId, outcome: `seen:${last.id}` })
+          continue
+        }
         if (!clientId) {
-          const bname = String(h.business_name || '').trim()
-          if (!bname) { await settle(m.id, 'waiting, unknown business'); continue }
-          const res: any = await callTool(userId, 'add_client', { name: bname, email: to[0], contact: String(h.contact_name || '').trim() || undefined, status: 'prospect' })
+          const bname = String(st.business_name || '').trim()
+          if (!bname) { await sb.from('email_task_log').upsert({ message_id: key, user_id: userId, outcome: `seen:${last.id}` }); continue }
+          const res: any = await callTool(userId, 'add_client', { name: bname, email: others[0], contact: String(st.contact_name || '').trim() || undefined, status: 'prospect' })
           clientId = res?.client?.id || null
           if (res?.created) stats.prospects++
           idx = await loadClients()
         }
-        const due = addDaysIso(new Date(msg.date || Date.now()).toISOString(), Math.min(7, Math.max(2, Number(h.check_back_days) || 3)))
-        const existing = await openWaiting(m.threadId)
-        if (existing.length) { await sb.from('tasks').update({ due_date: due }).eq('id', existing[0].id); await settle(m.id, 'waiting (updated)', existing[0].id); continue }
-        const res: any = await callTool(userId, 'add_task', {
-          text: `Waiting on ${String(h.waiting_text).trim().replace(/^waiting on /i, '')}`.slice(0, 200), client: clientId, priority: 'medium', due_date: due,
-          description: `You sent "${msg.subject}" (${msg.date}). Check in on this date if they haven't replied. It closes on its own when they reply.\n${gmailLink(m.threadId)}`,
-        })
-        if (res?.task?.id) { await sb.from('tasks').update({ tags: 'waiting' }).eq('id', res.task.id); stats.waiting++ }
-        await settle(m.id, 'waiting', res?.task?.id)
-      } catch (e: any) { await release(m.id); summary.push({ message: m.id, error: String(e?.message || e).slice(0, 200) }) }
+        const now = new Date().toISOString()
+        const link = gmailLink(threadId)
+        // Close items the thread shows are done
+        const keep = new Set((st.keep_ids || []).map(String))
+        for (const t of todos) if (!keep.has(t.id)) { await sb.from('tasks').update({ done: true, completed_at: now }).eq('id', t.id); stats.closed++ }
+        // Add what is newly open
+        for (const t of (st.new_todos || []).slice(0, 5)) {
+          const text = String(t?.text || '').trim(); if (!text) continue
+          const res: any = await callTool(userId, 'add_task', {
+            text, client: clientId, priority: t.priority || 'medium',
+            due_date: /^\d{4}-\d{2}-\d{2}$/.test(String(t.due_date || '')) ? t.due_date : undefined,
+            description: `${t.detail ? String(t.detail).slice(0, 600) + '\n\n' : ''}From the email "${last.subject}"\n${link}`,
+          })
+          if (res?.created && res.task?.id) { await sb.from('tasks').update({ tags: 'from-email' }).eq('id', res.task.id); stats.todos++ }
+        }
+        // Waiting on them, or not any more
+        const wt = String(st.waiting_on || '').trim().replace(/^waiting on /i, '')
+        if (wt && isMe(last.from)) {
+          const text = `Waiting on ${wt}`.slice(0, 200)
+          const due = addDaysIso(last.internalDate, Math.min(7, Math.max(2, Number(st.check_back_days) || 3)))
+          if (waits.length) { await sb.from('tasks').update({ text, due_date: due }).eq('id', waits[0].id); for (const w of waits.slice(1)) await sb.from('tasks').update({ done: true, completed_at: now }).eq('id', w.id) }
+          else {
+            const res: any = await callTool(userId, 'add_task', { text, client: clientId, priority: 'medium', due_date: due, waiting: true, description: `You sent "${last.subject}". Check in on the due date if they haven't replied. Closes on its own when they reply.\n${link}` })
+            if (res?.task?.id) stats.waiting++
+          }
+        } else {
+          for (const w of waits) {
+            await sb.from('tasks').update({ done: true, completed_at: now }).eq('id', w.id)
+            if (!isMe(last.from)) await sb.from('activity_log').insert({ user_id: userId, type: 'task', entity: 'client', entity_id: clientId, description: `${last.from.replace(/<.*>/, '').trim() || 'They'} replied: ${w.text.replace(/^Waiting on /, '')}`, timestamp: now })
+            stats.closed++
+          }
+        }
+        await sb.from('email_task_log').upsert({ message_id: key, user_id: userId, outcome: `seen:${last.id}` })
+      } catch (e: any) { summary.push({ thread: threadId, error: String(e?.message || e).slice(0, 200) }) }
     }
     summary.push({ userId, ...stats })
   }
