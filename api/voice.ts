@@ -19,9 +19,9 @@ How to answer:
 - Keep answers under 80 words unless Omar asks for detail. A rundown is about 100 words.
 - Canadian spelling.`
 
-const RUNDOWN = `Give me my rundown for right now: the most important things that need me, anything I'm waiting on that's due a check-in, today's meetings, money that's outstanding, and what's coming up this week. Start with a short greeting that fits the time of day. Use get_overview first.`
+const RUNDOWN = `Give me my rundown for right now: the most important things that need me, anything I'm waiting on that's due a check-in, today's meetings and appointments, money that's outstanding, and what's coming up this week. Start with a short greeting that fits the time of day. Use get_overview and list_calendar (today and the next few days) first.`
 
-const READ_ONLY = new Set(['get_overview', 'find_client', 'list_tasks', 'list_projects', 'list_invoices'])
+const READ_ONLY = new Set(['get_overview', 'find_client', 'list_tasks', 'list_projects', 'list_invoices', 'list_calendar'])
 const anthropicTools = TOOLS.map(t => ({ name: t.name, description: t.description, input_schema: t.inputSchema }))
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -55,7 +55,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const events = Array.isArray(b.events) ? b.events.slice(0, 40).map((e: any) => `${e.date} ${e.time || 'all day'}: ${String(e.title || '').slice(0, 120)}`).join('\n') : ''
   const history = Array.isArray(b.history) ? b.history.slice(-6).filter((m: any) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string').map((m: any) => ({ role: m.role, content: m.content.slice(0, 1500) })) : []
 
-  const system = `${SYSTEM}\n\nRight now it is ${now} for Omar.\n${events ? `His calendar for the next week:\n${events}` : 'His Google Calendar is not connected in this browser, so meetings may be missing; mention that only if he asks about meetings.'}`
+  const system = `${SYSTEM}\n\nRight now it is ${now} for Omar (Edmonton). Today's date is ${new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Edmonton' }).format(new Date())}.\nUse list_calendar for meetings and add_calendar_event to book things in his Google Calendar.${events ? `\nCRM calendar items:\n${events}` : ''}`
   const messages: any[] = [...history, { role: 'user', content: question }]
   const changed: string[] = []
 

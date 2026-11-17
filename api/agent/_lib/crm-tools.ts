@@ -2,6 +2,7 @@
 // Every query is scoped to the signed-in user. Nothing here sends email,
 // deletes records or marks invoices paid: those stay with Omar in the CRM.
 import { getAdminClient } from './supabase-admin'
+import { listEvents, createEvent, moveOrRenameEvent } from './calendar-server'
 
 const TZ = 'America/Edmonton'
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
@@ -62,6 +63,28 @@ export const TOOLS = [
     description: "Omar's day at a glance: overdue and upcoming tasks, active projects, invoices waiting or unpaid, hosting invoices coming up, and recent activity. Call this first when asked what's going on or what needs doing.",
     inputSchema: { type: 'object', properties: {} },
     annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'list_calendar',
+    description: "Omar's Google Calendar events between two dates (Edmonton time). Use for meetings, appointments and what's on today, tomorrow or this week.",
+    inputSchema: { type: 'object', properties: { start_date: { type: 'string', description: 'YYYY-MM-DD' }, end_date: { type: 'string', description: 'YYYY-MM-DD (same as start for one day)' } }, required: ['start_date'] },
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'add_calendar_event',
+    description: "Put an event in Omar's Google Calendar (Edmonton time). No guests are added and no invitations are sent. Use 24-hour times. Default length is 60 minutes.",
+    inputSchema: { type: 'object', properties: {
+      title: { type: 'string' }, date: { type: 'string', description: 'YYYY-MM-DD' },
+      start_time: { type: 'string', description: 'HH:MM 24-hour; leave out for an all-day event' },
+      end_time: { type: 'string', description: 'HH:MM 24-hour (optional)' },
+      duration_minutes: { type: 'number', description: 'Used when end_time is not given (default 60)' },
+      location: { type: 'string' }, notes: { type: 'string' },
+    }, required: ['title', 'date'] },
+  },
+  {
+    name: 'update_calendar_event',
+    description: 'Rename or move an existing calendar event. Get the event_id from list_calendar first.',
+    inputSchema: { type: 'object', properties: { event_id: { type: 'string' }, title: { type: 'string' }, date: { type: 'string', description: 'YYYY-MM-DD' }, start_time: { type: 'string', description: 'HH:MM 24-hour' }, duration_minutes: { type: 'number' } }, required: ['event_id'] },
   },
   {
     name: 'find_client',
@@ -414,6 +437,21 @@ export async function callTool(userId: string, name: string, args: Args) {
   switch (name) {
     case 'get_overview': return getOverview(userId)
     case 'find_client': return findClient(userId, args)
+    case 'list_calendar': {
+      const start = date(args.start_date, 'start_date') || today()
+      const end = date(args.end_date, 'end_date') || start
+      try { return { events: await listEvents(userId, start, end > start ? end : start) } } catch (e: any) { throw new ToolError(e.message) }
+    }
+    case 'add_calendar_event': {
+      try {
+        const r = await createEvent(userId, args as any)
+        await logActivity(userId, 'create', `Calendar: ${r.title}, ${r.when}`, 'event', null)
+        return r
+      } catch (e: any) { throw new ToolError(e.message) }
+    }
+    case 'update_calendar_event': {
+      try { return await moveOrRenameEvent(userId, args as any) } catch (e: any) { throw new ToolError(e.message) }
+    }
     case 'list_tasks': return listTasks(userId, args)
     case 'add_task': return addTask(userId, args)
     case 'update_task': return updateTask(userId, args)
@@ -434,4 +472,5 @@ export const SERVER_INSTRUCTIONS = `This is Omar's Command Center, the CRM for G
 - Before adding a task or client, check with find_client so nothing is duplicated.
 - Use clear, short task names in plain Canadian English.
 - Invoices are only ever created as drafts. Never claim an email or invoice was sent.
-- When Omar asks what's on his plate, call get_overview.`
+- When Omar asks what's on his plate, call get_overview, and list_calendar for today's meetings.
+- You can add or move events in his Google Calendar (no guests, no invitations). Confirm the day and time back to him.`
