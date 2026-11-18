@@ -4243,3 +4243,18 @@ button.brf-goal:hover { border-color: var(--color-border-hard); }
   .ct-stat:nth-child(4) { border-left: 0; }
   .ct-stat:nth-child(n+4) { border-top: 1px solid var(--tp-line); }
 }
+.tp-sheet { max-width: 520px; }
+.te-head { display: flex; align-items: center; gap: 12px; }
+.te-head .tp-src { width: 36px; height: 36px; border-radius: 10px; }
+.te-client { font-size: 15px; font-weight: 750; color: var(--color-polar); }
+.te-when { font-size: 12.5px; color: var(--color-dim); }
+.te-text { font-size: 14.5px; line-height: 1.6; color: var(--color-polar); white-space: pre-wrap; overflow-wrap: anywhere; padding: 14px 16px; border-radius: 12px; background: rgba(127,127,127,.07); }
+.te-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; border: 1px solid var(--tp-line); border-radius: 12px; overflow: hidden; background: var(--tp-line); }
+.te-grid div { padding: 10px 12px; background: #0B0B0B; min-width: 0; }
+.te-grid dt { font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--color-dim); }
+.te-grid dd { margin-top: 3px; font-size: 15px; font-weight: 750; color: var(--color-polar); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.te-cap { text-transform: capitalize; }
+.te-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }
+.tp-btn.is-danger { background: #DC2626; border-color: #DC2626; color: #fff; }
+[data-theme="light"] .te-grid div { background: #fff; }
+@media (max-width: 520px) { .te-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .te-actions .tp-btn { flex: 1; } }

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Sparkles, User, CalendarDays, Timer, ArrowUpRight, ArrowDownRight, ChevronRight } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import type { TimeEntry, Invoice } from '@/lib/store'
-import { EditSheet, preTax, hrs } from '@/pages/Profitability'
+import { EntrySheet, preTax, hrs } from '@/pages/Profitability'
 
 const SRC = {
   claude: { icon: Sparkles, label: 'Claude' },
@@ -99,7 +99,7 @@ export default function ClientTime({ clientId }: { clientId: string }) {
           </ul>
         </section>
       ))}
-      {edit && <EditSheet entry={edit} clients={clients} onClose={() => setEdit(null)} onSaved={() => refreshTimeEntries?.()} />}
+      {edit && <EntrySheet entry={edit} clients={clients} rate={rate} onClose={() => setEdit(null)} onSaved={() => refreshTimeEntries?.()} />}
     </div>
   )
 }

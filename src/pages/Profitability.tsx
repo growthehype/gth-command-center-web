@@ -167,7 +167,7 @@ export default function Profitability() {
       </section>
 
       {editing && <SettingsSheet rate={rate} costs={costs} onClose={() => setEditing(false)} onSaved={() => refreshSettings?.()} />}
-      {edit && <EditSheet entry={edit} clients={clients} onClose={() => setEdit(null)} onSaved={() => refreshTimeEntries?.()} />}
+      {edit && <EntrySheet entry={edit} clients={clients} rate={rate} onClose={() => setEdit(null)} onSaved={() => refreshTimeEntries?.()} />}
       {adding && <AddSheet clients={clients} onClose={() => setAdding(false)} onSaved={() => refreshTimeEntries?.()} />}
     </div>
   )
@@ -264,6 +264,43 @@ export function EditSheet({ entry, clients, onClose, onSaved }: { entry: TimeEnt
       <label className="tp-f"><span>What for</span><input value={desc} onChange={e => setDesc(e.target.value)} /></label>
       {err && <p className="tp-err">{err}</p>}
       <button className="tp-btn is-primary tp-wide" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
+    </Sheet>
+  )
+}
+
+/** One entry, read in full, with edit and delete. */
+export function EntrySheet({ entry, clients, rate, onClose, onSaved }: { entry: TimeEntry; clients: any[]; rate: number; onClose: () => void; onSaved: () => void }) {
+  const [editing, setEditing] = useState(false)
+  const [confirm, setConfirm] = useState(false)
+  if (editing) return <EditSheet entry={entry} clients={clients} onClose={onClose} onSaved={onSaved} />
+  const src = SRC[(entry.source || 'manual') as keyof typeof SRC] || SRC.manual
+  const isC = entry.source === 'claude'
+  const m = entry.duration_minutes || 0, h = isC ? entry.human_minutes || m : m
+  const client = clients.find(c => c.id === entry.client_id)?.name || entry.client_name || 'No client'
+  const when = new Date(entry.started_at)
+  const text = entry.description || entry.notes || ''
+  const del = async () => { await timeApi.remove(entry.id); onSaved(); onClose() }
+  return (
+    <Sheet title={src.label === 'Claude' ? 'Claude work' : src.label === 'Meeting' ? 'Meeting' : 'Your time'} onClose={onClose}>
+      <div className="te-head">
+        <span className={`tp-src is-${entry.source || 'manual'}`}><src.icon size={14} /></span>
+        <div><p className="te-client">{client}</p><p className="te-when">{when.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Edmonton' })}{entry.source === 'calendar' ? ` · ${when.toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Edmonton' })}` : ''}</p></div>
+      </div>
+      <p className="te-text">{text || 'No notes.'}</p>
+      <dl className="te-grid">
+        <div><dt>{isC ? 'Claude time' : 'Time'}</dt><dd>{hrs(m)}</dd></div>
+        {isC && <div><dt>By hand</dt><dd>{hrs(h)}</dd></div>}
+        {isC && <div><dt>Leverage</dt><dd>{m ? `${(h / m).toFixed(1)}×` : '—'}</dd></div>}
+        <div><dt>Work value</dt><dd>{money((h / 60) * rate)}</dd></div>
+        {entry.project_title && <div><dt>Project</dt><dd>{entry.project_title}</dd></div>}
+        {entry.work_type && <div><dt>Type</dt><dd className="te-cap">{entry.work_type}</dd></div>}
+        <div><dt>Billable</dt><dd>{entry.billable === false || (entry.billable as any) === 0 ? 'No' : 'Yes'}</dd></div>
+      </dl>
+      <div className="te-actions">
+        {confirm
+          ? <><button className="tp-btn" onClick={() => setConfirm(false)}>Keep it</button><button className="tp-btn is-danger" onClick={del}>Delete entry</button></>
+          : <><button className="tp-btn" onClick={() => setConfirm(true)}><Trash2 size={14} /> Delete</button><button className="tp-btn is-primary" onClick={() => setEditing(true)}>Edit</button></>}
+      </div>
     </Sheet>
   )
 }
