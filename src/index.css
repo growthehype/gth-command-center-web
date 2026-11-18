@@ -4258,3 +4258,15 @@ button.brf-goal:hover { border-color: var(--color-border-hard); }
 .tp-btn.is-danger { background: #DC2626; border-color: #DC2626; color: #fff; }
 [data-theme="light"] .te-grid div { background: #fff; }
 @media (max-width: 520px) { .te-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .te-actions .tp-btn { flex: 1; } }
+.tm-badge { display: inline-flex; align-items: center; height: 18px; padding: 0 7px; margin-right: 7px; border-radius: 99px; font-size: 10px; font-weight: 750; letter-spacing: .04em; vertical-align: 2px; border: 1px solid currentColor; }
+.tm-badge.is-measured { color: #16A34A; } .tm-badge.is-estimate { color: #B45309; } .tm-badge.is-reconstructed { color: var(--color-steel); }
+.ct-stat .ct-sub { font-weight: 600; color: var(--color-dim); }
+.te-timing { padding: 12px 14px; border-radius: 12px; border: 1px solid var(--tp-line); display: flex; flex-direction: column; gap: 10px; }
+.te-timing-h { display: flex; align-items: center; font-size: 13px; font-weight: 650; color: var(--color-polar); }
+.te-timing-p { font-size: 12.5px; line-height: 1.5; color: var(--color-dim); }
+.te-rounds { display: flex; flex-direction: column; }
+.te-rounds li { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; column-gap: 10px; row-gap: 2px; align-items: baseline; padding: 7px 0; border-top: 1px solid var(--tp-line); font-size: 12.5px; }
+.te-r-n { font-weight: 700; color: var(--color-steel); }
+.te-r-when { color: var(--color-dim); font-variant-numeric: tabular-nums; }
+.te-rounds b { font-weight: 750; color: var(--color-polar); font-variant-numeric: tabular-nums; }
+.te-r-note { grid-column: 2 / -1; color: var(--color-dim); }

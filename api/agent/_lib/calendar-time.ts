@@ -77,7 +77,7 @@ export async function runCalendarTime(opts: { days?: number } = {}) {
         if (!p) { await sb.from('email_task_log').upsert({ message_id: `gcal:${e.id}`, user_id: userId, outcome: 'calendar:personal' }); stats.personal++; continue }
         const { error } = await sb.from('time_entries').insert({
           user_id: userId, client_id: p.clientId, source: 'calendar', started_at: e.start, ended_at: e.end,
-          duration_minutes: e.minutes, human_minutes: e.minutes, work_type: p.type, description: e.title, notes: e.title, external_id: `gcal:${e.id}`, billable: true,
+          duration_minutes: e.minutes, human_minutes: e.minutes, work_type: p.type, description: e.title, notes: e.title, external_id: `gcal:${e.id}`, billable: true, timing: 'measured',
         })
         if (!error) { stats.logged++; stats.minutes += e.minutes }
       }

@@ -170,20 +170,29 @@ export const TOOLS = [
     }, required: ['name'] },
   },
   {
+    name: 'start_work',
+    description: "Starts the CRM's clock for Claude work on a client. Call it FIRST, before any other step, at the start of every reply where you will do work for a client. The first time, give client and a short description; you get a work_id back. In later replies on the same piece of work, call it again with that work_id to resume the clock. Then call log_work with the work_id as the last step of the same reply. The clock only runs while you are working, so time Omar spends away is never counted.",
+    inputSchema: { type: 'object', properties: {
+      client: { type: 'string' }, description: { type: 'string', description: 'What you are about to do' },
+      work_id: { type: 'string', description: 'From an earlier start_work in this conversation, to resume the same piece of work' },
+    } },
+  },
+  {
     name: 'log_work',
-    description: "Record time spent on client work so Omar can see hours and profit per client. Call it whenever work for a client is finished in a conversation (one entry per piece of work). kind 'claude' = work done with Claude: give claude_minutes (your best estimate of the working time, judged from the size of what was produced and the back and forth; an estimate is expected since it can't be timed exactly, so never skip logging for that reason; if the work also spanned earlier chats you can't see, log what this conversation covered and Omar can add the rest) and human_hours (how long a skilled agency team would need to do the same work by hand, without AI). kind 'omar' = Omar's own time he tells you about (calls, meetings, site visits, shoots): give minutes.",
+    description: "Record time on client work. For Claude work, pass the work_id from start_work as the last step of your reply: the CRM measures the real time between start_work and now and adds it to the same entry each round, so the entry shows exactly how long the work took. Also give human_hours: how long a skilled agency team would need for ALL of this piece of work so far by hand, without AI (an estimate; say it to Omar in one line). Only if start_work was not called (forgot, or work from an earlier chat) give claude_minutes as an estimate; it will be marked as an estimate. kind 'omar' = Omar's own time he tells you about (calls, meetings, site visits, shoots): give minutes.",
     inputSchema: { type: 'object', properties: {
       client: { type: 'string' },
       project: { type: 'string', description: 'Project title (optional)' },
       kind: { type: 'string', enum: ['claude', 'omar'] },
       description: { type: 'string', description: 'What was done, e.g. "Homepage v2 design and build"' },
       work_type: { type: 'string', enum: ['design', 'development', 'copywriting', 'strategy', 'ads', 'email', 'admin', 'meeting', 'video', 'other'] },
-      claude_minutes: { type: 'number' },
+      work_id: { type: 'string', description: 'From start_work: the time is measured, not estimated' },
+      claude_minutes: { type: 'number', description: 'Only when there is no work_id (marked as an estimate)' },
       human_hours: { type: 'number' },
       minutes: { type: 'number', description: "For kind 'omar': his time in minutes" },
       date: { type: 'string', description: 'YYYY-MM-DD (default today)' },
       billable: { type: 'boolean', description: 'Default true' },
-    }, required: ['client', 'kind', 'description'] },
+    }, required: ['kind', 'description'] },
   },
   {
     name: 'list_time',
@@ -470,8 +479,62 @@ async function createInvoiceDraft(userId: string, a: Args) {
   return { created: true, invoice: num, client: c.name, subtotal: money(sub), gst: money(total - sub), total: money(total), status: 'draft (not sent; Omar sends it from the Invoices page)' }
 }
 
-async function logWork(userId: string, a: Args) {
+const SEG_CAP_MIN = 180 // a clock left running longer than this was forgotten; it never counts more
+
+async function startWork(userId: string, a: Args) {
   const sb = getAdminClient()
+  const now = new Date()
+  if (a.work_id) {
+    const { data: e } = await sb.from('time_entries').select('id, open_since, segments').eq('user_id', userId).eq('work_id', str(a.work_id, 40)).maybeSingle()
+    if (!e) throw new ToolError('Unknown work_id. Call start_work with client and description to start a new one.')
+    // A clock still open from a reply that never logged is dropped, not counted
+    await sb.from('time_entries').update({ open_since: now.toISOString() }).eq('id', e.id)
+    return { work_id: a.work_id, resumed: true, rounds_so_far: (e.segments || []).length, started_at: now.toISOString() }
+  }
+  const c = await resolveClient(userId, a.client)
+  const desc = str(a.description, 300) || 'Claude work'
+  const workId = `w${now.getTime().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+  const { error } = await sb.from('time_entries').insert({
+    user_id: userId, client_id: c.id, source: 'claude', timing: 'measured', work_id: workId, open_since: now.toISOString(), segments: [],
+    started_at: now.toISOString(), duration_minutes: null, description: desc, notes: desc, billable: true,
+  })
+  if (error) throw new ToolError(error.message)
+  return { work_id: workId, client: c.name, started_at: now.toISOString(), next: 'Do the work, then call log_work with this work_id as the last step of this reply.' }
+}
+
+async function logMeasured(userId: string, a: Args) {
+  const sb = getAdminClient()
+  const { data: e } = await sb.from('time_entries').select('*').eq('user_id', userId).eq('work_id', str(a.work_id, 40)).maybeSingle()
+  if (!e) throw new ToolError('Unknown work_id.')
+  if (!e.open_since) throw new ToolError('The clock for this work is not running. Call start_work with this work_id at the start of the reply, then log_work at the end.')
+  const end = new Date()
+  const secs = Math.min(SEG_CAP_MIN * 60, Math.max(1, Math.round((end.getTime() - new Date(e.open_since).getTime()) / 1000)))
+  const segments = [...(e.segments || []), { start: e.open_since, end: end.toISOString(), seconds: secs, note: str(a.description, 200) || undefined }]
+  const total = segments.reduce((s: number, x: any) => s + (Number(x.seconds) || 0), 0)
+  const minutes = Math.max(1, Math.round(total / 60))
+  const human = a.human_hours != null ? Math.round(Number(a.human_hours) * 60) : e.human_minutes
+  if (!(human > 0)) throw new ToolError('human_hours is required: how long this piece of work would take a skilled agency by hand.')
+  const desc = str(a.description, 300) || e.description
+  let projectId = e.project_id
+  if (a.project && !projectId) {
+    const { data } = await sb.from('projects').select('id').eq('user_id', userId).eq('client_id', e.client_id).ilike('title', `%${str(a.project, 120).replace(/[%_]/g, '')}%`).limit(1)
+    projectId = data?.[0]?.id || null
+  }
+  const { error } = await sb.from('time_entries').update({
+    segments, open_since: null, duration_minutes: minutes, human_minutes: human, description: desc, notes: desc, project_id: projectId,
+    work_type: a.work_type || e.work_type, ended_at: end.toISOString(), billable: a.billable != null ? a.billable !== false : e.billable,
+  }).eq('id', e.id)
+  if (error) throw new ToolError(error.message)
+  if (segments.length === 1) await logActivity(userId, 'create', `${desc} (Claude, timed)`, 'time', e.id)
+  await touchClient(e.client_id)
+  const fmt = (s: number) => s < 60 ? `${s} sec` : `${Math.round(s / 6) / 10} min`
+  return { logged: true, measured: true, this_round: fmt(secs), rounds: segments.length, total_minutes: minutes, human_equivalent_hours: Math.round(human / 6) / 10 }
+}
+
+async function logWork(userId: string, a: Args) {
+  if (a.work_id && a.kind !== 'omar') return logMeasured(userId, a)
+  const sb = getAdminClient()
+  if (!a.client) throw new ToolError('client is required.')
   const c = await resolveClient(userId, a.client)
   const desc = str(a.description, 300)
   if (!desc) throw new ToolError('Say what the work was.')
@@ -505,7 +568,7 @@ async function logWork(userId: string, a: Args) {
 async function listTime(userId: string, a: Args) {
   const sb = getAdminClient()
   const names = await clientNames(userId)
-  let q = sb.from('time_entries').select('id, client_id, source, description, notes, duration_minutes, human_minutes, started_at, billable').eq('user_id', userId).order('started_at', { ascending: false }).order('id').limit(Math.min(50, Math.max(1, Number(a.limit) || 15)))
+  let q = sb.from('time_entries').select('id, client_id, source, timing, segments, description, notes, duration_minutes, human_minutes, started_at, billable').eq('user_id', userId).not('duration_minutes', 'is', null).order('started_at', { ascending: false }).order('id').limit(Math.min(50, Math.max(1, Number(a.limit) || 15)))
   if (a.client) { const c = await resolveClient(userId, a.client); q = q.eq('client_id', c.id) }
   const { data, error } = await q
   if (error) throw new ToolError(error.message)
@@ -513,6 +576,7 @@ async function listTime(userId: string, a: Args) {
     id: e.id, client: names.get(e.client_id) || null, kind: e.source === 'claude' ? 'claude' : e.source === 'calendar' ? 'meeting' : 'omar',
     description: e.description || e.notes, minutes: e.duration_minutes, human_hours: e.human_minutes != null ? Math.round(e.human_minutes / 6) / 10 : null,
     date: new Date(e.started_at).toLocaleDateString('en-CA', { timeZone: 'America/Edmonton' }), billable: e.billable,
+    timing: e.timing, rounds: Array.isArray(e.segments) ? e.segments.length : undefined,
   }))
 }
 
@@ -534,6 +598,7 @@ async function updateTime(userId: string, a: Args) {
     if (!(m > 0) || m > 1440) throw new ToolError('Minutes must be between 1 and 1440.')
     patch.duration_minutes = m
     if (cur.source !== 'claude') patch.human_minutes = m
+    else if (cur.timing !== 'measured') patch.timing = 'reconstructed'
   }
   if (a.human_hours != null) {
     if (cur.source !== 'claude') throw new ToolError('human_hours only applies to Claude work.')
@@ -611,6 +676,7 @@ export async function callTool(userId: string, name: string, args: Args) {
     case 'update_client': return updateClient(userId, args)
     case 'add_client': return addClient(userId, args)
     case 'list_invoices': return listInvoices(userId, args)
+    case 'start_work': return startWork(userId, args)
     case 'log_work': return logWork(userId, args)
     case 'time_summary': return timeSummary(userId, args)
     case 'list_time': return listTime(userId, args)
@@ -625,7 +691,7 @@ export const SERVER_INSTRUCTIONS = `This is Omar's Command Center, the CRM for G
 - When something goes to a client or prospect and Omar is now waiting on them (a proposal, a site to approve, a meeting to book), add_task with waiting=true, e.g. "Waiting on Wendy to approve the new website", due on the day to check in. New prospects get add_client with status prospect first.
 - Before adding a task or client, check with find_client so nothing is duplicated.
 - Use clear, short task names in plain Canadian English.
-- Track time: whenever you finish a piece of work for a client in a conversation, call log_work with kind 'claude', an estimated claude_minutes for the session and the human_hours a skilled agency would need by hand. Estimates are expected; tell Omar the numbers in one line so he can correct them. If he corrects one, use list_time and update_time to fix it yourself. When Omar mentions his own time (a call, a meeting, a shoot), log it with kind 'omar'. Calendar meetings with clients are logged automatically, so don't log those twice.
+- Track time, measured not guessed: at the very start of any reply where you will do work for a client, call start_work before anything else (pass the work_id from earlier in this chat to resume the same piece of work). As the last step of that reply, call log_work with the work_id and human_hours (your estimate of what a skilled agency would need by hand for this piece so far). The CRM times the reply itself, so never estimate Claude time when you have a work_id. Tell Omar in one line, e.g. "Logged: 14 min of Claude time (timed), about 6 h by hand". If Omar corrects a number, use list_time and update_time. When Omar mentions his own time (a call, a meeting, a shoot), log_work with kind 'omar'. Calendar meetings with clients are logged automatically.
 - Invoices are only ever created as drafts. Never claim an email or invoice was sent.
 - When Omar asks what's on his plate, call get_overview, and list_calendar for today's meetings.
 - You can add or move events in his Google Calendar (no guests, no invitations). Confirm the day and time back to him.`

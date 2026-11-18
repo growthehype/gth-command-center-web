@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Sparkles, User, CalendarDays, Timer, ArrowUpRight, ArrowDownRight, ChevronRight } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import type { TimeEntry, Invoice } from '@/lib/store'
-import { EntrySheet, preTax, hrs } from '@/pages/Profitability'
+import { EntrySheet, preTax, hrs, TimingBadge } from '@/pages/Profitability'
 
 const SRC = {
   claude: { icon: Sparkles, label: 'Claude' },
@@ -23,10 +23,10 @@ export default function ClientTime({ clientId }: { clientId: string }) {
 
   const all: TimeEntry[] = useMemo(() => (timeEntries as TimeEntry[]).filter(e => e.client_id === clientId && e.duration_minutes).sort((a, b) => b.started_at.localeCompare(a.started_at)), [timeEntries, clientId])
   const t = useMemo(() => {
-    let claude = 0, human = 0, you = 0
-    for (const e of all) { const m = e.duration_minutes || 0; if (e.source === 'claude') { claude += m; human += e.human_minutes || m } else you += m }
+    let claude = 0, human = 0, you = 0, timed = 0
+    for (const e of all) { const m = e.duration_minutes || 0; if (e.source === 'claude') { claude += m; human += e.human_minutes || m; if (e.timing !== 'estimate') timed += m } else you += m }
     const billed = (invoices as Invoice[]).filter(i => i.client_id === clientId && i.status !== 'draft').reduce((s, i) => s + preTax(i), 0)
-    return { claude, human, you, billed }
+    return { claude, human, you, billed, timed }
   }, [all, invoices, clientId])
 
   const shown = all.filter(e => filter === 'all' || (filter === 'claude' ? e.source === 'claude' : e.source !== 'claude'))
@@ -47,7 +47,7 @@ export default function ClientTime({ clientId }: { clientId: string }) {
   return (
     <div className="tp ct">
       <div className="ct-sum">
-        <div className="ct-stat"><span className="ct-k"><Sparkles size={12} /> Claude</span><b>{hrs(t.claude)}</b></div>
+        <div className="ct-stat"><span className="ct-k"><Sparkles size={12} /> Claude</span><b>{hrs(t.claude)}</b><em className="ct-sub">{t.timed ? `${hrs(t.timed)} timed` : 'estimates only'}</em></div>
         <div className="ct-stat"><span className="ct-k">By hand</span><b>{hrs(t.human)}</b></div>
         <div className="ct-stat"><span className="ct-k"><User size={12} /> Your time</span><b>{hrs(t.you)}</b></div>
         <div className="ct-stat"><span className="ct-k">Leverage</span><b>{leverage ? `${leverage.toFixed(1)}×` : '—'}</b></div>
@@ -88,7 +88,7 @@ export default function ClientTime({ clientId }: { clientId: string }) {
                       </span>
                     </span>
                     <span className="ct-nums">
-                      <b>{hrs(e.duration_minutes || 0)}</b>
+                      <b><TimingBadge e={e} />{hrs(e.duration_minutes || 0)}</b>
                       <em>{isC ? `${hrs(e.human_minutes || 0)} by hand` : s.label}</em>
                     </span>
                     <ChevronRight size={14} className="ct-go" />

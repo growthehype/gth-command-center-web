@@ -38,6 +38,20 @@ function rangeBounds(r: Range): { from: string; to: string; months: number } {
   if (r === 'year') return { from: `${y}-01-01`, to: t, months: m - 1 + Number(t.slice(8)) / new Date(y, m, 0).getDate() }
   return { from: '2000-01-01', to: t, months: 0 }
 }
+/** How a Claude number was arrived at, in plain words. */
+export const TIMING = {
+  measured: { short: 'Timed', long: 'Timed by the CRM while Claude worked' },
+  estimate: { short: 'Estimate', long: 'Estimated by Claude in the chat, not timed' },
+  reconstructed: { short: 'Corrected', long: 'Set by you' },
+} as const
+export function TimingBadge({ e }: { e: TimeEntry }) {
+  if (e.source !== 'claude') return null
+  const t = TIMING[(e.timing || 'estimate') as keyof typeof TIMING]
+  return <span className={`tm-badge is-${e.timing || 'estimate'}`} title={t.long}>{t.short}</span>
+}
+const fmtSecs = (s: number) => s < 60 ? `${s} sec` : s < 3600 ? `${Math.round(s / 60)} min` : `${Math.floor(s / 3600)} h ${Math.round((s % 3600) / 60)} min`
+const clock = (iso: string) => new Date(iso).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Edmonton' })
+
 export const preTax = (i: Invoice) => { let tax = 5; try { tax = Number(JSON.parse(i.notes || '{}').tax_rate ?? 5) } catch { /* GST */ } return Number(i.amount || 0) / (1 + tax / 100) }
 
 type Row = { id: string; name: string; you: number; claude: number; human: number; billed: number; paid: number }
@@ -157,7 +171,7 @@ export default function Profitability() {
                 <li key={e.id} className="tp-log-row" onClick={() => setEdit(e)}>
                   <span className={`tp-src is-${e.source || 'manual'}`} title={s.label}><s.icon size={13} /></span>
                   <span className="tp-log-main"><span className="tp-log-t">{e.description || e.notes || s.label}</span><span className="tp-log-m">{e.client_name || 'No client'} · {new Date(e.started_at).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', timeZone: 'America/Edmonton' })}{e.work_type ? ` · ${e.work_type}` : ''}</span></span>
-                  <span className="tp-log-d">{hrs(e.duration_minutes || 0)}{e.source === 'claude' && e.human_minutes ? <em> → {hrs(e.human_minutes)}</em> : null}</span>
+                  <span className="tp-log-d"><TimingBadge e={e} />{hrs(e.duration_minutes || 0)}{e.source === 'claude' && e.human_minutes ? <em> → {hrs(e.human_minutes)}</em> : null}</span>
                   <button className="tp-del" onClick={ev => { ev.stopPropagation(); remove(e.id) }} aria-label="Delete entry"><Trash2 size={13} /></button>
                 </li>
               )
@@ -246,6 +260,7 @@ export function EditSheet({ entry, clients, onClose, onSaved }: { entry: TimeEnt
     try {
       await timeApi.update(entry.id, {
         client_id: client, ...(client !== entry.client_id ? { project_id: null } : {}), duration_minutes: m, human_minutes: isClaude ? h : m,
+        ...(isClaude && m !== entry.duration_minutes ? { timing: 'reconstructed' } : {}),
         description: desc.trim(), notes: desc.trim(), started_at: start.toISOString(), ended_at: new Date(start.getTime() + m * 60000).toISOString(),
       })
       onSaved(); onClose()
@@ -287,6 +302,23 @@ export function EntrySheet({ entry, clients, rate, onClose, onSaved }: { entry: 
         <div><p className="te-client">{client}</p><p className="te-when">{when.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Edmonton' })}{entry.source === 'calendar' ? ` · ${when.toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Edmonton' })}` : ''}</p></div>
       </div>
       <p className="te-text">{text || 'No notes.'}</p>
+      {isC && (
+        <div className={`te-timing is-${entry.timing || 'estimate'}`}>
+          <p className="te-timing-h"><TimingBadge e={entry} /><span>{TIMING[(entry.timing || 'estimate') as keyof typeof TIMING].long}</span></p>
+          {entry.timing === 'measured' && entry.segments?.length ? (
+            <ol className="te-rounds">
+              {entry.segments.map((g, i) => (
+                <li key={i}>
+                  <span className="te-r-n">Round {i + 1}</span>
+                  <span className="te-r-when">{new Date(g.start).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', timeZone: 'America/Edmonton' })} · {clock(g.start)} to {clock(g.end)}</span>
+                  <b>{fmtSecs(g.seconds)}</b>
+                  {g.note && <span className="te-r-note">{g.note}</span>}
+                </li>
+              ))}
+            </ol>
+          ) : entry.timing === 'estimate' ? <p className="te-timing-p">This number came from Claude's guess, logged before timing existed. If you know how long it really took, tap Edit and set it.</p> : null}
+        </div>
+      )}
       <dl className="te-grid">
         <div><dt>{isC ? 'Claude time' : 'Time'}</dt><dd>{hrs(m)}</dd></div>
         {isC && <div><dt>By hand</dt><dd>{hrs(h)}</dd></div>}
