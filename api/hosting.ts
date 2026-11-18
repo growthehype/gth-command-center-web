@@ -87,7 +87,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const n = JSON.parse(inv.notes || '{}')
       const pdf = generateInvoicePDF({
         invoiceNum: inv.num, date: inv.sent_date, dueDate: inv.due_date, fromName: n.from_name, fromEmail: n.from_email, fromPhone: n.from_phone,
-        fromAddress: n.from_address, fromWebsite: n.from_website, gstNumber: n.gst_number, clientName: cl?.name || '', clientEmail: cl?.email || '',
+        fromAddress: n.from_address, fromWebsite: n.from_website, gstNumber: n.gst_number, clientName: n.bill_to_name || cl?.name || '', clientEmail: n.bill_to_email || cl?.email || '',
         clientPhone: n.client_phone || undefined, clientAddress: n.client_address || undefined, clientContactName: n.client_contact_name || undefined,
         lineItems: n.line_items || [], taxRate: Number(n.tax_rate) || 0, taxLabel: n.tax_label, currency: n.currency, paymentTerms: n.payment_terms,
         paymentInstructions: n.payment_instructions, memo: n.memo || '', termsText: n.terms_text || undefined,

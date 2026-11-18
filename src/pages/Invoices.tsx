@@ -732,8 +732,9 @@ export default function Invoices() {
       fromAddress: parsed?.from_address || '983 Lamb Crescent Northwest, Edmonton, Alberta T6R 2X8, Canada',
       fromWebsite: parsed?.from_website || 'www.growthehype.ca',
       gstNumber: parsed?.gst_number || '720385129',
-      clientName: inv.client_name || cl?.name || '',
-      clientEmail: cl?.email || '',
+      // An invoice can be filed under one client but billed to another company (bill_to_*)
+      clientName: parsed?.bill_to_name || inv.client_name || cl?.name || '',
+      clientEmail: parsed?.bill_to_email || cl?.email || '',
       clientPhone: parsed?.client_phone || undefined,
       clientAddress: parsed?.client_address || undefined,
       clientContactName: parsed?.client_contact_name || undefined,
