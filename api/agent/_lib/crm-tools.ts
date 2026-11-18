@@ -171,7 +171,7 @@ export const TOOLS = [
   },
   {
     name: 'log_work',
-    description: "Record time spent on client work so Omar can see hours and profit per client. Call it whenever work for a client is finished in a conversation (one entry per piece of work). kind 'claude' = work done with Claude: give claude_minutes (honest estimate of the actual working time in this conversation, including Omar's back and forth) and human_hours (how long a skilled agency team would need to do the same work by hand, without AI). kind 'omar' = Omar's own time he tells you about (calls, meetings, site visits, shoots): give minutes.",
+    description: "Record time spent on client work so Omar can see hours and profit per client. Call it whenever work for a client is finished in a conversation (one entry per piece of work). kind 'claude' = work done with Claude: give claude_minutes (your best estimate of the working time, judged from the size of what was produced and the back and forth; an estimate is expected since it can't be timed exactly, so never skip logging for that reason; if the work also spanned earlier chats you can't see, log what this conversation covered and Omar can add the rest) and human_hours (how long a skilled agency team would need to do the same work by hand, without AI). kind 'omar' = Omar's own time he tells you about (calls, meetings, site visits, shoots): give minutes.",
     inputSchema: { type: 'object', properties: {
       client: { type: 'string' },
       project: { type: 'string', description: 'Project title (optional)' },
@@ -557,7 +557,7 @@ export const SERVER_INSTRUCTIONS = `This is Omar's Command Center, the CRM for G
 - When something goes to a client or prospect and Omar is now waiting on them (a proposal, a site to approve, a meeting to book), add_task with waiting=true, e.g. "Waiting on Wendy to approve the new website", due on the day to check in. New prospects get add_client with status prospect first.
 - Before adding a task or client, check with find_client so nothing is duplicated.
 - Use clear, short task names in plain Canadian English.
-- Track time: whenever you finish a piece of work for a client in a conversation, call log_work with kind 'claude', an honest claude_minutes for the session and the human_hours a skilled agency would need by hand. When Omar mentions his own time (a call, a meeting, a shoot), log it with kind 'omar'. Calendar meetings with clients are logged automatically, so don't log those twice.
+- Track time: whenever you finish a piece of work for a client in a conversation, call log_work with kind 'claude', an estimated claude_minutes for the session and the human_hours a skilled agency would need by hand. Estimates are expected; tell Omar the numbers in one line so he can correct them. When Omar mentions his own time (a call, a meeting, a shoot), log it with kind 'omar'. Calendar meetings with clients are logged automatically, so don't log those twice.
 - Invoices are only ever created as drafts. Never claim an email or invoice was sent.
 - When Omar asks what's on his plate, call get_overview, and list_calendar for today's meetings.
 - You can add or move events in his Google Calendar (no guests, no invitations). Confirm the day and time back to him.`
