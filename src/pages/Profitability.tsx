@@ -46,6 +46,7 @@ export default function Profitability() {
   const [range, setRange] = useState<Range>('month')
   const [editing, setEditing] = useState(false)
   const [adding, setAdding] = useState(false)
+  const [edit, setEdit] = useState<TimeEntry | null>(null)
   const rate = Number(settings?.agency_hourly_rate) || 125
   const costs = Number(settings?.monthly_costs) || 0
 
@@ -152,11 +153,11 @@ export default function Profitability() {
             {recent.map(e => {
               const s = SRC[(e.source || 'manual') as keyof typeof SRC] || SRC.manual
               return (
-                <li key={e.id}>
+                <li key={e.id} className="tp-log-row" onClick={() => setEdit(e)}>
                   <span className={`tp-src is-${e.source || 'manual'}`} title={s.label}><s.icon size={13} /></span>
                   <span className="tp-log-main"><span className="tp-log-t">{e.description || e.notes || s.label}</span><span className="tp-log-m">{e.client_name || 'No client'} · {new Date(e.started_at).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', timeZone: 'America/Edmonton' })}{e.work_type ? ` · ${e.work_type}` : ''}</span></span>
                   <span className="tp-log-d">{hrs(e.duration_minutes || 0)}{e.source === 'claude' && e.human_minutes ? <em> → {hrs(e.human_minutes)}</em> : null}</span>
-                  <button className="tp-del" onClick={() => remove(e.id)} aria-label="Delete entry"><Trash2 size={13} /></button>
+                  <button className="tp-del" onClick={ev => { ev.stopPropagation(); remove(e.id) }} aria-label="Delete entry"><Trash2 size={13} /></button>
                 </li>
               )
             })}
@@ -165,6 +166,7 @@ export default function Profitability() {
       </section>
 
       {editing && <SettingsSheet rate={rate} costs={costs} onClose={() => setEditing(false)} onSaved={() => refreshSettings?.()} />}
+      {edit && <EditSheet entry={edit} clients={clients} onClose={() => setEdit(null)} onSaved={() => refreshTimeEntries?.()} />}
       {adding && <AddSheet clients={clients} onClose={() => setAdding(false)} onSaved={() => refreshTimeEntries?.()} />}
     </div>
   )
@@ -218,6 +220,48 @@ function AddSheet({ clients, onClose, onSaved }: { clients: any[]; onClose: () =
       {err && <p className="tp-err">{err}</p>}
       <button className="tp-btn is-primary tp-wide" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Log time'}</button>
       <p className="tp-hint">Client meetings in your Google Calendar are added on their own. You can also just tell Claude "I spent two hours with Emma today".</p>
+    </Sheet>
+  )
+}
+
+function EditSheet({ entry, clients, onClose, onSaved }: { entry: TimeEntry; clients: any[]; onClose: () => void; onSaved: () => void }) {
+  const isClaude = entry.source === 'claude'
+  const list = clients.filter(c => c.status !== 'archived').sort((a, b) => a.name.localeCompare(b.name))
+  const [client, setClient] = useState(entry.client_id || '')
+  const [mins, setMins] = useState(String(entry.duration_minutes || ''))
+  const [human, setHuman] = useState(String(Math.round(((entry.human_minutes || 0) / 60) * 10) / 10))
+  const [desc, setDesc] = useState(entry.description || entry.notes || '')
+  const [date, setDate] = useState(localDay(new Date(entry.started_at)))
+  const [err, setErr] = useState(''); const [busy, setBusy] = useState(false)
+  const save = async () => {
+    const m = Math.round(Number(mins) || 0), h = Math.round((Number(human) || 0) * 60)
+    if (!client) return setErr('Pick a client.')
+    if (m < 1 || m > 1440) return setErr('Minutes must be between 1 and 1440.')
+    if (isClaude && h < 1) return setErr('Add the by-hand hours.')
+    if (!desc.trim()) return setErr('Say what the time was for.')
+    const start = new Date(`${date}${entry.started_at.slice(10)}`)
+    setBusy(true)
+    try {
+      await timeApi.update(entry.id, {
+        client_id: client, ...(client !== entry.client_id ? { project_id: null } : {}), duration_minutes: m, human_minutes: isClaude ? h : m,
+        description: desc.trim(), notes: desc.trim(), started_at: start.toISOString(), ended_at: new Date(start.getTime() + m * 60000).toISOString(),
+      })
+      onSaved(); onClose()
+    } catch (e: any) { setErr(e.message || 'Could not save.') } finally { setBusy(false) }
+  }
+  return (
+    <Sheet title="Edit time" onClose={onClose}>
+      <label className="tp-f"><span>Client</span><select value={client} onChange={e => setClient(e.target.value)}><option value="">Choose a client</option>{list.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+      <div className="tp-row2">
+        <label className="tp-f"><span>{isClaude ? 'Claude minutes' : 'Minutes'}</span><input inputMode="numeric" value={mins} onChange={e => setMins(e.target.value)} /></label>
+        {isClaude
+          ? <label className="tp-f"><span>By hand (hours)</span><input inputMode="decimal" value={human} onChange={e => setHuman(e.target.value)} /></label>
+          : <label className="tp-f"><span>Date</span><input type="date" value={date} onChange={e => setDate(e.target.value)} /></label>}
+      </div>
+      {isClaude && <label className="tp-f"><span>Date</span><input type="date" value={date} onChange={e => setDate(e.target.value)} /></label>}
+      <label className="tp-f"><span>What for</span><input value={desc} onChange={e => setDesc(e.target.value)} /></label>
+      {err && <p className="tp-err">{err}</p>}
+      <button className="tp-btn is-primary tp-wide" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button>
     </Sheet>
   )
 }

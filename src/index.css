@@ -4203,3 +4203,6 @@ button.brf-goal:hover { border-color: var(--color-border-hard); }
   .tp-tools .hm-seg { flex: 1 1 100%; overflow-x: auto; }
   .tp-tools .hm-seg button { white-space: nowrap; }
 }
+.tp-log-row { cursor: pointer; border-radius: 10px; transition: background .2s; }
+.tp-log-row:hover { background: rgba(255,255,255,.03); }
+[data-theme="light"] .tp-log-row:hover { background: rgba(0,0,0,.03); }

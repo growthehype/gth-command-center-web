@@ -639,6 +639,10 @@ export const timeEntries = {
     if (error) throw error
     return data
   },
+  async update(id: string, patch: Record<string, any>) {
+    const { error } = await supabase.from('time_entries').update(patch).eq('id', id)
+    if (error) throw error
+  },
   async remove(id: string) {
     const { error } = await supabase.from('time_entries').delete().eq('id', id)
     if (error) throw error

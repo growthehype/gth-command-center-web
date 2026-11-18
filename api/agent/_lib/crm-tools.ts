@@ -186,6 +186,21 @@ export const TOOLS = [
     }, required: ['client', 'kind', 'description'] },
   },
   {
+    name: 'list_time',
+    description: 'Recent time entries (newest first) with their ids, so one can be corrected with update_time. Filter by client.',
+    inputSchema: { type: 'object', properties: { client: { type: 'string' }, limit: { type: 'number', description: 'Default 15, max 50' } } },
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'update_time',
+    description: "Correct or remove a time entry. Use list_time first to get the id. Set only what changes: claude_minutes or minutes (the time actually spent), human_hours, description, date, client, billable. delete=true removes it.",
+    inputSchema: { type: 'object', properties: {
+      id: { type: 'string' }, claude_minutes: { type: 'number' }, minutes: { type: 'number' }, human_hours: { type: 'number' },
+      description: { type: 'string' }, date: { type: 'string', description: 'YYYY-MM-DD' }, client: { type: 'string' }, billable: { type: 'boolean' }, delete: { type: 'boolean' },
+    }, required: ['id'] },
+    annotations: { destructiveHint: true },
+  },
+  {
     name: 'time_summary',
     description: 'Hours and money per client for a date range: revenue paid, Omar\'s hours, Claude hours, human-equivalent hours and effective hourly rate.',
     inputSchema: { type: 'object', properties: { start_date: { type: 'string' }, end_date: { type: 'string' }, client: { type: 'string' } } },
@@ -487,6 +502,57 @@ async function logWork(userId: string, a: Args) {
   return { logged: true, client: c.name, minutes, human_equivalent_hours: Math.round(human / 6) / 10 }
 }
 
+async function listTime(userId: string, a: Args) {
+  const sb = getAdminClient()
+  const names = await clientNames(userId)
+  let q = sb.from('time_entries').select('id, client_id, source, description, notes, duration_minutes, human_minutes, started_at, billable').eq('user_id', userId).order('started_at', { ascending: false }).order('id').limit(Math.min(50, Math.max(1, Number(a.limit) || 15)))
+  if (a.client) { const c = await resolveClient(userId, a.client); q = q.eq('client_id', c.id) }
+  const { data, error } = await q
+  if (error) throw new ToolError(error.message)
+  return (data || []).map(e => ({
+    id: e.id, client: names.get(e.client_id) || null, kind: e.source === 'claude' ? 'claude' : e.source === 'calendar' ? 'meeting' : 'omar',
+    description: e.description || e.notes, minutes: e.duration_minutes, human_hours: e.human_minutes != null ? Math.round(e.human_minutes / 6) / 10 : null,
+    date: new Date(e.started_at).toLocaleDateString('en-CA', { timeZone: 'America/Edmonton' }), billable: e.billable,
+  }))
+}
+
+async function updateTime(userId: string, a: Args) {
+  const sb = getAdminClient()
+  const id = str(a.id, 60)
+  const { data: cur } = await sb.from('time_entries').select('*').eq('id', id).eq('user_id', userId).maybeSingle()
+  if (!cur) throw new ToolError('No time entry with that id. Use list_time to find it.')
+  if (a.delete === true) {
+    const { error } = await sb.from('time_entries').delete().eq('id', id).eq('user_id', userId)
+    if (error) throw new ToolError(error.message)
+    await logActivity(userId, 'delete', `Removed time entry: ${cur.description || cur.notes || ''}`.trim(), 'time', id)
+    return { deleted: true }
+  }
+  const patch: any = {}
+  const mins = a.claude_minutes ?? a.minutes
+  if (mins != null) {
+    const m = Math.round(Number(mins))
+    if (!(m > 0) || m > 1440) throw new ToolError('Minutes must be between 1 and 1440.')
+    patch.duration_minutes = m
+    if (cur.source !== 'claude') patch.human_minutes = m
+  }
+  if (a.human_hours != null) {
+    if (cur.source !== 'claude') throw new ToolError('human_hours only applies to Claude work.')
+    const h = Math.round(Number(a.human_hours) * 60)
+    if (!(h > 0)) throw new ToolError('human_hours must be more than 0.')
+    patch.human_minutes = h
+  }
+  if (a.description) { patch.description = str(a.description, 300); patch.notes = patch.description }
+  if (a.billable != null) patch.billable = a.billable !== false
+  if (a.client) { const c = await resolveClient(userId, a.client); patch.client_id = c.id; patch.project_id = null }
+  let start = new Date(cur.started_at)
+  if (a.date) { const d = date(a.date, 'date')!; start = cur.source === 'calendar' ? new Date(`${d}${cur.started_at.slice(10)}`) : new Date(`${d}T12:00:00Z`); patch.started_at = start.toISOString() }
+  if (patch.duration_minutes || patch.started_at) patch.ended_at = new Date(start.getTime() + (patch.duration_minutes ?? cur.duration_minutes) * 60000).toISOString()
+  if (!Object.keys(patch).length) throw new ToolError('Nothing to change.')
+  const { error } = await sb.from('time_entries').update(patch).eq('id', id).eq('user_id', userId)
+  if (error) throw new ToolError(error.message)
+  return { updated: true, minutes: patch.duration_minutes ?? cur.duration_minutes, human_hours: Math.round((patch.human_minutes ?? cur.human_minutes ?? 0) / 6) / 10 }
+}
+
 async function timeSummary(userId: string, a: Args) {
   const sb = getAdminClient()
   const t = today()
@@ -547,6 +613,8 @@ export async function callTool(userId: string, name: string, args: Args) {
     case 'list_invoices': return listInvoices(userId, args)
     case 'log_work': return logWork(userId, args)
     case 'time_summary': return timeSummary(userId, args)
+    case 'list_time': return listTime(userId, args)
+    case 'update_time': return updateTime(userId, args)
     case 'create_invoice_draft': return createInvoiceDraft(userId, args)
     default: throw new ToolError(`Unknown tool ${name}`)
   }
@@ -557,7 +625,7 @@ export const SERVER_INSTRUCTIONS = `This is Omar's Command Center, the CRM for G
 - When something goes to a client or prospect and Omar is now waiting on them (a proposal, a site to approve, a meeting to book), add_task with waiting=true, e.g. "Waiting on Wendy to approve the new website", due on the day to check in. New prospects get add_client with status prospect first.
 - Before adding a task or client, check with find_client so nothing is duplicated.
 - Use clear, short task names in plain Canadian English.
-- Track time: whenever you finish a piece of work for a client in a conversation, call log_work with kind 'claude', an estimated claude_minutes for the session and the human_hours a skilled agency would need by hand. Estimates are expected; tell Omar the numbers in one line so he can correct them. When Omar mentions his own time (a call, a meeting, a shoot), log it with kind 'omar'. Calendar meetings with clients are logged automatically, so don't log those twice.
+- Track time: whenever you finish a piece of work for a client in a conversation, call log_work with kind 'claude', an estimated claude_minutes for the session and the human_hours a skilled agency would need by hand. Estimates are expected; tell Omar the numbers in one line so he can correct them. If he corrects one, use list_time and update_time to fix it yourself. When Omar mentions his own time (a call, a meeting, a shoot), log it with kind 'omar'. Calendar meetings with clients are logged automatically, so don't log those twice.
 - Invoices are only ever created as drafts. Never claim an email or invoice was sent.
 - When Omar asks what's on his plate, call get_overview, and list_calendar for today's meetings.
 - You can add or move events in his Google Calendar (no guests, no invitations). Confirm the day and time back to him.`
