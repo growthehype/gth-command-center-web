@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Sparkles, User, CalendarDays, Timer, ArrowUpRight, ArrowDownRight, ChevronRight } from 'lucide-react'
+import { Sparkles, User, CalendarDays, Timer, ArrowUpRight, ArrowDownRight, ChevronRight, FileBarChart } from 'lucide-react'
+import ValueReport from './ValueReport'
 import { useAppStore } from '@/lib/store'
 import type { TimeEntry, Invoice } from '@/lib/store'
 import { EntrySheet, preTax, hrs, TimingBadge } from '@/pages/Profitability'
@@ -19,6 +20,7 @@ export default function ClientTime({ clientId }: { clientId: string }) {
   const { timeEntries, invoices, clients, settings, refreshTimeEntries, setCurrentPage } = useAppStore() as any
   const [filter, setFilter] = useState<Filter>('all')
   const [edit, setEdit] = useState<TimeEntry | null>(null)
+  const [report, setReport] = useState(false)
   const rate = Number(settings?.agency_hourly_rate) || 125
 
   const all: TimeEntry[] = useMemo(() => (timeEntries as TimeEntry[]).filter(e => e.client_id === clientId && e.duration_minutes).sort((a, b) => b.started_at.localeCompare(a.started_at)), [timeEntries, clientId])
@@ -66,6 +68,7 @@ export default function ClientTime({ clientId }: { clientId: string }) {
           {(['all', 'claude', 'you'] as Filter[]).map(f => <button key={f} role="tab" aria-selected={filter === f} className={filter === f ? 'is-on' : ''} onClick={() => setFilter(f)}>{f === 'all' ? `All ${all.length}` : f === 'claude' ? 'Claude' : 'You and meetings'}</button>)}
         </div>
         <p className="tp-legend"><span className="is-claude">Claude</span><span className="is-human">By hand</span><span className="is-you">You</span></p>
+        <button className="tp-btn" onClick={() => setReport(true)}><FileBarChart size={14} /> Value report</button>
       </div>
 
       {groups.map(([month, list]) => (
@@ -99,6 +102,7 @@ export default function ClientTime({ clientId }: { clientId: string }) {
           </ul>
         </section>
       ))}
+      {report && <ValueReport clientId={clientId} onClose={() => setReport(false)} />}
       {edit && <EntrySheet entry={edit} clients={clients} rate={rate} onClose={() => setEdit(null)} onSaved={() => refreshTimeEntries?.()} />}
     </div>
   )

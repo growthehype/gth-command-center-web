@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import ClientAvatar from '@/components/ui/ClientAvatar'
+import ClientTime from '@/components/time/ClientTime'
 import { formatCurrency, relativeDate, daysSince, clientHealth } from '@/lib/utils'
 import { portalTokens, clients as clientsApi } from '@/lib/api'
 import StatusMenu from '@/components/ui/StatusMenu'
@@ -595,37 +596,7 @@ export default function ClientDetail() {
           count={clientTimeEntries.length}
           onViewAll={() => navigateTo('projects')}
         >
-          <div className="flex items-center gap-6 mb-3">
-            <div>
-              <p className="text-dim label" style={{ fontSize: '10.5px' }}>Total Hours</p>
-              <p className="text-polar font-bold mono" style={{ fontSize: '19px' }}>{totalHours.toFixed(1)}h</p>
-            </div>
-            <div>
-              <p className="text-dim label" style={{ fontSize: '10.5px' }}>Entries</p>
-              <p className="text-polar font-bold mono" style={{ fontSize: '19px' }}>{clientTimeEntries.length}</p>
-            </div>
-            <div>
-              <p className="text-dim label" style={{ fontSize: '10.5px' }}>Billable</p>
-              <p className="text-polar font-bold mono" style={{ fontSize: '19px' }}>
-                {clientTimeEntries.filter(te => te.billable).length}
-              </p>
-            </div>
-          </div>
-          <div className="space-y-0">
-            {clientTimeEntries.slice(0, 3).map(te => (
-              <div key={te.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                <div className="min-w-0">
-                  <span className="text-polar truncate block" style={{ fontSize: '13px' }}>
-                    {te.notes || te.project_title || 'Untitled'}
-                  </span>
-                  <span className="text-dim" style={{ fontSize: '10.5px' }}>{relativeDate(te.started_at)}</span>
-                </div>
-                <span className="text-steel mono shrink-0" style={{ fontSize: '11.5px' }}>
-                  {te.duration_minutes ? `${(te.duration_minutes / 60).toFixed(1)}h` : 'Running'}
-                </span>
-              </div>
-            ))}
-          </div>
+          <ClientTime clientId={client.id} />
         </Section>
       )}
 

@@ -124,12 +124,13 @@ export async function buildInvoice(p: Plan, opts: { issueDate?: string; num?: st
   const pay = p.payment_instructions.trim().replace(/[.\s]+$/, '') + '.'
   const hi = firstName(contact) ? `Hi ${firstName(contact)},` : 'Hello,'
 
+  const what = (p.description || 'Website hosting').trim().replace(/^./, c => c.toLowerCase())
   const dueLine = due === issue ? 'Due: on receipt' : `Due by: ${long(due)}`
   const subject = p.cadence === 'monthly'
-    ? `${client.name}: website hosting for ${monthName(period)} (invoice ${num})`
+    ? `${client.name}: ${what} for ${monthName(period)} (invoice ${num})`
     : `${client.name}: your website hosting renews ${long(period)} (invoice ${num})`
   const body = p.cadence === 'monthly'
-    ? `${hi}\n\nPlease see the attached invoice for website hosting for ${monthName(period)}.\n\nInvoice: ${num}\nAmount: ${money(total)} (includes ${money(tax)} GST)\n${dueLine}\n\n${pay}\n\nThank you!`
+    ? `${hi}\n\nPlease see the attached invoice for ${what} for ${monthName(period)}.\n\nInvoice: ${num}\nAmount: ${money(total)} (includes ${money(tax)} GST)\n${dueLine}\n\n${pay}\n\nThank you!`
     : `${hi}\n\nA quick heads-up that your yearly website hosting renews on ${long(period)}. The renewal invoice is attached and covers ${label}.\n\nInvoice: ${num}\nAmount: ${money(total)} (includes ${money(tax)} GST)\n${dueLine}\n\n${pay}\n\nThank you for another year with us. If anything about your site or hosting should change before the renewal, just reply here and we will sort it out.`
   return { client, to, cc: p.cc || '', problems, issue, due, period, sub, tax, total, num, notes, pdfBase64, subject, body, label }
 }
