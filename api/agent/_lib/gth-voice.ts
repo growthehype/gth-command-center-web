@@ -48,11 +48,12 @@ THE FEELING
 
 THE SEQUENCE (three emails, same thread)
 1) First email, 60 to 130 words, in this order:
-   - "Hi {first name}," if a contact first name is given, otherwise "Hi there,".
-   - A sincere compliment on their business. If a Google rating and review count are given, use them, e.g. "A 4.6 rating from 154 Google reviews says a lot about how you treat your customers." If there are no reviews, compliment something real from the brief (years in business, the services they offer, their area). Never invent anything.
+   - "Hi {first name}," if a contact first name is given, otherwise "Hi there,". Then a warm, human line like "Hope you're having a great day." (vary it naturally).
+   - A sincere compliment that sounds like a person, not a report. Never quote the rating or the number of reviews. Say it the way you would to a neighbour, e.g. "Your Google reviews are glowing, it's clear people love working with you." or "It's obvious from your reviews that your customers really trust you." If reviews are thin, compliment something real from the brief (how long they've been around, what they're known for, their part of town). Never invent anything.
    - Why he is writing, in one or two relaxed sentences: he was on their website and saw an opportunity to show them something that might feel more like them. Vary the wording. Never say "I came across" or "I stumbled upon".
    - What his websites are built for, in one plain sentence: they work well on phones, load fast, are set up to be found on Google, and make it easy for people to call, book or ask for a quote (pick the action that fits their business).
-   - If a homepage concept link is given: share it as a preview of their new homepage made with their own details, on its own line, e.g. "Here's a preview of what your homepage could look like:" then the link. If no concept link is given and a "Work to show" link is given, share ONE website we built, on its own line, introduced in a few words. Otherwise share no links.
+   - If a homepage concept link is given: share it as a preview of their new homepage made with their own details, on its own line, e.g. "Here's a preview of what your homepage could look like:" then the link.
+   - Point them to our website so they can see who we are, on its own line: growthehype.ca (e.g. "You can see more of what we do here:" then growthehype.ca). Never share other websites we built.
    - A soft close: if they're interested in chatting, he'd love to connect. ${booking ? `He may offer his booking link once: ${booking}` : 'No other links.'} Then one short thank you line, e.g. "Thanks for taking a minute to read this."
    - No sign-off name: Omar's Gmail signature is added below.
 2) Follow-up, sent a few days later, 25 to 70 words: kind and light. Say he wanted to make sure his note didn't get buried, share the preview link again on its own line if there is one, and make it clear there's no pressure. No new pitch, no criticism, no guilt. Never say "just checking in". No name sign-off.
@@ -62,7 +63,7 @@ SUBJECT LINE: 3 to 9 words, warm and specific, names the business as people say 
 
 HARD RULES (break one and the email is thrown out)
 - Only use facts from the brief. Never invent clients, results, numbers, prices, timelines or awards.
-- No statistics, percentages or dollar amounts. The Google rating and review count are the only numbers allowed.
+- No statistics, percentages, dollar amounts, ratings or review counts. No numbers at all except in links.
 - No em dashes, en dashes or double hyphens. Use commas and full stops.
 - No exclamation marks, emojis, bullet points, bold, or brackets. No placeholders.
 - Never use: leverage, synergy, elevate, unlock, streamline, game-changer, cutting-edge, seamless, revolutionize, transform, empower, robust, delve, tailored, solutions, digital landscape, in today's world, next level, boost, skyrocket, touch base, circle back, I came across, I stumbled upon, just checking in, hope this email finds you, hope this finds you, best regards, kind regards, warm regards, studio, agency, branding.
@@ -97,6 +98,7 @@ const BANNED: { re: RegExp; label: string }[] = [
   { re: /circle back/i, label: 'circle back' },
   { re: /hope (this|the) (email|message|note)? ?finds you/i, label: 'hope this finds you' },
   { re: /i came across/i, label: 'I came across' },
+  { re: /\b\d(\.\d)?\s*(star|rating)|\b\d+\s+(google\s+)?reviews/i, label: 'quoting the rating or review count (sounds like a bot)' },
   { re: /stumbled (up)?on/i, label: 'stumbled upon' },
   { re: /just checking in/i, label: 'just checking in' },
   { re: /(best|kind|warm) regards/i, label: 'regards' },
@@ -139,12 +141,11 @@ const words = (s: string) => (s.replace(URL_RE, ' ').trim().match(/\S+/g) || [])
 const norm = (u: string) => u.toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/[.,)]+$/, '').replace(/\/$/, '')
 
 /** Work links that must appear in email 1: two full websites (landing pages only if there aren't two sites). */
-export function requiredWorkLinks(cfgInner: any, industry: string, name: string, hasConcept = false): ProofLink[] {
-  // Their own homepage preview is the one link that matters; otherwise show one site we built
-  if (hasConcept) return []
-  const all = pickProofLinks(cfgInner, industry, name)
-  const sites = all.filter(l => !/\/[^/]+/.test(norm(l.url)))
-  return [...sites, ...all.filter(l => !sites.includes(l))].slice(0, 1)
+export const GTH_SITE: ProofLink = { match: '.', url: 'growthehype.ca' }
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function requiredWorkLinks(_cfgInner: any, _industry: string, _name: string, _hasConcept = false): ProofLink[] {
+  // Every first email points to our own website (Omar, Nov 2026), plus their preview when there is one
+  return [GTH_SITE]
 }
 
 /** Guarantee the work links are in email 1, added before the ask if the writer left them out. */
@@ -155,7 +156,7 @@ export function ensureWorkLinks(d: VoiceDraft, links: ProofLink[], industry = ''
   if (!missing.length) return d
   const kind = /account|cpa|bookkeep|tax|chartered/i.test(industry) ? 'for accounting firms' : 'for local businesses'
   const all = links.map(l => `https://${norm(l.url)}`)
-  const para = all.length === 1 ? `Here's one we built recently ${kind}:\n${all[0]}` : `Here are two we built recently ${kind}:\n${all.join('\n')}`
+  const para = links.length === 1 && norm(links[0].url) === 'growthehype.ca' ? 'You can see more of what we do here:\ngrowthehype.ca' : all.length === 1 ? `Here's one we built recently ${kind}:\n${all[0]}` : `Here are two we built recently ${kind}:\n${all.join('\n')}`
   // Drop a partial mention so links aren't listed twice, then add before the ask
   const paras = body.split(/\n{2,}/).filter(p => !links.some(l => p.toLowerCase().includes(norm(l.url))))
   const askAt = paras.findIndex(p => /short call|few ideas|thanks for taking|love to connect|interested in chatting/i.test(p))

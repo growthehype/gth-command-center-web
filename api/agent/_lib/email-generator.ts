@@ -196,7 +196,8 @@ function gthLeadBrief(lead: any, proof: string | null, cfg: any = {}): string {
   // Only things we actually checked go to the writer
   const concept0 = conceptUrl(lead)
   const work = requiredWorkLinks(cfg, lead.industry || '', lead.name || '', !!concept0)
-  parts.push(`Work to show: ${concept0 ? 'none (share their homepage preview instead)' : work.map(w => w.url).join(' ') || proof || 'none'}`)
+  void work
+  parts.push('Our website to point them to: growthehype.ca')
   if (e.website_summary) parts.push(`What their site says about them: ${String(e.website_summary).slice(0, 280)}`)
   if (e.services_found?.length) parts.push(`Services they list: ${e.services_found.slice(0, 6).join(', ')}`)
   if (a) {
@@ -210,7 +211,7 @@ function gthLeadBrief(lead: any, proof: string | null, cfg: any = {}): string {
 
 async function writeGthSequence(lead: any, cfgInner: any): Promise<{ draft: SequenceDraft; issues: string[]; repaired: boolean }> {
   const proof = pickProofLink(cfgInner, lead.industry || '', lead.name || '')
-  const allowedLinks = [...proofUrls(cfgInner, lead.industry || '', lead.name || ''), (cfgInner?.booking_link || '').trim(), conceptUrl(lead) || ''].filter(Boolean) as string[]
+  const allowedLinks = ['growthehype.ca', (cfgInner?.booking_link || '').trim(), conceptUrl(lead) || ''].filter(Boolean) as string[]
   const brief = gthLeadBrief(lead, proof, cfgInner)
   const systemPrompt = buildGthWriterPrompt(cfgInner)
   const workLinks = requiredWorkLinks(cfgInner, lead.industry || '', lead.name || '', !!conceptUrl(lead))
@@ -312,7 +313,7 @@ async function buildSequence(lead: any, ctx: SeqCtx): Promise<{ ok: boolean; dra
       })
       if (fc.status === 'revised') {
         draft = { ...draft, ...fc.draft }
-        const allowed = [...proofUrls(inner, lead.industry || '', lead.name || ''), (inner?.booking_link || '').trim(), conceptUrl(lead) || ''].filter(Boolean) as string[]
+        const allowed = ['growthehype.ca', (inner?.booking_link || '').trim(), conceptUrl(lead) || ''].filter(Boolean) as string[]
         const req = { work: requiredWorkLinks(inner, lead.industry || '', lead.name || '', !!conceptUrl(lead)), concept: conceptUrl(lead) }
         issues = validateVoice(draft, allowed, req)
         if (issues.length) { draft = ensureWorkLinks(repairVoice(draft), req.work, `${lead.industry || ''} ${lead.name || ''}`); repaired = true; issues = validateVoice(draft, allowed, req) }
