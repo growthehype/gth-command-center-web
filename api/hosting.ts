@@ -31,6 +31,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const meetings = await runCalendarTime({ days: 2 }).catch((e: any) => ({ error: String(e?.message || e) }))
       return res.status(200).json({ inbox, meetings })
     }
+    // Send one waiting hosting invoice that Omar approved in chat (hosting invoices only)
+    if (body.sendWaiting) {
+      const { data: inv } = await sb.from('invoices').select('user_id').eq('id', String(body.sendWaiting)).single()
+      if (!inv) return res.status(404).json({ error: 'Invoice not found' })
+      return res.status(200).json(await sendWaitingInvoice(inv.user_id, String(body.sendWaiting), { trustPlan: true }))
+    }
+    // Preview a saved hosting invoice's email exactly as it would go out
+    if (body.previewSaved) {
+      const { data: inv } = await sb.from('invoices').select('user_id').eq('id', String(body.previewSaved)).single()
+      if (!inv) return res.status(404).json({ error: 'Invoice not found' })
+      const { b } = await rebuildSaved(inv.user_id, String(body.previewSaved))
+      return res.status(200).json({ to: b.to, cc: b.cc, subject: b.subject, body: b.body, total: b.total, problems: b.problems })
+    }
     // Self-check of the Claude work clock: start, wait, log, then remove the test entry
     if (body.selfTest === 'timing') {
       const { callTool } = await import('./agent/_lib/crm-tools')

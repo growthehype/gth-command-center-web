@@ -64,9 +64,9 @@ interface SendEmailParams {
 }
 
 /** Build the raw MIME message: HTML body with signature, plus optional attachments. */
-function buildMime(params: SendEmailParams): string {
+function buildMime(params: SendEmailParams, signature = GTH_EMAIL_SIGNATURE): string {
   const htmlBody = linkify(escapeHtml(params.body)).replace(/\n/g, '<br>')
-  const html = `<html><body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #222;">${htmlBody}${GTH_EMAIL_SIGNATURE}${params.footerHtml || ''}</body></html>`
+  const html = `<html><body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #222;">${htmlBody}${signature}${params.footerHtml || ''}</body></html>`
   const headers = [
     `To: ${params.to}`,
     ...(params.cc ? [`Cc: ${params.cc}`] : []),
@@ -118,9 +118,20 @@ function encodeHeader(v: string): string {
   return /[^\x20-\x7E]/.test(v) ? `=?UTF-8?B?${Buffer.from(v, 'utf-8').toString('base64')}?=` : v
 }
 
+/** Omar's own signature as set in Gmail (default send-as address). Falls back to the built-in copy. */
+export async function gmailSignature(token: string): Promise<string> {
+  try {
+    const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs', { headers: { Authorization: `Bearer ${token}` } })
+    if (!r.ok) return GTH_EMAIL_SIGNATURE
+    const d: any = await r.json()
+    const sig = (d.sendAs || []).find((x: any) => x.isDefault)?.signature || (d.sendAs || []).find((x: any) => x.isPrimary)?.signature
+    return sig ? `<br><br><div class="gmail_signature">${sig}</div>` : GTH_EMAIL_SIGNATURE
+  } catch { return GTH_EMAIL_SIGNATURE }
+}
+
 export async function sendEmail(userId: string, params: SendEmailParams): Promise<{ id: string; threadId: string; rfcMessageId: string | null }> {
   const token = await getAccessToken(userId)
-  const mimeMessage = buildMime(params)
+  const mimeMessage = buildMime(params, await gmailSignature(token))
 
   const encoded = Buffer.from(mimeMessage, 'utf-8').toString('base64url')
 

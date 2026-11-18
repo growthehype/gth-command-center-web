@@ -97,7 +97,8 @@ export async function buildInvoice(p: Plan, opts: { issueDate?: string; num?: st
   const total = r2(sub + tax)
   const from = await senderDetails(p.user_id)
   const num = opts.num || await nextNumber(p.user_id, p.client_id, client.name, p.invoice_prefix)
-  const contact = p.contact_name || client.contact || ''
+  // An empty contact name on the plan means "no name": the email opens with Hello
+  const contact = p.contact_name === '' ? '' : (p.contact_name || client.contact || '')
   const label = periodLabel(p, period)
   const terms = due === issue ? 'Due on Receipt' : `Due ${long(due)}`
   const lineItems = [{ description: `${p.description}: ${label}`, qty: 1, rate: sub }]
@@ -118,13 +119,14 @@ export async function buildInvoice(p: Plan, opts: { issueDate?: string; num?: st
   const pdfBase64 = Buffer.from(pdf.output('arraybuffer')).toString('base64')
 
   const pay = p.payment_instructions.trim().replace(/[.\s]+$/, '') + '.'
-  const hi = firstName(contact) ? `Hi ${firstName(contact)},` : 'Hi there,'
+  const hi = firstName(contact) ? `Hi ${firstName(contact)},` : 'Hello,'
+  const late = due < today()
   const dueLine = due === issue ? 'Due: on receipt' : `Due: ${long(due)}`
   const subject = p.cadence === 'monthly'
     ? `${client.name}: website hosting for ${monthName(period)} (invoice ${num})`
     : `${client.name}: your website hosting renews ${long(period)} (invoice ${num})`
   const body = p.cadence === 'monthly'
-    ? `${hi}\n\nYour website hosting invoice for ${monthName(period)} is attached.\n\nInvoice: ${num}\nAmount: ${money(total)} (includes ${money(tax)} GST)\n${dueLine}\n\n${pay}\n\nThank you for trusting us with your website. If anything on it needs a refresh, just reply to this email.`
+    ? `${hi}\n\nPlease see the attached invoice for website hosting for ${monthName(period)}.${late ? ' It is now past due, so whenever you get a chance would be great.' : ''}\n\nInvoice: ${num}\nAmount: ${money(total)} (includes ${money(tax)} GST)\n${late ? 'Due: now' : dueLine}\n\n${pay}\n\nThank you!`
     : `${hi}\n\nA quick heads-up that your yearly website hosting renews on ${long(period)}. The renewal invoice is attached and covers ${label}.\n\nInvoice: ${num}\nAmount: ${money(total)} (includes ${money(tax)} GST)\n${dueLine}\n\n${pay}\n\nThank you for another year with us. If anything about your site or hosting should change before the renewal, just reply here and we will sort it out.`
   return { client, to, cc: p.cc || '', problems, issue, due, period, sub, tax, total, num, notes, pdfBase64, subject, body, label }
 }
