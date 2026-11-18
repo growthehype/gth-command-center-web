@@ -4,7 +4,7 @@ import { getAdminClient } from './supabase-admin'
 import { sendEmail, createDraft, updateDraft, findSentInThread } from './gmail-server'
 import { checkRateLimit, incrementCounter, DEFAULT_LIMITS } from './rate-limiter'
 import { gthOptOutFooterHtml } from './gth-profile'
-import { loadAttachments } from './visual-audit'
+
 import { leadRecipients, FOLLOWUPS_ENABLED } from './lead-stage'
 
 interface SendParams {
@@ -139,7 +139,7 @@ export async function sendScheduledEmails(params: SendParams): Promise<SendResul
         threadId,
         replyToMessageId: replyTo,
         footerHtml: gthOptOutFooterHtml(params.cfgInner),
-        attachments: step.step_number === 1 ? await loadAttachments(lead).catch(() => []) : [],
+        attachments: [],
       })
 
       const sentAt = new Date().toISOString()
@@ -229,8 +229,9 @@ export async function draftStepToGmail(params: { userId: string; stepId: string;
   const { data: lead } = await sb.from('outreach_leads').select('id, email, alt_emails, bounced_emails, name, enrichment_data').eq('id', step.outreach_sequences.lead_id).single()
   const recipients = lead ? leadRecipients(lead) : []
   if (!recipients.length) throw new Error(lead?.email ? 'Every address for this lead has bounced. Add one that works first.' : 'This lead has no email address')
-  // First email carries the screenshots of what we saw on their site
-  const attachments = step.step_number === 1 ? await loadAttachments(lead).catch(() => []) : []
+  // No attachments: the first email shares a link to their homepage preview instead
+  // of screenshots of their current site (Omar, Nov 2026: keep it simple and kind)
+  const attachments: { filename: string; contentType: string; base64: string }[] = []
 
   // Follow-ups go into the same Gmail thread as the email before them
   let threadId: string | undefined

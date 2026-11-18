@@ -180,7 +180,7 @@ function conceptUrl(lead: any): string | null {
   return p?.status === 'ready' && p.url ? p.url : null
 }
 
-function gthLeadBrief(lead: any, proof: string | null): string {
+function gthLeadBrief(lead: any, proof: string | null, cfg: any = {}): string {
   const e = lead.enrichment_data || {}
   const a = e.website_audit || null
   const dm = e.decision_makers?.[0]
@@ -194,30 +194,26 @@ function gthLeadBrief(lead: any, proof: string | null): string {
     `Google rating: ${lead.rating ?? 'n/a'}${e.review_count || e.user_rating_count ? ` from ${e.review_count || e.user_rating_count} reviews` : ''}`,
   ]
   // Only things we actually checked go to the writer
-  const findings = verifiedFindings(lead)
-  const qual = e.qual
-  parts.push(`Verified findings (the ONLY site facts you may mention): ${findings.length ? findings.join('; ') : 'none, so do not claim anything specific about their site'}`)
-  parts.push(`Work to show: ${proof || 'none'}`)
+  const concept0 = conceptUrl(lead)
+  const work = requiredWorkLinks(cfg, lead.industry || '', lead.name || '', !!concept0)
+  parts.push(`Work to show: ${concept0 ? 'none (share their homepage preview instead)' : work.map(w => w.url).join(' ') || proof || 'none'}`)
   if (e.website_summary) parts.push(`What their site says about them: ${String(e.website_summary).slice(0, 280)}`)
   if (e.services_found?.length) parts.push(`Services they list: ${e.services_found.slice(0, 6).join(', ')}`)
   if (a) {
     parts.push(`Website check: HTTPS ${a.https ? 'yes' : 'no'}, phone-ready ${a.mobileReady ? 'yes' : 'no'}, online booking ${a.hasOnlineBooking ? (a.bookingTool || 'yes') : 'none'}, builder ${a.builder || 'unknown'}`)
   }
-  parts.push(`Lead with this observation: ${qual?.observation || e.observation || 'none, keep it general but honest'}`)
-  parts.push(`Pitch angle: ${qual?.pitch_angle || e.pitch_angle || 'website'}`)
+  parts.push('Do not mention any problems with their current site.')
   const concept = conceptUrl(lead)
-  if (concept) parts.push(`Homepage concept: Omar had a new homepage built for them, using their own logo, photos and details: ${concept} . In email 1, mention it once, warmly and plainly, as a quick look at what their homepage could be (for example "I put together a quick look at what your homepage could be, using your own photos and details: {link}"). This is the main thing to share, and the two work links still go in email 1 after it. Never call it a mockup or a template. In follow-up 1 you may refer back to it in a few words.`)
-  const shots = attachmentPlan(lead)
-  if (shots.length) parts.push(`Attached to email 1: ${shots.length === 1 ? 'a screenshot' : 'screenshots'} of their ${shots.map(x => x.label).join(' and ')}. In email 1 mention once, briefly and naturally, that you attached ${shots.length === 1 ? 'a screenshot' : 'a couple of screenshots'} so they can see what you mean. Do not mention attachments in the follow-ups.`)
+  if (concept) parts.push(`Homepage concept link (their preview, made with their own logo, photos and details): ${concept} . Share it in email 1 on its own line, and again in the follow-up. Never call it a mockup or a template.`)
   return parts.join('\n')
 }
 
 async function writeGthSequence(lead: any, cfgInner: any): Promise<{ draft: SequenceDraft; issues: string[]; repaired: boolean }> {
   const proof = pickProofLink(cfgInner, lead.industry || '', lead.name || '')
   const allowedLinks = [...proofUrls(cfgInner, lead.industry || '', lead.name || ''), (cfgInner?.booking_link || '').trim(), conceptUrl(lead) || ''].filter(Boolean) as string[]
-  const brief = gthLeadBrief(lead, proof)
+  const brief = gthLeadBrief(lead, proof, cfgInner)
   const systemPrompt = buildGthWriterPrompt(cfgInner)
-  const workLinks = requiredWorkLinks(cfgInner, lead.industry || '', lead.name || '')
+  const workLinks = requiredWorkLinks(cfgInner, lead.industry || '', lead.name || '', !!conceptUrl(lead))
   const validateSequence = (d: SequenceDraft) => validateVoice(d, allowedLinks, { work: workLinks, concept: conceptUrl(lead) })
   const pick = (o: any, keys: string[]) => {
     for (const k of keys) if (typeof o?.[k] === 'string' && o[k].trim()) return o[k]
@@ -317,13 +313,13 @@ async function buildSequence(lead: any, ctx: SeqCtx): Promise<{ ok: boolean; dra
       if (fc.status === 'revised') {
         draft = { ...draft, ...fc.draft }
         const allowed = [...proofUrls(inner, lead.industry || '', lead.name || ''), (inner?.booking_link || '').trim(), conceptUrl(lead) || ''].filter(Boolean) as string[]
-        const req = { work: requiredWorkLinks(inner, lead.industry || '', lead.name || ''), concept: conceptUrl(lead) }
+        const req = { work: requiredWorkLinks(inner, lead.industry || '', lead.name || '', !!conceptUrl(lead)), concept: conceptUrl(lead) }
         issues = validateVoice(draft, allowed, req)
         if (issues.length) { draft = ensureWorkLinks(repairVoice(draft), req.work, `${lead.industry || ''} ${lead.name || ''}`); repaired = true; issues = validateVoice(draft, allowed, req) }
       }
       // Standard: email 1 always shows two sites we built for businesses like theirs
       {
-        const work = requiredWorkLinks(inner, lead.industry || '', lead.name || '')
+        const work = requiredWorkLinks(inner, lead.industry || '', lead.name || '', !!conceptUrl(lead))
         const before = draft.email_1
         draft = ensureWorkLinks(draft, work, `${lead.industry || ''} ${lead.name || ''}`)
         if (draft.email_1 !== before) issues = issues.filter(i => !/must include the work link/.test(i))

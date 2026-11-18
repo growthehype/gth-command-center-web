@@ -41,6 +41,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const sent = await sendEmail((plan as Plan).user_id, { from: BILLING_FROM, to, subject: `TEST (would go to ${b.to}): ${b.subject}`, body: b.body, attachments: [{ filename: `Invoice-${b.num}.pdf`, contentType: 'application/pdf', base64: b.pdfBase64 }] })
       return res.status(200).json({ sent: sent.id, wouldGoTo: b.to, issue: b.issue, due: b.due })
     }
+    // Rewrite one lead's outreach drafts with the current voice (drafts only, nothing is sent)
+    if (body.draftLead) {
+      const { draftForLead } = await import('./agent/_lib/email-generator')
+      const { data: lead } = await sb.from('outreach_leads').select('id, user_id').eq('id', String(body.draftLead)).single()
+      if (!lead) return res.status(404).json({ error: 'Lead not found' })
+      const { data: cfg } = await sb.from('agent_configs').select('*').eq('user_id', lead.user_id).eq('agent_type', String(body.agentType || 'lead_gen')).limit(1).maybeSingle()
+      if (!cfg) return res.status(404).json({ error: 'Agent not found' })
+      const r = await draftForLead({ userId: lead.user_id, agentConfig: cfg, leadId: lead.id })
+      const { data: steps } = await sb.from('outreach_steps').select('step_number, subject, body, status').eq('user_id', lead.user_id).in('sequence_id', (await sb.from('outreach_sequences').select('id').eq('lead_id', lead.id)).data?.map((x: any) => x.id) || []).order('step_number')
+      return res.status(200).json({ r, steps })
+    }
     // Send one waiting hosting invoice that Omar approved in chat (hosting invoices only)
     if (body.sendWaiting) {
       const { data: inv } = await sb.from('invoices').select('user_id').eq('id', String(body.sendWaiting)).single()
