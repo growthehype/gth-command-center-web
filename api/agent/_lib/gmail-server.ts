@@ -173,7 +173,7 @@ export async function sendEmail(userId: string, params: SendEmailParams): Promis
 /** Put a ready-to-send email into Omar's Gmail Drafts, with his signature. */
 export async function createDraft(userId: string, params: SendEmailParams): Promise<{ draftId: string; messageId: string; threadId: string }> {
   const token = await getAccessToken(userId)
-  const mime = buildMime(params)
+  const mime = buildMime(params, await gmailSignature(token))
   const message: any = { raw: Buffer.from(mime, 'utf-8').toString('base64url') }
   if (params.threadId) message.threadId = params.threadId
 
@@ -193,7 +193,7 @@ export async function createDraft(userId: string, params: SendEmailParams): Prom
 /** Replace the content of a draft that is still in Omar's Drafts. Returns null if the draft is gone. */
 export async function updateDraft(userId: string, draftId: string, params: SendEmailParams): Promise<{ draftId: string; messageId: string; threadId: string } | null> {
   const token = await getAccessToken(userId)
-  const message: any = { raw: Buffer.from(buildMime(params), 'utf-8').toString('base64url') }
+  const message: any = { raw: Buffer.from(buildMime(params, await gmailSignature(token)), 'utf-8').toString('base64url') }
   if (params.threadId) message.threadId = params.threadId
   const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/drafts/${draftId}`, {
     method: 'PUT',
