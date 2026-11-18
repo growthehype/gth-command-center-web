@@ -171,7 +171,7 @@ export default function CommandPalette() {
       ['invoices', 'Invoices', FileText],
       ['hosting', 'Hosting', DollarSign],
       ['financials', 'Financials', DollarSign],
-      ['profitability', 'Profitability', TrendingUp],
+      ['profitability', 'Time & profit', TrendingUp],
       ['credentials', 'Credentials', Shield],
       ['drive', 'Files', FileBox],
       ['documents', 'Documents', FileBox],

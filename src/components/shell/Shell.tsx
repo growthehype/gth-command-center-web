@@ -76,7 +76,7 @@ const pageMap: Record<string, React.ComponentType> = {
   hosting: Hosting,
   financials: tabbed([
     { id: 'overview', label: 'Overview', component: Financials },
-    { id: 'profitability', label: 'Profitability', component: Profitability },
+    { id: 'profitability', label: 'Time & profit', component: Profitability },
   ]),
   outreach: Outreach,
   services: Services,
