@@ -18,6 +18,7 @@ import PageHint from '@/components/ui/PageHint'
 import ClientAvatar from '@/components/ui/ClientAvatar'
 import { exportToCSV } from '@/lib/export-csv'
 import FilePreview from '@/components/ui/FilePreview'
+import ClientTime from '@/components/time/ClientTime'
 import { useConfirm } from '@/hooks/useConfirm'
 import QuickAdd from '@/components/clients/QuickAdd'
 
@@ -889,7 +890,7 @@ function ClientDrawer({
         {tab === 'Projects' && <ProjectsTab client={client} projects={projects} />}
         {tab === 'Tasks' && <TasksTab client={client} tasks={tasks} />}
         {tab === 'Invoices' && <InvoicesTab client={client} invoices={invoices} />}
-        {tab === 'Time' && <TimeTab client={client} timeEntries={timeEntries} />}
+        {tab === 'Time' && <ClientTime clientId={client.id} />}
         {tab === 'Credentials' && <CredentialsTab client={client} credentials={credentials} />}
         {tab === 'Links' && <LinksTab client={client} projects={projects} />}
         {tab === 'Meetings' && <MeetingsTab client={client} meetings={meetings} />}

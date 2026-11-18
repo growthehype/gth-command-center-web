@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Sparkles, User, CalendarDays, Timer, Trash2, Plus, Settings2, X, ArrowUpRight, ArrowDownRight } from 'lucide-react'
 import { useAppStore } from '@/lib/store'
 import type { TimeEntry, Invoice } from '@/lib/store'
@@ -25,7 +26,7 @@ const SRC = {
 } as const
 
 const money = (n: number) => `$${Math.round(n).toLocaleString('en-CA')}`
-const hrs = (m: number) => { const h = m / 60; return h >= 10 ? `${Math.round(h)}h` : `${Math.round(h * 10) / 10}h` }
+export const hrs = (m: number) => { const h = m / 60; return h >= 10 ? `${Math.round(h)}h` : `${Math.round(h * 10) / 10}h` }
 const localDay = (d = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Edmonton' }).format(d)
 
 function rangeBounds(r: Range): { from: string; to: string; months: number } {
@@ -37,7 +38,7 @@ function rangeBounds(r: Range): { from: string; to: string; months: number } {
   if (r === 'year') return { from: `${y}-01-01`, to: t, months: m - 1 + Number(t.slice(8)) / new Date(y, m, 0).getDate() }
   return { from: '2000-01-01', to: t, months: 0 }
 }
-const preTax = (i: Invoice) => { let tax = 5; try { tax = Number(JSON.parse(i.notes || '{}').tax_rate ?? 5) } catch { /* GST */ } return Number(i.amount || 0) / (1 + tax / 100) }
+export const preTax = (i: Invoice) => { let tax = 5; try { tax = Number(JSON.parse(i.notes || '{}').tax_rate ?? 5) } catch { /* GST */ } return Number(i.amount || 0) / (1 + tax / 100) }
 
 type Row = { id: string; name: string; you: number; claude: number; human: number; billed: number; paid: number }
 
@@ -174,13 +175,14 @@ export default function Profitability() {
 
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   useEffect(() => { const k = (e: KeyboardEvent) => e.key === 'Escape' && onClose(); window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k) }, [onClose])
-  return (
-    <div className="tp-layer"><button className="tp-backdrop" aria-label="Close" onClick={onClose} />
+  return createPortal(
+    <div className="tp tp-layer"><button className="tp-backdrop" aria-label="Close" onClick={onClose} />
       <div className="tp-sheet" role="dialog" aria-modal="true" aria-label={title}>
         <div className="hm-head"><h2>{title}</h2><button className="tp-btn" onClick={onClose} aria-label="Close"><X size={16} /></button></div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -224,7 +226,7 @@ function AddSheet({ clients, onClose, onSaved }: { clients: any[]; onClose: () =
   )
 }
 
-function EditSheet({ entry, clients, onClose, onSaved }: { entry: TimeEntry; clients: any[]; onClose: () => void; onSaved: () => void }) {
+export function EditSheet({ entry, clients, onClose, onSaved }: { entry: TimeEntry; clients: any[]; onClose: () => void; onSaved: () => void }) {
   const isClaude = entry.source === 'claude'
   const list = clients.filter(c => c.status !== 'archived').sort((a, b) => a.name.localeCompare(b.name))
   const [client, setClient] = useState(entry.client_id || '')
