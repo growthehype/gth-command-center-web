@@ -22,7 +22,7 @@ const diffDays = (a: string, b: string) => Math.round((new Date(a + 'T12:00:00Z'
 const nice = (d: string, withYear = false) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-CA', { timeZone: 'UTC', month: 'short', day: 'numeric', ...(withYear ? { year: 'numeric' } : {}) })
 const money = (n: number, cents = true) => '$' + n.toLocaleString('en-CA', { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: cents ? 2 : 0 })
 const withTax = (p: Plan) => Math.round(p.amount * (1 + p.tax_rate / 100) * 100) / 100
-const sendDate = (p: Plan) => p.cadence === 'yearly' ? addDays(p.next_date, -p.notice_days) : p.next_date
+const sendDate = (p: Plan) => p.cadence === 'yearly' ? addDays(p.next_date, -p.notice_days) : addDays(p.next_date, -1)
 const inDays = (n: number) => n === 0 ? 'today' : n === 1 ? 'tomorrow' : n < 0 ? `${-n} days ago` : `in ${n} days`
 const EMAIL_RE = /^[^\s@,;]+@[^\s@,;]+\.[a-z]{2,}$/i
 const ordinal = (n: number) => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th')
@@ -37,7 +37,7 @@ async function callHosting(payload: any) {
 
 const EMPTY = {
   client_id: '', cadence: 'monthly' as 'monthly' | 'yearly', amount: '', tax_rate: '5', description: 'Website hosting',
-  next_date: '', notice_days: '30', due_days: '0', send_to: '', cc: '', contact_name: '', invoice_prefix: '',
+  next_date: '', notice_days: '30', due_days: '3', send_to: '', cc: '', contact_name: '', invoice_prefix: '',
   payment_instructions: 'Please send payment by Interac e-Transfer to omar@growthehype.ca', ends_on: '', auto_send: true, status: 'active' as Plan['status'], notes: '',
 }
 

@@ -43,7 +43,10 @@ export function addMonths(d: string, n: number, anchorDay?: number | null): stri
 }
 export const nextPeriod = (p: Plan, d: string) => p.cadence === 'monthly' ? addMonths(d, 1, p.bill_day) : addMonths(d, 12, p.bill_day)
 /** The day the invoice goes out: monthly on the billing day, yearly `notice_days` before renewal. */
-export const sendDate = (p: Plan) => p.cadence === 'yearly' ? addDays(p.next_date, -p.notice_days) : p.next_date
+// Monthly invoices go out the day before the billing day, so clients have a few days to pay
+export const sendDate = (p: Plan) => p.cadence === 'yearly' ? addDays(p.next_date, -p.notice_days) : addDays(p.next_date, -1)
+/** Hosting invoices go out from Omar's billing alias (replies land in his inbox). */
+export const BILLING_FROM = 'Grow The Hype Accounting <accounting@growthehype.ca>'
 const long = (d: string) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-CA', { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' })
 const monthName = (d: string) => new Date(d + 'T12:00:00Z').toLocaleDateString('en-CA', { timeZone: 'UTC', month: 'long', year: 'numeric' })
 const money = (n: number) => '$' + n.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -120,13 +123,13 @@ export async function buildInvoice(p: Plan, opts: { issueDate?: string; num?: st
 
   const pay = p.payment_instructions.trim().replace(/[.\s]+$/, '') + '.'
   const hi = firstName(contact) ? `Hi ${firstName(contact)},` : 'Hello,'
-  const late = due < today()
-  const dueLine = due === issue ? 'Due: on receipt' : `Due: ${long(due)}`
+
+  const dueLine = due === issue ? 'Due: on receipt' : `Due by: ${long(due)}`
   const subject = p.cadence === 'monthly'
     ? `${client.name}: website hosting for ${monthName(period)} (invoice ${num})`
     : `${client.name}: your website hosting renews ${long(period)} (invoice ${num})`
   const body = p.cadence === 'monthly'
-    ? `${hi}\n\nPlease see the attached invoice for website hosting for ${monthName(period)}.${late ? ' Just a friendly note that this one is now past due.' : ''}\n\nInvoice: ${num}\nAmount: ${money(total)} (includes ${money(tax)} GST)\n${late ? 'Due: now' : dueLine}\n\n${pay}\n\nThank you!`
+    ? `${hi}\n\nPlease see the attached invoice for website hosting for ${monthName(period)}.\n\nInvoice: ${num}\nAmount: ${money(total)} (includes ${money(tax)} GST)\n${dueLine}\n\n${pay}\n\nThank you!`
     : `${hi}\n\nA quick heads-up that your yearly website hosting renews on ${long(period)}. The renewal invoice is attached and covers ${label}.\n\nInvoice: ${num}\nAmount: ${money(total)} (includes ${money(tax)} GST)\n${dueLine}\n\n${pay}\n\nThank you for another year with us. If anything about your site or hosting should change before the renewal, just reply here and we will sort it out.`
   return { client, to, cc: p.cc || '', problems, issue, due, period, sub, tax, total, num, notes, pdfBase64, subject, body, label }
 }
@@ -149,7 +152,7 @@ export async function billPlan(p: Plan, opts: { forceDraft?: boolean } = {}) {
     const autoOk = p.verified && p.auto_send && !opts.forceDraft && b.problems.length === 0
     let detail = ''
     if (autoOk) {
-      const sent = await sendEmail(p.user_id, { to: b.to, cc: b.cc || undefined, subject: b.subject, body: b.body, attachments: [{ filename: `Invoice-${b.num}.pdf`, contentType: 'application/pdf', base64: b.pdfBase64 }] })
+      const sent = await sendEmail(p.user_id, { from: BILLING_FROM, to: b.to, cc: b.cc || undefined, subject: b.subject, body: b.body, attachments: [{ filename: `Invoice-${b.num}.pdf`, contentType: 'application/pdf', base64: b.pdfBase64 }] })
       await sb.from('invoices').update({ status: 'sent', sent_date: b.issue }).eq('id', inv.id)
       detail = `sent to ${b.to}${b.cc ? ` (cc ${b.cc})` : ''} · gmail ${sent.id}`
     } else {
@@ -219,7 +222,7 @@ export async function sendWaitingInvoice(userId: string, invoiceId: string, opts
   if (inv.status !== 'draft') throw new Error(`Invoice ${inv.num} is already ${inv.status}`)
   if (b.problems.length) throw new Error(b.problems.join('; '))
   if (Math.abs(b.total - Number(inv.amount)) > 0.009) throw new Error(`The plan amount changed since this invoice was made (${money(Number(inv.amount))} on the invoice, ${money(b.total)} now). Edit the invoice or plan first.`)
-  const sent = await sendEmail(userId, { to: b.to, cc: b.cc || undefined, subject: b.subject, body: b.body, attachments: [{ filename: `Invoice-${b.num}.pdf`, contentType: 'application/pdf', base64: b.pdfBase64 }] })
+  const sent = await sendEmail(userId, { from: BILLING_FROM, to: b.to, cc: b.cc || undefined, subject: b.subject, body: b.body, attachments: [{ filename: `Invoice-${b.num}.pdf`, contentType: 'application/pdf', base64: b.pdfBase64 }] })
   await sb.from('invoices').update({ status: 'sent' }).eq('id', inv.id)
   await sb.from('hosting_log').update({ detail: `sent to ${b.to}${b.cc ? ` (cc ${b.cc})` : ''} · approved · gmail ${sent.id}` }).eq('plan_id', plan.id).eq('period', n.hosting_period).eq('kind', 'invoice')
   if (opts.trustPlan) await sb.from('hosting_plans').update({ verified: true, updated_at: new Date().toISOString() }).eq('id', plan.id)

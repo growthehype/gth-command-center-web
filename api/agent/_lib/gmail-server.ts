@@ -55,6 +55,8 @@ interface SendEmailParams {
   cc?: string
   subject: string
   body: string
+  /** Send from one of Omar's Gmail aliases, e.g. "Grow The Hype Accounting <accounting@growthehype.ca>" */
+  from?: string
   replyToMessageId?: string
   threadId?: string
   /** Extra HTML appended after the signature (e.g. CASL opt-out line) */
@@ -68,6 +70,7 @@ function buildMime(params: SendEmailParams, signature = GTH_EMAIL_SIGNATURE): st
   const htmlBody = linkify(escapeHtml(params.body)).replace(/\n/g, '<br>')
   const html = `<html><body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #222;">${htmlBody}${signature}${params.footerHtml || ''}</body></html>`
   const headers = [
+    ...(params.from ? [`From: ${encodeHeader(params.from)}`] : []),
     `To: ${params.to}`,
     ...(params.cc ? [`Cc: ${params.cc}`] : []),
     `Subject: ${encodeHeader(params.subject)}`,
@@ -119,19 +122,20 @@ function encodeHeader(v: string): string {
 }
 
 /** Omar's own signature as set in Gmail (default send-as address). Falls back to the built-in copy. */
-export async function gmailSignature(token: string): Promise<string> {
+export async function gmailSignature(token: string, from?: string): Promise<string> {
   try {
     const r = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs', { headers: { Authorization: `Bearer ${token}` } })
     if (!r.ok) return GTH_EMAIL_SIGNATURE
     const d: any = await r.json()
-    const sig = (d.sendAs || []).find((x: any) => x.isDefault)?.signature || (d.sendAs || []).find((x: any) => x.isPrimary)?.signature
+    const addr = (from || '').match(/<([^>]+)>/)?.[1] || from || ''
+    const sig = (addr && (d.sendAs || []).find((x: any) => x.sendAsEmail?.toLowerCase() === addr.toLowerCase())?.signature) || (d.sendAs || []).find((x: any) => x.isDefault)?.signature || (d.sendAs || []).find((x: any) => x.isPrimary)?.signature
     return sig ? `<br><br><div class="gmail_signature">${sig}</div>` : GTH_EMAIL_SIGNATURE
   } catch { return GTH_EMAIL_SIGNATURE }
 }
 
 export async function sendEmail(userId: string, params: SendEmailParams): Promise<{ id: string; threadId: string; rfcMessageId: string | null }> {
   const token = await getAccessToken(userId)
-  const mimeMessage = buildMime(params, await gmailSignature(token))
+  const mimeMessage = buildMime(params, await gmailSignature(token, params.from))
 
   const encoded = Buffer.from(mimeMessage, 'utf-8').toString('base64url')
 
@@ -173,7 +177,7 @@ export async function sendEmail(userId: string, params: SendEmailParams): Promis
 /** Put a ready-to-send email into Omar's Gmail Drafts, with his signature. */
 export async function createDraft(userId: string, params: SendEmailParams): Promise<{ draftId: string; messageId: string; threadId: string }> {
   const token = await getAccessToken(userId)
-  const mime = buildMime(params, await gmailSignature(token))
+  const mime = buildMime(params, await gmailSignature(token, params.from))
   const message: any = { raw: Buffer.from(mime, 'utf-8').toString('base64url') }
   if (params.threadId) message.threadId = params.threadId
 
@@ -193,7 +197,7 @@ export async function createDraft(userId: string, params: SendEmailParams): Prom
 /** Replace the content of a draft that is still in Omar's Drafts. Returns null if the draft is gone. */
 export async function updateDraft(userId: string, draftId: string, params: SendEmailParams): Promise<{ draftId: string; messageId: string; threadId: string } | null> {
   const token = await getAccessToken(userId)
-  const message: any = { raw: Buffer.from(buildMime(params, await gmailSignature(token)), 'utf-8').toString('base64url') }
+  const message: any = { raw: Buffer.from(buildMime(params, await gmailSignature(token, params.from)), 'utf-8').toString('base64url') }
   if (params.threadId) message.threadId = params.threadId
   const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/drafts/${draftId}`, {
     method: 'PUT',
