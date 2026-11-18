@@ -4,11 +4,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
 import { getAdminClient } from './agent/_lib/supabase-admin'
-import { createDraft } from './agent/_lib/gmail-server'
+import { createDraft, sendEmail } from './agent/_lib/gmail-server'
 import { generateInvoicePDF } from './agent/_lib/invoice-pdf'
 import { runCalendarTime } from './agent/_lib/calendar-time'
 import { runInboxTasks } from './agent/_lib/inbox-tasks'
-import { runHosting, buildInvoice, billPlan, sendWaitingInvoice, rebuildSaved, type Plan } from './agent/_lib/hosting'
+import { runHosting, buildInvoice, billPlan, sendWaitingInvoice, rebuildSaved, BILLING_FROM, type Plan } from './agent/_lib/hosting'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -30,6 +30,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const inbox = await runInboxTasks({ days: Number(body.days) || 2 })
       const meetings = await runCalendarTime({ days: 2 }).catch((e: any) => ({ error: String(e?.message || e) }))
       return res.status(200).json({ inbox, meetings })
+    }
+    // Test copy of a plan's next invoice email, sent only to Omar's own address (nothing is saved)
+    if (body.testSend) {
+      const to = String(body.to || '').trim().toLowerCase()
+      if (!/^[a-z0-9._%+-]+@growthehype\.ca$/.test(to)) return res.status(400).json({ error: 'Tests only go to a growthehype.ca address' })
+      const { data: plan } = await sb.from('hosting_plans').select('*').eq('id', String(body.testSend)).single()
+      if (!plan) return res.status(404).json({ error: 'Plan not found' })
+      const b = await buildInvoice(plan as Plan)
+      const sent = await sendEmail((plan as Plan).user_id, { from: BILLING_FROM, to, subject: `TEST (would go to ${b.to}): ${b.subject}`, body: b.body, attachments: [{ filename: `Invoice-${b.num}.pdf`, contentType: 'application/pdf', base64: b.pdfBase64 }] })
+      return res.status(200).json({ sent: sent.id, wouldGoTo: b.to, issue: b.issue, due: b.due })
     }
     // Send one waiting hosting invoice that Omar approved in chat (hosting invoices only)
     if (body.sendWaiting) {
