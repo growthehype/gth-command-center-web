@@ -77,3 +77,20 @@ export async function moveOrRenameEvent(userId: string, a: { event_id: string; t
   const e: any = await gfetch(userId, `${API}/${encodeURIComponent(a.event_id)}?sendUpdates=none`, { method: 'PATCH', body: JSON.stringify(patch) })
   return { updated: true, title: e.summary, when: e.start?.dateTime ? local(e.start.dateTime) : e.start?.date }
 }
+
+/** Timed events that have already ended, with guests, for time tracking. */
+export async function pastTimedEvents(userId: string, days: number) {
+  const now = new Date()
+  const q = new URLSearchParams({ timeMin: new Date(now.getTime() - days * 86400000).toISOString(), timeMax: now.toISOString(), singleEvents: 'true', orderBy: 'startTime', maxResults: '250' })
+  const data: any = await gfetch(userId, `${API}?${q}`)
+  return (data?.items || [])
+    .filter((e: any) => e.status !== 'cancelled' && e.start?.dateTime && e.end?.dateTime && new Date(e.end.dateTime) <= now)
+    .filter((e: any) => !(e.attendees || []).some((a: any) => a.self && a.responseStatus === 'declined'))
+    .map((e: any) => ({
+      id: String(e.id), title: String(e.summary || '(no title)'), description: String(e.description || '').slice(0, 300), location: e.location || '',
+      start: e.start.dateTime as string, end: e.end.dateTime as string,
+      minutes: Math.round((new Date(e.end.dateTime).getTime() - new Date(e.start.dateTime).getTime()) / 60000),
+      guests: (e.attendees || []).filter((a: any) => !a.self && a.email).map((a: any) => String(a.email).toLowerCase()),
+      date: new Date(e.start.dateTime).toLocaleDateString('en-CA', { timeZone: TZ }),
+    }))
+}

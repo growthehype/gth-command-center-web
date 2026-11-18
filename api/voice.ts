@@ -21,7 +21,7 @@ How to answer:
 
 const RUNDOWN = `Give me my rundown for right now: the most important things that need me, anything I'm waiting on that's due a check-in, today's meetings and appointments, money that's outstanding, and what's coming up this week. Start with a short greeting that fits the time of day. Use get_overview and list_calendar (today and the next few days) first.`
 
-const READ_ONLY = new Set(['get_overview', 'find_client', 'list_tasks', 'list_projects', 'list_invoices', 'list_calendar'])
+const READ_ONLY = new Set(['get_overview', 'find_client', 'list_tasks', 'list_projects', 'list_invoices', 'list_calendar', 'time_summary'])
 const anthropicTools = TOOLS.map(t => ({ name: t.name, description: t.description, input_schema: t.inputSchema }))
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

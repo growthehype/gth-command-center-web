@@ -170,6 +170,28 @@ export const TOOLS = [
     }, required: ['name'] },
   },
   {
+    name: 'log_work',
+    description: "Record time spent on client work so Omar can see hours and profit per client. Call it whenever work for a client is finished in a conversation (one entry per piece of work). kind 'claude' = work done with Claude: give claude_minutes (honest estimate of the actual working time in this conversation, including Omar's back and forth) and human_hours (how long a skilled agency team would need to do the same work by hand, without AI). kind 'omar' = Omar's own time he tells you about (calls, meetings, site visits, shoots): give minutes.",
+    inputSchema: { type: 'object', properties: {
+      client: { type: 'string' },
+      project: { type: 'string', description: 'Project title (optional)' },
+      kind: { type: 'string', enum: ['claude', 'omar'] },
+      description: { type: 'string', description: 'What was done, e.g. "Homepage v2 design and build"' },
+      work_type: { type: 'string', enum: ['design', 'development', 'copywriting', 'strategy', 'ads', 'email', 'admin', 'meeting', 'video', 'other'] },
+      claude_minutes: { type: 'number' },
+      human_hours: { type: 'number' },
+      minutes: { type: 'number', description: "For kind 'omar': his time in minutes" },
+      date: { type: 'string', description: 'YYYY-MM-DD (default today)' },
+      billable: { type: 'boolean', description: 'Default true' },
+    }, required: ['client', 'kind', 'description'] },
+  },
+  {
+    name: 'time_summary',
+    description: 'Hours and money per client for a date range: revenue paid, Omar\'s hours, Claude hours, human-equivalent hours and effective hourly rate.',
+    inputSchema: { type: 'object', properties: { start_date: { type: 'string' }, end_date: { type: 'string' }, client: { type: 'string' } } },
+    annotations: { readOnlyHint: true },
+  },
+  {
     name: 'list_invoices',
     description: 'List invoices with their status (draft, sent, paid, overdue).',
     inputSchema: { type: 'object', properties: { client: { type: 'string' }, status: { type: 'string', enum: ['draft', 'sent', 'paid', 'overdue', 'unpaid', 'all'] }, limit: { type: 'number' } } },
@@ -433,6 +455,68 @@ async function createInvoiceDraft(userId: string, a: Args) {
   return { created: true, invoice: num, client: c.name, subtotal: money(sub), gst: money(total - sub), total: money(total), status: 'draft (not sent; Omar sends it from the Invoices page)' }
 }
 
+async function logWork(userId: string, a: Args) {
+  const sb = getAdminClient()
+  const c = await resolveClient(userId, a.client)
+  const desc = str(a.description, 300)
+  if (!desc) throw new ToolError('Say what the work was.')
+  let projectId: string | null = null
+  if (a.project) {
+    const { data } = await sb.from('projects').select('id').eq('user_id', userId).eq('client_id', c.id).ilike('title', `%${str(a.project, 120).replace(/[%_]/g, '')}%`).limit(1)
+    projectId = data?.[0]?.id || null
+  }
+  if (!projectId) {
+    const { data } = await sb.from('projects').select('id').eq('user_id', userId).eq('client_id', c.id).neq('status', 'done').order('updated_at', { ascending: false }).limit(2)
+    if (data?.length === 1) projectId = data[0].id
+  }
+  const day = date(a.date, 'date') || today()
+  const isClaude = a.kind !== 'omar'
+  const minutes = Math.round(Number(isClaude ? a.claude_minutes : a.minutes) || 0)
+  if (!(minutes > 0) || minutes > 24 * 60) throw new ToolError(isClaude ? 'claude_minutes must be between 1 and 1440.' : 'minutes must be between 1 and 1440.')
+  const human = isClaude ? Math.round((Number(a.human_hours) || 0) * 60) : minutes
+  if (isClaude && !(human > 0)) throw new ToolError('human_hours is required for Claude work.')
+  const start = new Date(`${day}T12:00:00Z`)
+  const { data, error } = await sb.from('time_entries').insert({
+    user_id: userId, client_id: c.id, project_id: projectId, source: isClaude ? 'claude' : 'manual',
+    started_at: start.toISOString(), ended_at: new Date(start.getTime() + minutes * 60000).toISOString(),
+    duration_minutes: minutes, human_minutes: human, work_type: a.work_type || null, description: desc, notes: desc, billable: a.billable !== false,
+  }).select('id').single()
+  if (error) throw new ToolError(error.message)
+  await logActivity(userId, 'create', `${c.name}: ${desc} (${isClaude ? `Claude ${minutes} min, ${Math.round(human / 6) / 10} h by hand` : `${minutes} min of your time`})`, 'time', data.id)
+  await touchClient(c.id)
+  return { logged: true, client: c.name, minutes, human_equivalent_hours: Math.round(human / 6) / 10 }
+}
+
+async function timeSummary(userId: string, a: Args) {
+  const sb = getAdminClient()
+  const t = today()
+  const start = date(a.start_date, 'start_date') || `${t.slice(0, 7)}-01`
+  const end = date(a.end_date, 'end_date') || t
+  const names = await clientNames(userId)
+  let tq = sb.from('time_entries').select('client_id, source, duration_minutes, human_minutes, billable').eq('user_id', userId).gte('started_at', `${start}T00:00:00Z`).lte('started_at', `${end}T23:59:59Z`)
+  let iq = sb.from('invoices').select('client_id, amount, paid_at, notes').eq('user_id', userId).eq('status', 'paid').gte('paid_at', `${start}T00:00:00Z`).lte('paid_at', `${end}T23:59:59Z`)
+  if (a.client) { const c = await resolveClient(userId, a.client); tq = tq.eq('client_id', c.id); iq = iq.eq('client_id', c.id) }
+  const [{ data: te }, { data: inv }] = await Promise.all([tq, iq])
+  const rows: Record<string, any> = {}
+  const row = (id: string) => (rows[id] = rows[id] || { client: names.get(id) || 'No client', revenue: 0, omar_hours: 0, claude_hours: 0, human_equivalent_hours: 0 })
+  for (const e of te || []) {
+    const r = row(e.client_id || 'none')
+    const m = Number(e.duration_minutes) || 0
+    if (e.source === 'claude') { r.claude_hours += m / 60; r.human_equivalent_hours += (Number(e.human_minutes) || m) / 60 }
+    else { r.omar_hours += m / 60; r.human_equivalent_hours += m / 60 }
+  }
+  for (const i of inv || []) {
+    // Revenue before GST
+    let tax = 5; try { tax = Number(JSON.parse(i.notes || '{}').tax_rate ?? 5) } catch { /* default GST */ }
+    row(i.client_id || 'none').revenue += Number(i.amount) / (1 + tax / 100)
+  }
+  const out = Object.values(rows).map((r: any) => ({
+    ...r, revenue: money(r.revenue), omar_hours: Math.round(r.omar_hours * 10) / 10, claude_hours: Math.round(r.claude_hours * 10) / 10, human_equivalent_hours: Math.round(r.human_equivalent_hours * 10) / 10,
+    per_hour_of_your_time: r.omar_hours + r.claude_hours > 0 ? money(r.revenue / (r.omar_hours + r.claude_hours)) : null,
+  }))
+  return { from: start, to: end, clients: out }
+}
+
 export async function callTool(userId: string, name: string, args: Args) {
   switch (name) {
     case 'get_overview': return getOverview(userId)
@@ -461,6 +545,8 @@ export async function callTool(userId: string, name: string, args: Args) {
     case 'update_client': return updateClient(userId, args)
     case 'add_client': return addClient(userId, args)
     case 'list_invoices': return listInvoices(userId, args)
+    case 'log_work': return logWork(userId, args)
+    case 'time_summary': return timeSummary(userId, args)
     case 'create_invoice_draft': return createInvoiceDraft(userId, args)
     default: throw new ToolError(`Unknown tool ${name}`)
   }
@@ -471,6 +557,7 @@ export const SERVER_INSTRUCTIONS = `This is Omar's Command Center, the CRM for G
 - When something goes to a client or prospect and Omar is now waiting on them (a proposal, a site to approve, a meeting to book), add_task with waiting=true, e.g. "Waiting on Wendy to approve the new website", due on the day to check in. New prospects get add_client with status prospect first.
 - Before adding a task or client, check with find_client so nothing is duplicated.
 - Use clear, short task names in plain Canadian English.
+- Track time: whenever you finish a piece of work for a client in a conversation, call log_work with kind 'claude', an honest claude_minutes for the session and the human_hours a skilled agency would need by hand. When Omar mentions his own time (a call, a meeting, a shoot), log it with kind 'omar'. Calendar meetings with clients are logged automatically, so don't log those twice.
 - Invoices are only ever created as drafts. Never claim an email or invoice was sent.
 - When Omar asks what's on his plate, call get_overview, and list_calendar for today's meetings.
 - You can add or move events in his Google Calendar (no guests, no invitations). Confirm the day and time back to him.`

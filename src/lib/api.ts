@@ -627,6 +627,22 @@ export const timeEntries = {
     if (error) throw error
     return { success: true, duration }
   },
+  /** Omar's own time (a call, a meeting, a site visit) logged after the fact. */
+  async addManual(d: { client_id: string; project_id?: string | null; date: string; minutes: number; description: string; work_type?: string; billable?: boolean }) {
+    const userId = await uid()
+    const start = new Date(`${d.date}T12:00:00`)
+    const { data, error } = await supabase.from('time_entries').insert({
+      user_id: userId, client_id: d.client_id, project_id: d.project_id || null, source: 'manual',
+      started_at: start.toISOString(), ended_at: new Date(start.getTime() + d.minutes * 60000).toISOString(), duration_minutes: d.minutes, human_minutes: d.minutes,
+      description: d.description, notes: d.description, work_type: d.work_type || null, billable: d.billable !== false,
+    }).select().single()
+    if (error) throw error
+    return data
+  },
+  async remove(id: string) {
+    const { error } = await supabase.from('time_entries').delete().eq('id', id)
+    if (error) throw error
+  },
   async getRunning() {
     const userId = await uid()
     const { data, error } = await supabase.from('time_entries').select('*, projects(title), clients(name)').eq('user_id', userId).eq(...scope()).is('ended_at', null).limit(1).single()
