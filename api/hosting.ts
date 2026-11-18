@@ -31,6 +31,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const meetings = await runCalendarTime({ days: 2 }).catch((e: any) => ({ error: String(e?.message || e) }))
       return res.status(200).json({ inbox, meetings })
     }
+    // Self-check of the Claude work clock: start, wait, log, then remove the test entry
+    if (body.selfTest === 'timing') {
+      const { callTool } = await import('./agent/_lib/crm-tools')
+      const { data: owner } = await sb.from('integrations').select('user_id').eq('provider', 'gmail').limit(1).maybeSingle()
+      const uid = owner!.user_id
+      const { data: cl } = await sb.from('clients').select('name').eq('user_id', uid).eq('status', 'active').limit(1).single()
+      const s1: any = await callTool(uid, 'start_work', { client: cl!.name, description: 'Clock self-test' })
+      await new Promise(r => setTimeout(r, 4000))
+      const l1 = await callTool(uid, 'log_work', { kind: 'claude', work_id: s1.work_id, description: 'Clock self-test', human_hours: 0.5 })
+      const s2 = await callTool(uid, 'start_work', { work_id: s1.work_id })
+      await new Promise(r => setTimeout(r, 2000))
+      const l2 = await callTool(uid, 'log_work', { kind: 'claude', work_id: s1.work_id, description: 'Clock self-test round 2', human_hours: 0.5 })
+      const { data: row } = await sb.from('time_entries').select('id, duration_minutes, timing, segments').eq('work_id', s1.work_id).single()
+      await sb.from('time_entries').delete().eq('id', row!.id)
+      await sb.from('activity_log').delete().eq('entity_id', row!.id)
+      return res.status(200).json({ s1, l1, s2, l2, row })
+    }
     // Log finished client meetings from Google Calendar as time (backfill with days)
     if (body.calendarTime) return res.status(200).json(await runCalendarTime({ days: Number(body.days) || 2 }))
     if (body.preview) {
