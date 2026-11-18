@@ -58,6 +58,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const body = (req.body ?? {}) as any
     if (body.publish && body.slug && body.leadId) {
       const r = await publishBundled(String(body.slug), String(body.leadId))
+      const { redraftAfterConcept } = await import('./_lib/email-generator')
+      await redraftAfterConcept(String(body.leadId)).catch(() => null)
       return res.status(200).json(r)
     }
     // Rewrite one lead's unsent emails with the current voice (never sends)

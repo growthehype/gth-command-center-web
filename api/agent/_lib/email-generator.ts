@@ -425,6 +425,22 @@ export async function draftForLead(params: { userId: string; agentConfig: any; l
   return { drafted: r.drafts, flagged: !!r.flagged }
 }
 
+/** A homepage concept just went live: rewrite the lead's unsent first email so it carries the preview link. */
+export async function redraftAfterConcept(leadId: string) {
+  const sb = getAdminClient()
+  const { data: lead } = await sb.from('outreach_leads').select('id, user_id, agent_config_id, email').eq('id', leadId).single()
+  if (!lead?.email || !lead.agent_config_id) return { skipped: 'no email or agent' }
+  const { data: seqs } = await sb.from('outreach_sequences').select('id').eq('lead_id', leadId)
+  const ids = (seqs || []).map((x: any) => x.id)
+  if (ids.length) {
+    const { count } = await sb.from('outreach_steps').select('id', { count: 'exact', head: true }).in('sequence_id', ids).eq('status', 'sent')
+    if ((count || 0) > 0) return { skipped: 'already emailed' }
+  }
+  const { data: cfg } = await sb.from('agent_configs').select('*').eq('id', lead.agent_config_id).single()
+  if (!cfg) return { skipped: 'agent not found' }
+  return draftForLead({ userId: lead.user_id, agentConfig: cfg, leadId })
+}
+
 // ─── Main Export ────────────────────────────────────────────────
 
 export async function generateOutreach(params: GenerateParams): Promise<GenerateResult & { skippedNoEmail?: number; flaggedForReview?: number; errors?: string[] }> {

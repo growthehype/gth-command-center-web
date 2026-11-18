@@ -48,13 +48,13 @@ THE FEELING
 
 THE SEQUENCE (three emails, same thread)
 1) First email, 60 to 130 words, in this order:
-   - "Hi {first name}," if a contact first name is given, otherwise "Hi there,". Then a warm, human line like "Hope you're having a great day." (vary it naturally).
-   - A sincere compliment that sounds like a person, not a report. Never quote the rating or the number of reviews. Say it the way you would to a neighbour, e.g. "Your Google reviews are glowing, it's clear people love working with you." or "It's obvious from your reviews that your customers really trust you." If reviews are thin, compliment something real from the brief (how long they've been around, what they're known for, their part of town). Never invent anything.
-   - Why he is writing, in one or two relaxed sentences: he was on their website and saw an opportunity to show them something that might feel more like them. Vary the wording. Never say "I came across" or "I stumbled upon".
-   - What his websites are built for, in one plain sentence: they work well on phones, load fast, are set up to be found on Google, and make it easy for people to call, book or ask for a quote (pick the action that fits their business).
-   - If a homepage concept link is given: share it as a preview of their new homepage made with their own details, on its own line, e.g. "Here's a preview of what your homepage could look like:" then the link.
-   - Point them to our website so they can see who we are, on its own line: growthehype.ca (e.g. "You can see more of what we do here:" then growthehype.ca). Never share other websites we built.
-   - A soft close: if they're interested in chatting, he'd love to connect. ${booking ? `He may offer his booking link once: ${booking}` : 'No other links.'} Then one short thank you line, e.g. "Thanks for taking a minute to read this."
+   - "Hi {first name}," if a contact first name is given, otherwise "Hi there,". Then "Hope you're having a great day." or a natural variation.
+   - Why he is writing, plainly: he was on their website and saw an opportunity to show them something that might suit them better. One or two sentences. Never say "I came across" or "I stumbled upon".
+   - If a homepage concept link is given, this is the heart of the email: he put together a preview of what their homepage could look like, using their own details, then the link on its own line.
+   - What his websites are built for, in one plain sentence: they work well on phones, load fast, are set up to be found on Google, and make it easy for people to call, book or ask for a quote (pick what fits their business).
+   - Our website on its own line so they can see who we are: "You can see more of what we do here:" then growthehype.ca. Never share other websites we built.
+   - Near the end, ONE short, understated line about them that a real person would say, only if it's true from the brief, e.g. "Looks like your customers really like working with you." or "You've clearly built a good name around here." Keep it low-key. No superlatives, no "glowing", no "it's clear", no "something to be proud of", no "says a lot", never quote ratings or review counts. Skip it if nothing real fits.
+   - Close: if they're interested in chatting, he'd love to connect. ${booking ? `He may offer his booking link once: ${booking}` : ''} Then a short thank you, e.g. "Thanks for taking a minute to read this."
    - No sign-off name: Omar's Gmail signature is added below.
 2) Follow-up, sent a few days later, 25 to 70 words: kind and light. Say he wanted to make sure his note didn't get buried, share the preview link again on its own line if there is one, and make it clear there's no pressure. No new pitch, no criticism, no guilt. Never say "just checking in". No name sign-off.
 3) Final note, 15 to 50 words: gracious and warm. He'll leave it here so he isn't filling their inbox, the door is always open if they ever want to talk about their website, and he wishes them a great season or a great week. No pressure, nothing that sounds disappointed. No name sign-off.
@@ -98,6 +98,10 @@ const BANNED: { re: RegExp; label: string }[] = [
   { re: /circle back/i, label: 'circle back' },
   { re: /hope (this|the) (email|message|note)? ?finds you/i, label: 'hope this finds you' },
   { re: /i came across/i, label: 'I came across' },
+  { re: /\bglowing\b/i, label: 'glowing (sounds fake)' },
+  { re: /\bit'?s clear (that )?/i, label: "it's clear (sounds fake)" },
+  { re: /something to be proud of|says a lot/i, label: 'cheesy compliment' },
+  { re: /\bfor generations\b/i, label: 'for generations' },
   { re: /\b\d(\.\d)?\s*(star|rating)|\b\d+\s+(google\s+)?reviews/i, label: 'quoting the rating or review count (sounds like a bot)' },
   { re: /stumbled (up)?on/i, label: 'stumbled upon' },
   { re: /just checking in/i, label: 'just checking in' },

@@ -932,7 +932,7 @@ export async function advancePreview(leadId: string, opts: { deadline: number; r
       return await savePreviewState(leadId, { status: 'failed', review, error: `Did not reach the bar after three designs (best review ${r.score}/10)`, step: 'done' } as any)
     }
     await put(`${slug}/index.html`, r.html, 'text/html; charset=utf-8')
-    return await savePreviewState(leadId, {
+    const saved = await savePreviewState(leadId, {
       status: 'ready',
       url: `${PREVIEW_HOST}/${slug}/`,
       built_at: new Date().toISOString(),
@@ -940,6 +940,9 @@ export async function advancePreview(leadId: string, opts: { deadline: number; r
       error: null,
       step: 'done',
     } as any)
+    // Put the preview link into the lead's first email straight away (drafts only, never sends)
+    try { const { redraftAfterConcept } = await import('./email-generator'); await redraftAfterConcept(leadId) } catch { /* the draft can be rewritten by hand */ }
+    return saved
   } catch (err: any) {
     const msg = String(err?.message || err).slice(0, 300)
     const errors = ((state as any).errors || 0) + 1
