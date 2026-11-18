@@ -75,7 +75,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         try {
           if (agentToken && !READ_ONLY.has(u.name)) throw new ToolError('Read only')
           const out = await callTool(user.id, u.name, u.input || {})
-          if (!/^(get_|find_|list_)/.test(u.name)) changed.push(u.name)
+          if (!/^(get_|find_|list_|time_summary)/.test(u.name)) changed.push(u.name)
           results.push({ type: 'tool_result', tool_use_id: u.id, content: JSON.stringify(out).slice(0, 12000) })
         } catch (e: any) {
           results.push({ type: 'tool_result', tool_use_id: u.id, is_error: true, content: e instanceof ToolError ? e.message : 'That lookup failed.' })
