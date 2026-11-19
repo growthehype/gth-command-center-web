@@ -428,8 +428,9 @@ export async function draftForLead(params: { userId: string; agentConfig: any; l
 /** A homepage concept just went live: rewrite the lead's unsent first email so it carries the preview link. */
 export async function redraftAfterConcept(leadId: string) {
   const sb = getAdminClient()
-  const { data: lead } = await sb.from('outreach_leads').select('id, user_id, agent_config_id, email').eq('id', leadId).single()
+  const { data: lead } = await sb.from('outreach_leads').select('id, user_id, agent_config_id, email, stage, enrichment_data').eq('id', leadId).single()
   if (!lead?.email || !lead.agent_config_id) return { skipped: 'no email or agent' }
+  if (lead.enrichment_data?.user_feedback === 'bad' || lead.stage === 'skipped') return { skipped: 'marked not a fit' }
   const { data: seqs } = await sb.from('outreach_sequences').select('id').eq('lead_id', leadId)
   const ids = (seqs || []).map((x: any) => x.id)
   if (ids.length) {
