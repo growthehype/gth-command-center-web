@@ -85,7 +85,8 @@ export default function ConceptPanel({ lead, canRewriteEmails, onRewriteEmails }
   void canRewriteEmails; void onRewriteEmails
 
   const idx = stageIndex(preview)
-  const ready = preview?.status === 'ready' && preview?.url
+  // A concept Omar rejected counts as no concept: build a new one in Claude
+  const ready = preview?.status === 'ready' && preview?.url && !preview?.rejected
   // Concepts are built by hand in a Claude chat now; the CRM only holds the link
   const building = false
   const prompt = `Pull the lead brief for "${lead.name}" from the Command Center (get_lead_brief) and build their homepage concept to the Grow The Hype build standard it includes, the same level as our NAKH (nakh-collective.netlify.app, nakh-wellness.netlify.app, nakh-institute.netlify.app), Ideal Integration (idealintegration.netlify.app), Tetz Powell (tetzpowell.netlify.app), T&C (tccpa.ca), Granville House (granvillehousemontessori.com) and Sumar (sumarfinancial.netlify.app) builds. Open those sites first and match their craft, not their look.
@@ -116,7 +117,7 @@ It has to look like a $250,000 custom build, 10 out of 10, with nothing that rea
           <p className="cp-sub">
             {ready
               ? `Built ${preview.built_at ? relativeDate(preview.built_at) : ''} from their own logo, photos and details${score ? ` · review ${score}/10` : ''}`
-              : 'Build it in a Claude chat: copy the prompt, paste it in a new chat, then save the live link here.'}
+              : 'Build in Claude opens a new chat with the full brief request. When the concept is approved, save its link here.'}
           </p>
         </div>
         <div className="cp-actions">
@@ -131,7 +132,8 @@ It has to look like a $250,000 custom build, 10 out of 10, with nothing that rea
           )}
           {!ready && (
             <>
-              <button className="btn-primary" onClick={async () => { try { await navigator.clipboard.writeText(prompt); showToast('Prompt copied. Paste it in a new Claude chat.', 'success') } catch { window.prompt('Copy this into a new Claude chat', prompt) } }}><Sparkles size={13} /> Copy build prompt</button>
+              <a className="btn-primary" href={`https://claude.ai/new?q=${encodeURIComponent(prompt)}`} target="_blank" rel="noreferrer" onClick={() => { try { navigator.clipboard.writeText(prompt) } catch { /* the link carries it */ } }}><Sparkles size={13} /> Build in Claude</a>
+              <button className="btn-ghost" onClick={async () => { try { await navigator.clipboard.writeText(prompt); showToast('Prompt copied. Paste it in a new Claude chat.', 'success') } catch { window.prompt('Copy this into a new Claude chat', prompt) } }}><Copy size={13} /> Copy prompt</button>
               <button className="btn-ghost" onClick={attach} disabled={running}><Copy size={13} /> Save concept link</button>
             </>
           )}
