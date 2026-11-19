@@ -88,7 +88,7 @@ export default function ConceptPanel({ lead, canRewriteEmails, onRewriteEmails }
   const ready = preview?.status === 'ready' && preview?.url
   // Concepts are built by hand in a Claude chat now; the CRM only holds the link
   const building = false
-  const prompt = `Pull the lead brief for "${lead.name}" from the Command Center (get_lead_brief) and build their homepage concept to the Grow The Hype build standard it includes, the same level as our Tetz Powell, NAKH, Ideal Integration, T&C and Granville House builds.
+  const prompt = `Pull the lead brief for "${lead.name}" from the Command Center (get_lead_brief) and build their homepage concept to the Grow The Hype build standard it includes, the same level as our NAKH (nakh-collective.netlify.app, nakh-wellness.netlify.app, nakh-institute.netlify.app), Ideal Integration (idealintegration.netlify.app), Tetz Powell (tetzpowell.netlify.app), T&C (tccpa.ca), Granville House (granvillehousemontessori.com) and Sumar (sumarfinancial.netlify.app) builds. Open those sites first and match their craft, not their look.
 
 Use the skills in the order the standard gives: site-architecture, impeccable (init, shape, then audit and polish), design-taste-frontend, frontend-design, high-end-visual-design (selectively), emil-design-eng, animate, find-animation-opportunities, mobile-native, copy-editing, seo-audit, ai-seo, page-cro, review-animations and full-output-enforcement.
 

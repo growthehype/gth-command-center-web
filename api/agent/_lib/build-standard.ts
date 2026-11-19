@@ -7,6 +7,18 @@ export const BUILD_STANDARD = `GROW THE HYPE BUILD STANDARD
 
 The bar: it must read like a $250,000 custom build, specific to this business. If any part looks like a template, a theme or an AI-generated site, it fails. Omar rates it 10 out of 10 or it does not ship.
 
+REFERENCE BUILDS (this is the bar)
+Open these live Grow The Hype sites in a browser before designing, at desktop and phone width, and scroll each one top to bottom. Match their level of craft: the type pairings, spacing, alignment, motion, hero treatment, interactive features and how real photography is used. Do not copy their look. Each business gets its own direction, built from its own logo, colours and story.
+- NAKH Collective (head site routing to two brands): https://nakh-collective.netlify.app/
+- NAKH Integrated Wellness: https://nakh-wellness.netlify.app/
+- NAKH Institute of Education: https://nakh-institute.netlify.app/
+- Ideal Integration (security integrator, video hero, signature animations): https://idealintegration.netlify.app/
+- Tetz Powell (accounting firm): https://tetzpowell.netlify.app/
+- T&C LLP (CPA one-pager): https://tccpa.ca/
+- Granville House Montessori (preschool): https://granvillehousemontessori.com/
+- Sumar Financial (CPA one-pager with a scroll-driven diagram): https://sumarfinancial.netlify.app/
+If a reference site cannot be opened from this chat, say so and ask Omar for screenshots rather than guessing what it looks like.
+
 HOW TO WORK
 - Run silently. Do not narrate steps. Deliver the finished work with a short summary.
 - Self-QA before delivering. If something is obviously off, fix it first rather than waiting for Omar to find it.
