@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUpRight, Copy, Loader2, RefreshCw, Sparkles, PenLine } from 'lucide-react'
+import { ArrowUpRight, Copy, Loader2, RefreshCw, Sparkles, PenLine, Check } from 'lucide-react'
 import type { OutreachLead } from '@/lib/store'
 import { useAppStore } from '@/lib/store'
 import { showToast } from '@/components/ui/Toast'
@@ -73,6 +73,17 @@ export default function ConceptPanel({ lead, canRewriteEmails, onRewriteEmails }
     } finally { if (alive.current) setRunning(false) }
   }
 
+  const decide = async (decision: 'approve' | 'reject') => {
+    setRunning(true)
+    try {
+      const p = await callPreview({ leadId: lead.id, decision })
+      if (p) setPreview(p)
+      showToast(decision === 'approve' ? `Approved. ${lead.name}'s first email now links the concept (still a draft).` : 'Taken out of the email.', 'success')
+      await useAppStore.getState().refreshLeads()
+    } catch (e: any) { showToast(e?.message || 'Could not save that', 'error') } finally { setRunning(false) }
+  }
+  void canRewriteEmails; void onRewriteEmails
+
   const idx = stageIndex(preview)
   const ready = preview?.status === 'ready' && preview?.url
   const building = running || (preview && !['ready', 'failed'].includes(preview.status))
@@ -101,6 +112,9 @@ export default function ConceptPanel({ lead, canRewriteEmails, onRewriteEmails }
               <a className="btn-primary" href={preview.url} target="_blank" rel="noreferrer"><ArrowUpRight size={13} /> Open concept</a>
               <button className="btn-ghost" onClick={async () => { try { await navigator.clipboard.writeText(preview.url); showToast('Link copied', 'success') } catch { /* blocked */ } }}><Copy size={13} /> Copy link</button>
               <button className="btn-ghost" onClick={() => setNotesOpen(o => !o)} disabled={running}><RefreshCw size={13} /> Redo</button>
+              {preview.approved
+                ? <button className="btn-ghost" onClick={() => decide('reject')} disabled={running}>Take it out of the email</button>
+                : <button className="btn-primary" onClick={() => decide('approve')} disabled={running}><Check size={13} /> Approve for the email</button>}
             </>
           )}
           {!ready && !building && (
@@ -131,11 +145,8 @@ export default function ConceptPanel({ lead, canRewriteEmails, onRewriteEmails }
         </a>
       )}
 
-      {ready && canRewriteEmails && (
-        <div className="cp-email">
-          <p>The emails were written before this concept existed.</p>
-          <button className="btn-ghost" onClick={onRewriteEmails} disabled={running}><PenLine size={13} /> Rewrite emails with the concept</button>
-        </div>
+      {ready && !preview.approved && (
+        <p className="cp-note">Not in any email yet. Look it over first: only concepts you approve are linked in the first email.</p>
       )}
 
       {notesOpen && (

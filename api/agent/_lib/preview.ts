@@ -954,8 +954,7 @@ export async function advancePreview(leadId: string, opts: { deadline: number; r
       error: null,
       step: 'done',
     } as any)
-    // Put the preview link into the lead's first email straight away (drafts only, never sends)
-    try { const { redraftAfterConcept } = await import('./email-generator'); await redraftAfterConcept(leadId) } catch { /* the draft can be rewritten by hand */ }
+    // The link goes into the email only after Omar approves the concept in the CRM
     return saved
   } catch (err: any) {
     const msg = String(err?.message || err).slice(0, 300)

@@ -58,8 +58,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const body = (req.body ?? {}) as any
     if (body.publish && body.slug && body.leadId) {
       const r = await publishBundled(String(body.slug), String(body.leadId))
-      const { redraftAfterConcept } = await import('./_lib/email-generator')
-      await redraftAfterConcept(String(body.leadId)).catch(() => null)
       return res.status(200).json(r)
     }
     // Rewrite one lead's unsent emails with the current voice (never sends)
@@ -141,10 +139,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: { user } } = await createClient(url, anon).auth.getUser(auth.slice(7))
   if (!user) return res.status(401).json({ error: 'Invalid token' })
 
-  const { leadId, rebuild, feedback } = (req.body ?? {}) as { leadId?: string; rebuild?: boolean; feedback?: string }
+  const { leadId, rebuild, feedback, decision } = (req.body ?? {}) as { leadId?: string; rebuild?: boolean; feedback?: string; decision?: 'approve' | 'reject' }
   if (!leadId) return res.status(400).json({ error: 'leadId required' })
-  const { data: lead } = await sb.from('outreach_leads').select('id, user_id').eq('id', leadId).single()
+  const { data: lead } = await sb.from('outreach_leads').select('id, user_id, enrichment_data').eq('id', leadId).single()
   if (!lead || lead.user_id !== user.id) return res.status(404).json({ error: 'Lead not found' })
+  // Omar's call on a finished concept: approve puts the link in the first email (draft), reject keeps it out
+  if (decision === 'approve' || decision === 'reject') {
+    const p = (lead.enrichment_data as any)?.preview
+    if (!p || p.status !== 'ready') return res.status(400).json({ error: 'There is no finished concept to approve' })
+    const next = { ...p, approved: decision === 'approve', approved_at: new Date().toISOString(), ...(decision === 'reject' ? { rejected: true } : { rejected: false }) }
+    await sb.from('outreach_leads').update({ enrichment_data: { ...(lead.enrichment_data as any), preview: next } }).eq('id', leadId)
+    const { redraftAfterConcept } = await import('./_lib/email-generator')
+    const r = await redraftAfterConcept(leadId).catch((e: any) => ({ error: String(e?.message || e) }))
+    return res.status(200).json({ ok: true, preview: next, emails: r })
+  }
   try {
     const notes = typeof feedback === 'string' && feedback.trim() ? feedback.split(/\n+/).map(s => s.trim()).filter(Boolean).slice(0, 12) : undefined
     const state = await advancePreview(leadId, { deadline, rebuild: !!rebuild, feedback: notes })

@@ -207,7 +207,7 @@ export async function loadLeadSequence(leadId: string): Promise<WorkStep[]> {
 }
 
 /** Homepage concept builder: each call does the next stage for one lead */
-export async function callPreview(body: { leadId: string; rebuild?: boolean; feedback?: string }) {
+export async function callPreview(body: { leadId: string; rebuild?: boolean; feedback?: string; decision?: 'approve' | 'reject' }) {
   const res = await fetch('/api/agent/preview', { method: 'POST', headers: await authHeaders(), body: JSON.stringify(body) })
   const raw = await res.text()
   let data: any = {}

@@ -177,7 +177,8 @@ function conceptPending(lead: any): boolean {
 
 function conceptUrl(lead: any): string | null {
   const p = lead.enrichment_data?.preview
-  return p?.status === 'ready' && p.url ? p.url : null
+  // Only a concept Omar has looked at and approved ever goes in an email
+  return p?.status === 'ready' && p.url && p.approved === true ? p.url : null
 }
 
 function gthLeadBrief(lead: any, proof: string | null, cfg: any = {}): string {
