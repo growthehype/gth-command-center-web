@@ -70,6 +70,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ ok: true, ...r })
       } catch (e: any) { return res.status(200).json({ ok: false, error: String(e?.message || e).slice(0, 300) }) }
     }
+    // Read a lead's website into a brief for a build chat (no concept is built)
+    if (body.scrapeLead) {
+      const { scrapeLeadSite } = await import('./_lib/lead-brief')
+      return res.status(200).json(await scrapeLeadSite(String(body.scrapeLead)))
+    }
     // Queue concepts for these leads; the builder below (and the cron) finishes them
     if (Array.isArray(body.startLeads)) {
       const { startPreview } = await import('./_lib/preview')
@@ -139,10 +144,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: { user } } = await createClient(url, anon).auth.getUser(auth.slice(7))
   if (!user) return res.status(401).json({ error: 'Invalid token' })
 
-  const { leadId, rebuild, feedback, decision } = (req.body ?? {}) as { leadId?: string; rebuild?: boolean; feedback?: string; decision?: 'approve' | 'reject' }
+  const { leadId, rebuild, feedback, decision, url: conceptLink } = (req.body ?? {}) as { leadId?: string; rebuild?: boolean; feedback?: string; decision?: 'approve' | 'reject' | 'attach'; url?: string }
   if (!leadId) return res.status(400).json({ error: 'leadId required' })
   const { data: lead } = await sb.from('outreach_leads').select('id, user_id, enrichment_data').eq('id', leadId).single()
   if (!lead || lead.user_id !== user.id) return res.status(404).json({ error: 'Lead not found' })
+  // A concept Omar built in a Claude chat: save its link as approved and put it in the first email (draft)
+  if (decision === 'attach') {
+    const link = String(conceptLink || '').trim()
+    if (!/^https:\/\/\S+$/i.test(link)) return res.status(400).json({ error: 'Paste the full https link' })
+    const e = (lead.enrichment_data as any) || {}
+    const next = { ...(e.preview || {}), status: 'ready', url: link, handmade: true, approved: true, rejected: false, approved_at: new Date().toISOString(), built_at: new Date().toISOString(), step: 'done', error: null }
+    await sb.from('outreach_leads').update({ enrichment_data: { ...e, preview: next } }).eq('id', leadId)
+    const { redraftAfterConcept } = await import('./_lib/email-generator')
+    const r = await redraftAfterConcept(leadId).catch((err: any) => ({ error: String(err?.message || err) }))
+    return res.status(200).json({ ok: true, preview: next, emails: r })
+  }
   // Omar's call on a finished concept: approve puts the link in the first email (draft), reject keeps it out
   if (decision === 'approve' || decision === 'reject') {
     const p = (lead.enrichment_data as any)?.preview

@@ -168,6 +168,9 @@ export function verifiedFindings(lead: any): string[] {
 
 /** A 70+ lead whose homepage concept is still being built (and hasn't given up). */
 function conceptPending(lead: any): boolean {
+  // Concepts are hand-built in Claude now, so emails never wait for one
+  void lead
+  return false
   if ((lead.qualification_score || 0) < PREVIEW_MIN_SCORE || !lead.website) return false
   const p = lead.enrichment_data?.preview
   if (!p) return true

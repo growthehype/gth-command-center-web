@@ -86,7 +86,20 @@ export default function ConceptPanel({ lead, canRewriteEmails, onRewriteEmails }
 
   const idx = stageIndex(preview)
   const ready = preview?.status === 'ready' && preview?.url
-  const building = running || (preview && !['ready', 'failed'].includes(preview.status))
+  // Concepts are built by hand in a Claude chat now; the CRM only holds the link
+  const building = false
+  const prompt = `Pull the lead brief for "${lead.name}" from the Command Center and build their homepage concept.`
+  const attach = async () => {
+    const url = window.prompt(`Paste the live link to ${lead.name}'s concept`)?.trim()
+    if (!url) return
+    setRunning(true)
+    try {
+      const p = await callPreview({ leadId: lead.id, decision: 'attach', url } as any)
+      if (p) setPreview(p)
+      showToast(`Saved. ${lead.name}'s first email now shares the concept (still a draft).`, 'success')
+      await useAppStore.getState().refreshLeads()
+    } catch (e: any) { showToast(e?.message || 'Could not save the link', 'error') } finally { setRunning(false) }
+  }
   const score = preview?.review?.score
 
   if (!lead.website) return null
@@ -99,11 +112,7 @@ export default function ConceptPanel({ lead, canRewriteEmails, onRewriteEmails }
           <p className="cp-sub">
             {ready
               ? `Built ${preview.built_at ? relativeDate(preview.built_at) : ''} from their own logo, photos and details${score ? ` · review ${score}/10` : ''}`
-              : building
-                ? 'Built from their own logo, photos and details, then checked in a real browser.'
-                : (lead.qualification_score || 0) >= 70
-                  ? 'Hot leads get one automatically. You can start it now.'
-                  : 'A new homepage for this business to send with the first email.'}
+              : 'Build it in a Claude chat: copy the prompt, paste it in a new chat, then save the live link here.'}
           </p>
         </div>
         <div className="cp-actions">
@@ -111,14 +120,16 @@ export default function ConceptPanel({ lead, canRewriteEmails, onRewriteEmails }
             <>
               <a className="btn-primary" href={preview.url} target="_blank" rel="noreferrer"><ArrowUpRight size={13} /> Open concept</a>
               <button className="btn-ghost" onClick={async () => { try { await navigator.clipboard.writeText(preview.url); showToast('Link copied', 'success') } catch { /* blocked */ } }}><Copy size={13} /> Copy link</button>
-              <button className="btn-ghost" onClick={() => setNotesOpen(o => !o)} disabled={running}><RefreshCw size={13} /> Redo</button>
               {preview.approved
                 ? <button className="btn-ghost" onClick={() => decide('reject')} disabled={running}>Take it out of the email</button>
                 : <button className="btn-primary" onClick={() => decide('approve')} disabled={running}><Check size={13} /> Approve for the email</button>}
             </>
           )}
-          {!ready && !building && (
-            <button className="btn-primary" onClick={() => run({ rebuild: preview?.status === 'failed' })}><Sparkles size={13} /> {preview?.status === 'failed' ? 'Try again' : 'Build concept'}</button>
+          {!ready && (
+            <>
+              <button className="btn-primary" onClick={async () => { try { await navigator.clipboard.writeText(prompt); showToast('Prompt copied. Paste it in a new Claude chat.', 'success') } catch { window.prompt('Copy this into a new Claude chat', prompt) } }}><Sparkles size={13} /> Copy build prompt</button>
+              <button className="btn-ghost" onClick={attach} disabled={running}><Copy size={13} /> Save concept link</button>
+            </>
           )}
           {!ready && building && !running && (
             <button className="btn-ghost" onClick={() => run()}><Loader2 size={13} /> Continue now</button>

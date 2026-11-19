@@ -246,7 +246,7 @@ async function photoToJpeg(buf: Buffer): Promise<{ jpg: Buffer; w: number; h: nu
   } catch { return null }
 }
 
-export async function buildKit(lead: any, slug: string, deadline: number): Promise<SiteKit> {
+export async function buildKit(lead: any, slug: string, deadline: number, track = true): Promise<SiteKit> {
   let target = String(lead.website || '').trim()
   if (!target) throw new Error('This lead has no website to work from')
   if (!target.startsWith('http')) target = 'https://' + target
@@ -278,7 +278,7 @@ export async function buildKit(lead: any, slug: string, deadline: number): Promi
     desktopShot = await within(page.screenshot({ type: 'jpeg', quality: 70 }).then((b: any) => Buffer.from(b)), 15_000, null)
     raw = await within(page.evaluate(EXTRACT), 20_000, null)
     if (!raw) throw new Error('could not read the page')
-    await progress(lead.id, 'homepage read')
+    if (track) await progress(lead.id, 'homepage read')
 
     for (const href of (raw.internal || []).slice(0, 3)) {
       if (Date.now() > deadline - 170_000) break
@@ -307,7 +307,7 @@ export async function buildKit(lead: any, slug: string, deadline: number): Promi
     await closeBrowser(browser)
   }
   if (!raw) throw new Error('Could not read their website')
-  await progress(lead.id, 'site read, collecting logo and photos')
+  if (track) await progress(lead.id, 'site read, collecting logo and photos')
 
   // Logo
   let logo: Asset | null = null

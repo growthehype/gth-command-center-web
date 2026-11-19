@@ -210,6 +210,17 @@ export const TOOLS = [
     annotations: { destructiveHint: true },
   },
   {
+    name: 'get_lead_brief',
+    description: "Everything about a lead from the Agents section, so a homepage concept can be built in this chat: their CRM record (score, why they qualified, contact, services), a fresh read of their Google profile (rating, reviews with text, hours, category, address), and a browser read of their website (all page text, navigation, testimonials, colours, fonts, footer, screenshots) with their logo and photos copied to links you can download. The first call for a lead starts the website read; call again after about two minutes to get the site part. Use only these facts in what you build.",
+    inputSchema: { type: 'object', properties: { business: { type: 'string', description: 'Lead name as it appears in the CRM' } }, required: ['business'] },
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: 'attach_concept',
+    description: "Save the live link of a homepage concept built for a lead (after Omar has seen it). Marks it approved, so the lead's unsent first email is rewritten as a draft that shares the link. Never sends anything.",
+    inputSchema: { type: 'object', properties: { business: { type: 'string' }, url: { type: 'string', description: 'https link to the live concept' } }, required: ['business', 'url'] },
+  },
+  {
     name: 'get_concept',
     description: "Everything needed to turn a lead's homepage concept into their real website in this chat: the concept's full HTML (design, copy, motion), its live link, and what was collected from their current site (logo, photos, colours, services, contact details, hours, testimonials). Use it when Omar says a lead said yes, or asks to build out a concept. Build the full site from the concept's design system, keeping its look, and only use facts from what is returned.",
     inputSchema: { type: 'object', properties: { business: { type: 'string', description: 'Lead or client name' }, include_html: { type: 'boolean', description: 'Default true' } }, required: ['business'] },
@@ -625,6 +636,38 @@ async function updateTime(userId: string, a: Args) {
 }
 
 const PREVIEW_SITE = 'https://growthehype-previews.netlify.app'
+async function pickLead(userId: string, business: unknown) {
+  const { findLeads } = await import('./lead-brief')
+  const q = str(business, 120)
+  if (!q) throw new ToolError('Which lead?')
+  const leads = await findLeads(userId, q)
+  if (!leads.length) throw new ToolError(`No lead matches "${q}".`)
+  const exact = leads.filter((l: any) => l.name.toLowerCase() === q.toLowerCase())
+  if (exact.length >= 1) return exact[0]
+  if (leads.length > 1) throw new ToolError(`Several leads match: ${leads.map((l: any) => l.name).join('; ')}. Use the exact name.`)
+  return leads[0]
+}
+
+async function getLeadBrief(userId: string, a: Args) {
+  const { leadBrief } = await import('./lead-brief')
+  const lead = await pickLead(userId, a.business)
+  return leadBrief(userId, lead, { startScrape: async (id: string) => { await getAdminClient().rpc('queue_lead_scrape', { p_lead: id }) } })
+}
+
+async function attachConcept(userId: string, a: Args) {
+  const lead: any = await pickLead(userId, a.business)
+  const url = str(a.url, 400)
+  if (!/^https:\/\/[^\s]+$/i.test(url)) throw new ToolError('Give the full https link to the live concept.')
+  const sb = getAdminClient()
+  const e = lead.enrichment_data || {}
+  const preview = { ...(e.preview || {}), status: 'ready', url, handmade: true, approved: true, rejected: false, approved_at: new Date().toISOString(), step: 'done', error: null, built_at: new Date().toISOString() }
+  await sb.from('outreach_leads').update({ enrichment_data: { ...e, preview } }).eq('id', lead.id)
+  const { redraftAfterConcept } = await import('./email-generator')
+  const r: any = await redraftAfterConcept(lead.id).catch((err: any) => ({ error: String(err?.message || err) }))
+  await logActivity(userId, 'update', `Homepage concept attached for ${lead.name}: ${url}`, 'lead', lead.id)
+  return { saved: true, lead: lead.name, url, first_email: r?.skipped ? `not rewritten (${r.skipped})` : r?.error ? `not rewritten: ${r.error}` : 'rewritten as a draft with the link, ready for Omar to review in Agents' }
+}
+
 async function getConcept(userId: string, a: Args) {
   const sb = getAdminClient()
   const q = str(a.business, 120).replace(/[%_]/g, '')
@@ -723,6 +766,8 @@ export async function callTool(userId: string, name: string, args: Args) {
     case 'log_work': return logWork(userId, args)
     case 'time_summary': return timeSummary(userId, args)
     case 'get_concept': return getConcept(userId, args)
+    case 'get_lead_brief': return getLeadBrief(userId, args)
+    case 'attach_concept': return attachConcept(userId, args)
     case 'list_time': return listTime(userId, args)
     case 'update_time': return updateTime(userId, args)
     case 'create_invoice_draft': return createInvoiceDraft(userId, args)
