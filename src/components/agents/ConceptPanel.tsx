@@ -88,7 +88,11 @@ export default function ConceptPanel({ lead, canRewriteEmails, onRewriteEmails }
   const ready = preview?.status === 'ready' && preview?.url
   // Concepts are built by hand in a Claude chat now; the CRM only holds the link
   const building = false
-  const prompt = `Pull the lead brief for "${lead.name}" from the Command Center and build their homepage concept.`
+  const prompt = `Pull the lead brief for "${lead.name}" from the Command Center (get_lead_brief) and build their homepage concept to the Grow The Hype build standard it includes, the same level as our Tetz Powell, NAKH, Ideal Integration, T&C and Granville House builds.
+
+Use the skills in the order the standard gives: site-architecture, impeccable (init, shape, then audit and polish), design-taste-frontend, frontend-design, high-end-visual-design (selectively), emil-design-eng, animate, find-animation-opportunities, mobile-native, copy-editing, seo-audit, ai-seo, page-cro, review-animations and full-output-enforcement.
+
+It has to look like a $250,000 custom build, 10 out of 10, with nothing that reads as a template or AI. Check their logo is really their logo and tell me if the photos aren't good enough before you build around them. Fully custom HTML on Netlify. Send me the live link and a zip, and only attach the concept to the lead after I approve it.`
   const attach = async () => {
     const url = window.prompt(`Paste the live link to ${lead.name}'s concept`)?.trim()
     if (!url) return

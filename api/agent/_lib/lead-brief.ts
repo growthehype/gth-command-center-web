@@ -4,6 +4,7 @@
 // with the images copied to our own storage so any chat can download them.
 import { getAdminClient } from './supabase-admin'
 import { buildKit, slugify } from './preview'
+import { BUILD_STANDARD } from './build-standard'
 
 const STORAGE = 'https://lihziucupctxwayijeoc.supabase.co/storage/v1/object/public/lead-previews'
 
@@ -107,6 +108,7 @@ export async function leadBrief(userId: string, lead: any, opts: { startScrape: 
     },
     google,
     site,
-    next: 'Build the homepage concept in this chat from these facts and assets only. When it is live, give Omar the link and call attach_concept with it so the first email can share it after he approves.',
+    build_standard: BUILD_STANDARD,
+    next: 'Follow build_standard exactly. Build the homepage concept from these facts and assets only, deploy it, give Omar the link, and call attach_concept only after he approves it.',
   }
 }
