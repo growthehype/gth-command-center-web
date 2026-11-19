@@ -210,6 +210,12 @@ export const TOOLS = [
     annotations: { destructiveHint: true },
   },
   {
+    name: 'get_concept',
+    description: "Everything needed to turn a lead's homepage concept into their real website in this chat: the concept's full HTML (design, copy, motion), its live link, and what was collected from their current site (logo, photos, colours, services, contact details, hours, testimonials). Use it when Omar says a lead said yes, or asks to build out a concept. Build the full site from the concept's design system, keeping its look, and only use facts from what is returned.",
+    inputSchema: { type: 'object', properties: { business: { type: 'string', description: 'Lead or client name' }, include_html: { type: 'boolean', description: 'Default true' } }, required: ['business'] },
+    annotations: { readOnlyHint: true },
+  },
+  {
     name: 'time_summary',
     description: 'Hours and money per client for a date range: revenue paid, Omar\'s hours, Claude hours, human-equivalent hours and effective hourly rate.',
     inputSchema: { type: 'object', properties: { start_date: { type: 'string' }, end_date: { type: 'string' }, client: { type: 'string' } } },
@@ -618,6 +624,43 @@ async function updateTime(userId: string, a: Args) {
   return { updated: true, minutes: patch.duration_minutes ?? cur.duration_minutes, human_hours: Math.round((patch.human_minutes ?? cur.human_minutes ?? 0) / 6) / 10 }
 }
 
+const PREVIEW_SITE = 'https://growthehype-previews.netlify.app'
+async function getConcept(userId: string, a: Args) {
+  const sb = getAdminClient()
+  const q = str(a.business, 120).replace(/[%_]/g, '')
+  if (!q) throw new ToolError('Which business?')
+  const { data: leads } = await sb.from('outreach_leads').select('id, name, website, email, phone, address, industry, contact_name, rating, enrichment_data').eq('user_id', userId).ilike('name', `%${q}%`).limit(5)
+  const withConcept = (leads || []).filter((l: any) => l.enrichment_data?.preview?.slug)
+  if (!withConcept.length) throw new ToolError(leads?.length ? `No homepage concept has been built for ${leads[0].name} yet.` : `No lead found matching "${q}".`)
+  if (withConcept.length > 1) return { pick_one: withConcept.map((l: any) => l.name) }
+  const l: any = withConcept[0]
+  const p = l.enrichment_data.preview
+  const read = async (path: string) => {
+    const { data } = await sb.storage.from('lead-previews').download(`${p.slug}/${path}`)
+    return data ? await data.text() : null
+  }
+  const kitText = await read('kit.json')
+  let kit: any = null
+  try { kit = kitText ? JSON.parse(kitText) : null } catch { /* unreadable kit */ }
+  const html = a.include_html === false ? undefined : ((await read('index.html')) || (await read('draft.html')) || '').slice(0, 220_000)
+  const e = l.enrichment_data || {}
+  return {
+    business: l.name, industry: l.industry, current_website: l.website, email: l.email, phone: l.phone, address: l.address, contact: l.contact_name || e.decision_makers?.[0]?.name || null,
+    concept: { status: p.status, live_link: p.url || null, review_score: p.review?.score ?? null, review_notes: p.review?.notes || [] },
+    collected_from_their_site: kit ? {
+      title: kit.title, description: kit.description, nav: kit.nav, headings: kit.headings, phones: kit.phones, emails: kit.emails, socials: kit.socials,
+      booking_links: kit.bookingLinks, address: kit.address, hours: kit.hours, testimonials: kit.testimonials, colours: kit.colours, fonts: kit.fonts,
+      logo: kit.logo?.path ? `${PREVIEW_SITE}/${p.slug}/${kit.logo.path}` : null,
+      photos: (kit.photos || []).map((x: any) => x?.path ? { url: `${PREVIEW_SITE}/${p.slug}/${x.path}`, alt: x.alt || '' } : null).filter(Boolean),
+      asset_note: 'The concept HTML refers to these files by relative path (e.g. assets/...). They live at the live link + that path.',
+      page_text: String(kit.text || '').slice(0, 6000), other_pages: (kit.extraPages || []).map((x: any) => ({ url: x.url, text: String(x.text || '').slice(0, 2500) })),
+    } : null,
+    services: e.services_found || [], summary: e.website_summary || null,
+    html,
+    how_to_build: 'Start from this HTML: keep its design system (type, colours, spacing, motion) and turn it into the full multi-page site the client needs (home, services, about, contact, plus anything their current site has). Use their real photos and logo from the URLs above (download them into the project), and only facts from what is listed here or what Omar gives you. Deliver as a static site ready for Netlify, as with Omar\'s other client sites.',
+  }
+}
+
 async function timeSummary(userId: string, a: Args) {
   const sb = getAdminClient()
   const t = today()
@@ -679,6 +722,7 @@ export async function callTool(userId: string, name: string, args: Args) {
     case 'start_work': return startWork(userId, args)
     case 'log_work': return logWork(userId, args)
     case 'time_summary': return timeSummary(userId, args)
+    case 'get_concept': return getConcept(userId, args)
     case 'list_time': return listTime(userId, args)
     case 'update_time': return updateTime(userId, args)
     case 'create_invoice_draft': return createInvoiceDraft(userId, args)

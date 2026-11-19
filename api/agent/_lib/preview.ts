@@ -644,7 +644,7 @@ async function loadRefScript(): Promise<string> {
 export async function generateScript(html: string, deadline: number, slug = ''): Promise<string> {
   const ref = await loadRefScript()
   const { text, stop } = await streamClaude({
-    max_tokens: 9000,
+    max_tokens: 32000,
     system: [
       { type: 'text', text: SCRIPT_SYSTEM },
       ...(ref ? [{ type: 'text', text: `SHIPPED main.js (the bar):\n${ref}`, cache_control: { type: 'ephemeral' } }] : []),
@@ -796,7 +796,7 @@ ${kit.extraPages.map(p => `Text from ${p.url}: ${p.text}`).join('\n')}`,
     headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY || '', 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
       model: MODEL_DESIGN,
-      max_tokens: 8000,
+      max_tokens: 16000,
       system: `You are the creative director at Grow The Hype reviewing a homepage concept before Omar sends it to a prospect. Omar's bar: it must look like a quarter-million-dollar custom build, with nothing that reads as a template or as AI. Be exacting about: alignment (shared edges, columns, baselines; Omar hates uneven lines), type scale and rhythm, spacing, image cropping, logo treatment (never a white box on a dark background, never stretched, always legible), contrast, the phone layout, anything broken or overlapping, banned patterns (eyebrow labels above headings, section numbers, identical icon cards, gradient text, emoji, italic accent words in headings), copy (no invented facts, no clichés, no exclamation marks, no dashes, Canadian spelling), and that every link works. Fix what you can with exact search-and-replace edits on the source. Only remove a fact if it is not supported anywhere in what we collected. Use verdict "rebuild" if the concept as a whole is weak; Omar only sends pages that score 8 or more after your edits, so be honest.`,
       tools: [REVIEW_TOOL],
       tool_choice: { type: 'auto' },
@@ -844,6 +844,20 @@ async function uniqueSlug(lead: any): Promise<string> {
   if (!data?.length) return base
   const city = slugify(String(lead.location || '').split(',')[0])
   return `${base}-${city || String(lead.id).slice(0, 4)}`.slice(0, 70)
+}
+
+/** Queue a concept for one lead: the background builder picks it up and finishes it. */
+export async function startPreview(leadId: string) {
+  const sb = getAdminClient()
+  const { data: lead } = await sb.from('outreach_leads').select('*').eq('id', leadId).single()
+  if (!lead) throw new Error('Lead not found')
+  const p = lead.enrichment_data?.preview
+  if (p && p.status !== 'failed') return p
+  if (p?.status === 'failed') {
+    // Retry from where it stopped (kit and page are kept)
+    return savePreviewState(leadId, { status: p.status === 'failed' && p.attempts ? 'generated' : 'kit', errors: 0, error: null, step: 'done' } as any)
+  }
+  return savePreviewState(leadId, { status: 'kit', slug: await uniqueSlug(lead), attempts: 0, errors: 0, error: null, started_at: new Date().toISOString(), feedback: [], step: 'done' } as any)
 }
 
 /**

@@ -72,6 +72,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ ok: true, ...r })
       } catch (e: any) { return res.status(200).json({ ok: false, error: String(e?.message || e).slice(0, 300) }) }
     }
+    // Queue concepts for these leads; the builder below (and the cron) finishes them
+    if (Array.isArray(body.startLeads)) {
+      const { startPreview } = await import('./_lib/preview')
+      const out: any[] = []
+      for (const id of body.startLeads.slice(0, 10)) out.push(await startPreview(String(id)).then(p => ({ id, status: p?.status }), (e: any) => ({ id, error: String(e?.message || e) })))
+      return res.status(200).json({ queued: out })
+    }
     // Health check: can the server start Chrome and screenshot a page?
     if (body.browserCheck) {
       const t0 = Date.now()
