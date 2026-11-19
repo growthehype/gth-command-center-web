@@ -97,10 +97,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       } catch (e: any) { return res.status(200).json({ ok: false, error: String(e?.message || e).slice(0, 300) }) }
     }
     const { data: configs } = await sb.from('agent_configs').select('id, agent_name, config').eq('enabled', true)
-    const agents = (configs || []).filter((c: any) => c.config?.profile === 'gth' && c.config?.build_previews !== false && !spendLevel(c.config))
+    const agents = (configs || []).filter((c: any) => c.config?.profile === 'gth' && spendLevel(c.config) !== 'off')
     const done: any[] = []
     for (const a of agents) {
-      const leads = await leadsNeedingPreview(a.id, 3)
+      const auto = a.config?.build_previews !== false && !spendLevel(a.config)
+      const leads = await leadsNeedingPreview(a.id, 3, { startedOnly: !auto })
       for (const l of leads) {
         // A page draft takes several minutes; only start a stage with room left
         if (done.length) break // each stage can use most of one call

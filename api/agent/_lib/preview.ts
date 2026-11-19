@@ -951,19 +951,19 @@ export async function advancePreview(leadId: string, opts: { deadline: number; r
 }
 
 /** Hot leads that should get a concept, oldest first. */
-export async function leadsNeedingPreview(agentConfigId: string, limit = 5): Promise<any[]> {
+export async function leadsNeedingPreview(agentConfigId: string, limit = 5, opts: { startedOnly?: boolean } = {}): Promise<any[]> {
   const sb = getAdminClient()
-  const { data } = await sb.from('outreach_leads')
+  // startedOnly: automatic building is off, but concepts Omar started by hand still finish in the background
+  let q = sb.from('outreach_leads')
     .select('id, name, website, qualification_score, enrichment_data')
     .eq('agent_config_id', agentConfigId)
-    .gte('qualification_score', PREVIEW_MIN_SCORE)
     .not('website', 'is', null)
-    .order('qualification_score', { ascending: false })
-    .limit(50)
+  q = opts.startedOnly ? q.not('enrichment_data->preview', 'is', null) : q.gte('qualification_score', PREVIEW_MIN_SCORE)
+  const { data } = await q.order('qualification_score', { ascending: false }).limit(50)
   return (data || []).filter((l: any) => {
     const p = l.enrichment_data?.preview
     if (l.enrichment_data?.user_feedback === 'bad') return false
-    if (!p) return true
+    if (!p) return !opts.startedOnly
     if (p.status === 'ready' || p.status === 'failed') return false
     return (p.attempts || 0) < 3 && (p.errors || 0) < 3
   }).slice(0, limit)
