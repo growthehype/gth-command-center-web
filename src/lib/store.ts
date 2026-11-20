@@ -75,7 +75,7 @@ export interface ActivityEntry {
 }
 
 export interface TimeEntry {
-  id: string; project_id: string | null; project_title?: string; client_id: string | null; client_name?: string; started_at: string; ended_at: string | null; duration_minutes: number | null; notes: string | null; billable: number | boolean; source?: 'manual' | 'timer' | 'claude' | 'calendar'; human_minutes?: number | null; work_type?: string | null; description?: string | null; external_id?: string | null; timing?: 'measured' | 'estimate' | 'reconstructed'; segments?: { start: string; end: string; seconds: number; note?: string }[] | null
+  id: string; project_id: string | null; project_title?: string; client_id: string | null; client_name?: string; started_at: string; ended_at: string | null; duration_minutes: number | null; notes: string | null; billable: number | boolean; source?: 'manual' | 'timer' | 'claude' | 'calendar'; human_minutes?: number | null; work_type?: string | null; description?: string | null; external_id?: string | null; timing?: 'measured' | 'estimate' | 'reconstructed'; segments?: { start: string; end: string; seconds: number; note?: string }[] | null; estimate?: { method?: string; lines?: { label: string; qty: number; unit: string; each: number; hours: number; note?: string }[]; revised?: { reason: string; previous_hours: number }; omar_set_hours?: number } | null
 }
 
 export interface Credential {

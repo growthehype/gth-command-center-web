@@ -45,6 +45,8 @@ async function resolveClient(userId: string, ref: any, required = true) {
   throw new ToolError(`"${q}" matches several clients: ${rows.map(r => `${r.name} (${r.id})`).join('; ')}. Use the exact name or id.`)
 }
 
+import { priceEstimate, RATE_CARD_TEXT } from './rate-card'
+
 async function logActivity(userId: string, type: string, description: string, entity?: string, entityId?: string | null) {
   await getAdminClient().from('activity_log').insert({ user_id: userId, type, entity: entity || null, entity_id: entityId || null, description: description.slice(0, 500), timestamp: new Date().toISOString() }).then(() => {}, () => {})
 }
@@ -179,7 +181,7 @@ export const TOOLS = [
   },
   {
     name: 'log_work',
-    description: "Record time on client work. For Claude work, pass the work_id from start_work as the last step of your reply: the CRM measures the real time between start_work and now and adds it to the same entry each round, so the entry shows exactly how long the work took. Also give human_hours: how long a skilled agency team would need for ALL of this piece of work so far by hand, without AI (an estimate; say it to Omar in one line). Only if start_work was not called (forgot, or work from an earlier chat) give claude_minutes as an estimate; it will be marked as an estimate. kind 'omar' = Omar's own time he tells you about (calls, meetings, site visits, shoots): give minutes.",
+    description: `Record time on client work. For Claude work, pass the work_id from start_work as the last step of your reply: the CRM measures the real time between start_work and now and adds it to the same entry each round, so the entry shows exactly how long the work took. Also give breakdown: the by-hand estimate as rate-card lines for the work done IN THIS REPLY only (the CRM prices each line and adds rounds together, so never repeat earlier rounds). Count real quantities (pages, screens, slides, features, emails, words) and pick the matching item; the CRM sets the hours, you never pick a total. Rate card: ${RATE_CARD_TEXT}. If nothing fits, use your own item with hours per unit and a note explaining it. Tell Omar the lines in one short list. Only if start_work was not called (forgot, or work from an earlier chat) give claude_minutes as an estimate; it will be marked as an estimate. kind 'omar' = Omar's own time he tells you about (calls, meetings, site visits, shoots): give minutes.`,
     inputSchema: { type: 'object', properties: {
       client: { type: 'string' },
       project: { type: 'string', description: 'Project title (optional)' },
@@ -188,7 +190,8 @@ export const TOOLS = [
       work_type: { type: 'string', enum: ['design', 'development', 'copywriting', 'strategy', 'ads', 'email', 'admin', 'meeting', 'video', 'other'] },
       work_id: { type: 'string', description: 'From start_work: the time is measured, not estimated' },
       claude_minutes: { type: 'number', description: 'Only when there is no work_id (marked as an estimate)' },
-      human_hours: { type: 'number' },
+      breakdown: { type: 'array', description: 'By-hand estimate lines for this reply: [{item, qty, note}] using rate-card keys', items: { type: 'object', properties: { item: { type: 'string' }, qty: { type: 'number' }, note: { type: 'string' }, hours: { type: 'number', description: 'Only for an item not on the rate card: hours per unit' } }, required: ['item', 'qty'] } },
+      human_hours: { type: 'number', description: 'Do not use for Claude work; use breakdown. Kept for old callers.' },
       minutes: { type: 'number', description: "For kind 'omar': his time in minutes" },
       date: { type: 'string', description: 'YYYY-MM-DD (default today)' },
       billable: { type: 'boolean', description: 'Default true' },
@@ -202,9 +205,10 @@ export const TOOLS = [
   },
   {
     name: 'update_time',
-    description: "Correct or remove a time entry. Use list_time first to get the id. Set only what changes: claude_minutes or minutes (the time actually spent), human_hours, description, date, client, billable. delete=true removes it.",
+    description: "Correct or remove a time entry. Use list_time first to get the id (it shows each entry's by-hand breakdown). Set only what changes: claude_minutes or minutes (the time actually spent), description, date, client, billable. To change a by-hand estimate, send the corrected breakdown with reason naming the line that was wrong (a wrong quantity or wrong item); never re-guess a total because Omar asked. human_hours only when Omar himself gives the number (set omar_says true). delete=true removes it.",
     inputSchema: { type: 'object', properties: {
-      id: { type: 'string' }, claude_minutes: { type: 'number' }, minutes: { type: 'number' }, human_hours: { type: 'number' },
+      id: { type: 'string' }, claude_minutes: { type: 'number' }, minutes: { type: 'number' }, human_hours: { type: 'number' }, omar_says: { type: 'boolean' },
+      breakdown: { type: 'array', items: { type: 'object', properties: { item: { type: 'string' }, qty: { type: 'number' }, note: { type: 'string' }, hours: { type: 'number' } }, required: ['item', 'qty'] } }, reason: { type: 'string' },
       description: { type: 'string' }, date: { type: 'string', description: 'YYYY-MM-DD' }, client: { type: 'string' }, billable: { type: 'boolean' }, delete: { type: 'boolean' },
     }, required: ['id'] },
     annotations: { destructiveHint: true },
@@ -529,8 +533,13 @@ async function logMeasured(userId: string, a: Args) {
   const segments = [...(e.segments || []), { start: e.open_since, end: end.toISOString(), seconds: secs, note: str(a.description, 200) || undefined }]
   const total = segments.reduce((s: number, x: any) => s + (Number(x.seconds) || 0), 0)
   const minutes = Math.max(1, Math.round(total / 60))
-  const human = a.human_hours != null ? Math.round(Number(a.human_hours) * 60) : e.human_minutes
-  if (!(human > 0)) throw new ToolError('human_hours is required: how long this piece of work would take a skilled agency by hand.')
+  // By hand: this reply's rate-card lines are priced by the CRM and added to earlier rounds
+  if (!Array.isArray(a.breakdown) || !a.breakdown.length) throw new ToolError('breakdown is required: list the by-hand work done in this reply as rate-card lines, e.g. [{"item":"app_screen","qty":2},{"item":"automated_tests","qty":12}].')
+  const priced = priceEstimate(a.breakdown)
+  if (priced.problems.length) throw new ToolError(priced.problems.join('; '))
+  const prevLines = (e.estimate?.lines || []) as any[]
+  const lines = [...prevLines, ...priced.lines.map(l => ({ ...l, round: segments.length }))]
+  const human = Math.round(lines.reduce((s2: number, l: any) => s2 + Number(l.hours || 0), 0) * 60)
   const desc = str(a.description, 300) || e.description
   let projectId = e.project_id
   if (a.project && !projectId) {
@@ -538,14 +547,14 @@ async function logMeasured(userId: string, a: Args) {
     projectId = data?.[0]?.id || null
   }
   const { error } = await sb.from('time_entries').update({
-    segments, open_since: null, duration_minutes: minutes, human_minutes: human, description: desc, notes: desc, project_id: projectId,
+    segments, open_since: null, duration_minutes: minutes, human_minutes: human, estimate: { method: 'rate_card', lines }, description: desc, notes: desc, project_id: projectId,
     work_type: a.work_type || e.work_type, ended_at: end.toISOString(), billable: a.billable != null ? a.billable !== false : e.billable,
   }).eq('id', e.id)
   if (error) throw new ToolError(error.message)
   if (segments.length === 1) await logActivity(userId, 'create', `${desc} (Claude, timed)`, 'time', e.id)
   await touchClient(e.client_id)
   const fmt = (s: number) => s < 60 ? `${s} sec` : `${Math.round(s / 6) / 10} min`
-  return { logged: true, measured: true, this_round: fmt(secs), rounds: segments.length, total_minutes: minutes, human_equivalent_hours: Math.round(human / 6) / 10 }
+  return { logged: true, measured: true, this_round: fmt(secs), rounds: segments.length, total_minutes: minutes, human_equivalent_hours: Math.round(human / 6) / 10, by_hand_this_round: priced.lines.map(l => `${l.qty} × ${l.label} = ${l.hours} h`) }
 }
 
 async function logWork(userId: string, a: Args) {
@@ -568,13 +577,20 @@ async function logWork(userId: string, a: Args) {
   const isClaude = a.kind !== 'omar'
   const minutes = Math.round(Number(isClaude ? a.claude_minutes : a.minutes) || 0)
   if (!(minutes > 0) || minutes > 24 * 60) throw new ToolError(isClaude ? 'claude_minutes must be between 1 and 1440.' : 'minutes must be between 1 and 1440.')
-  const human = isClaude ? Math.round((Number(a.human_hours) || 0) * 60) : minutes
-  if (isClaude && !(human > 0)) throw new ToolError('human_hours is required for Claude work.')
+  let estimate: any = null
+  let human = minutes
+  if (isClaude) {
+    if (!Array.isArray(a.breakdown) || !a.breakdown.length) throw new ToolError('breakdown is required for Claude work: list the by-hand work as rate-card lines.')
+    const priced = priceEstimate(a.breakdown)
+    if (priced.problems.length) throw new ToolError(priced.problems.join('; '))
+    estimate = { method: 'rate_card', lines: priced.lines }
+    human = Math.round(priced.total * 60)
+  }
   const start = new Date(`${day}T12:00:00Z`)
   const { data, error } = await sb.from('time_entries').insert({
     user_id: userId, client_id: c.id, project_id: projectId, source: isClaude ? 'claude' : 'manual',
     started_at: start.toISOString(), ended_at: new Date(start.getTime() + minutes * 60000).toISOString(),
-    duration_minutes: minutes, human_minutes: human, work_type: a.work_type || null, description: desc, notes: desc, billable: a.billable !== false,
+    duration_minutes: minutes, human_minutes: human, estimate, work_type: a.work_type || null, description: desc, notes: desc, billable: a.billable !== false,
   }).select('id').single()
   if (error) throw new ToolError(error.message)
   await logActivity(userId, 'create', `${c.name}: ${desc} (${isClaude ? `Claude ${minutes} min, ${Math.round(human / 6) / 10} h by hand` : `${minutes} min of your time`})`, 'time', data.id)
@@ -585,7 +601,7 @@ async function logWork(userId: string, a: Args) {
 async function listTime(userId: string, a: Args) {
   const sb = getAdminClient()
   const names = await clientNames(userId)
-  let q = sb.from('time_entries').select('id, client_id, source, timing, segments, description, notes, duration_minutes, human_minutes, started_at, billable').eq('user_id', userId).not('duration_minutes', 'is', null).order('started_at', { ascending: false }).order('id').limit(Math.min(50, Math.max(1, Number(a.limit) || 15)))
+  let q = sb.from('time_entries').select('id, client_id, source, timing, segments, estimate, description, notes, duration_minutes, human_minutes, started_at, billable').eq('user_id', userId).not('duration_minutes', 'is', null).order('started_at', { ascending: false }).order('id').limit(Math.min(50, Math.max(1, Number(a.limit) || 15)))
   if (a.client) { const c = await resolveClient(userId, a.client); q = q.eq('client_id', c.id) }
   const { data, error } = await q
   if (error) throw new ToolError(error.message)
@@ -594,6 +610,7 @@ async function listTime(userId: string, a: Args) {
     description: e.description || e.notes, minutes: e.duration_minutes, human_hours: e.human_minutes != null ? Math.round(e.human_minutes / 6) / 10 : null,
     date: new Date(e.started_at).toLocaleDateString('en-CA', { timeZone: 'America/Edmonton' }), billable: e.billable,
     timing: e.timing, rounds: Array.isArray(e.segments) ? e.segments.length : undefined,
+    by_hand_breakdown: e.estimate?.lines ? e.estimate.lines.map((l: any) => `${l.qty} × ${l.label} = ${l.hours} h`) : (e.source === 'claude' ? 'no breakdown (logged before the rate card)' : undefined),
   }))
 }
 
@@ -617,8 +634,17 @@ async function updateTime(userId: string, a: Args) {
     if (cur.source !== 'claude') patch.human_minutes = m
     else if (cur.timing !== 'measured') patch.timing = 'reconstructed'
   }
-  if (a.human_hours != null) {
+  if (Array.isArray(a.breakdown) && a.breakdown.length) {
+    if (cur.source !== 'claude') throw new ToolError('A by-hand breakdown only applies to Claude work.')
+    if (!str(a.reason, 300)) throw new ToolError('Say which line was wrong and why (reason).')
+    const priced = priceEstimate(a.breakdown)
+    if (priced.problems.length) throw new ToolError(priced.problems.join('; '))
+    patch.estimate = { method: 'rate_card', lines: priced.lines, revised: { at: new Date().toISOString(), reason: str(a.reason, 300), previous_hours: Math.round((cur.human_minutes || 0) / 6) / 10 } }
+    patch.human_minutes = Math.round(priced.total * 60)
+  } else if (a.human_hours != null) {
     if (cur.source !== 'claude') throw new ToolError('human_hours only applies to Claude work.')
+    if (a.omar_says !== true) throw new ToolError('Do not re-guess the by-hand total. Show Omar the breakdown from list_time; if a line is wrong, send a corrected breakdown with a reason. Use human_hours only when Omar gives the number himself (omar_says: true).')
+    patch.estimate = { ...(cur.estimate || {}), omar_set_hours: Number(a.human_hours), at: new Date().toISOString() }
     const h = Math.round(Number(a.human_hours) * 60)
     if (!(h > 0)) throw new ToolError('human_hours must be more than 0.')
     patch.human_minutes = h
@@ -780,7 +806,7 @@ export const SERVER_INSTRUCTIONS = `This is Omar's Command Center, the CRM for G
 - When something goes to a client or prospect and Omar is now waiting on them (a proposal, a site to approve, a meeting to book), add_task with waiting=true, e.g. "Waiting on Wendy to approve the new website", due on the day to check in. New prospects get add_client with status prospect first.
 - Before adding a task or client, check with find_client so nothing is duplicated.
 - Use clear, short task names in plain Canadian English.
-- Track time, measured not guessed: at the very start of any reply where you will do work for a client, call start_work before anything else (pass the work_id from earlier in this chat to resume the same piece of work). As the last step of that reply, call log_work with the work_id and human_hours (your estimate of what a skilled agency would need by hand for this piece so far). The CRM times the reply itself, so never estimate Claude time when you have a work_id. Tell Omar in one line, e.g. "Logged: 14 min of Claude time (timed), about 6 h by hand". If Omar corrects a number, use list_time and update_time. When Omar mentions his own time (a call, a meeting, a shoot), log_work with kind 'omar'. Calendar meetings with clients are logged automatically.
+- Track time, measured not guessed: at the very start of any reply where you will do work for a client or lead, call start_work before anything else (pass the work_id from earlier in this chat to resume the same piece of work). As the last step of that reply, call log_work with the work_id and a breakdown of the by-hand work done in that reply as rate-card lines (real quantities: pages, screens, slides, features, emails). The CRM times Claude and prices the by-hand hours, so you never pick totals. Tell Omar in one line plus the lines. If Omar questions a by-hand number, show the breakdown from list_time and fix only a line that is actually wrong (quantity or item), with update_time and a reason; never halve or re-guess a total to agree with him. File time only under the client or lead the work was for; if unsure which, ask. When Omar mentions his own time, log_work with kind 'omar'. Calendar meetings with clients are logged automatically.
 - Invoices are only ever created as drafts. Never claim an email or invoice was sent.
 - When Omar asks what's on his plate, call get_overview, and list_calendar for today's meetings.
 - You can add or move events in his Google Calendar (no guests, no invitations). Confirm the day and time back to him.`

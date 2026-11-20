@@ -319,6 +319,22 @@ export function EntrySheet({ entry, clients, rate, onClose, onSaved }: { entry: 
           ) : entry.timing === 'estimate' ? <p className="te-timing-p">This number came from Claude's guess, logged before timing existed. If you know how long it really took, tap Edit and set it.</p> : null}
         </div>
       )}
+      {isC && entry.estimate?.lines?.length ? (
+        <div className="te-timing">
+          <p className="te-timing-h">By hand, line by line</p>
+          <ol className="te-rounds">
+            {entry.estimate.lines.map((l, i) => (
+              <li key={i}>
+                <span className="te-r-n">{l.qty} × {l.each}h</span>
+                <span className="te-r-when">{l.label}</span>
+                <b>{l.hours}h</b>
+                {l.note && <span className="te-r-note">{l.note}</span>}
+              </li>
+            ))}
+          </ol>
+          {entry.estimate.revised && <p className="te-timing-p">Revised from {entry.estimate.revised.previous_hours}h: {entry.estimate.revised.reason}</p>}
+        </div>
+      ) : null}
       <dl className="te-grid">
         <div><dt>{isC ? 'Claude time' : 'Time'}</dt><dd>{hrs(m)}</dd></div>
         {isC && <div><dt>By hand</dt><dd>{hrs(h)}</dd></div>}
