@@ -540,7 +540,8 @@ async function logMeasured(userId: string, a: Args) {
   const prevLines = (e.estimate?.lines || []) as any[]
   const lines = [...prevLines, ...priced.lines.map(l => ({ ...l, round: segments.length }))]
   const human = Math.round(lines.reduce((s2: number, l: any) => s2 + Number(l.hours || 0), 0) * 60)
-  const desc = str(a.description, 300) || e.description
+  // Keep what the piece of work is; each round's own note lives on its segment
+  const desc = (segments.length === 1 ? str(a.description, 300) : '') || e.description || str(a.description, 300)
   let projectId = e.project_id
   if (a.project && !projectId) {
     const { data } = await sb.from('projects').select('id').eq('user_id', userId).eq('client_id', e.client_id).ilike('title', `%${str(a.project, 120).replace(/[%_]/g, '')}%`).limit(1)
