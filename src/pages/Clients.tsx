@@ -1660,15 +1660,19 @@ function FilesTab({ client }: { client: Client }) {
         <p className="text-dim" style={{ fontSize: '13px' }}>No files for this client.</p>
       ) : (
         <div className="space-y-1">
-          {files.map(f => (
+          {[...files].sort((x, y) => Number(y.category === 'agreement') - Number(x.category === 'agreement')).map(f => (
             <div key={f.id} className="flex items-center gap-3 py-2 border-b border-border" style={{ fontSize: '13px' }}>
               {clientFileIcon(f.name)}
               <button
                 onClick={() => handlePreview(f)}
-                className="flex-1 text-left text-polar hover:text-steel truncate bg-transparent border-none p-0 cursor-pointer"
+                className="flex-1 min-w-0 text-left text-polar hover:text-steel bg-transparent border-none p-0 cursor-pointer"
                 style={{ fontSize: 'inherit' }}
               >
-                {f.name}
+                <span className="flex items-center gap-2 min-w-0">
+                  {f.category && f.category !== 'general' && <span className="badge badge-ok" style={{ textTransform: 'capitalize', flex: 'none' }}>{f.category}</span>}
+                  <span className="truncate">{f.name}</span>
+                </span>
+                {(f as any).summary && <span className="block text-dim" style={{ fontSize: '12px', marginTop: 2, whiteSpace: 'normal' }}>{(f as any).summary}</span>}
               </button>
               <span className="text-dim mono">{formatFileSize(f.size)}</span>
               <span className="text-dim mono">{relativeDate(f.uploaded_at)}</span>

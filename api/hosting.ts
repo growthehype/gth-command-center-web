@@ -65,6 +65,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { b } = await rebuildSaved(inv.user_id, String(body.previewSaved))
       return res.status(200).json({ to: b.to, cc: b.cc, subject: b.subject, body: b.body, total: b.total, problems: b.problems })
     }
+    // File a document on a client (base64), with its text and a short summary for Claude
+    if (body.storeClientFile) {
+      const f = body.storeClientFile
+      const { data: cl } = await sb.from('clients').select('id, user_id').eq('id', String(f.clientId)).single()
+      if (!cl) return res.status(404).json({ error: 'Client not found' })
+      const bytes = Buffer.from(String(f.base64 || ''), 'base64')
+      if (!bytes.length || bytes.length > 15_000_000) return res.status(400).json({ error: 'Empty or too large' })
+      const ext = String(f.name || 'file.pdf').split('.').pop()
+      const path = `${cl.user_id}/clients/${cl.id}/${String(f.category || 'general')}/${crypto.randomUUID()}.${ext}`
+      const { error: upErr } = await sb.storage.from('files').upload(path, bytes, { contentType: String(f.mime || 'application/pdf') })
+      if (upErr) return res.status(500).json({ error: upErr.message })
+      const { data: row, error } = await sb.from('client_files').insert({ user_id: cl.user_id, client_id: cl.id, category: String(f.category || 'general'), name: String(f.name), size: bytes.length, mime_type: String(f.mime || 'application/pdf'), file_path: path, uploaded_at: new Date().toISOString(), text_content: f.text || null, summary: f.summary || null }).select('id').single()
+      if (error) return res.status(500).json({ error: error.message })
+      return res.status(200).json({ ok: true, id: row.id, path })
+    }
     // Self-check of the Claude work clock: start, wait, log, then remove the test entry
     if (body.selfTest === 'timing') {
       const { callTool } = await import('./agent/_lib/crm-tools')

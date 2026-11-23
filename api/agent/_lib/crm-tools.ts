@@ -95,6 +95,12 @@ export const TOOLS = [
     annotations: { readOnlyHint: true },
   },
   {
+    name: 'get_client_documents',
+    description: "The documents on file for a client, starting with their signed agreement: what we are contracted to deliver, fees, payment terms, timeline and what is not included. Use it whenever Omar asks what we owe a client, what is in scope, what they paid for, or before quoting extra work. Returns each document's full text.",
+    inputSchema: { type: 'object', properties: { client: { type: 'string' }, category: { type: 'string', description: 'Optional: agreement, proposal, brand, other' } }, required: ['client'] },
+    annotations: { readOnlyHint: true },
+  },
+  {
     name: 'list_tasks',
     description: 'List tasks. Defaults to open tasks, soonest due first.',
     inputSchema: { type: 'object', properties: {
@@ -301,6 +307,7 @@ async function findClient(userId: string, a: Args) {
     sb.from('activity_log').select('description, timestamp').eq('user_id', userId).eq('entity_id', c.id).order('timestamp', { ascending: false }).limit(10),
     sb.from('hosting_plans').select('cadence, amount, next_date, status').eq('client_id', c.id).maybeSingle(),
   ])
+  const { data: docs } = await sb.from('client_files').select('name, category, summary, uploaded_at').eq('client_id', c.id).order('uploaded_at', { ascending: false }).limit(10)
   return {
     client: { id: c.id, name: c.name, status: c.status, service: c.service, contact: c.contact, email: c.email, phone: c.phone, website: c.website, mrr: c.mrr, last_activity: c.last_activity, notes: c.notes },
     contacts: contacts || [],
@@ -309,7 +316,18 @@ async function findClient(userId: string, a: Args) {
     recent_invoices: (invoices || []).map(i => ({ ...i, amount: money(i.amount) })),
     hosting: plan ? { ...plan, amount: money(plan.amount) } : null,
     recent_activity: (acts || []).map(x => `${x.timestamp.slice(0, 10)}: ${x.description}`),
+    documents: (docs || []).map(d => ({ name: d.name, category: d.category, summary: d.summary, added: String(d.uploaded_at).slice(0, 10) })),
   }
+}
+
+async function getClientDocuments(userId: string, a: Args) {
+  const sb = getAdminClient()
+  const c = await resolveClient(userId, a.client)
+  let q = sb.from('client_files').select('name, category, summary, text_content, uploaded_at').eq('client_id', c.id).order('uploaded_at', { ascending: false }).limit(8)
+  if (a.category) q = q.eq('category', str(a.category, 30))
+  const { data } = await q
+  if (!data?.length) return { client: c.name, documents: [], note: 'No documents on file for this client yet. Omar can add them on the client\'s Files tab.' }
+  return { client: c.name, documents: data.map(d => ({ name: d.name, category: d.category, added: String(d.uploaded_at).slice(0, 10), summary: d.summary, text: d.text_content ? d.text_content.slice(0, 30000) : '(no text saved for this file)' })) }
 }
 
 async function listTasks(userId: string, a: Args) {
@@ -780,6 +798,7 @@ export async function callTool(userId: string, name: string, args: Args) {
     case 'update_calendar_event': {
       try { return await moveOrRenameEvent(userId, args as any) } catch (e: any) { throw new ToolError(e.message) }
     }
+    case 'get_client_documents': return getClientDocuments(userId, args)
     case 'list_tasks': return listTasks(userId, args)
     case 'add_task': return addTask(userId, args)
     case 'update_task': return updateTask(userId, args)
@@ -809,6 +828,7 @@ export const SERVER_INSTRUCTIONS = `This is Omar's Command Center, the CRM for G
 - Use clear, short task names in plain Canadian English.
 - Track time, measured not guessed: at the very start of any reply where you will do work for a client or lead, call start_work before anything else (pass the work_id from earlier in this chat to resume the same piece of work). As the last step of that reply, call log_work with the work_id and a breakdown of the by-hand work done in that reply as rate-card lines (real quantities: pages, screens, slides, features, emails). The CRM times Claude and prices the by-hand hours, so you never pick totals. Tell Omar in one line plus the lines. If Omar questions a by-hand number, show the breakdown from list_time and fix only a line that is actually wrong (quantity or item), with update_time and a reason; never halve or re-guess a total to agree with him. File time only under the client or lead the work was for; if unsure which, ask. When Omar mentions his own time, log_work with kind 'omar'. Calendar meetings with clients are logged automatically.
 - Do the work, don't hand it back: when reviewing or cleaning up a client's open tasks, do every task you can finish with the tools in this chat right away (CRM updates, calendar, Netlify forms and deploys, Google Ads or other sites through the browser, invoice drafts, Gmail drafts, research, writing, plans), then close it. Bring Omar only what needs a person, as short yes/no questions he can answer in one word (e.g. "Did Tarin record his Quo voicemail?"), and close those tasks as soon as he answers. List what you did, what is left only for him, and anything you could not reach (and why), in that order.
+- Agreements: before answering what we owe a client, what is in scope, or quoting extra work, read their agreement with get_client_documents. When Omar shares a signed agreement or proposal in a chat, tell him to add it on the client's Files tab (category Agreement) so it lives in the CRM.
 - Invoices are only ever created as drafts. Never claim an email or invoice was sent.
 - When Omar asks what's on his plate, call get_overview, and list_calendar for today's meetings.
 - You can add or move events in his Google Calendar (no guests, no invitations). Confirm the day and time back to him.`
