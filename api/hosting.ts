@@ -65,6 +65,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { b } = await rebuildSaved(inv.user_id, String(body.previewSaved))
       return res.status(200).json({ to: b.to, cc: b.cc, subject: b.subject, body: b.body, total: b.total, problems: b.problems })
     }
+    // File a client document straight from a Gmail attachment (no file passes through chat)
+    if (body.storeFromGmail) {
+      const f = body.storeFromGmail
+      const { data: cl } = await sb.from('clients').select('id, user_id').eq('id', String(f.clientId)).single()
+      if (!cl) return res.status(404).json({ error: 'Client not found' })
+      const { getAccessToken } = await import('./agent/_lib/gmail-server')
+      const token = await getAccessToken(cl.user_id)
+      const g = async (u: string) => { const r = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${u}`, { headers: { Authorization: `Bearer ${token}` } }); if (!r.ok) throw new Error(`Gmail ${r.status}`); return r.json() }
+      const msg: any = await g(`messages/${encodeURIComponent(String(f.messageId))}?format=full`)
+      const parts: any[] = []
+      const walk = (p: any) => { if (!p) return; if (p.filename && p.body?.attachmentId) parts.push(p); (p.parts || []).forEach(walk) }
+      walk(msg.payload)
+      const part = parts.find(p => !f.filename || p.filename === f.filename) || parts.find(p => /pdf$/i.test(p.filename))
+      if (!part) return res.status(404).json({ error: 'No matching attachment', files: parts.map(p => p.filename) })
+      const att: any = await g(`messages/${encodeURIComponent(String(f.messageId))}/attachments/${part.body.attachmentId}`)
+      const bytes = Buffer.from(String(att.data).replace(/-/g, '+').replace(/_/g, '/'), 'base64')
+      const name = String(f.name || part.filename)
+      const path = `${cl.user_id}/clients/${cl.id}/${String(f.category || 'general')}/${crypto.randomUUID()}.${name.split('.').pop()}`
+      const { error: upErr } = await sb.storage.from('files').upload(path, bytes, { contentType: part.mimeType || 'application/pdf' })
+      if (upErr) return res.status(500).json({ error: upErr.message })
+      const { data: row, error } = await sb.from('client_files').insert({ user_id: cl.user_id, client_id: cl.id, category: String(f.category || 'general'), name, size: bytes.length, mime_type: part.mimeType || 'application/pdf', file_path: path, uploaded_at: new Date().toISOString(), summary: f.summary || null }).select('id').single()
+      if (error) return res.status(500).json({ error: error.message })
+      return res.status(200).json({ ok: true, id: row.id, attachment: part.filename, bytes: bytes.length })
+    }
     // File a document on a client (base64), with its text and a short summary for Claude
     if (body.storeClientFile) {
       const f = body.storeClientFile
